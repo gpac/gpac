@@ -590,6 +590,7 @@ void InitBooleanSequencer(GF_Node *n)
 	bs->on_previous = BooleanSequencer_setPrevious;
 	bs->on_set_fraction = BooleanSequencer_setFraction;
 	n->sgprivate->UserPrivate = (s32 *)gf_malloc(sizeof(s32));
+	if (! n->sgprivate->UserPrivate) return;
 	*(s32 *)n->sgprivate->UserPrivate = 0;
 	n->sgprivate->UserCallback = DestroyBooleanSequencer;
 }
@@ -683,6 +684,7 @@ void InitIntegerSequencer(GF_Node *n)
 	bs->on_previous = IntegerSequencer_setPrevious;
 	bs->on_set_fraction = IntegerSequencer_setFraction;
 	n->sgprivate->UserPrivate = (s32 *)gf_malloc(sizeof(s32));
+	if (! n->sgprivate->UserPrivate) return;
 	*(s32 *)n->sgprivate->UserPrivate = 0;
 	n->sgprivate->UserCallback = DestroyIntegerSequencer;
 }

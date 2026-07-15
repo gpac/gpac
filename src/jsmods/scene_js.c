@@ -1587,9 +1587,11 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 		GF_Event *evt_clone;
 		gf_mx_p(sjs->event_mx);
 		evt_clone = (GF_Event *)gf_malloc(sizeof(GF_Event));
-		memcpy(evt_clone, evt, sizeof(GF_Event));
-		gf_list_add(sjs->event_queue, evt_clone);
-		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[SCENEJS] Couldn't lock % mutex, queuing event\n", (lock_fail==2) ? "JavaScript" : "Compositor"));
+		if (evt_clone) {
+			memcpy(evt_clone, evt, sizeof(GF_Event));
+			gf_list_add(sjs->event_queue, evt_clone);
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[SCENEJS] Couldn't lock % mutex, queuing event\n", (lock_fail==2) ? "JavaScript" : "Compositor"));
+		}
 		gf_mx_v(sjs->event_mx);
 
 		if (lock_fail==2){
@@ -1903,8 +1905,8 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 {
 	GF_JSAPIParam par;
 	GF_SCENEJSExt *sjs;
-	GF_SAFEALLOC(sjs, GF_SCENEJSExt);
 	GF_SceneGraph *scene;
+	GF_SAFEALLOC(sjs, GF_SCENEJSExt);
 	if (!sjs) {
 		return -1;
 	}

@@ -217,12 +217,21 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	codecid = GF_CODECID_AFX;
 
 	dsi = (u8 *)gf_malloc(1);
+	if (!dsi) {
+		gf_free(data);
+		return GF_OUT_OF_MEM;
+	}
 	dsi_len = 1;
 	dsi[0] = GPAC_AFX_SCALABLE_COMPLEXITY;
 
 	destroy_esd = GF_FALSE;
 	if (!import->esd) {
 		import->esd = gf_odf_desc_esd_new(0);
+		if (!import->esd) {
+			gf_free(data);
+			gf_free(dsi);
+			return GF_OUT_OF_MEM;
+		}
 		destroy_esd = GF_TRUE;
 	}
 	/*update stream type/oti*/
@@ -853,6 +862,8 @@ GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size)
 
 	msize = 4096;
 	buffer = (char*)gf_malloc(msize);
+	if (!buffer) return GF_OUT_OF_MEM;
+
 	count = gf_isom_get_sample_count(file, track);
 	for (i=0; i<count; i++) {
 		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, &di);
@@ -869,6 +880,7 @@ GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size)
 			if (size>msize) {
 				msize = size;
 				buffer = (char*)gf_realloc(buffer, msize);
+				if (!buffer) return GF_OUT_OF_MEM;
 			}
 			gf_bs_read_data(oldbs, (u8 *) buffer, size);
 			gf_bs_write_data(newbs, (u8 *) buffer, size);
@@ -1177,6 +1189,7 @@ restart_check:
 	}
 
 	GF_SAFEALLOC(import, GF_MediaImporter);
+	if (!import) return GF_OUT_OF_MEM;
 	import->dest = file;
 	import->in_name = chap_file;
 	import->video_fps = import_fps;

@@ -381,6 +381,7 @@ static Bool m2tssplit_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 					m2tssplit_send_packet(ctx, st, NULL, 0, 0);
 
 				st->pck_buffer = (u8 *)gf_realloc(st->pck_buffer, new_pack * (ctx->dmx->prefix_present ? 192 : 188) );
+				if (!st->pck_buffer) return GF_FALSE;
 			}
 			ctx->nb_pack = new_pack;
 		}

@@ -512,6 +512,11 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			}
 			section->data_size = sec->length - section_start;
 			section->data = (u8 *)gf_malloc(section->data_size);
+			if (!section->data) {
+				gf_free(section);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Fail to create section\n"));
+				return;
+			}
 			memcpy(section->data, sec->section + section_start, sizeof(unsigned char)*section->data_size);
 			gf_list_add(t->sections, section);
 
@@ -655,6 +660,10 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 			else /* (sec->received == 2)  */
 				sec->length = gf_m2ts_get_section_length(sec->section[0], sec->section[1], data[1]);
 			sec->section = (u8 *)gf_realloc(sec->section, sec->length);
+			if (!sec->section) {
+				sec->length = sec->received = 0;
+				return;
+			}
 		}
 
 		if (sec->length && (sec->received < sec->length) && (data_size >= (u32) (1 + sec->length - sec->received))) {
@@ -674,8 +683,12 @@ aggregated_section:
 		if (sec->section) gf_free(sec->section);
 		sec->length = sec->received = 0;
 		sec->section = (u8 *)gf_malloc(data_size);
-		memcpy(sec->section, data, sizeof(char)*data_size);
-		sec->received = data_size;
+		if (sec->section) {
+			memcpy(sec->section, data, sizeof(char)*data_size);
+			sec->received = data_size;
+		} else {
+			sec->received = 0;
+		}
 	} else if (disc) {
 		if (sec->section) gf_free(sec->section);
 		sec->section = NULL;
@@ -691,6 +704,10 @@ aggregated_section:
 			memcpy(sec->section + sec->received, data, sizeof(char)*data_size);
 		} else {
 			sec->section = (u8 *)gf_realloc(sec->section, (sec->received+data_size));
+			if (!sec->section) {
+				sec->received = sec->length = 0;
+				return;
+			}
 			memcpy(sec->section + sec->received, data, sizeof(char)*data_size);
 		}
 		sec->received += data_size;
@@ -699,6 +716,10 @@ aggregated_section:
 	if (!sec->length && (sec->received >= 3)) {
 		sec->length = gf_m2ts_get_section_length(sec->section[0], sec->section[1], sec->section[2]);
 		sec->section = (u8 *)gf_realloc(sec->section, sec->length);
+		if (!sec->section) {
+			sec->received = sec->length = 0;
+			return;
+		}
 
 		if (sec->received > sec->length) {
 			data_size -= sec->received - sec->length;
@@ -804,8 +825,10 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 					return;
 				}
 				sdt->provider = (char*)gf_malloc(ulen+1);
-				memcpy(sdt->provider, data+pos+d_pos, sizeof(char)*ulen);
-				sdt->provider[ulen] = 0;
+				if (sdt->provider) {
+					memcpy(sdt->provider, data+pos+d_pos, sizeof(char)*ulen);
+					sdt->provider[ulen] = 0;
+				}
 
 				d_pos += ulen;
 				if (pos+d_pos >= data_size) {
@@ -825,8 +848,10 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 				}
 
 				sdt->service = (char*)gf_malloc(ulen+1);
-				memcpy(sdt->service, data+pos+d_pos, sizeof(char)*ulen);
-				sdt->service[ulen] = 0;
+				if (sdt->service) {
+					memcpy(sdt->service, data+pos+d_pos, sizeof(char)*ulen);
+					sdt->service[ulen] = 0;
+				}
 				d_pos += ulen;
 				break;
 
@@ -1077,6 +1102,10 @@ static GF_M2TS_MetadataPointerDescriptor *gf_m2ts_read_metadata_pointer_descript
 	if (d->locator_record_flag) {
 		d->locator_length = gf_bs_read_u8(bs);
 		d->locator_data = (u8 *)gf_malloc(d->locator_length);
+		if (! d->locator_data) {
+			gf_free(d);
+			return NULL;
+		}
 		size += 1 + d->locator_length;
 		gf_bs_read_data(bs, d->locator_data, d->locator_length);
 	}
@@ -1092,6 +1121,11 @@ static GF_M2TS_MetadataPointerDescriptor *gf_m2ts_read_metadata_pointer_descript
 	if (length > size) {
 		d->data_size = length-size;
 		d->data = (u8 *)gf_malloc(d->data_size);
+		if (! d->data) {
+			if (d->locator_data) gf_free(d->locator_data);
+			gf_free(d);
+			return NULL;
+		}
 		gf_bs_read_data(bs, d->data, d->data_size);
 	}
 	return d;
@@ -1132,18 +1166,33 @@ static GF_M2TS_MetadataDescriptor *gf_m2ts_read_metadata_descriptor(GF_BitStream
 	if (d->dsmcc_flag) {
 		d->service_id_record_length = gf_bs_read_u8(bs);
 		d->service_id_record = (u8 *)gf_malloc(d->service_id_record_length);
+		if (!d->service_id_record) {
+			gf_free(d);
+			return NULL;
+		}
 		//size += 1 + d->service_id_record_length;
 		gf_bs_read_data(bs, d->service_id_record, d->service_id_record_length);
 	}
 	if (d->decoder_config_flags == 1) {
 		d->decoder_config_length = gf_bs_read_u8(bs);
 		d->decoder_config = (u8 *)gf_malloc(d->decoder_config_length);
+		if (!d->decoder_config) {
+			if (d->service_id_record) gf_free(d->service_id_record);
+			gf_free(d);
+			return NULL;
+		}
 		//size += 1 + d->decoder_config_length;
 		gf_bs_read_data(bs, d->decoder_config, d->decoder_config_length);
 	}
 	if (d->decoder_config_flags == 3) {
 		d->decoder_config_id_length = gf_bs_read_u8(bs);
 		d->decoder_config_id = (u8 *)gf_malloc(d->decoder_config_id_length);
+		if (!d->decoder_config_id) {
+			if (d->decoder_config) gf_free(d->decoder_config);
+			if (d->service_id_record) gf_free(d->service_id_record);
+			gf_free(d);
+			return NULL;
+		}
 		//size += 1 + d->decoder_config_id_length;
 		gf_bs_read_data(bs, d->decoder_config_id, d->decoder_config_id_length);
 	}
@@ -1603,6 +1652,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 								pes->gpac_meta_dsi = (u8 *)gf_realloc(pes->gpac_meta_dsi, pes->gpac_meta_dsi_size);
 								if (pes->gpac_meta_dsi)
 									memcpy(pes->gpac_meta_dsi, data+6, pes->gpac_meta_dsi_size);
+								else
+									pes->gpac_meta_dsi_size = 0;
 							}
 							break;
 						default:
@@ -2400,6 +2451,10 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		if (pes->pck_data_len + data_size > pes->pck_alloc_len) {
 			pes->pck_alloc_len = pes->pck_data_len + data_size;
 			pes->pck_data = (u8*)gf_realloc(pes->pck_data, pes->pck_alloc_len);
+			if (!pes->pck_data) {
+				pes->pck_alloc_len = 0;
+				return;
+			}
 		}
 		memcpy(pes->pck_data+pes->pck_data_len, data, data_size);
 		pes->pck_data_len += data_size;
@@ -2422,6 +2477,10 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	if (pes->pck_data_len + data_size > pes->pck_alloc_len ) {
 		pes->pck_alloc_len = pes->pck_data_len + data_size;
 		pes->pck_data = (u8*)gf_realloc(pes->pck_data, pes->pck_alloc_len);
+		if (!pes->pck_data) {
+			pes->pck_alloc_len = 0;
+			return;
+		}
 	}
 	memcpy(pes->pck_data + pes->pck_data_len, data, data_size);
 	pes->pck_data_len += data_size;
@@ -2598,6 +2657,10 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 
 						if (pes->temi_tc_desc_alloc_size < desc_len) {
 							pes->temi_tc_desc = (u8 *)gf_realloc(pes->temi_tc_desc, desc_len);
+							if (!pes->temi_tc_desc) {
+								pes->temi_tc_desc_alloc_size = 0;
+								break;
+							}
 							pes->temi_tc_desc_alloc_size = desc_len;
 						}
 						memcpy(pes->temi_tc_desc, desc, desc_len);
@@ -2936,6 +2999,10 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, const u8 *data, u32 data_size)
 			if (ts->alloc_size < 200) {
 				ts->alloc_size = 200;
 				ts->buffer = (u8 *)gf_realloc(ts->buffer, ts->alloc_size);
+				if (!ts->buffer) {
+					ts->alloc_size = 0;
+					return GF_OUT_OF_MEM;
+				}
 			}
 			copy_size = pck_size - ts->buffer_size;
 			if (copy_size > data_size) {
@@ -2954,6 +3021,10 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, const u8 *data, u32 data_size)
 			if (ts->alloc_size < ts->buffer_size+data_size) {
 				ts->alloc_size = ts->buffer_size+data_size;
 				ts->buffer = (u8 *)gf_realloc(ts->buffer, ts->alloc_size);
+				if (!ts->buffer) {
+					ts->alloc_size = 0;
+					return GF_OUT_OF_MEM;
+				}
 			}
 			memcpy(ts->buffer + ts->buffer_size, data, sizeof(char)*data_size);
 			ts->buffer_size += data_size;
@@ -2969,6 +3040,10 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, const u8 *data, u32 data_size)
 		if (is_align && data_size) {
 			if (ts->alloc_size<data_size) {
 				ts->buffer = (u8 *)gf_realloc(ts->buffer, data_size);
+				if (!ts->buffer) {
+					ts->alloc_size = 0;
+					return GF_OUT_OF_MEM;
+				}
 				ts->alloc_size = data_size;
 			}
 			memcpy(ts->buffer, data, sizeof(char)*data_size);
@@ -2994,6 +3069,10 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, const u8 *data, u32 data_size)
 				if (ts->alloc_size < s) {
 					ts->alloc_size = s;
 					ts->buffer = (u8 *)gf_realloc(ts->buffer, ts->alloc_size);
+					if (!ts->buffer) {
+						ts->alloc_size = 0;
+						return GF_OUT_OF_MEM;
+					}
 				}
 				memcpy(ts->buffer, data, sizeof(char)*ts->buffer_size);
 			} else {
@@ -3295,12 +3374,15 @@ void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts) {
 	}
 
 	ts->dsmcc_root_dir = (char*)gf_calloc(strlen(temp_dir)+strlen("CarouselData")+2,1);
-	sprintf(ts->dsmcc_root_dir,"%s%cCarouselData",temp_dir,GF_PATH_SEPARATOR);
-	e = gf_mkdir(ts->dsmcc_root_dir);
-	if(e) {
+	if (!ts->dsmcc_root_dir)
+		e = GF_OUT_OF_MEM;
+	else {
+		sprintf(ts->dsmcc_root_dir,"%s%cCarouselData",temp_dir,GF_PATH_SEPARATOR);
+		e = gf_mkdir(ts->dsmcc_root_dir);
+	}
+	if (e) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error during the creation of the directory %s \n",ts->dsmcc_root_dir));
 	}
-
 }
 
 GF_EXPORT

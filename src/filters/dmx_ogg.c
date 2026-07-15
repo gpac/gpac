@@ -320,11 +320,13 @@ static GF_Err oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *
 		if (st->vorbis_parser)
 			gf_free(st->vorbis_parser);
 		GF_SAFEALLOC(st->vorbis_parser, GF_VorbisParser);
+		if (!st->vorbis_parser) return GF_OUT_OF_MEM;
 		break;
 	case GF_CODECID_OPUS:
 		if (st->opus_cfg)
 			gf_free(st->opus_cfg);
 		GF_SAFEALLOC(st->opus_cfg, GF_OpusConfig);
+		if (!st->opus_cfg) return GF_OUT_OF_MEM;
 		break;
 	default:
 		break;
@@ -595,6 +597,8 @@ static void oggdmx_parse_picture(GF_Filter *filter, GF_OGGStream *st, char *data
 	GF_FilterPacket *dst_pck;
 	u32 osize = (u32) strlen(data_b64);
 	u8 *output = (u8 *)gf_malloc(osize);
+	if (!output) return;
+
 	osize = gf_base64_decode((u8*)data_b64, (u32) strlen(data_b64), output, osize);
 	if ((s32) osize == -1 || osize < 8) goto exit;
 

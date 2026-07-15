@@ -127,6 +127,7 @@ GF_Thread *gf_th_new(const char *name)
 	if (gf_opts_get_bool("core", "no-mx")) return NULL;
 
 	GF_Thread *tmp = (GF_Thread*)gf_malloc(sizeof(GF_Thread));
+	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_Thread));
 	tmp->status = GF_THREAD_STATUS_STOP;
 #ifdef GPAC_CONFIG_EMSCRIPTEN

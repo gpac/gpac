@@ -227,9 +227,11 @@ void gf_sg_listener_post_add(GF_Node *obs, GF_Node *listener)
 	DOMAddListener *l;
 	gf_mx_p(obs->sgprivate->scenegraph->dom_evt_mx);
 	l = (DOMAddListener*)gf_malloc(sizeof(DOMAddListener));
-	l->listener = listener;
-	l->obs = obs;
-	gf_list_add(obs->sgprivate->scenegraph->listeners_to_add, l);
+	if (l) {
+		l->listener = listener;
+		l->obs = obs;
+		gf_list_add(obs->sgprivate->scenegraph->listeners_to_add, l);
+	}
 	gf_mx_v(obs->sgprivate->scenegraph->dom_evt_mx);
 }
 

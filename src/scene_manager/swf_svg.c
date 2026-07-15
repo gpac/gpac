@@ -57,6 +57,10 @@ static void swf_svg_print(SWFReader *read, const char *format, ...) {
 	line_length = (u32)strlen(line);
 	new_size = read->svg_data_size+line_length;
 	read->svg_data = (u8 *)gf_realloc(read->svg_data, new_size+1);
+	if (!read->svg_data) {
+		read->svg_data_size = 0;
+		return;
+	}
 	if (read->print_frame_header) {
 		/* write at the beginning of the buffer */
 		memmove(read->svg_data+read->frame_header_offset+line_length, read->svg_data+read->frame_header_offset, (read->svg_data_size-read->frame_header_offset)+1);
@@ -298,12 +302,17 @@ static GF_Err swf_svg_define_text(SWFReader *read, SWFText *text)
 				char    *str;
 
 				str_w = (u16*)gf_malloc(sizeof(u16) * (gr->nbGlyphs+1));
+				if (!str_w) return GF_OUT_OF_MEM;
 				for (j=0; j<gr->nbGlyphs; j++)
 				{
 					str_w[j] = ft->glyph_codes[gr->indexes[j]];
 				}
 				str_w[j] = 0;
 				str = (char*)gf_malloc(gr->nbGlyphs+2);
+				if (!str) {
+					gf_free(str_w);
+					return GF_OUT_OF_MEM;
+				}
 				widestr = str_w;
 				_len = gf_utf8_wcstombs(str, sizeof(u8) * (gr->nbGlyphs+1), (const unsigned short **) &widestr);
 				if (_len != GF_UTF8_FAIL) {

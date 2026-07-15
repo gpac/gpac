@@ -390,7 +390,8 @@ GroupingNode *group_3d_new(GF_Node *node)
 {
 	GroupingNode *st;
 	GF_SAFEALLOC(st, GroupingNode);
-	gf_node_set_private(node, st);
+	if (st)
+		gf_node_set_private(node, st);
 	return st;
 }
 

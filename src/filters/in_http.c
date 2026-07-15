@@ -109,6 +109,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 	if (!ctx->dm) return GF_SERVICE_ERROR;
 
 	ctx->block = (u8 *)gf_malloc(ctx->block_size +1);
+	if (!ctx->block) return GF_OUT_OF_MEM;
 
 	flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;
 	if (ctx->cache==GF_HTTPIN_STORE_MEM)

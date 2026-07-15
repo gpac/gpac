@@ -87,7 +87,12 @@ GF_IPMPX_ByteArray *GF_IPMPX_GetByteArray(GF_BitStream *bs)
 	} while ( val & 0x80 );
 	if (!size) return NULL;
 	ba = (GF_IPMPX_ByteArray*)gf_malloc(sizeof(GF_IPMPX_ByteArray));
+	if (!ba) return NULL;
 	ba->data = (u8 *)gf_malloc(size);
+	if (!ba->data) {
+		gf_free(ba);
+		return NULL;
+	}
 	gf_bs_read_data(bs, ba->data, size);
 	ba->length = size;
 	return ba;
@@ -224,6 +229,7 @@ GF_Err GF_IPMPX_AUTH_Parse(GF_BitStream *bs, GF_IPMPX_Authentication **auth)
 		p->tag = tag;
 		p->keyBodyLength = size;
 		p->keyBody = (u8 *)gf_malloc(size);
+		if (!p->keyBody) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, p->keyBody, size);
 		*auth = (GF_IPMPX_Authentication *)p;
 		return GF_OK;
@@ -1368,6 +1374,7 @@ static GF_Err ReadGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Da
 				if (sendMapTable) {
 					sf->mappingTableSize = gf_bs_read_int(bs, 16);
 					sf->mappingTable = (u16*)gf_malloc(sizeof(u16) * sf->mappingTableSize);
+					if (!sf->mappingTable) return GF_OUT_OF_MEM;
 					for (i=0; i<sf->mappingTableSize; i++) sf->mappingTable[i] = gf_bs_read_int(bs, 16);
 				}
 				if (isShuffled) sf->shuffleSpecificInfo = GF_IPMPX_GetByteArray(bs);
@@ -1376,6 +1383,7 @@ static GF_Err ReadGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Da
 	} else {
 		p->RLE_DataLength = gf_bs_read_int(bs, 16);
 		p->RLE_Data = (u16*)gf_malloc(sizeof(u16)*p->RLE_DataLength);
+		if (!p->RLE_Data) return GF_OUT_OF_MEM;
 		for (i=0; i<p->RLE_DataLength; i++) p->RLE_Data[i] = gf_bs_read_int(bs, 16);
 	}
 	return GF_OK;
@@ -1506,6 +1514,7 @@ static GF_Err ReadGF_IPMPX_WatermarkingInit(GF_BitStream *bs, GF_IPMPX_Data *_p,
 	case GF_IPMPX_WM_REMARK:
 		p->wmPayloadLen = gf_bs_read_int(bs, 16);
 		p->wmPayload = (u8 *)gf_malloc(p->wmPayloadLen);
+		if (!p->wmPayload) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, p->wmPayload, p->wmPayloadLen);
 		break;
 	case GF_IPMPX_WM_EXTRACT:
@@ -1516,6 +1525,7 @@ static GF_Err ReadGF_IPMPX_WatermarkingInit(GF_BitStream *bs, GF_IPMPX_Data *_p,
 	if (has_opaque_data) {
 		p->opaqueDataSize = gf_bs_read_int(bs, 16);
 		p->opaqueData = (u8 *)gf_malloc(p->opaqueDataSize);
+		if (!p->opaqueData) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, p->opaqueData, p->opaqueDataSize);
 	}
 	return GF_OK;

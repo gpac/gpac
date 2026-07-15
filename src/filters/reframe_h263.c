@@ -192,6 +192,10 @@ static void h263dmx_check_dur(GF_Filter *filter, GF_H263DmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (H263Idx *)gf_realloc(ctx->indexes, sizeof(H263Idx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = ctx->index_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = pos;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->fps.num;

@@ -2122,6 +2122,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	if (yuv_planar_type && (src_w%2)) src_w++;
 
 	tmp = (u8 *) gf_malloc(src_w * (yuv_planar_type ? 8 : 4) );
+	if (!tmp) return GF_OUT_OF_MEM;
 	rows = tmp;
 
 	if ( (src_h / dst_h) * dst_h != src_h) force_load_odd_yuv_lines = GF_TRUE;
@@ -2929,7 +2930,7 @@ static GF_Err color_write_yuv444_10_to_yuv_intrin(GF_VideoSurface *vs_dst, u8 *p
 			val1 = _mm_srli_epi32(val1, 16);
 			val2 = _mm_load_si128(src2);
 			val2 = _mm_srli_epi32(val2, 16);
-			val12 = _mm_packs_epi32(val1, val2); 
+			val12 = _mm_packs_epi32(val1, val2);
 			val12 = _mm_srli_epi16(val12, 2);
 
 			val3 = _mm_load_si128(src3);
@@ -2938,7 +2939,7 @@ static GF_Err color_write_yuv444_10_to_yuv_intrin(GF_VideoSurface *vs_dst, u8 *p
 			val4 = _mm_load_si128(src4);
 
 			val4 = _mm_srli_epi32(val4, 16);
-			val34 = _mm_packs_epi32(val3, val4); 
+			val34 = _mm_packs_epi32(val3, val4);
 			val34 = _mm_srli_epi16(val34, 2);
 
 			val_dst = _mm_packus_epi16(val12, val34);
@@ -2962,7 +2963,7 @@ static GF_Err color_write_yuv444_10_to_yuv_intrin(GF_VideoSurface *vs_dst, u8 *p
 			val2 = _mm_load_si128(src2);
 
 			val2 = _mm_srli_epi32(val2, 16);
-			val12 = _mm_packs_epi32(val1, val2); 
+			val12 = _mm_packs_epi32(val1, val2);
 			val12 = _mm_srli_epi16(val12, 2);
 
 			val3 = _mm_load_si128(src3);
@@ -2971,7 +2972,7 @@ static GF_Err color_write_yuv444_10_to_yuv_intrin(GF_VideoSurface *vs_dst, u8 *p
 			val4 = _mm_load_si128(src4);
 
 			val4 = _mm_srli_epi32(val4, 16);
-			val34 = _mm_packs_epi32(val3, val4); 
+			val34 = _mm_packs_epi32(val3, val4);
 			val34 = _mm_srli_epi16(val34, 2);
 
 			val_dst = _mm_packus_epi16(val12, val34);

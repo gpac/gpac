@@ -152,7 +152,10 @@ void GF_IPMPX_ParseBinData(char *val, u8 **out_data, u32 *out_data_size)
 	if (val[0] != '%') {
 		len = *out_data_size = (u32) strlen(val);
 		*out_data = (char*)gf_malloc(len);
-		memcpy(*out_data, val, sizeof(char) * len);
+		if (*out_data)
+			memcpy(*out_data, val, sizeof(char) * len);
+		else
+			*out_data_size = 0;
 		return;
 	}
 
@@ -160,6 +163,10 @@ void GF_IPMPX_ParseBinData(char *val, u8 **out_data, u32 *out_data_size)
 	if (*out_data) gf_free(*out_data);
 	*out_data_size = len;
 	*out_data = (char*)gf_malloc(len);
+	if (!*out_data) {
+		*out_data_size = 0;
+		return;
+	}
 	s[2] = 0;
 	for (i=0; i<len; i++) {
 		s[0] = val[3*i+1];
@@ -254,6 +261,7 @@ GF_Err gf_ipmpx_data_parse_16(char *val, u16 **outData, u16 *outDataSize)
 	char szVal[50];
 	u32 i, j, len, v, alloc, count;
 	u16 *data = (u16*)gf_malloc(sizeof(u16) * 100);
+	if (!data) return GF_OUT_OF_MEM;
 	alloc = 100;
 
 	len = (u32) strlen(val);
@@ -286,12 +294,13 @@ GF_Err gf_ipmpx_data_parse_16(char *val, u16 **outData, u16 *outDataSize)
 			if (count == alloc) {
 				alloc += 100;
 				data = (u16*)gf_realloc(data, sizeof(u16)*alloc);
+				if (!data) return GF_OUT_OF_MEM;
 			}
 		}
 	}
 	(*outData) = (u16*)gf_realloc(data, sizeof(u16)*count);
-	*outDataSize = count;
-	return GF_OK;
+	*outDataSize = *outData ? count : 0;
+	return *outData ? GF_OK : GF_OUT_OF_MEM;
 }
 
 GF_Err gf_ipmpx_set_field(GF_IPMPX_Data *_p, char *fieldName, char *val)
@@ -638,8 +647,13 @@ GF_Err gf_ipmpx_set_byte_array(GF_IPMPX_Data *p, char *field, char *str)
 	GF_IPMPX_ByteArray *d;
 	GF_IPMPX_ByteArray **dest;
 	d = (GF_IPMPX_ByteArray*)gf_malloc(sizeof(GF_IPMPX_ByteArray));
+	if (!d) return GF_OUT_OF_MEM;
 	d->length = (u32) strlen(str);
 	d->data = (u8 *)gf_malloc(d->length);
+	if (!d->data) {
+		gf_free(d);
+		return GF_OUT_OF_MEM;
+	}
 	memcpy(d->data, str, d->length);
 
 	dest = NULL;

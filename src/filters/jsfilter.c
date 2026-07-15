@@ -767,9 +767,17 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 				if (atype==1) {
 					prop->value.string_list.nb_items = (u32) len;
 					prop->value.string_list.vals = (char **)gf_malloc((u32) (sizeof(char *)*len));
+					if (!prop->value.string_list.vals) {
+						JS_FreeValue(ctx, v);
+						return GF_OUT_OF_MEM;
+					}
 				} else {
 					prop->value.sint_list.nb_items = (u32) len;
 					prop->value.sint_list.vals = (s32 *)gf_malloc((u32) (sizeof(s32)*len));
+					if (!prop->value.sint_list.vals) {
+						JS_FreeValue(ctx, v);
+						return GF_OUT_OF_MEM;
+					}
 				}
 			}
 			if (atype==1) {
@@ -903,6 +911,7 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 				prop->type = GF_PROP_CONST_DATA;
  			} else {
 				prop->value.data.ptr = (u8 *)gf_malloc(ab_size);
+				if (!prop->value.data.ptr) return GF_OUT_OF_MEM;
 				memcpy(prop->value.data.ptr, data, ab_size);
 				prop->value.data.size = (u32) ab_size;
 				prop->type = GF_PROP_DATA;
@@ -1206,6 +1215,14 @@ static JSValue jsf_filter_set_arg(JSContext *ctx, JSValueConst this_val, int arg
 	JS_FreeValue(ctx, v);
 
 	jsf->args = (GF_FilterArgs *)gf_realloc(jsf->args, sizeof(GF_FilterArgs)*(jsf->nb_args+2));
+	if (!jsf->args) {
+		jsf->nb_args = 0;
+		JS_FreeCString(ctx, name);
+		JS_FreeCString(ctx, desc);
+		JS_FreeCString(ctx, def);
+		JS_FreeCString(ctx, min_enum);
+		return GF_JS_EXCEPTION(ctx);
+	}
 	memset(&jsf->args[jsf->nb_args], 0, 2*sizeof(GF_FilterArgs));
 	jsf->args[jsf->nb_args].arg_name = gf_strdup(name);
 	jsf->args[jsf->nb_args].arg_desc = desc ? gf_strdup(desc) : NULL;
@@ -1315,6 +1332,10 @@ if (!JS_IsUndefined(v)) _v = (Bool) JS_ToBool(ctx, v);\
 	}
 
 	jsf->caps = (GF_FilterCapability *)gf_realloc(jsf->caps, sizeof(GF_FilterCapability)*(jsf->nb_caps+1));
+	if (!jsf->caps) {
+		jsf->nb_caps = 0;
+		return GF_JS_EXCEPTION(ctx);
+	}
 	memset(&jsf->caps[jsf->nb_caps], 0, sizeof(GF_FilterCapability));
 	if (prop_id) {
 		GF_FilterCapability *cap = &jsf->caps[jsf->nb_caps];
@@ -2818,6 +2839,9 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 	if (use_gl_ifce) {
 		JSGLFIfce *gl_ifce;
 		GF_SAFEALLOC(gl_ifce, JSGLFIfce);
+		if (!gl_ifce) {
+			return js_throw_err(ctx, GF_OUT_OF_MEM);
+		}
 		gl_ifce->pctx = pctx;
 		gl_ifce->pck_ctx = pckc;
 		gl_ifce->fun = JS_DupValue(ctx, argv[0] );
@@ -4828,6 +4852,7 @@ static GF_Err jsfilter_initialize_ex(GF_Filter *filter, JSContext *custom_ctx)
 
 	if (custom_ctx) {
 		GF_SAFEALLOC(jsf, GF_JSFilterCtx);
+		if (!jsf) return GF_OUT_OF_MEM;
 		filter->filter_udta = jsf;
 	}
 

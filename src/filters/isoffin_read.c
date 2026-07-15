@@ -1288,6 +1288,11 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 	}
 	if (read->mem_blob_alloc < read->mem_blob.size + data_size) {
 		read->mem_blob.data = (u8 *)gf_realloc(read->mem_blob.data, read->mem_blob.size + data_size);
+		if (!read->mem_blob.data) {
+			read->mem_blob.size = 0;
+			read->in_error = GF_OUT_OF_MEM;
+			return;
+		}
 		read->mem_blob_alloc = read->mem_blob.size + data_size;
 	}
 	memcpy(read->mem_blob.data + read->mem_blob.size, pck_data, data_size);

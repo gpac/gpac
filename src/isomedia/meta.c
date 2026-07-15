@@ -1192,6 +1192,8 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, u32 i
 	if (image_props->config_ba && image_props->config_ba_size) {
 		GF_Box *b;
 		GF_SAFEALLOC(b, GF_Box);
+		if (!b) return GF_OUT_OF_MEM;
+
 		b->child_boxes = gf_list_new();
 		b->size = image_props->config_ba_size;
 		GF_BitStream *bs = gf_bs_new(image_props->config_ba, image_props->config_ba_size, GF_BITSTREAM_READ);

@@ -104,6 +104,7 @@ void gf_path_del(GF_Path *gp)
 		_gp->n_alloc_points = (_gp->n_alloc_points<5) ? 10 : (_gp->n_alloc_points*2);	\
 		_gp->points = (GF_Point2D *)gf_realloc(_gp->points, sizeof(GF_Point2D)*(_gp->n_alloc_points));	\
 		_gp->tags = (u8 *) gf_realloc(_gp->tags, (_gp->n_alloc_points)); \
+		if (!_gp->points || !_gp->tags) { _gp->n_alloc_points = _gp->n_points = 0; return GF_OUT_OF_MEM; } \
 	}	\
 
 
@@ -122,6 +123,10 @@ GF_Err gf_path_add_move_to(GF_Path *gp, Fixed x, Fixed y)
 #endif
 
 	gp->contours = (u32 *) gf_realloc(gp->contours, sizeof(u32)*(gp->n_contours+1));
+	if (!gp->contours) {
+		gp->n_contours = 0;
+		return GF_OUT_OF_MEM;
+	}
 	GF_2D_REALLOC(gp)
 
 	gp->points[gp->n_points].x = x;
@@ -294,16 +299,15 @@ GF_Err gf_path_add_subpath(GF_Path *gp, GF_Path *src, GF_Matrix2D *mx)
 	u32 i;
 	if (!src) return GF_OK;
 	gp->contours = (u32*)gf_realloc(gp->contours, sizeof(u32) * (gp->n_contours + src->n_contours));
-	if (!gp->contours) return GF_OUT_OF_MEM;
+	if (!gp->contours) { gp->n_contours = 0; return GF_OUT_OF_MEM; }
 	for (i=0; i<src->n_contours; i++) {
 		gp->contours[i+gp->n_contours] = src->contours[i] + gp->n_points;
 	}
 	gp->n_contours += src->n_contours;
 	gp->n_alloc_points += src->n_alloc_points;
 	gp->points = (GF_Point2D*)gf_realloc(gp->points, sizeof(GF_Point2D)*gp->n_alloc_points);
-	if (!gp->points) return GF_OUT_OF_MEM;
 	gp->tags = (u8*)gf_realloc(gp->tags, gp->n_alloc_points);
-	if (!gp->tags) return GF_OUT_OF_MEM;
+	if (!gp->points || !gp->tags) { gp->n_alloc_points = 0; return GF_OUT_OF_MEM; }
 	if (src->n_points) {
 		memcpy(gp->points + gp->n_points, src->points, sizeof(GF_Point2D)*src->n_points);
 		if (mx) {
@@ -375,6 +379,7 @@ GF_Err gf_path_add_bezier(GF_Path *gp, GF_Point2D *pts, u32 nbPoints)
 	if (!gp->n_points) return GF_BAD_PARAM;
 
 	newpts = (GF_Point2D *) gf_malloc(sizeof(GF_Point2D) * (nbPoints+1));
+	if (!newpts) return GF_OUT_OF_MEM;
 	newpts[0] = gp->points[gp->n_points-1];
 	memcpy(&newpts[1], pts, sizeof(GF_Point2D) * nbPoints);
 
@@ -1186,6 +1191,11 @@ GF_PathIterator *gf_path_iterator_new(GF_Path *gp)
 		return NULL;
 	}
 	it->seg = (IterInfo *) gf_malloc(sizeof(IterInfo) * flat->n_points);
+	if (!it->seg) {
+		gf_path_del(flat);
+		gf_free(it);
+		return NULL;
+	}
 	it->num_seg = 0;
 	it->length = 0;
 	cur = 0;

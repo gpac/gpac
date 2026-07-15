@@ -392,6 +392,10 @@ static mpeg2ps_stream_t *mpeg2ps_stream_create (u8 stream_id,
 	ptr->m_substream_id = substream;
 	ptr->is_video = (stream_id >= 0xe0) ? GF_TRUE : GF_FALSE;
 	ptr->pes_buffer = (u8 *)gf_malloc(4*4096);
+	if (!ptr->pes_buffer) {
+		gf_free(ptr);
+		return NULL;
+	}
 	ptr->pes_buffer_size_max = 4 * 4096;
 	return ptr;
 }
@@ -519,8 +523,11 @@ static void copy_bytes_to_pes_buffer (mpeg2ps_stream_t *sptr,
 		sptr->pes_buffer_size = to_move;
 		sptr->pes_buffer_on = 0;
 		if (to_move + pes_len > sptr->pes_buffer_size_max) {
-			sptr->pes_buffer = (u8 *)gf_realloc(sptr->pes_buffer,
-			                                    to_move + pes_len + 2048);
+			sptr->pes_buffer = (u8 *)gf_realloc(sptr->pes_buffer, to_move + pes_len + 2048);
+			if (!sptr->pes_buffer) {
+				sptr->pes_buffer_size_max = 0;
+				return;
+			}
 			sptr->pes_buffer_size_max = to_move + pes_len + 2048;
 		}
 	}

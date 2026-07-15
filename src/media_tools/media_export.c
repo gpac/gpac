@@ -678,16 +678,20 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 		} else if (dumper->flags & GF_EXPORT_WEBVTT_META_EMBEDDED) {
 			if (isText) {
 				samp->data = (u8 *)gf_realloc(samp->data, samp->dataLength+1);
-				samp->data[samp->dataLength] = 0;
-				gf_fprintf(vtt, "%s\n", samp->data);
+				if (samp->data) {
+					samp->data[samp->dataLength] = 0;
+					gf_fprintf(vtt, "%s\n", samp->data);
+				}
 			} else {
 				u32 b64_size = samp->dataLength*2 + 3;
 				u8 *b64;
 				b64 = (u8 *)gf_malloc(b64_size);
-				b64_size = gf_base64_encode(samp->data, samp->dataLength, b64, b64_size);
-				b64[b64_size] = 0;
-				gf_fprintf(vtt, "%s\n", b64);
-				gf_free(b64);
+				if (b64) {
+					b64_size = gf_base64_encode(samp->data, samp->dataLength, b64, b64_size);
+					b64[b64_size] = 0;
+					gf_fprintf(vtt, "%s\n", b64);
+					gf_free(b64);
+				}
 			}
 		}
 		gf_fprintf(vtt, "\n");

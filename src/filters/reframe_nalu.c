@@ -361,7 +361,10 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->log_name = "HEVC";
 		if (ctx->avc_state) { gf_free(ctx->avc_state); ctx->avc_state = NULL; }
 		if (ctx->vvc_state) { gf_free(ctx->vvc_state); ctx->vvc_state = NULL; }
-		if (!ctx->hevc_state) GF_SAFEALLOC(ctx->hevc_state, HEVCState);
+		if (!ctx->hevc_state) {
+			GF_SAFEALLOC(ctx->hevc_state, HEVCState);
+			if (!ctx->hevc_state) return GF_OUT_OF_MEM;
+		}
 		ctx->min_layer_id = 0xFF;
 		if (ctx->refs)
 			ctx->hevc_state->full_slice_header_parse = GF_TRUE;
@@ -371,7 +374,10 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->log_name = "VVC";
 		if (ctx->hevc_state) { gf_free(ctx->hevc_state); ctx->hevc_state = NULL; }
 		if (ctx->avc_state) { gf_free(ctx->avc_state); ctx->avc_state = NULL; }
-		if (!ctx->vvc_state) GF_SAFEALLOC(ctx->vvc_state, VVCState);
+		if (!ctx->vvc_state) {
+			GF_SAFEALLOC(ctx->vvc_state, VVCState);
+			if (!ctx->vvc_state) return GF_OUT_OF_MEM;
+		}
 		if (ctx->refs) {
 			//use parse mode 2 as we don't need the exact slice header length
 			ctx->vvc_state->parse_mode = 2;
@@ -693,6 +699,10 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (NALUIdx *)gf_realloc(ctx->indexes, sizeof(NALUIdx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = ctx->index_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = nal_start - start_code_size;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->cur_fps.num;
@@ -2240,6 +2250,7 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, const u8 *data, u32 size
 	if (sl) {
 		//otherwise we keep this new param set
 		sl->data = (u8 *)gf_realloc(sl->data, size);
+		if (!sl->data) return;
 		memcpy(sl->data, data, size);
 		sl->size = size;
 		sl->crc = crc;
@@ -2458,11 +2469,15 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 	return dst_pck;
 }
 
-void naludmx_add_subsample(GF_NALUDmxCtx *ctx, u32 subs_size, u8 subs_priority, u32 subs_reserved)
+static void naludmx_add_subsample(GF_NALUDmxCtx *ctx, u32 subs_size, u8 subs_priority, u32 subs_reserved)
 {
 	if (ctx->subsamp_buffer_alloc < ctx->subsamp_buffer_size+14 ) {
 		ctx->subsamp_buffer_alloc = ctx->subsamp_buffer_size+14;
 		ctx->subsamp_buffer = (u8 *)gf_realloc(ctx->subsamp_buffer, ctx->subsamp_buffer_alloc);
+		if (!ctx->subsamp_buffer) {
+			ctx->subsamp_buffer_alloc = 0;
+			return;
+		}
 	}
 	gf_assert(ctx->subsamp_buffer);
 	gf_bs_reassign_buffer(ctx->bs_w, ctx->subsamp_buffer + ctx->subsamp_buffer_size, 14);
@@ -2480,6 +2495,10 @@ static void naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool avc
 	if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + size + ctx->nal_length) {
 		ctx->sei_buffer_alloc = ctx->sei_buffer_size + size + ctx->nal_length;
 		ctx->sei_buffer = (u8 *)gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
+		if (!ctx->sei_buffer) {
+			ctx->sei_buffer_alloc = 0;
+			return;
+		}
 	}
 
 	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size, GF_BITSTREAM_WRITE);
@@ -3696,6 +3715,10 @@ naldmx_flush:
 					if (ctx->svc_prefix_buffer_size > ctx->svc_prefix_buffer_alloc) {
 						ctx->svc_prefix_buffer_alloc = ctx->svc_prefix_buffer_size;
 						ctx->svc_prefix_buffer = (u8 *)gf_realloc(ctx->svc_prefix_buffer, ctx->svc_prefix_buffer_size);
+						if (!ctx->svc_prefix_buffer) {
+							ctx->svc_prefix_buffer_size = 0;
+							return GF_OUT_OF_MEM;
+						}
 					}
 					memcpy(ctx->svc_prefix_buffer, start+sc_size, ctx->svc_prefix_buffer_size);
 

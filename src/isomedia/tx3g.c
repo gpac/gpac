@@ -93,6 +93,10 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 		if (qt_txt->textName) {
 			(*out_desc)->font_count = 1;
 			(*out_desc)->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord));
+			if (!(*out_desc)->fonts) {
+				gf_odf_desc_del((GF_Descriptor *) *out_desc);
+				return GF_OUT_OF_MEM;
+			}
 			(*out_desc)->fonts[0].fontName = gf_strdup(qt_txt->textName);
 		}
 	} else {
@@ -105,6 +109,10 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 		if (txt->font_table && txt->font_table->entry_count) {
 			(*out_desc)->font_count = txt->font_table->entry_count;
 			(*out_desc)->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * txt->font_table->entry_count);
+			if (!(*out_desc)->fonts) {
+				gf_odf_desc_del((GF_Descriptor *) *out_desc);
+				return GF_OUT_OF_MEM;
+			}
 			for (i=0; i<txt->font_table->entry_count; i++) {
 				(*out_desc)->fonts[i].fontID = txt->font_table->fonts[i].fontID;
 				(*out_desc)->fonts[i].fontName = NULL;
@@ -184,6 +192,10 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 		txt->font_table = (GF_FontTableBox *)gf_isom_box_new_parent(&txt->child_boxes, GF_ISOM_BOX_TYPE_FTAB);
 		txt->font_table->entry_count = desc->font_count;
 		txt->font_table->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * desc->font_count);
+		if (!txt->font_table->fonts) {
+			txt->font_table->entry_count = 0;
+			return GF_OUT_OF_MEM;
+		}
 		for (i=0; i<desc->font_count; i++) {
 			txt->font_table->fonts[i].fontID = desc->fonts[i].fontID;
 			if (desc->fonts[i].fontName) txt->font_table->fonts[i].fontName = gf_strdup(desc->fonts[i].fontName);
@@ -261,6 +273,7 @@ GF_Err gf_isom_text_add_text(GF_TextSample *samp, const char *text_data, u32 tex
 	if (!samp) return GF_BAD_PARAM;
 	if (!text_len) return GF_OK;
 	samp->text = (char*)gf_realloc(samp->text, (samp->len + text_len) );
+	if (!samp->text) return GF_OUT_OF_MEM;
 	memcpy(samp->text + samp->len, text_data, sizeof(char) * text_len);
 	samp->len += text_len;
 	return GF_OK;
@@ -686,8 +699,12 @@ GF_TextSample *gf_isom_parse_text_sample(GF_BitStream *bs)
 					s->styles = st2;
 				} else {
 					s->styles->styles = (GF_StyleRecord*)gf_realloc(s->styles->styles, sizeof(GF_StyleRecord) * (s->styles->entry_count + st2->entry_count));
-					memcpy(&s->styles->styles[s->styles->entry_count], st2->styles, sizeof(GF_StyleRecord) * st2->entry_count);
-					s->styles->entry_count += st2->entry_count;
+					if (s->styles->styles) {
+						memcpy(&s->styles->styles[s->styles->entry_count], st2->styles, sizeof(GF_StyleRecord) * st2->entry_count);
+						s->styles->entry_count += st2->entry_count;
+					} else {
+						s->styles->entry_count = 0;
+					}
 					gf_isom_box_del(a);
 				}
 			} else {

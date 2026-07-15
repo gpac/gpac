@@ -476,6 +476,11 @@ static Bool reframer_parse_date(GF_ReframerCtx *ctx, char *date, GF_Fraction64 *
 
 		// Encode timecode as 4 bytes
 		GF_SAFEALLOC(*as_timecode, GF_TimeCode);
+		if (! *as_timecode) {
+			if (extract_mode)
+				*extract_mode = EXTRACT_NONE;
+			return GF_FALSE;
+		}
 		(*as_timecode)->hours = h;
 		(*as_timecode)->minutes = m;
 		(*as_timecode)->seconds = s;
@@ -2677,9 +2682,12 @@ refetch_streams:
 					}
 				}
 				new_times.nb_items = last_chap_idx - first_chap_idx;
-				new_times.vals = (u32 *)gf_malloc(sizeof(u32)*new_times.nb_items);
 				new_names.nb_items = new_times.nb_items;
+				new_times.vals = (u32 *)gf_malloc(sizeof(u32)*new_times.nb_items);
 				new_names.vals = (char **)gf_malloc(sizeof(char *)*new_names.nb_items);
+				if (!new_times.vals || !new_names.vals)
+					last_chap_idx = first_chap_idx = count = 0;
+
 				u32 k=0;
 				for (i=first_chap_idx; i<last_chap_idx; i++) {
 					s64 time = chap_times->value.uint_list.vals[i];
@@ -2704,9 +2712,11 @@ refetch_streams:
 					gf_filter_pid_set_property(st->opid, GF_PROP_PID_CHAP_NAMES, &ch);
 				}
 				gf_free(new_times.vals);
-				ch.type = GF_PROP_STRING_LIST;
-				ch.value.string_list = new_names;
-				gf_props_reset_single(&ch);
+				if (new_names.vals) {
+					ch.type = GF_PROP_STRING_LIST;
+					ch.value.string_list = new_names;
+					gf_props_reset_single(&ch);
+				}
 			}
 		}
 		if (!ctx->in_range && !ctx->flush_samples)
@@ -2983,6 +2993,7 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 		if (ctx->xe.nb_items==1) {
 			ctx->xs.nb_items = 1;
 			ctx->xs.vals = (char **)gf_malloc(sizeof(char *));
+			if (!ctx->xs.vals) return GF_OUT_OF_MEM;
 			ctx->xs.vals[0] = gf_strdup("0");
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] Multiple `xe` set but no `xs`, cannot extract range\n"));

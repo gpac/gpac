@@ -188,6 +188,7 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data
 	z_stream stream;
 	int err;
 	char *dest = (char *)gf_malloc(data_len*ZLIB_COMPRESS_SAFE);
+	if (!dest) return GF_OUT_OF_MEM;
 	stream.next_in = (Bytef*)(*data) + data_offset;
 	stream.avail_in = (uInt)data_len - data_offset;
 	stream.next_out = ( Bytef*)dest;
@@ -230,6 +231,7 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data
 	if (*max_size < stream.total_out) {
 		*max_size = data_len*ZLIB_COMPRESS_SAFE;
 		*data = (u8*)gf_realloc(*data, *max_size);
+		if (!*data) return GF_OUT_OF_MEM;
 	}
 
 	memcpy((*data) , dest, sizeof(char)*stream.total_out);
@@ -373,6 +375,7 @@ GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 	block_size = data_len*LZMA_COMPRESS_SAFE;
 	if (block_size < 64) block_size = 64;
 	char *dest = (char *)gf_malloc(block_size);
+	if (!dest) return GF_OUT_OF_MEM;
 
 
 	strm.next_in = (const uint8_t *) (*data);
@@ -394,6 +397,7 @@ GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 	if (*max_size < comp_size) {
 		*max_size = block_size;
 		*data = (char*)gf_realloc(*data, block_size);
+		if (! *data) return GF_OUT_OF_MEM;
 	}
 
 	memcpy((*data) , dest, sizeof(char) * comp_size);
@@ -441,6 +445,7 @@ GF_Err gf_lz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, 
 			if (done + uncomp_size > alloc_size) {
 				alloc_size = done + uncomp_size;
 				dst_buffer = (u8 *)gf_realloc(dst_buffer, alloc_size);
+				if (!dst_buffer) return GF_OUT_OF_MEM;
 				*out_size = alloc_size;
 			}
 			memcpy(dst_buffer + done, block, uncomp_size);

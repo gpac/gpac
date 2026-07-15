@@ -624,16 +624,18 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			roles.type = GF_PROP_STRING_LIST;
 			roles.value.string_list.nb_items = nb_roles;
 			roles.value.string_list.vals = (char **)gf_malloc(sizeof(char*)*nb_roles);
-			nb_roles=0;
-			if (stream->audio_flags & (GF_M2TS_AUDIO_DESCRIPTION|GF_M2TS_AUDIO_SUB_DESCRIPTION)) {
-				roles.value.string_list.vals[nb_roles] = gf_strdup("description");
-				nb_roles++;
+			if (roles.value.string_list.vals) {
+				nb_roles=0;
+				if (stream->audio_flags & (GF_M2TS_AUDIO_DESCRIPTION|GF_M2TS_AUDIO_SUB_DESCRIPTION)) {
+					roles.value.string_list.vals[nb_roles] = gf_strdup("description");
+					nb_roles++;
+				}
+				if (stream->audio_flags & GF_M2TS_AUDIO_HEARING_IMPAIRED) {
+					roles.value.string_list.vals[nb_roles] = gf_strdup("enhanced-audio-intelligibility");
+					nb_roles++;
+				}
+				gf_filter_pid_set_property(opid, GF_PROP_PID_ROLE, &roles);
 			}
-			if (stream->audio_flags & GF_M2TS_AUDIO_HEARING_IMPAIRED) {
-				roles.value.string_list.vals[nb_roles] = gf_strdup("enhanced-audio-intelligibility");
-				nb_roles++;
-			}
-			gf_filter_pid_set_property(opid, GF_PROP_PID_ROLE, &roles);
 		}
 		//we don't demux scrambled PIDs, declare them as fake
 		if (stream->is_protected) {

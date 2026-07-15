@@ -257,6 +257,7 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 		GF_BitStream *bs;
 		if (ctx->probe_data) {
 			ctx->probe_data = (u8 *)gf_realloc(ctx->probe_data, ctx->probe_data_size+pck_size);
+			if (!ctx->probe_data) return GF_OUT_OF_MEM;
 			memcpy(ctx->probe_data + ctx->probe_data_size, data, pck_size);
 			ctx->probe_data_size += pck_size;
 			bs = gf_bs_new(ctx->probe_data, ctx->probe_data_size, GF_BITSTREAM_READ);

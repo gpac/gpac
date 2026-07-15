@@ -949,9 +949,11 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 					return GF_OK;
 				//gather codecs and bandwidth so that we can recompute them when generating the MPD
 				if (!curr_playlist->alt_bandwidths) {
-					curr_playlist->nb_alt_bandwidths = 1;
 					curr_playlist->alt_bandwidths = (u32 *)gf_malloc(sizeof(u32));
-					curr_playlist->alt_bandwidths[0] = curr_playlist->bandwidth;
+					if (curr_playlist->alt_bandwidths) {
+						curr_playlist->nb_alt_bandwidths = 1;
+						curr_playlist->alt_bandwidths[0] = curr_playlist->bandwidth;
+					}
 				}
 				char *codec = attribs->codecs;
 				while (codec) {
@@ -969,6 +971,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				}
 				gf_dynstrcat(&curr_playlist->audio_group, attribs->group_audio, ",");
 				curr_playlist->alt_bandwidths = (u32 *)gf_realloc(curr_playlist->alt_bandwidths, sizeof(u32)*(curr_playlist->nb_alt_bandwidths+1) );
+				if (!curr_playlist->alt_bandwidths) return GF_OUT_OF_MEM;
 				curr_playlist->alt_bandwidths[curr_playlist->nb_alt_bandwidths] = attribs->bandwidth;
 				curr_playlist->nb_alt_bandwidths++;
 				return GF_OK;

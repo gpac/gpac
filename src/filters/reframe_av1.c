@@ -499,6 +499,10 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (AV1Idx *)gf_realloc(ctx->indexes, sizeof(AV1Idx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = ctx->index_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = frame_start;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->cur_fps.num;
@@ -1323,6 +1327,10 @@ GF_Err av1dmx_process(GF_Filter *filter)
 			if (ctx->alloc_size < ctx->buf_size + pck_size) {
 				ctx->alloc_size = ctx->buf_size + pck_size;
 				ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
+				if (!ctx->buffer) {
+					ctx->alloc_size = 0;
+					return GF_OUT_OF_MEM;
+				}
 			}
 			memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 			ctx->buf_size += pck_size;
@@ -1357,6 +1365,10 @@ GF_Err av1dmx_process(GF_Filter *filter)
 			if (ctx->alloc_size < ctx->buf_size + pck_size) {
 				ctx->alloc_size = ctx->buf_size + pck_size;
 				ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
+				if (!ctx->buffer) {
+					ctx->alloc_size = 0;
+					return GF_OUT_OF_MEM;
+				}
 			}
 			memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 			ctx->buf_size += pck_size;
@@ -1375,6 +1387,10 @@ GF_Err av1dmx_process(GF_Filter *filter)
 	if (ctx->alloc_size < ctx->buf_size + pck_size) {
 		ctx->alloc_size = ctx->buf_size + pck_size;
 		ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
+		if (!ctx->buffer) {
+			ctx->alloc_size = 0;
+			return GF_OUT_OF_MEM;
+		}
 	}
 	memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 	ctx->buf_size += pck_size;

@@ -1154,6 +1154,7 @@ GF_Err LSR_UpdateESD(GF_LASeRSampleEntryBox *lsr, GF_ESD *esd)
 	}
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		lsr->lsr_config->hdr = (u8 *)gf_realloc(lsr->lsr_config->hdr, esd->decoderConfig->decoderSpecificInfo->dataLength);
+		if (!lsr->lsr_config->hdr) return GF_OUT_OF_MEM;
 		lsr->lsr_config->hdr_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 		memcpy(lsr->lsr_config->hdr, esd->decoderConfig->decoderSpecificInfo->data, sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 	}

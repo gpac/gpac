@@ -677,9 +677,11 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx, Bool gen_dsi_onl
 
 	sd = (GF_TextSampleDescriptor*)gf_odf_desc_new(GF_ODF_TX3G_TAG);
 	sd->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
-	sd->font_count = 1;
-	sd->fonts[0].fontID = 1;
-	sd->fonts[0].fontName = gf_strdup(ctx->fontname ? ctx->fontname : "Serif");
+	if (sd->fonts) {
+		sd->font_count = 1;
+		sd->fonts[0].fontID = 1;
+		sd->fonts[0].fontName = gf_strdup(ctx->fontname ? ctx->fontname : "Serif");
+	}
 	sd->back_color = 0x00000000;	/*transparent*/
 	sd->default_style.fontID = 1;
 	sd->default_style.font_size = ctx->fontsize;
@@ -777,7 +779,16 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 
 	len = (u32)(strlen(szLine)/2)*2+2;
 	uniLine = (u16 *)gf_malloc(sizeof(u16)*len);
+	if (!uniLine) {
+		ctx->state = 0;
+		return GF_OUT_OF_MEM;
+	}
 	uniText = (u16 *)gf_malloc(sizeof(u16)*len);
+	if (!uniText) {
+		ctx->state = 0;
+		gf_free(uniLine);
+		return GF_OUT_OF_MEM;
+	}
 
 	len = gf_utf8_mbstowcs(uniLine, len+1, (const char **) &ptr);
 	if (len == GF_UTF8_FAIL) {
@@ -1668,6 +1679,7 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end, TTMLInterval
 	}
 	//need a new interval
 	GF_SAFEALLOC(interval, TTMLInterval);
+	if (!interval) return GF_OUT_OF_MEM;
 	interval->begin = begin;
 	interval->end = end;
 	*out_interval = interval;
@@ -1819,6 +1831,7 @@ static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLN
 			u32 ilen = (u32) strlen(data);
 			f_size = 3*ilen/4;
 			f_data = (u8 *)gf_malloc(f_size);
+			if (!f_data) continue;
 
 			f_size = gf_base64_decode((u8*)data, ilen, f_data, f_size);
 
@@ -1984,6 +1997,7 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 	if (!gf_list_count(ctx->intervals)) {
 		TTMLInterval *interval;
 		GF_SAFEALLOC(interval, TTMLInterval);
+		if (!interval) return GF_OUT_OF_MEM;
 		interval->begin = interval->end = 0;
 		gf_list_add(ctx->intervals, interval);
 	}
@@ -3299,8 +3313,9 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 							while ( (ftable=(GF_XMLNode*)gf_list_enum(ext->content, &z))) {
 								u32 m;
 								if (ftable->type || strcmp(ftable->name, "FontTableEntry")) continue;
-								td.font_count += 1;
 								td.fonts = (GF_FontRecord*)gf_realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
+								if (!td.fonts) return GF_OUT_OF_MEM;;
+								td.font_count += 1;
 								m=0;
 								td.fonts[td.font_count-1].fontName = NULL;
 								while ( (att=(GF_XMLAttribute *)gf_list_enum(ftable->attributes, &m))) {
@@ -3320,10 +3335,12 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 						}
 					}
 					if (!td.fonts) {
-						td.font_count = 1;
 						td.fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
-						td.fonts[0].fontID = 1;
-						td.fonts[0].fontName = gf_strdup("Serif");
+						if (td.fonts) {
+							td.font_count = 1;
+							td.fonts[0].fontID = 1;
+							td.fonts[0].fontName = gf_strdup("Serif");
+						}
 					}
 					GF_SAFEALLOC(dcd, GF_PropertyValue);
 					if (dcd) {
@@ -3825,8 +3842,9 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 							if (ftable->type) continue;
 							if (!strcmp(ftable->name, "font")) {
 								u32 n=0;
-								td.font_count += 1;
 								td.fonts = (GF_FontRecord*)gf_realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
+								if (!td.fonts) return GF_OUT_OF_MEM;
+								td.font_count += 1;
 								while ((att=(GF_XMLAttribute *)gf_list_enum(ftable->attributes, &n))) {
 									if (!stricmp(att->name, "id")) td.fonts[td.font_count-1].fontID = atoi(att->value);
 									else if (!stricmp(att->name, "name")) td.fonts[td.font_count-1].fontName = gf_strdup(att->value);
@@ -3895,10 +3913,12 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 					td.default_pos.bottom = ctx->height;
 				}
 				if (!td.fonts) {
-					td.font_count = 1;
 					td.fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
-					td.fonts[0].fontID = 1;
-					td.fonts[0].fontName = gf_strdup( ctx->fontname ? ctx->fontname : "Serif");
+					if (td.fonts) {
+						td.font_count = 1;
+						td.fonts[0].fontID = 1;
+						td.fonts[0].fontName = gf_strdup( ctx->fontname ? ctx->fontname : "Serif");
+					}
 				}
 
 				gf_odf_tx3g_write(&td, &dsi, &dsi_len);

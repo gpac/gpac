@@ -3011,6 +3011,10 @@ process_m3u8_manifest:
 						gf_assert(rep->segment_list->previous_xlink_href || rep->segment_list->xlink_href);
 						hls_temp_rep = gf_mpd_representation_new();
 						GF_SAFEALLOC(hls_temp_rep->segment_list, GF_MPD_SegmentList);
+						if (!hls_temp_rep->segment_list) {
+							gf_mpd_del(new_mpd);
+							return GF_OUT_OF_MEM;
+						}
 						hls_temp_rep->segment_list->segment_URLs = gf_list_new();
 						if (rep->segment_list->xlink_href)
 							hls_temp_rep->segment_list->xlink_href = gf_strdup(rep->segment_list->xlink_href);
@@ -3706,10 +3710,14 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 				sep+=8;
 				len = (u32)strlen(sep) + 1;
 				rep->playback.init_segment.data = (u8 *)gf_malloc(len);
-				rep->playback.init_segment.size = gf_base64_decode((u8*)sep, len, rep->playback.init_segment.data, len);
-				char *b_url = gf_blob_register(&rep->playback.init_segment);
-				sprintf(*out_url, "%s%s", scheme, b_url);
-				gf_free(b_url);
+				if (rep->playback.init_segment.data) {
+					rep->playback.init_segment.size = gf_base64_decode((u8*)sep, len, rep->playback.init_segment.data, len);
+					char *b_url = gf_blob_register(&rep->playback.init_segment);
+					if (b_url) {
+						sprintf(*out_url, "%s%s", scheme, b_url);
+						gf_free(b_url);
+					}
+				}
 			} else {
 				sprintf(*out_url, "%sgmem://%p", scheme, &rep->playback.init_segment);
 			}
@@ -5821,11 +5829,12 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			group->max_cached_segments = 50;
 		}
 		group->cached = (segment_cache_entry *)gf_malloc(sizeof(segment_cache_entry)*group->max_cached_segments);
-		memset(group->cached, 0, sizeof(segment_cache_entry)*group->max_cached_segments);
 		if (!group->cached) {
 			gf_free(group);
 			return GF_OUT_OF_MEM;
 		}
+		memset(group->cached, 0, sizeof(segment_cache_entry)*group->max_cached_segments);
+
 		group->index = gf_list_count(dash->groups);
 		e = gf_list_add(dash->groups, group);
 		if (e) {
@@ -5857,6 +5866,10 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			//all dependent groups will be stored in the base group
 			group->max_cached_segments *= (1+nb_dep_groups);
 			group->cached = (segment_cache_entry *)gf_realloc(group->cached, sizeof(segment_cache_entry)*group->max_cached_segments);
+			if (!group->cached) {
+				group->max_cached_segments = 0;
+				return GF_OUT_OF_MEM;
+			}
 			memset(group->cached, 0, sizeof(segment_cache_entry)*group->max_cached_segments);
 
 			for (j=0; j<nb_dep_groups; j++) {
@@ -5866,8 +5879,11 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 
 				/* the rest of the code assumes that at least group->cached[0] is allocated */
 				dep_group->cached = (segment_cache_entry *)gf_realloc(dep_group->cached, sizeof(segment_cache_entry));
+				if (!dep_group->cached) {
+					dep_group->max_cached_segments = 0;
+					return GF_OUT_OF_MEM;
+				}
 				memset(dep_group->cached, 0, sizeof(segment_cache_entry));
-
 			}
 		}
 	}
@@ -6283,6 +6299,10 @@ retry_rep:
 							goto exit;
 						}
 						rep->playback.init_segment.data = (u8 *)gf_malloc(rep->playback.init_segment.size);
+						if (rep->playback.init_segment.data) {
+							e = GF_OUT_OF_MEM;
+							goto exit;
+						}
 						memcpy(rep->playback.init_segment.data, mem_address, sizeof(char) * rep->playback.init_segment.size);
 
 						rep->segment_list->initialization_segment->sourceURL = gf_blob_register(&rep->playback.init_segment);
@@ -6295,6 +6315,11 @@ retry_rep:
 							rep->playback.init_segment.size = (u32) gf_fsize(t);
 
 							rep->playback.init_segment.data = (u8 *)gf_malloc(rep->playback.init_segment.size);
+							if (!rep->playback.init_segment.data) {
+								e = GF_OUT_OF_MEM;
+								gf_fclose(t);
+								goto exit;
+							}
 							res = (s32) gf_fread(rep->playback.init_segment.data, rep->playback.init_segment.size, t);
 							if (res != rep->playback.init_segment.size) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to store init segment\n"));
@@ -6302,6 +6327,7 @@ retry_rep:
 								rep->segment_list->initialization_segment->sourceURL = gf_blob_register(&rep->playback.init_segment);
 								rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
 							}
+							gf_fclose(t);
 						}
 					}
 				}

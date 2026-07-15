@@ -1394,7 +1394,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 							break;
 					}
 				}
-				if (nb_visible > min_visible_threshold) 
+				if (nb_visible > min_visible_threshold)
 					visible = GF_TRUE;
 				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %s Partial sphere is %s - %d sample points visible out of %d\n", pid_name, visible ? "visible" : "hidden",  nb_visible, i));
 			}
@@ -1665,6 +1665,7 @@ void compositor_init_vrhud(GF_Compositor *compositor, GF_Node *node)
 }
 
 void get_tx_coords_from_angle(GF_TraverseState *tr_state, GF_TextureHandler *txh, Bool horizontal, u32 *min_coord, u32 *max_coord);
+GF_Err mesh_new_spherical_srd(GF_Mesh *mesh, Fixed radius, const GF_PropertyValue *srd_map, const GF_PropertyValue *srd_ref);
 
 static void TraverseSRDSphere(GF_Node *node, void *rs, Bool is_destroy)
 {
@@ -1704,7 +1705,6 @@ static void TraverseSRDSphere(GF_Node *node, void *rs, Bool is_destroy)
 				srd_ref = gf_filter_pid_get_property(txh->stream->odm->pid, GF_PROP_PID_SRD_REF);
 			}
 			if (srd && srd_ref) {
-void mesh_new_spherical_srd(GF_Mesh *mesh, Fixed radius, const GF_PropertyValue *srd_map, const GF_PropertyValue *srd_ref);
 				mesh_new_spherical_srd(stack->mesh, -1 * INT2FIX(radius), srd, srd_ref);
 			} else {
 				mesh_new_sphere(stack->mesh, -1 * INT2FIX(radius), GF_FALSE, NULL);

@@ -515,10 +515,12 @@ char *gf_bt_get_string(GF_BTParser *parser, u8 string_delim)
 #define	BT_STR_CHECK_ALLOC	\
 		if (i==size) {		\
 			res = (char*)gf_realloc(res, (size+500+1)); \
+			if (!res) return NULL;\
 			size += 500;	\
 		}	\
 
 	res = (char*)gf_malloc(500);
+	if (!res) return NULL;
 	size = 500;
 	while (parser->line_buffer[parser->line_pos]==' ') parser->line_pos++;
 
@@ -1032,6 +1034,10 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		size = img->width * img->height * img->numComponents;
 		if (img->pixels) gf_free(img->pixels);
 		img->pixels = (u8 *)gf_malloc(size);
+		if (!img->pixels) {
+			img->width = img->height = 0;
+			break;
+		}
 		for (i=0; i<size; i++) {
 			char *str = gf_bt_get_next(parser, GF_FALSE);
 			if (strstr(str, "0x")) sscanf(str, "%x", &v);
@@ -2801,6 +2807,10 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 				goto err;
 			}
 			com->del_proto_list = (u32*)gf_realloc(com->del_proto_list, sizeof(u32)*(com->del_proto_list_size+1));
+			if (!com->del_proto_list) {
+				gf_sg_command_del(com);
+				return parser->last_error = GF_OUT_OF_MEM;
+			}
 			com->del_proto_list[com->del_proto_list_size] = proto->ID;
 			com->del_proto_list_size++;
 		}
@@ -3251,8 +3261,12 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 				gf_bt_parse_int(parser, "ODID", (SFInt32*)&id);
 				if (parser->last_error) return;
 				odR->OD_ID = (u16*)gf_realloc(odR->OD_ID, sizeof(u16) * (odR->NbODs+1));
-				odR->OD_ID[odR->NbODs] = id;
-				odR->NbODs++;
+				if (!odR->OD_ID) {
+					odR->NbODs = 0;
+				} else {
+					odR->OD_ID[odR->NbODs] = id;
+					odR->NbODs++;
+				}
 			}
 			return;
 		}
@@ -3281,8 +3295,12 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 				gf_bt_parse_int(parser, "ES_ID", (SFInt32*)&id);
 				if (parser->last_error) return;
 				esdR->ES_ID = (u16*)gf_realloc(esdR->ES_ID, sizeof(u16) * (esdR->NbESDs+1));
-				esdR->ES_ID[esdR->NbESDs] = id;
-				esdR->NbESDs++;
+				if (esdR->ES_ID) {
+					esdR->ES_ID[esdR->NbESDs] = id;
+					esdR->NbESDs++;
+				} else {
+					esdR->NbESDs = 0;
+				}
 			}
 			return;
 		}
@@ -3583,6 +3601,7 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 		if (!gzInput) return GF_IO_ERR;
 
 		parser->line_buffer = (char *) gf_malloc(BT_LINE_SIZE);
+		if (!parser->line_buffer) return GF_OUT_OF_MEM;
 		memset(parser->line_buffer, 0, sizeof(char)*BT_LINE_SIZE);
 		parser->file_size = size;
 

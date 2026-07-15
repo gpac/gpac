@@ -1248,6 +1248,8 @@ static void js_sys_rmt_on_new_client(void *udta, void* new_client) {
 
 	JS_Sys_Task *deltask;
 	GF_SAFEALLOC(deltask, JS_Sys_Task);
+	if (!deltask) return;
+
 	deltask->type = RMT_CALLBACK_JS;
 	deltask->ctx = task->ctx;
 	deltask->_obj = JS_DupValue(task->ctx, obj);
@@ -2288,6 +2290,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 		return JS_NULL;
 	}
 	char *str = (char *)gf_malloc(ab_size+1);
+	if (!str) return GF_JS_EXCEPTION(ctx);
 	memcpy(str, data, ab_size);
 	str[ab_size]=0;
 	//HLS playlist
@@ -3337,6 +3340,9 @@ static JSValue amix_constructor(JSContext *ctx, JSValueConst new_target, int arg
 	if (!channels) return js_throw_err(ctx, GF_BAD_PARAM);
 
 	GF_SAFEALLOC(mix, AMixCtx);
+	if (!mix) {
+		return js_throw_err(ctx, GF_OUT_OF_MEM);
+	}
 	mix->channels = channels;
 	mix->samples_gap = samples_gap;
 	mix->fade_len = fade_len;

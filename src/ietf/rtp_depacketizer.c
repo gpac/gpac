@@ -1659,7 +1659,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-
+		GF_Err e;
 		avcc = gf_odf_avc_cfg_new();
 		avcc->AVCProfileIndication = (rtp->sl_map.PL_ID>>16) & 0xFF;
 		avcc->profile_compatibility = (rtp->sl_map.PL_ID>>8) & 0xFF;
@@ -1690,14 +1690,25 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 
 					b64size = (u32) strlen(nal_ptr);
 					b64_d = (u8*)gf_malloc(b64size);
+					if (!b64_d) {
+						e = GF_OUT_OF_MEM;
+						if (sep) sep[0] = ',';
+						break;
+					}
 					ret = gf_base64_decode((u8*)nal_ptr, b64size, b64_d, b64size);
 					b64_d[ret] = 0;
 
 					nalt = b64_d[0] & 0x1F;
 					if (/*SPS*/(nalt==0x07) || /*PPS*/(nalt==0x08) || /*SSPS*/(nalt==0x0F)) {
 						GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
+						if (sl) sl->data = (u8*)gf_malloc(ret);
+						if (!sl || !sl->data) {
+							if (sl) gf_free(sl->data);
+							e = GF_OUT_OF_MEM;
+							if (sep) sep[0] = ',';
+							break;
+						}
 						sl->size = ret;
-						sl->data = (u8*)gf_malloc(sl->size);
 						memcpy(sl->data, b64_d, sizeof(char)*sl->size);
 						if (nalt==0x07 || nalt==0x0F) {
 							gf_list_add(avcc->sequenceParameterSets, sl);
@@ -1716,6 +1727,10 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 				}
 			}
 		}
+		if (e) {
+			gf_odf_avc_cfg_del(avcc);
+			return e;
+		}
 		if (gf_list_count(avcc->sequenceParameterSets) && gf_list_count(avcc->pictureParameterSets)) {
 			gf_odf_avc_cfg_write(avcc, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		} else {
@@ -1733,6 +1748,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		GF_HEVCConfig *hvcc = NULL;
 		GF_VVCConfig *vvcc = NULL;
 		GF_List **param_array = NULL;
+		GF_Err e = GF_OK;
 		if (!map || !media) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
@@ -1793,12 +1809,24 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 
 					b64size = (u32) strlen(nal_ptr);
 					b64_d = (u8*)gf_malloc(b64size);
+					if (!b64_d) {
+						e = GF_OUT_OF_MEM;
+						if (sep) sep[0] = ',';
+						break;
+					}
 					ret = gf_base64_decode((u8*)nal_ptr, b64size, b64_d, b64size);
 					b64_d[ret] = 0;
 
 					sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
+					if (sl) sl->data = (u8*)gf_malloc(ret);
+					if (!sl || !sl->data) {
+						if (sl) gf_free(sl->data);
+						e = GF_OUT_OF_MEM;
+						if (sep) sep[0] = ',';
+						break;
+					}
 					sl->size = ret;
-					sl->data = (u8*)gf_malloc(sl->size);
+
 					memcpy(sl->data, b64_d, sizeof(char)*sl->size);
 					gf_list_add(ar->nalus, sl);
 
@@ -1815,6 +1843,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 				gf_list_add(*param_array, ar);
 			}
 		}
+
 		if (vvcc) {
 			gf_odf_vvc_cfg_write(vvcc, &rtp->sl_map.config, &rtp->sl_map.configSize);
 			gf_odf_vvc_cfg_del(vvcc);
@@ -1822,6 +1851,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			gf_odf_hevc_cfg_write(hvcc, &rtp->sl_map.config, &rtp->sl_map.configSize);
 			gf_odf_hevc_cfg_del(hvcc);
 		}
+		if (e) return e;
 	}
 		break;
 #endif /*GPAC_DISABLE_AV_PARSERS*/

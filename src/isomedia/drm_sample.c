@@ -1166,13 +1166,13 @@ GF_Err gf_isom_piff_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len, Bool saio_32bits, Bool use_multikey)
+GF_Err gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len, Bool saio_32bits, Bool use_multikey)
 {
 	u32  i;
 	GF_List **child_boxes = stbl ? &stbl->child_boxes : &traf->child_boxes;
 	if (!senc->cenc_saiz) {
 		senc->cenc_saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_TYPE_SAIZ);
-		if (!senc->cenc_saiz) return;
+		if (!senc->cenc_saiz) return GF_OUT_OF_MEM;
 		//as per 3rd edition of cenc "so content SHOULD be created omitting these optional fields" ...
 		senc->cenc_saiz->aux_info_type = 0;
 		senc->cenc_saiz->aux_info_type_parameter = use_multikey ? 1 : 0;
@@ -1183,7 +1183,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	}
 	if (!senc->cenc_saio) {
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_TYPE_SAIO);
-		if (!senc->cenc_saio) return;
+		if (!senc->cenc_saio) return GF_OUT_OF_MEM;
 		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
 		senc->cenc_saio->version = saio_32bits ? 0 : 1;
 		//as per 3rd edition of cenc "so content SHOULD be created omitting these optional fields" ...
@@ -1204,6 +1204,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 			senc->cenc_saiz->sample_alloc = senc->cenc_saiz->sample_count+10;
 
 			senc->cenc_saiz->sample_info_size = (u8*)gf_realloc(senc->cenc_saiz->sample_info_size, (senc->cenc_saiz->sample_alloc));
+			if (!senc->cenc_saiz->sample_info_size) return GF_OUT_OF_MEM;
 		}
 
 		if (senc->cenc_saiz->default_sample_info_size || (senc->cenc_saiz->sample_count==1)) {
@@ -1214,6 +1215,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 		senc->cenc_saiz->sample_info_size[senc->cenc_saiz->sample_count] = len;
 		senc->cenc_saiz->sample_count++;
 	}
+	return GF_OK;
 }
 
 GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u32 sample_number, u64 offset, u32 len)

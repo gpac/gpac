@@ -301,6 +301,11 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 	libcaption_stauts_t status = LIBCAPTION_OK;
 	if (!ctx->ccframe) {
 		GF_SAFEALLOC(ctx->ccframe, caption_frame_t);
+		if (!ctx->ccframe) {
+			gf_free(cc->data);
+			gf_free(cc);
+			return GF_OUT_OF_MEM;
+		}
 		caption_frame_init(ctx->ccframe);
 	}
 	Double timestamp = (Double) cc->timestamp;

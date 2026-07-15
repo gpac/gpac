@@ -136,7 +136,7 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name);
 void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name);
 #endif
 
-void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u32 skip_offset);
+GF_Err dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u32 skip_offset);
 GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, u32 dump_flags);
 void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode, char *inName, Bool is_final_name);
 

@@ -309,6 +309,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		if (ch->send_buffer) gf_free(ch->send_buffer);
 		ch->send_buffer_size = PathMTU + 12;
 		ch->send_buffer = (u8 *) gf_malloc(ch->send_buffer_size);
+		if (!ch->send_buffer) return GF_OUT_OF_MEM;
 	}
 
 	//format CNAME if not done yet
@@ -929,6 +930,7 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 	if (!po) return GF_BAD_PARAM;
 
 	it = (GF_POItem *) gf_malloc(sizeof(GF_POItem));
+	if (!it) return GF_OUT_OF_MEM;
 	it->pck_seq_num = pck_seqnum;
 	it->next = NULL;
 	it->size = pck_size;

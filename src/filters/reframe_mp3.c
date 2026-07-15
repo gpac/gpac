@@ -174,6 +174,10 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (MP3Idx *)gf_realloc(ctx->indexes, sizeof(MP3Idx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = ctx->index_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = pos - 4;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= prev_sr;
@@ -205,6 +209,7 @@ static void id3dmx_set_string(GF_FilterPid *apid, const char *name, char *buf, B
 		const u16 *sptr = (u16 *) (buf+2);
 		u32 len = UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(sptr);
 		char *tmp = (char *)gf_malloc(len+1);
+		if (!tmp) return;
 		len = gf_utf8_wcstombs(tmp, len, &sptr);
 		if (len != GF_UTF8_FAIL) {
 			tmp[len] = 0;
@@ -267,6 +272,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 
 		if (buf_alloc <= fsize+3) {
 			_buf = (u8 *)gf_realloc(_buf, fsize+4);
+			if (!_buf) break;
 			buf_alloc = fsize+4;
 		}
 		//read into _buf+1 so that buf+1 is always %2 mem aligned as it can be loaded as unsigned short
@@ -561,6 +567,7 @@ restart:
 		if (ctx->mp3_buffer_size + pck_size > ctx->mp3_buffer_alloc) {
 			ctx->mp3_buffer_alloc = ctx->mp3_buffer_size + pck_size;
 			ctx->mp3_buffer = (u8 *)gf_realloc(ctx->mp3_buffer, ctx->mp3_buffer_alloc);
+			if (!ctx->mp3_buffer) return GF_OUT_OF_MEM;
 		}
 		memcpy(ctx->mp3_buffer + ctx->mp3_buffer_size, data, pck_size);
 		ctx->mp3_buffer_size += pck_size;
@@ -605,6 +612,7 @@ restart:
 				bytes_to_drop = 10;
 				if (ctx->id3_buffer_alloc < ctx->tag_size+10) {
 					ctx->id3_buffer = (u8 *)gf_realloc(ctx->id3_buffer, ctx->tag_size+10);
+					if (!ctx->id3_buffer) return GF_OUT_OF_MEM;
 					ctx->id3_buffer_alloc = ctx->tag_size+10;
 				}
 				memcpy(ctx->id3_buffer, start, 10);

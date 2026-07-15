@@ -861,6 +861,10 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, const u8 *data, u32 data_
 					if (ctx->b64_buffer_size < 2*s_size + 3) {
 						ctx->b64_buffer_size = 2 * s_size + 3;
 						ctx->b64_buffer = (char *)gf_realloc(ctx->b64_buffer, ctx->b64_buffer_size);
+						if (!ctx->b64_buffer) {
+							ctx->b64_buffer_size = 0;
+							return GF_OUT_OF_MEM;
+						}
 					}
 					d_size = gf_base64_encode(data + offset_in_sample, s_size, (u8*)ctx->b64_buffer, ctx->b64_buffer_size);
 					ctx->b64_buffer[d_size] = 0;

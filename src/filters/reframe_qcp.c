@@ -199,6 +199,10 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (QCPIdx *)gf_realloc(ctx->indexes, sizeof(QCPIdx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = ctx->index_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = pos;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->sample_rate;
@@ -508,6 +512,10 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 				if (ctx->buffer_alloc < ctx->buffer_size + remain) {
 					ctx->buffer_alloc = ctx->buffer_size + remain;
 					ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->buffer_alloc);
+					if (!ctx->buffer) {
+						ctx->buffer_alloc = 0;
+						return GF_OUT_OF_MEM;
+					}
 				}
 				memcpy(ctx->buffer + ctx->buffer_size, start, remain);
 				ctx->buffer_size += remain;
@@ -552,6 +560,10 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 				if (ctx->buffer_alloc < ctx->buffer_size + 8) {
 					ctx->buffer_alloc = ctx->buffer_size + 8;
 					ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->buffer_alloc);
+					if (!ctx->buffer) {
+						ctx->buffer_alloc = 0;
+						return GF_OUT_OF_MEM;
+					}
 				}
 				memcpy(ctx->buffer + ctx->buffer_size, start, remain);
 				ctx->buffer_size += remain;

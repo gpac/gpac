@@ -230,6 +230,8 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 			/*append value*/
 			else {
 				char *new_val = (char *)gf_malloc((strlen(ctx->headers[nb_hdr+1])+strlen(val)+3));
+				if (!new_val) return;
+
 				sprintf(new_val, "%s, %s", ctx->headers[nb_hdr+1], val);
 				gf_free(ctx->headers[nb_hdr+1]);
 				ctx->headers[nb_hdr+1] = new_val;
@@ -810,6 +812,10 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 			if (ctx->responseType!=XHR_RESPONSETYPE_PUSH) {
 				ctx->data = (u8 *)gf_realloc(ctx->data, (ctx->size+parameter->size+1));
+				if (!ctx->data) {
+					parameter->error = GF_OUT_OF_MEM;
+					goto exit;
+				}
 				memcpy(ctx->data + ctx->size, parameter->data, sizeof(char)*parameter->size);
 				ctx->size += parameter->size;
 				ctx->data[ctx->size] = 0;
@@ -909,10 +915,14 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	ctx->html_status = 200;
 
 	ctx->data = (u8 *)gf_malloc((size_t)(fsize+1));
-	fsize = gf_fread(ctx->data, (size_t)fsize, responseFile);
+	if (ctx->data) {
+		fsize = gf_fread(ctx->data, (size_t)fsize, responseFile);
+		ctx->data[fsize] = 0;
+		ctx->size = (u32)fsize;
+	} else {
+		ctx->size = 0;
+	}
 	gf_fclose(responseFile);
-	ctx->data[fsize] = 0;
-	ctx->size = (u32)fsize;
 
 #ifndef GPAC_DISABLE_SVG
 	if ((ctx->responseType == XHR_RESPONSETYPE_SAX)
@@ -1001,7 +1011,7 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	if (data) {
 		ctx->data = (u8*) gf_malloc(data_size+1);
 		if (!ctx->data) return GF_JS_EXCEPTION(c);
-		memcmp(ctx->data, data, data_size);
+		memcpy(ctx->data, data, data_size);
 		ctx->data[data_size] = 0;
 	}
 	ctx->size = data_size;

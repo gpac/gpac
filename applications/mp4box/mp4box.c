@@ -2348,6 +2348,8 @@ static GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs,
 	char *sep = (char *)gf_url_colon_suffix(name, '=');
 
 	dash_inputs = (GF_DashSegmenterInput *)gf_realloc(dash_inputs, sizeof(GF_DashSegmenterInput) * (*nb_dash_inputs + 1) );
+	if (!dash_inputs) return NULL;
+
 	memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegmenterInput) );
 	di = &dash_inputs[*nb_dash_inputs];
 	(*nb_dash_inputs)++;
@@ -2381,12 +2383,16 @@ static GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs,
 			else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);
 			else if (!strnicmp(opts, "BaseURL=", 8)) {
 				di->baseURL = (char **)gf_realloc(di->baseURL, (di->nb_baseURL+1)*sizeof(char *));
-				di->baseURL[di->nb_baseURL] = gf_strdup(opts+8);
+				if (di->baseURL)
+					di->baseURL[di->nb_baseURL] = gf_strdup(opts+8);
+				if (!di->baseURL || !di->baseURL[di->nb_baseURL])
+					return NULL;
 				di->nb_baseURL++;
 			} else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = parse_u32(opts+10, "bandwidth");
 			else if (!strnicmp(opts, "role=", 5)) {
 				di->roles = (char **)gf_realloc(di->roles, sizeof (char *) * (di->nb_roles+1));
-				di->roles[di->nb_roles] = gf_strdup(opts+5);
+				if (di->roles) di->roles[di->nb_roles] = gf_strdup(opts+5);
+				if (!di->roles || !di->roles[di->nb_roles]) return NULL;
 				di->nb_roles++;
 			} else if (!strnicmp(opts, "desc", 4)) {
 				u32 *nb_descs=NULL;
@@ -2415,7 +2421,9 @@ static GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs,
 					opts += opt_offset;
 					len = (u32) strlen(opts);
 					(*descs) = (char **)gf_realloc((*descs), (*nb_descs)*sizeof(char *));
-					(*descs)[(*nb_descs)-1] = (char *)gf_malloc(len+1);
+					if (*descs)
+						(*descs)[(*nb_descs)-1] = (char *)gf_malloc(len+1);
+					if (!(*descs) || ! (*descs)[(*nb_descs)-1]) return NULL;
 					memcpy((*descs)[(*nb_descs)-1], opts, len);
 					(*descs)[(*nb_descs)-1][len] = 0;
 				}
@@ -4149,6 +4157,11 @@ static GF_Err do_compress_top_boxes(const char *inName, const char *outName)
 
 	buf_alloc = 4096;
 	buf = (u8 *)gf_malloc(buf_alloc);
+	if (!buf) {
+		gf_fclose(in);
+		gf_fclose(out);
+		return GF_OUT_OF_MEM;
+	}
 
 	bs_in = gf_bs_from_file(in, GF_BITSTREAM_READ);
 	source_size = gf_bs_get_size(bs_in);
@@ -4193,6 +4206,7 @@ static GF_Err do_compress_top_boxes(const char *inName, const char *outName)
 		if (size>buf_alloc) {
 			buf_alloc = size;
 			buf = (u8 *)gf_realloc(buf, buf_alloc);
+			if (!buf) return GF_OUT_OF_MEM;
 		}
 		gf_bs_read_data(bs_in, buf, size);
 
@@ -6718,7 +6732,11 @@ int mp4box_main(int argc, char **argv)
 
 #endif
 
-	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_timestamps);
+	if (dump_timestamps) {
+		e = dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_timestamps);
+		if (e) goto err_exit;
+	}
+
 
 	dump_tkid = get_track_id(file, &dump_nal_track);
 	if (dump_tkid) {

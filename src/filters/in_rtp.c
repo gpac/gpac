@@ -848,6 +848,7 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 	if (!strnicmp(ctx->src, "satip://", 8)) {
 		ctx->session->satip = GF_TRUE;
 		ctx->session->satip_server = (char *)gf_malloc(GF_MAX_PATH);
+		if (!ctx->session->satip_server) return GF_OUT_OF_MEM;
 		rtpin_satip_get_server_ip(ctx->src, ctx->session->satip_server);
 	}
 

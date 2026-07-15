@@ -2150,6 +2150,7 @@ sourceid_reassign:
 
 						u32 blen = (u32) strlen(sid) + (u32) strlen(prop_dump_buffer)+1;
 						char *new_source_ids = (char *)gf_malloc(blen);
+						if (!new_source_ids) break;
 						u32 clen = (u32) sublen + frag_sep_len + 1;
 						memcpy(new_source_ids, sid, clen);
 						new_source_ids[clen]=0;
@@ -2693,6 +2694,10 @@ static GF_BundleDesc *caps_load_bundle(const GF_FilterRegister *freg, u32 b_idx,
 		if (bundle_cache->nb_src>=bundle_cache->nb_src_alloc) {
 			bundle_cache->nb_src_alloc += 10;
 			bundle_cache->bundles_src = (GF_BundleDesc**)gf_realloc(bundle_cache->bundles_src, sizeof(GF_BundleDesc*)*bundle_cache->nb_src_alloc);
+			if (!bundle_cache->bundles_src) {
+				bundle_cache->nb_src = bundle_cache->nb_src_alloc = 0;
+				return NULL;
+			}
 		}
 		bundle_cache->bundles_src[bundle_cache->nb_src] = bundle;
 		bundle_cache->nb_src++;
@@ -2700,6 +2705,10 @@ static GF_BundleDesc *caps_load_bundle(const GF_FilterRegister *freg, u32 b_idx,
 		if (bundle_cache->nb_dst>=bundle_cache->nb_dst_alloc) {
 			bundle_cache->nb_dst_alloc += 10;
 			bundle_cache->bundles_dst = (GF_BundleDesc**)gf_realloc(bundle_cache->bundles_dst, sizeof(GF_BundleDesc*)*bundle_cache->nb_dst_alloc);
+			if (!bundle_cache->bundles_dst) {
+				bundle_cache->nb_dst = bundle_cache->nb_dst_alloc = 0;
+				return NULL;
+			}
 		}
 		bundle_cache->bundles_dst[bundle_cache->nb_dst] = bundle;
 		bundle_cache->nb_dst++;
@@ -3115,7 +3124,7 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 	return 0;
 }
 
-static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, GF_FilterRegDesc *a_reg, u32 nb_dst_caps, GF_Filter *dst_filter)
+static Bool gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, GF_FilterRegDesc *a_reg, u32 nb_dst_caps, GF_Filter *dst_filter)
 {
 	u32 nb_src_caps, k, l;
 	u32 path_weight;
@@ -3127,6 +3136,9 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, GF_Filt
 
 	if (!reg_desc->bundle_cache) GF_SAFEALLOC(reg_desc->bundle_cache, GF_BundleCache);
 	if (!a_reg->bundle_cache) GF_SAFEALLOC(a_reg->bundle_cache, GF_BundleCache);
+	if (!reg_desc->bundle_cache || !a_reg->bundle_cache) {
+		return GF_FALSE;
+	}
 
 	//check which cap of this filter matches our destination
 	nb_src_caps = a_reg->nb_bundles;
@@ -3144,6 +3156,10 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, GF_Filt
 					if (reg_desc->nb_edges==reg_desc->nb_alloc_edges) {
 						reg_desc->nb_alloc_edges += 10;
 						reg_desc->edges = (GF_FilterRegEdge *)gf_realloc(reg_desc->edges, sizeof(GF_FilterRegEdge) * reg_desc->nb_alloc_edges);
+						if (!reg_desc->edges) {
+							reg_desc->nb_edges = reg_desc->nb_alloc_edges = 0;
+							continue;
+						}
 					}
 					gf_assert(path_weight<0xFF);
 					gf_assert(k<0xFFFF);
@@ -3176,6 +3192,10 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, GF_Filt
 					if (a_reg->nb_edges==a_reg->nb_alloc_edges) {
 						a_reg->nb_alloc_edges += 10;
 						a_reg->edges = (GF_FilterRegEdge *)gf_realloc(a_reg->edges, sizeof(GF_FilterRegEdge) * a_reg->nb_alloc_edges);
+						if (!a_reg->edges) {
+							a_reg->nb_edges = a_reg->nb_alloc_edges = 0;
+							continue;
+						}
 					}
 					edge = &a_reg->edges[a_reg->nb_edges];
 					edge->src_reg = reg_desc;
@@ -3190,6 +3210,7 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, GF_Filt
 			}
 		}
 	}
+	return GF_TRUE;
 }
 
 static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_FilterRegister *freg, GF_FilterPid *src_pid, GF_Filter *dst_filter, u32 orig_nb_bundles)
@@ -6467,9 +6488,11 @@ static GFINLINE const GF_PropertyValue *pid_check_prop(GF_FilterPid *pid, u32 pr
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s input PID %s property %s not found\n", pid->filter->name, pidname, prop_name));
 		}
 		GF_SAFEALLOC(p, GF_PropCheck);
-		p->name = prop_name;
-		p->p4cc = prop_4cc;
-		gf_list_add(pidi->prop_dump, p);
+		if (p) {
+			p->name = prop_name;
+			p->p4cc = prop_4cc;
+			gf_list_add(pidi->prop_dump, p);
+		}
 	}
 	return ret;
 }
@@ -7972,6 +7995,7 @@ static GF_FilterEvent *dup_evt(GF_FilterEvent *evt)
 {
 	GF_FilterEvent *an_evt;
 	an_evt = (GF_FilterEvent *)gf_malloc(sizeof(GF_FilterEvent));
+	if (!an_evt) return NULL;
 	memcpy(an_evt, evt, sizeof(GF_FilterEvent));
 	u32 i=0;
 	while (1) {
@@ -8004,6 +8028,7 @@ static void free_evt(GF_FilterEvent *evt)
 static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 {
 	GF_FilterEvent *an_evt = (GF_FilterEvent *)gf_malloc(sizeof(GF_FilterEvent));
+	if (!an_evt) return NULL;
 	memcpy(an_evt, evt, sizeof(GF_FilterEvent));
 	u32 i=0;
 	while (1) {
@@ -8047,6 +8072,7 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 			} else {
 				u32 len = 1 + (u32) strlen(url);
 				GF_RefString *rstr = (GF_RefString *)gf_malloc(sizeof(GF_RefString) + sizeof(char)*len);
+				if (!rstr) continue;
 				rstr->ref_count=1;
 				gf_strlcpy( (char *) &rstr->string[0], url, len);
 				*url_addr_dst = (char *) &rstr->string[0];
@@ -8432,6 +8458,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		}
 
 		an_evt = dup_evt(evt);
+		if (!an_evt) continue;
 		an_evt->base.on_pid = task->pid ? pid : NULL;
 
 		safe_int_inc(&pid->filter->num_events_queued);
@@ -8511,6 +8538,7 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 		u32 i, j;
 
 		an_evt = init_evt(evt);
+		if (!an_evt) return;
 
 		for (i=0; i<pid->filter->num_output_pids; i++) {
 			GF_FilterPid *apid = (struct __gf_filter_pid *)gf_list_get(pid->filter->output_pids, i);
@@ -8520,8 +8548,10 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 				GF_FilterPidInst *pidi = (struct __gf_filter_pid_inst *)gf_list_get(apid->destinations, j);
 
 				up_evt = dup_evt(an_evt);
-				up_evt->base.on_pid = (GF_FilterPid *)pidi;
-				gf_fs_post_task_class(pidi->filter->session, gf_filter_pid_send_event_upstream, pidi->filter, NULL, "upstream_event", up_evt, TASK_TYPE_EVENT);
+				if (up_evt) {
+					up_evt->base.on_pid = (GF_FilterPid *)pidi;
+					gf_fs_post_task_class(pidi->filter->session, gf_filter_pid_send_event_upstream, pidi->filter, NULL, "upstream_event", up_evt, TASK_TYPE_EVENT);
+				}
 			}
 		}
 		free_evt(an_evt);
@@ -8662,6 +8692,7 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream)
 	}
 	for (i=0;i<nb_pids; i++) {
 		an_evt = init_evt(evt);
+		if (!an_evt) continue;
 		if (all_pids) {
 			an_evt->base.on_pid = (GF_FilterPid *)gf_list_get(upstream ? filter->output_pids : filter->input_pids, i);
 		}
@@ -9608,6 +9639,7 @@ static char *gf_filter_pid_get_dst_string(GF_FilterSession *sess, const char *_a
 	else len = (u32) strlen(target);
 
 	char *res = (char *)gf_malloc(len+1);
+	if (!res) return NULL;
 	memcpy(res, target, sizeof(char)* len);
 	res[len]=0;
 	return res;

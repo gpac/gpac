@@ -235,6 +235,10 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 	}
 	UNCVConfig *uncv;
 	GF_SAFEALLOC(uncv, UNCVConfig);
+	if (!uncv) {
+		*out_err = GF_OUT_OF_MEM;
+		return NULL;
+	}
 
 	uncv->num_tile_cols = uncv->num_tile_rows = 1; // defaults to prevent FPE
 
@@ -254,11 +258,11 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 				goto exit;
 			}
 			uncv->comp_defs = (UNCVComponentDefinition *)gf_malloc(sizeof(UNCVComponentDefinition) * uncv->nb_comp_defs);
-			memset(uncv->comp_defs, 0, sizeof(UNCVComponentDefinition) * uncv->nb_comp_defs);
 			if (!uncv->comp_defs) {
 				*out_err = GF_OUT_OF_MEM;
 				goto exit;
 			}
+			memset(uncv->comp_defs, 0, sizeof(UNCVComponentDefinition) * uncv->nb_comp_defs);
 			for (i=0; i<uncv->nb_comp_defs; i++) {
 				uncv->comp_defs[i].type = gf_bs_read_u16(bs);
 				if (uncv->comp_defs[i].type>=0x8000) {
@@ -915,6 +919,7 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 /*	pixel = [];
 */
 	u32 *bits = (u32 *)gf_malloc(sizeof(u32) * config->nb_comps*2);
+	if (!bits) return GF_OUT_OF_MEM;
 	u32 nb_bits=0;
 	u32 i, min_bits = 0;
 	ctx->subsample_x = 1;
@@ -1101,6 +1106,8 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 	}
 
 	ctx->bsrs = (BSRead *)gf_malloc(sizeof(BSRead) * ctx->nb_bsrs);
+	if (!ctx->bsrs) return GF_OUT_OF_MEM;
+
 	memset(ctx->bsrs, 0, sizeof(BSRead) * ctx->nb_bsrs);
 	for (i=0; i<ctx->nb_bsrs; i++) {
 		BSRead *bsr = &ctx->bsrs[i];
@@ -1113,6 +1120,7 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 
 		if (ctx->blocksize_bits) {
 			bsr->block_comps = (BlockComp *)gf_malloc(sizeof(BlockComp) * ctx->max_comp_per_block);
+			if (!bsr->block_comps) return GF_OUT_OF_MEM;
 		}
 	}
 
@@ -1122,10 +1130,12 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 	if (nb_out_comp<ctx->bpp) nb_out_comp = ctx->bpp;
 
 	ctx->pixel = (u8 *)gf_malloc(nb_out_comp);
+	if (!ctx->pixel) return GF_OUT_OF_MEM;
 	memset(ctx->pixel, 0, sizeof(u8)*nb_out_comp);
 
 	if (config->components_little_endian && max_align_size) {
 		ctx->comp_le_buf = (u8 *)gf_malloc(max_align_size);
+		if (!ctx->comp_le_buf) return GF_OUT_OF_MEM;
 		ctx->comp_le_bs = gf_bs_new(ctx->comp_le_buf, max_align_size, GF_BITSTREAM_READ);
 	}
 	return GF_OK;

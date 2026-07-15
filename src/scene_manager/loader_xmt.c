@@ -409,6 +409,7 @@ static u32 xmt_locate_stream(GF_XMTParser *parser, char *stream_name)
 	}
 	/*create a temp one*/
 	esdl = (XMT_ESDLink *)gf_malloc(sizeof(XMT_ESDLink));
+	if (!esdl) return 0;
 	memset(esdl, 0, sizeof(XMT_ESDLink));
 	esdl->ESID = (u16) ( (PTR_TO_U_CAST esdl) >> 16) | ( (PTR_TO_U_CAST esdl) & 0x0000FFFF);
 	if (!strnicmp(stream_name, "es", 2)) esdl->ESID = atoi(&stream_name[2]);
@@ -1020,6 +1021,10 @@ static u32 xmt_parse_sf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node 
 		size = img->width * img->height * img->numComponents;
 		if (img->pixels) gf_free(img->pixels);
 		img->pixels = (u8 *)gf_malloc(size);
+		if (!img->pixels) {
+			img->width = img->height = 0;
+			break;
+		}
 		a_value += res;
 		res = 0;
 		for (k=0; k<size; k++) {
@@ -2639,8 +2644,12 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 				if (!p) xmt_report(parser, GF_OK, "Warning: Cannot locate proto %s - skipping", fieldValue);
 				else {
 					parser->command->del_proto_list = (u32*)gf_realloc(parser->command->del_proto_list, sizeof(u32) * (parser->command->del_proto_list_size+1));
-					parser->command->del_proto_list[parser->command->del_proto_list_size] = p->ID;
-					parser->command->del_proto_list_size++;
+					if (!parser->command->del_proto_list) {
+						parser->command->del_proto_list_size = 0;
+					} else {
+						parser->command->del_proto_list[parser->command->del_proto_list_size] = p->ID;
+						parser->command->del_proto_list_size++;
+					}
 				}
 				if (!sep) break;
 				sep[0] = ' ';
@@ -2711,8 +2720,12 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 				if (!es_id) xmt_report(parser, GF_OK, "Warning: Cannot find ES Descriptor %s - skipping", es_ids);
 				else {
 					esdR->ES_ID = (u16*)gf_realloc(esdR->ES_ID, sizeof(u16) * (esdR->NbESDs+1));
-					esdR->ES_ID[esdR->NbESDs] = es_id;
-					esdR->NbESDs++;
+					if (!esdR->ES_ID) {
+						esdR->NbESDs = 0;
+					} else {
+						esdR->ES_ID[esdR->NbESDs] = es_id;
+						esdR->NbESDs++;
+					}
 				}
 				if (!sep) break;
 				sep[0] = ' ';
@@ -2730,8 +2743,12 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 				if (!od_id) xmt_report(parser, GF_OK, "Warning: Cannot find Object Descriptor %s - skipping", od_ids);
 				else {
 					odR->OD_ID = (u16*)gf_realloc(odR->OD_ID, sizeof(u16) * (odR->NbODs+1));
-					odR->OD_ID[odR->NbODs] = od_id;
-					odR->NbODs++;
+					if (!odR->OD_ID) {
+						odR->NbODs = 0;
+					} else {
+						odR->OD_ID[odR->NbODs] = od_id;
+						odR->NbODs++;
+					}
 				}
 				if (!sep) break;
 				sep[0] = ' ';

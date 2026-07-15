@@ -776,12 +776,14 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 		if (ctx->unpack_v410) {
 			ctx->unpack_buf = (u8 *)gf_realloc(ctx->unpack_buf, w*h*3*2);
+			if (!ctx->unpack_buf) return GF_OUT_OF_MEM;
 			ctx->nb_src_planes = 3;
 			ctx->orig_in_stride = ctx->src_stride[0];
 			ctx->src_stride[2] = ctx->src_stride[1] = ctx->src_stride[0] = 2*w;
 			ctx->src_uv_height = h;
 		} else if (ctx->unpack_v210) {
 			ctx->unpack_buf = (u8 *)gf_realloc(ctx->unpack_buf, w*h*2*2);
+			if (!ctx->unpack_buf) return GF_OUT_OF_MEM;
 			ctx->nb_src_planes = 3;
 			ctx->orig_in_stride = ctx->src_stride[0];
 			ctx->src_stride[0] = 2*w;
@@ -791,6 +793,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			u32 planes = ctx->unpack_alpha ? 4 : 3;
 			u32 Bpp = (ctx->unpack_depth>8) ? 2 : 1;
 			ctx->unpack_buf = (u8 *)gf_realloc(ctx->unpack_buf, w*h*planes*Bpp);
+			if (!ctx->unpack_buf) return GF_OUT_OF_MEM;
 			ctx->nb_src_planes = ctx->unpack_yuv ? planes : 1;
 			ctx->orig_in_stride = ctx->src_stride[0];
 			ctx->src_stride[2] = ctx->src_stride[1] = ctx->src_stride[0] = Bpp*w;
@@ -815,6 +818,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->nb_planes = 3;
 			ctx->repack_stride = ctx->dst_stride[0];
 			ctx->repack_buf = (u8 *)gf_realloc(ctx->repack_buf, ctx->ow * ctx->oh * 3 * 2);
+			if (!ctx->repack_buf) return GF_OUT_OF_MEM;
 			ctx->dst_stride[2] = ctx->dst_stride[1] = ctx->dst_stride[0] = 2 * ctx->ow;
 			ctx->dst_uv_height = ctx->oh;
 			ctx->o_bpp = 2;
@@ -823,6 +827,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->nb_planes = 3;
 			ctx->repack_stride = ctx->dst_stride[0];
 			ctx->repack_buf = (u8 *)gf_realloc(ctx->repack_buf, ctx->ow * ctx->oh * 2 * 2);
+			if (!ctx->repack_buf) return GF_OUT_OF_MEM;
 			ctx->dst_stride[0] = 2 * ctx->ow;
 			ctx->dst_stride[2] = ctx->dst_stride[1] = ctx->ow;
 			ctx->dst_uv_height = ctx->oh;
@@ -834,6 +839,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->dst_stride[0] = ctx->dst_stride[1] = ctx->dst_stride[2] = ctx->dst_stride[3] = 0;
 			gf_pixel_get_size_info(ctx->repack_generic, ctx->ow, ctx->oh, &osize, &ctx->dst_stride[0] , &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
 			ctx->repack_buf = (u8 *)gf_realloc(ctx->repack_buf, osize);
+			if (!ctx->repack_buf) return GF_OUT_OF_MEM;
 			ctx->dst_stride[2] = ctx->dst_stride[1];
 			if (ctx->repack_alpha)
 				ctx->dst_stride[3] = ctx->dst_stride[0];

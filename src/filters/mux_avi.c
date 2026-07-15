@@ -502,6 +502,10 @@ static GF_Err avimux_process(GF_Filter *filter)
 				if (ctx->buf_alloc<pck_size) {
 					ctx->buf_alloc = pck_size;
 					ctx->buf_tmp = (u8 *)gf_realloc(ctx->buf_tmp, pck_size);
+					if (!ctx->buf_tmp) {
+						ctx->buf_alloc = 0;
+						return GF_OUT_OF_MEM;
+					}
 				}
 				for (i=0; i<video_st->height; i++) {
 					memcpy(ctx->buf_tmp + i*out_stride, pck_data + (video_st->height-i-1)*out_stride, out_stride);

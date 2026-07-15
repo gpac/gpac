@@ -808,10 +808,15 @@ static GF_FontReader *ft_load()
 	GF_FontReader *dr;
 	FTBuilder *ftpriv;
 	dr = (GF_FontReader *)gf_malloc(sizeof(GF_FontReader));
+	if (!dr) return NULL;
 	memset(dr, 0, sizeof(GF_FontReader));
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_FONT_READER_INTERFACE, "freetype", "gpac distribution");
 
 	ftpriv = (FTBuilder *)gf_malloc(sizeof(FTBuilder));
+	if (!ftpriv) {
+		gf_free(dr);
+		return NULL;
+	}
 	memset(ftpriv, 0, sizeof(FTBuilder));
 
 	ftpriv->font_dirs = gf_list_new();

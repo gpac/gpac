@@ -292,6 +292,7 @@ static GF_Err WAV_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels
 	while (ctx->buffer_size % ctx->fmt.nBlockAlign) ctx->buffer_size++;
 
 	ctx->wav_buf = (char*)gf_malloc(ctx->buffer_size*ctx->num_buffers);
+	if (!ctx->wav_buf) return GF_OUT_OF_MEM;
 	memset(ctx->wav_buf, 0, ctx->buffer_size*ctx->num_buffers*sizeof(char));
 
 	/*setup wave headers*/
@@ -446,11 +447,16 @@ void *NewWAVRender()
 {
 	GF_AudioOutput *driv;
 	WAVContext *ctx = (WAVContext*)gf_malloc(sizeof(WAVContext));
+	if (!ctx) return NULL;
 	memset(ctx, 0, sizeof(WAVContext));
 	ctx->num_buffers = 10;
 	ctx->pan = 50;
 	ctx->vol = 100;
 	driv = (GF_AudioOutput*)gf_malloc(sizeof(GF_AudioOutput));
+	if (!driv) {
+		gf_free(ctx);
+		return NULL;
+	}
 	memset(driv, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "mme", "gpac distribution")
 

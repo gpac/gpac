@@ -76,6 +76,7 @@ static void SFS_AddString(ScriptParser *parser, const char *str)
 	if (c_str + a_str >= parser->length) {
 		parser->length = c_str + a_str + PARSER_STEP_ALLOC;
 		parser->string = (char *)gf_realloc(parser->string, parser->length);
+		if (!parser->string) return;
 	}
 	gf_strlcat(parser->string, str, parser->length);
 }
@@ -174,6 +175,7 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 	parser.bs = bs;
 	parser.length = 500;
 	parser.string = (char *) gf_malloc(parser.length);
+	if (!parser.string) return GF_OUT_OF_MEM;
 	parser.string[0] = 0;
 	parser.identifiers = gf_list_new();
 	parser.new_line = (char *) (codec->dec_memory_mode ? "\n" : NULL);

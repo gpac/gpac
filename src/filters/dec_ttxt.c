@@ -301,6 +301,7 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 		if (!gf_list_count(ctx->cfg->sample_descriptions)) {
 			GF_TextSampleDescriptor *txtc;
 			GF_SAFEALLOC(txtc, GF_TextSampleDescriptor);
+			if (!txtc) return GF_OUT_OF_MEM;
 			gf_list_add(ctx->cfg->sample_descriptions, txtc);
 			txtc->sample_index = 1;
 			//font will default to compositor settings
@@ -812,6 +813,7 @@ static void ttd_split_chunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, 
 		if (tc->start_char<start_char) {
 			TTDTextChunk *tc2;
 			tc2 = (TTDTextChunk *) gf_malloc(sizeof(TTDTextChunk));
+			if (!tc2) return;
 			memcpy(tc2, tc, sizeof(TTDTextChunk));
 			tc2->start_char = start_char;
 			tc2->end_char = tc->end_char;
@@ -824,6 +826,7 @@ static void ttd_split_chunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, 
 		if (tc->end_char>end_char) {
 			TTDTextChunk *tc2;
 			tc2 = (TTDTextChunk *) gf_malloc(sizeof(TTDTextChunk));
+			if (!tc2) return;
 			memcpy(tc2, tc, sizeof(TTDTextChunk));
 			tc2->start_char = tc->start_char;
 			tc2->end_char = end_char;

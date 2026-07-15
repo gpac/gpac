@@ -298,17 +298,11 @@ static u32 lsr_read_vluimsbf8(GF_LASeRCodec *lsr, const char *name)
 static void lsr_read_extension(GF_LASeRCodec *lsr, const char *name)
 {
 	u32 len = lsr_read_vluimsbf5(lsr, name);
-#if 0
-	*out_data = (char *)gf_malloc(len);
-	gf_bs_read_data(lsr->bs, *out_data, len);
-	*out_len = len;
-#else
 	while (len && gf_bs_available(lsr->bs) ) {
 		gf_bs_read_int(lsr->bs, 8);
 		len--;
 	}
 	if (len) lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
-#endif
 }
 
 static void lsr_read_extend_class(GF_LASeRCodec *lsr, char **out_data, u32 *out_len, const char *name)
@@ -5005,6 +4999,10 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 			lsr->last_error = GF_OUT_OF_MEM;
 		} else {
 			da->array.vals = (Fixed*)gf_malloc(sizeof(Fixed));
+			if (!da->array.vals) {
+				gf_free(da);
+				return NULL;
+			}
 			da->array.count = 1;
 			if (da->array.vals) da->array.vals[0] = lsr_read_fixed_16_8(lsr, "floatValue");
 		}

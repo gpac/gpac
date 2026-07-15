@@ -131,6 +131,10 @@ static void CALLBACK mesh_tess_combine(GLdouble coords[3], void* vertex_data[4],
 	}
 
 	new_idx = (u32 *) gf_malloc(sizeof(u32));
+	if (!new_idx) {
+		*out_data = NULL;
+		return;
+	}
 	gf_list_add(tess->vertex_index, new_idx);
 	*new_idx = tess->mesh->v_count;
 	mesh_set_vertex(tess->mesh, FLT2FIX( (Float) coords[0]), FLT2FIX( (Float) coords[1]), FLT2FIX( (Float) coords[2]), n.x, n.y, n.z, tx.x, tx.y);
@@ -193,6 +197,10 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 			Fixed v = gf_divfix(pt.y - min_y, h);
 
 			idx = (u32 *) gf_malloc(sizeof(u32));
+			if (!idx) {
+				nb_pts = j;
+				break;
+			}
 			*idx = mesh->v_count;
 			gf_list_add(tess->vertex_index, idx);
 			mesh_set_vertex(mesh, pt.x, pt.y, 0, 0, 0, FIX_ONE, u, v);
@@ -408,6 +416,8 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 
 	for (i=0; i<orig->v_count; i++) {
 		idx = (u32 *) gf_malloc(sizeof(u32));
+		if (!idx) break;
+
 		*idx = dest->v_count;
 		gf_list_add(tess->vertex_index, idx);
 		mesh_set_vertex_vx(dest, &orig->vertices[i]);
@@ -479,6 +489,8 @@ void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *pt
 		}
 
 		idx = (u32 *) gf_malloc(sizeof(u32));
+		if (!idx) break;
+
 		*idx = dest->v_count;
 		gf_list_add(tess->vertex_index, idx);
 		mesh_set_vertex_vx(dest, &orig->vertices[i]);

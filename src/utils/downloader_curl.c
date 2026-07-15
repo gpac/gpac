@@ -115,6 +115,10 @@ static size_t curl_on_header(char *buffer, size_t size, size_t nitems, void *cli
 				u32 len = (u32) strlen(buffer) + 2;
 				hdrp->name = gf_strdup(buffer);
 				hdrp->value = (char *)gf_malloc(nitems * size - len + 1);
+				if (!hdrp->name || !hdrp->value) {
+					gf_free(hdrp);
+					return 0;
+				}
 				memcpy(hdrp->value, buffer+len, nitems * size - len);
 				hdrp->value[nitems * size - len] = 0;
 				gf_list_add(sess->headers, hdrp);

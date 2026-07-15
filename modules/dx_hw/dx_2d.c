@@ -733,6 +733,7 @@ void DD_InitYUV(GF_VideoOutput *dr)
 		dd->pDD->lpVtbl->GetFourCCCodes(dd->pDD, &numCodes, NULL);
 		if (!numCodes) return;
 		codes = (DWORD *)gf_malloc(numCodes*sizeof(DWORD));
+		if (!codes) return;
 		dd->pDD->lpVtbl->GetFourCCCodes(dd->pDD, &numCodes, codes);
 
 		num_yuv = 0;

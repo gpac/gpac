@@ -513,6 +513,7 @@ static GF_Err gf_webvtt_cue_add_property(GF_WebVTTCue *cue, GF_WebVTTCueProperty
 	if (*prop) {
 		len = (u32) strlen(*prop);
 		(*prop) = (char*)gf_realloc((*prop), (len + text_len + 1) );
+		if (! *prop) return GF_OUT_OF_MEM;
 		memcpy((*prop) + len, text_data, text_len);
 		(*prop)[len+text_len] = 0;
 	} else {
@@ -1002,6 +1003,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 			if (prevLine) {
 				u32 prev_len = (u32) strlen(prevLine);
 				header = (char *)gf_realloc(header, header_len + prev_len + 1);
+				if (!header) return GF_OUT_OF_MEM;
 				memcpy(header+header_len, prevLine, prev_len+1);
 				header_len += prev_len;
 				gf_free(prevLine);

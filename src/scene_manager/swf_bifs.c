@@ -654,6 +654,7 @@ static void s2b_insert_rec_in_coord(M_Coordinate2D *c, SWFShapeRec *srec)
 {
 	u32 i, j;
 	srec->path->idx = (u32 *)gf_malloc(sizeof(u32)*srec->path->nbPts);
+	if (!srec->path->idx) return;
 
 	for (i=0; i<srec->path->nbPts; i++) {
 		for (j=0; j<c->point.count; j++) {
@@ -664,6 +665,7 @@ static void s2b_insert_rec_in_coord(M_Coordinate2D *c, SWFShapeRec *srec)
 		if (j==c->point.count) {
 			c->point.count++;
 			c->point.vals = (SFVec2f *)gf_realloc(c->point.vals, sizeof(SFVec2f)*c->point.count);
+			if (!c->point.vals) return;
 			c->point.vals[j] = srec->path->pts[i];
 		}
 		srec->path->idx[i] = j;
@@ -877,9 +879,15 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 
 			/*convert to UTF-8*/
 			str_w = (u16*)gf_malloc(sizeof(u16) * (gr->nbGlyphs+1));
+			if (!str_w) return GF_OUT_OF_MEM;
+
 			for (j=0; j<gr->nbGlyphs; j++) str_w[j] = ft->glyph_codes[gr->indexes[j]];
 			str_w[j] = 0;
 			str = (char*)gf_malloc(gr->nbGlyphs+2);
+			if (!str) {
+				gf_free(str_w);
+				return GF_OUT_OF_MEM;
+			}
 			widestr = str_w;
 			_len = gf_utf8_wcstombs(str, sizeof(u8) * (gr->nbGlyphs+1), (const unsigned short **) &widestr);
 			if (_len != GF_UTF8_FAIL) {
@@ -888,7 +896,8 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 				gf_sg_vrml_mf_reset(&t->string, GF_SG_VRML_MFSTRING);
 				gf_sg_vrml_mf_append(&t->string, GF_SG_VRML_MFSTRING, &ptr);
 				((SFString*)ptr)->buffer = (char*)gf_malloc(j+1);
-				memcpy(((SFString*)ptr)->buffer, str, sizeof(char) * (j+1));
+				if (((SFString*)ptr)->buffer)
+					memcpy(((SFString*)ptr)->buffer, str, sizeof(char) * (j+1));
 			}
 
 			gf_free(str);
@@ -1928,9 +1937,11 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 					S2BBtnRec *btnrec;
 					if (!read->buttons) read->buttons = gf_list_new();
 					btnrec = (S2BBtnRec *)gf_malloc(sizeof(S2BBtnRec));
-					btnrec->btn_id = btn->ID;
-					btnrec->sprite_up_id = br->character_id;
-					gf_list_add(read->buttons, btnrec);
+					if (btnrec) {
+						btnrec->btn_id = btn->ID;
+						btnrec->sprite_up_id = br->character_id;
+						gf_list_add(read->buttons, btnrec);
+					}
 				}
 
 			} else {

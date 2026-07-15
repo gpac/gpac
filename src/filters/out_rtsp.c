@@ -232,6 +232,10 @@ static GF_Err rtspout_send_sdp(GF_RTSPOutSession *sess)
 
 	fsize = (u32) gf_ftell(sdp_out);
 	char *sdp_output = (char *)gf_malloc(fsize+1);
+	if (!sdp_output) {
+		gf_fclose(sdp_out);
+		return GF_OUT_OF_MEM;
+	}
 	gf_fseek(sdp_out, 0, SEEK_SET);
 	u32 read = (u32) gf_fread(sdp_output, fsize, sdp_out);
 	sdp_output[read]=0;
@@ -597,8 +601,10 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 		if (gf_dir_exists(dpath)) {
 			RTSP_DIRInfo *di;
 			GF_SAFEALLOC(di, RTSP_DIRInfo);
-			di->path = gf_strdup(dpath);
-			gf_list_add(ctx->directories, di);
+			if (di) {
+				di->path = gf_strdup(dpath);
+				gf_list_add(ctx->directories, di);
+			}
 		} else if (gf_file_exists(dpath)) {
 			GF_Config *rules = gf_cfg_new(NULL, dpath);
 			u32 j, count = gf_cfg_get_section_count(rules);
@@ -614,6 +620,7 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 				}
 				RTSP_DIRInfo *di;
 				GF_SAFEALLOC(di, RTSP_DIRInfo);
+				if (!di) continue;
 				di->path = gf_strdup(dname);
 				gf_list_add(ctx->directories, di);
 				di->name = (char*)gf_cfg_get_key(rules, dname, "name");
@@ -738,25 +745,29 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 		stream->send_rtpinfo = GF_FALSE;
 
 		GF_SAFEALLOC(rtpi, GF_RTPInfo);
-		if (rtpi) {
-			u32 timescale;
-			rtpi->url = (char *)gf_malloc((strlen(sess->service_name)+50));
-			sprintf(rtpi->url, "%s_%d", sess->ctrl_name, stream->ctrl_id);
-			rtpi->seq = gf_rtp_streamer_get_next_rtp_sn(stream->rtp);
-			rtpi->rtp_time = (u32) (stream->current_cts + stream->ts_offset + stream->rtp_ts_offset);
+		if (!rtpi) continue;
 
-			timescale = gf_rtp_streamer_get_timescale(stream->rtp);
-			if (timescale)
-				rtpi->rtp_time = (u32) gf_timestamp_rescale(rtpi->rtp_time, stream->timescale, timescale);
+		u32 timescale;
+		rtpi->url = (char *)gf_malloc((strlen(sess->service_name)+50));
+		if (!rtpi->url) {
+			gf_free(rtpi);
+			continue;
+		}
+		sprintf(rtpi->url, "%s_%d", sess->ctrl_name, stream->ctrl_id);
+		rtpi->seq = gf_rtp_streamer_get_next_rtp_sn(stream->rtp);
+		rtpi->rtp_time = (u32) (stream->current_cts + stream->ts_offset + stream->rtp_ts_offset);
 
-			gf_list_add(sess->response->RTP_Infos, rtpi);
+		timescale = gf_rtp_streamer_get_timescale(stream->rtp);
+		if (timescale)
+			rtpi->rtp_time = (u32) gf_timestamp_rescale(rtpi->rtp_time, stream->timescale, timescale);
+
+		gf_list_add(sess->response->RTP_Infos, rtpi);
 
 #ifdef GPAC_ENABLE_COVERAGE
-			if (gf_sys_is_cov_mode()) {
-				gf_rtp_streamer_get_ssrc(stream->rtp);
-			}
-#endif
+		if (gf_sys_is_cov_mode()) {
+			gf_rtp_streamer_get_ssrc(stream->rtp);
 		}
+#endif
 	}
 	GF_SAFEALLOC(sess->response->Range, GF_RTSPRange);
 	if (sess->response->Range)

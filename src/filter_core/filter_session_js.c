@@ -1096,7 +1096,10 @@ static Bool jsfs_get_filter_args(JSContext *ctx, GF_FilterSession *fs, GF_Filter
 
 	//don't load a full session, only allocate object and create registry list
 	if (! *meta_fs) {
-		GF_SAFEALLOC(*meta_fs, GF_FilterSession)
+		GF_SAFEALLOC(*meta_fs, GF_FilterSession);
+		if (*meta_fs) {
+			return GF_FALSE;
+		}
 		(*meta_fs)->registry = gf_list_new();
 		(*meta_fs)->blacklist = fs->blacklist;
 

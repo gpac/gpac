@@ -48,7 +48,7 @@ void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u
 	if (is_offscreen_clear) {
 		gf_evg_surface_clear(visual->raster_surface, rc, BackColor);
 		//if we clear the canvas with non-0 alpha, remember the area cleared in case we have to erase it later (overlapping bitmap)
-		//if we clear dirty area of the canvas, remember the area to force gl flush 
+		//if we clear dirty area of the canvas, remember the area to force gl flush
 		if (GF_COL_A(BackColor) || (is_offscreen_clear==2))
 		{
 			ra_union_rect(&visual->hybgl_drawn, rc);
@@ -254,6 +254,7 @@ static GF_Err c2d_video_access_hybrid_opengl(GF_VisualManager *visual)
 	if ((compositor->hybgl_txh->width != compositor->vp_width) || (compositor->hybgl_txh->height != compositor->vp_height)) {
 		SFVec2f size;
 		compositor->hybgl_txh->data = (u8*)gf_realloc(compositor->hybgl_txh->data, 4*compositor->vp_width*compositor->vp_height);
+		if (!compositor->hybgl_txh->data) return GF_OUT_OF_MEM;
 
 		if (compositor->hybgl_txh->tx_io)
 			gf_sc_texture_release(compositor->hybgl_txh);

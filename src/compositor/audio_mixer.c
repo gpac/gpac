@@ -1050,6 +1050,10 @@ do_mix:
 	/*step 1, cfg*/
 	if (am->output_size<buffer_size) {
 		am->output = (s32*)gf_realloc(am->output, sizeof(s32) * buffer_size);
+		if (!am->output) {
+			gf_mixer_lock(am, GF_FALSE);
+			return 0;
+		}
 		am->output_size = buffer_size;
 	}
 
@@ -1064,6 +1068,10 @@ do_mix:
 		if (in->buffer_size < nb_samples) {
 			for (j=0; j<GF_AUDIO_MIXER_MAX_CHANNELS; j++) {
 				in->ch_buf[j] = (s32 *) gf_realloc(in->ch_buf[j], sizeof(s32) * nb_samples);
+				if (!in->ch_buf[j]) {
+					gf_mixer_lock(am, GF_FALSE);
+					return 0;
+				}
 				memset(in->ch_buf[j], 0, sizeof(s32) * nb_samples);
 			}
 			in->buffer_size = nb_samples;

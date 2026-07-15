@@ -142,6 +142,7 @@ static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, const u8 *dsi, u32 ds
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (hvcc) {
 			GF_SAFEALLOC(ctx->hevc_state, HEVCState);
+			if (!ctx->hevc_state) return GF_OUT_OF_MEM;
 		}
 #endif
 	} else if (ctx->vtype==UFNAL_VVC) {
@@ -153,6 +154,7 @@ static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, const u8 *dsi, u32 ds
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (vvcc) {
 			GF_SAFEALLOC(ctx->vvc_state, VVCState);
+			if (!ctx->vvc_state) return GF_OUT_OF_MEM;
 		}
 #endif
 	} else {

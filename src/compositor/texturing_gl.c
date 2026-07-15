@@ -132,6 +132,7 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 		txh->tx_io->conv_stride = 0;
 		gf_pixel_get_size_info(txh->tx_io->conv_format, txh->width, txh->height, &osize, &txh->tx_io->conv_stride, NULL, NULL, NULL);
 		txh->tx_io->conv_data = (u8 *)gf_realloc(txh->tx_io->conv_data, osize);
+		if (!txh->tx_io->conv_data) return GF_OUT_OF_MEM;
 		txh->flags |= TX_CONV_8BITS;
 	}
 	return GF_OK;
@@ -600,6 +601,7 @@ common:
 
 		if (!txh->tx_io->conv_data) {
 			txh->tx_io->conv_data = (u8 *)gf_malloc(txh->stride*txh->height);
+			if (!txh->tx_io->conv_data) return GF_FALSE;
 			txh->tx_io->conv_format = txh->pixelformat;
 		}
 		if (!txh->tx_io->conv_data || txh->data) return GF_FALSE;
@@ -643,11 +645,13 @@ common:
 			txh->tx_io->conv_w = gf_get_next_pow2(txh->width);
 			txh->tx_io->conv_h = gf_get_next_pow2(txh->height);
 			txh->tx_io->conv_data = (u8 *)gf_malloc(bpp * txh->tx_io->conv_w * txh->tx_io->conv_h);
+			if (!txh->tx_io->conv_data) return GF_FALSE;
 			memset(txh->tx_io->conv_data , 0, sizeof(char) * bpp * txh->tx_io->conv_w * txh->tx_io->conv_h);
 			txh->tx_io->conv_wscale = INT2FIX(txh->width) / txh->tx_io->conv_w;
 			txh->tx_io->conv_hscale = INT2FIX(txh->height) / txh->tx_io->conv_h;
 		} else {
 			txh->tx_io->conv_data = (u8 *)gf_malloc(bpp * txh->width * txh->height);
+			if (!txh->tx_io->conv_data) return GF_FALSE;
 			memset(txh->tx_io->conv_data, 0, sizeof(char) * bpp * txh->width * txh->height);
 		}
 	}
@@ -958,7 +962,7 @@ void gf_sc_texture_enable_fbo(GF_TextureHandler *txh, Bool enable)
 void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 {
 	u32 i, hy;
-	char *tmp=NULL;
+	u8 *tmp=NULL;
 
 	/*in case the ID has been lost, resetup*/
 	if (!txh->data || !txh->tx_io->tx_raster)
@@ -1019,7 +1023,8 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 	if (txh->compositor->fbo_id) compositor_3d_enable_fbo(txh->compositor, GF_FALSE);
 
 	/*flip image because of OpenGL*/
-	tmp = (char*)gf_malloc(txh->stride);
+	tmp = (u8*)gf_malloc(txh->stride);
+	if (!tmp) return;
 	hy = txh->height/2;
 	for (i=0; i<hy; i++) {
 		memcpy(tmp, txh->data + i*txh->stride, txh->stride);

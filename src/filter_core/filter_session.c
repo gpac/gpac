@@ -3479,6 +3479,8 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 	}
 
 	GF_SAFEALLOC(upd, GF_FilterUpdate);
+	if (!upd)
+		return;
 	if (!val) {
 		upd->name = gf_strdup(name);
 		upd->val = sep ? gf_strdup(sep+1) : NULL;
@@ -3907,6 +3909,13 @@ restart:
 
 	user_args_len = user_args ? (u32) strlen(user_args) : 0;
 	args = (char *)gf_malloc(5);
+	if (!args) {
+		if (free_url)
+			gf_free(sURL);
+		if (err) *err = GF_NOT_SUPPORTED;
+		if (filter) filter->finalized = GF_TRUE;
+		return NULL;
+	}
 
 	sprintf(args, "%s%c", for_source ? "src" : "dst", fsess->sep_name);
 	//path is using ':' and has options specified, inject :gpac before first option
@@ -4120,6 +4129,7 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 
 	memset(&local_reg, 0, sizeof(GF_FilterRegDesc));
 	GF_SAFEALLOC(local_reg.bundle_cache, GF_BundleCache);
+	if (!local_reg.bundle_cache) return;
 	sources = gf_list_new();
 	sinks = gf_list_new();
 	//edges for JS are for the unloaded JSF (eg accept anything, output anything).
@@ -4135,6 +4145,8 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 		//check which cap of this filter matches our destination
 		nb_src_caps = gf_filter_caps_bundle_count(a_reg->freg->caps, a_reg->freg->nb_caps);
 		GF_SAFEALLOC(a_reg->bundle_cache, GF_BundleCache);
+		if (!a_reg->bundle_cache)
+			nb_src_caps = 0;
 		for (k=0; k<nb_src_caps; k++) {
 			for (l=0; l<nb_js_caps; l++) {
 				u32 loaded_filter_only_flags = 0;

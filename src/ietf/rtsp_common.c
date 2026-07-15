@@ -164,6 +164,7 @@ GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 	if (!res) return gf_rtsp_fill_buffer(sess);
 
 	ptr = (char *)gf_malloc(res);
+	if (!ptr) return GF_OUT_OF_MEM;
 	memcpy(ptr, sess->tcp_buffer + sess->CurrentPos, res);
 	memcpy(sess->tcp_buffer, ptr, res);
 	gf_free(ptr);

@@ -494,6 +494,11 @@ void compositor_init_svg_svg(GF_Compositor *compositor, GF_Node *node)
 	stack->root_svg = (root==node) ? GF_TRUE : GF_FALSE;
 	if (stack->root_svg) {
 		GF_SAFEALLOC(stack->svg_props, SVGPropertiesPointers);
+		if (!stack->svg_props) {
+			gf_free(stack);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg stack\n"));
+			return;
+		}
 		gf_svg_properties_init_pointers(stack->svg_props);
 	}
 	gf_mx2d_init(stack->viewbox_mx);

@@ -61,10 +61,12 @@ SVG_Element *gf_svg_create_node(u32 ElementTag)
 	if (gf_svg_is_timing_tag(ElementTag)) {
 		SVGTimedAnimBaseElement *tap;
 		GF_SAFEALLOC(tap, SVGTimedAnimBaseElement);
+		if (!tap) return NULL;
 		p = (SVG_Element *)tap;
 	} else if (ElementTag == TAG_SVG_handler) {
 		SVG_handlerElement *hdl;
 		GF_SAFEALLOC(hdl, SVG_handlerElement);
+		if (!hdl) return NULL;
 		p = (SVG_Element *)hdl;
 	} else {
 		GF_SAFEALLOC(p, SVG_Element);

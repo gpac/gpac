@@ -149,11 +149,15 @@ static GF_Err vorbisdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		GF_Err e = GF_OK;
 		oggpacket.bytes = gf_bs_read_u16(bs);
 		oggpacket.packet = (u8 *)gf_malloc(oggpacket.bytes);
-		gf_bs_read_data(bs, oggpacket.packet, oggpacket.bytes);
-		if (vorbis_synthesis_headerin(&ctx->vi, &ctx->vc, &oggpacket) < 0 ) {
-			e = GF_NON_COMPLIANT_BITSTREAM;
+		if (!oggpacket.packet) {
+			e = GF_OUT_OF_MEM;
+		} else {
+			gf_bs_read_data(bs, oggpacket.packet, oggpacket.bytes);
+			if (vorbis_synthesis_headerin(&ctx->vi, &ctx->vc, &oggpacket) < 0 ) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+			}
+			gf_free(oggpacket.packet);
 		}
-		gf_free(oggpacket.packet);
 		if (e) {
 			gf_bs_del(bs);
 			return e;

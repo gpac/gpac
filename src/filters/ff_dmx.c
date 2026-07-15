@@ -1052,9 +1052,12 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 
 #if (LIBAVCODEC_VERSION_MAJOR >= 59)
 	ctx->pkt = av_packet_alloc();
+	if (!ctx->pkt) return GF_OUT_OF_MEM;
 #endif
 
 	ctx->pids_ctx = (PidCtx *)gf_malloc(sizeof(PidCtx)*ctx->demuxer->nb_streams);
+	if (!ctx->pids_ctx) return GF_OUT_OF_MEM;
+
 	memset(ctx->pids_ctx, 0, sizeof(PidCtx)*ctx->demuxer->nb_streams);
 	ctx->nb_streams = ctx->demuxer->nb_streams;
 
@@ -1409,32 +1412,37 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 
 			times.vals = (u32 *)gf_malloc(sizeof(u32)*nb_c);
 			names.vals = (char **)gf_malloc(sizeof(char *)*nb_c);
-			memset(names.vals, 0, sizeof(char *)*nb_c);
-			times.nb_items = names.nb_items = nb_c;
+			if (times.vals && names.vals) {
+				memset(names.vals, 0, sizeof(char *)*nb_c);
+				times.nb_items = names.nb_items = nb_c;
 
-			for (j=0; j<ctx->demuxer->nb_chapters; j++) {
-				AVChapter *c = ctx->demuxer->chapters[j];
-				u64 start = gf_timestamp_rescale(c->start * c->time_base.num, c->time_base.den, 1000);
-				times.vals[j] = (u32) start;
-				AVDictionaryEntry *ent = NULL;
-				while (c->metadata) {
-					ent = av_dict_get(c->metadata, "", ent, AV_DICT_IGNORE_SUFFIX);
-					if (!ent) break;
-					if (!strcmp(ent->key, "title")) {
-						names.vals[j] = gf_strdup(ent->value);
+				for (j=0; j<ctx->demuxer->nb_chapters; j++) {
+					AVChapter *c = ctx->demuxer->chapters[j];
+					u64 start = gf_timestamp_rescale(c->start * c->time_base.num, c->time_base.den, 1000);
+					times.vals[j] = (u32) start;
+					AVDictionaryEntry *ent = NULL;
+					while (c->metadata) {
+						ent = av_dict_get(c->metadata, "", ent, AV_DICT_IGNORE_SUFFIX);
+						if (!ent) break;
+						if (!strcmp(ent->key, "title")) {
+							names.vals[j] = gf_strdup(ent->value);
+						}
 					}
+					if (!names.vals[j]) names.vals[j] = gf_strdup("Unknown");
 				}
-				if (!names.vals[j]) names.vals[j] = gf_strdup("Unknown");
-			}
-			p.type = GF_PROP_UINT_LIST;
-			p.value.uint_list = times;
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CHAP_TIMES, &p);
-			gf_free(times.vals);
+				p.type = GF_PROP_UINT_LIST;
+				p.value.uint_list = times;
+				gf_filter_pid_set_property(pid, GF_PROP_PID_CHAP_TIMES, &p);
+				gf_free(times.vals);
 
-			p.type = GF_PROP_STRING_LIST;
-			p.value.string_list = names;
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CHAP_NAMES, &p);
-			//no free for string lists
+				p.type = GF_PROP_STRING_LIST;
+				p.value.string_list = names;
+				gf_filter_pid_set_property(pid, GF_PROP_PID_CHAP_NAMES, &p);
+				//no free for string lists
+			} else {
+				if (times.vals) gf_free(times.vals);
+				if (names.vals) gf_free(names.vals);
+			}
 		}
 	}
 

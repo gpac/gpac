@@ -1670,6 +1670,10 @@ static u64 estimate_next_moof_earliest_presentation_time(u64 ref_track_decode_ti
 					movie->sidx_pts_store_alloc = movie->sidx_pts_store_count+nb_aus+1;
 					movie->sidx_pts_store = (u64 *)gf_realloc(movie->sidx_pts_store, sizeof(u64) * movie->sidx_pts_store_alloc);
 					movie->sidx_pts_next_store = (u64 *)gf_realloc(movie->sidx_pts_next_store, sizeof(u64) * movie->sidx_pts_store_alloc);
+					if (!movie->sidx_pts_store || !movie->sidx_pts_next_store) {
+						movie->sidx_pts_store_alloc = 0;
+						return -1;
+					}
 				}
 				//get PTS for this AU, push to regular list
 				movie->sidx_pts_store[movie->sidx_pts_store_count + nb_aus] = get_presentation_time( ref_track_decode_time + duration + ent->CTS_Offset, ts_shift);
@@ -2111,6 +2115,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 				if (sidx->nb_refs<=cur_index) {
 					sidx->nb_refs = cur_index+1;
 					sidx->refs = (GF_SIDXReference *)gf_realloc(sidx->refs, sizeof(GF_SIDXReference)*sidx->nb_refs);
+					if (!sidx->refs) return GF_OUT_OF_MEM;
 					memset(&sidx->refs[cur_index], 0, sizeof(GF_SIDXReference));
 				}
 
@@ -2148,8 +2153,10 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 							ssix->subsegment_count = cur_index+1;
 							ssix->subsegment_alloc = ssix->subsegment_count;
 							ssix->subsegments = (GF_SubsegmentInfo *)gf_realloc(ssix->subsegments, ssix->subsegment_count * sizeof(GF_SubsegmentInfo));
+							if (!ssix->subsegments) { e = GF_OUT_OF_MEM; goto exit; }
 							ssix->subsegments[cur_index].range_count = 2;
 							ssix->subsegments[cur_index].ranges = (GF_SubsegmentRangeInfo *)gf_malloc(sizeof(GF_SubsegmentRangeInfo)*2);
+							if (!ssix->subsegments[cur_index].ranges) { e = GF_OUT_OF_MEM; goto exit; }
 						}
 					}
 					gf_assert(ssix);
@@ -2666,6 +2673,10 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, GF_ISOStartFragmentFlags flags)
 			}
 			tfra = traf->trex->tfra;
 			tfra->entries = (GF_RandomAccessEntry *)gf_realloc(tfra->entries, (tfra->nb_entries+1)*sizeof(GF_RandomAccessEntry));
+			if (!tfra->entries) {
+				tfra->nb_entries = 0;
+				return GF_OUT_OF_MEM;
+			}
 			tfra->nb_entries++;
 			raf = &tfra->entries[tfra->nb_entries-1];
 			raf->sample_number = 1;
@@ -3299,6 +3310,7 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, GF_ISOTrackID TrackID, 
 			sflags |= redundant;
 
 			traf->sdtp->sample_info = (u8 *)gf_realloc(traf->sdtp->sample_info, (traf->sdtp->sampleCount+1));
+			if (!traf->sdtp->sample_info) return GF_OUT_OF_MEM;
 			traf->sdtp->sample_info[traf->sdtp->sampleCount] = (u8) sflags;
 			traf->sdtp->sampleCount++;
 			traf->sdtp->sample_alloc = traf->sdtp->sampleCount+1;
@@ -3429,6 +3441,10 @@ GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, GF_ISOTrackID trackI
 		sflags |= redundant;
 
 		traf->sdtp->sample_info = (u8 *)gf_realloc(traf->sdtp->sample_info, (traf->sdtp->sampleCount+1));
+		if (!traf->sdtp->sample_info) {
+			traf->sdtp->sampleCount = 0;
+			return GF_OUT_OF_MEM;
+		}
 		traf->sdtp->sample_info[traf->sdtp->sampleCount] = (u8) sflags;
 		traf->sdtp->sampleCount++;
 		traf->sdtp->sample_alloc = traf->sdtp->sampleCount;

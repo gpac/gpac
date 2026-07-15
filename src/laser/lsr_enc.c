@@ -1290,6 +1290,7 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 			GF_List *l = *(GF_List **)att->data;
 			u32 j, tot_count, count = gf_list_count(l);
 			u8 *vals = (u8*)gf_malloc(count);
+			if (!vals) return;
 			tot_count = 0;
 			for (i=0; i<count; i++) {
 				char *ext;
@@ -4199,6 +4200,10 @@ exit:
 static void lsr_add_color(GF_LASeRCodec *lsr, SVG_Color *color)
 {
 	lsr->col_table = (LSRCol*)gf_realloc(lsr->col_table, sizeof(LSRCol)*(lsr->nb_cols+1));
+	if (!lsr->col_table) {
+		lsr->nb_cols = 0;
+		return;
+	}
 	lsr->col_table[lsr->nb_cols].r = FIX2INT(color->red*lsr->color_scale);
 	lsr->col_table[lsr->nb_cols].g = FIX2INT(color->green*lsr->color_scale);
 	lsr->col_table[lsr->nb_cols].b = FIX2INT(color->blue*lsr->color_scale);

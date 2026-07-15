@@ -735,7 +735,7 @@ struct __tag_compositor
 
 
 	/*special list used by nodes needing a call to RenderNode but not in the traverese scene graph
-	 (VRML/MPEG-4 protos only). 
+	 (VRML/MPEG-4 protos only).
 	 For such nodes the traverse state will be NULL
 	 This is only used by InputSensor node at the moment
 	 */

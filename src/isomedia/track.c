@@ -1022,11 +1022,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					stbl_group->sample_entries[stbl_group->entry_count - 1].sample_count += frag_group->sample_entries[0].sample_count;
 					if (frag_group->entry_count>1) {
 						stbl_group->sample_entries = (GF_SampleGroupEntry *)gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * (stbl_group->entry_count + frag_group->entry_count - 1));
+						if (!stbl_group->sample_entries) return GF_OUT_OF_MEM;
 						memcpy(&stbl_group->sample_entries[stbl_group->entry_count], &frag_group->sample_entries[1], sizeof(GF_SampleGroupEntry) * (frag_group->entry_count - 1));
 						stbl_group->entry_count += frag_group->entry_count - 1;
 					}
 				} else {
 					stbl_group->sample_entries = (GF_SampleGroupEntry *)gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * (stbl_group->entry_count + frag_group->entry_count));
+					if (!stbl_group->sample_entries) return GF_OUT_OF_MEM;
 					memcpy(&stbl_group->sample_entries[stbl_group->entry_count], &frag_group->sample_entries[0], sizeof(GF_SampleGroupEntry) * frag_group->entry_count);
 					stbl_group->entry_count += frag_group->entry_count;
 				}
@@ -1039,6 +1041,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				if (samples_in_stbl_group < num_first_sample_in_traf) num_entries++;
 
 				stbl_group->sample_entries = (GF_SampleGroupEntry *)gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * num_entries);
+				if (!stbl_group->sample_entries) return GF_OUT_OF_MEM;
 				//set unmapped entries to 0
 				if (samples_in_stbl_group < num_first_sample_in_traf) {
 					stbl_group->sample_entries[stbl_group->entry_count].sample_count = num_first_sample_in_traf - samples_in_stbl_group;
@@ -1303,6 +1306,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			if (sai_max_size<size) {
 				sai_max_size = size;
 				sai = (u8 *)gf_realloc(sai, sai_max_size);
+				if (!sai) return GF_OUT_OF_MEM;
 			}
 			gf_bs_read_data(trak->moov->mov->movieFileMap->bs, sai, size);
 			gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);

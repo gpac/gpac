@@ -224,8 +224,9 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 					}
 
 					if (ref_nalu_size > mdia->tmp_nal_copy_buffer_alloc) {
-						mdia->tmp_nal_copy_buffer_alloc = ref_nalu_size;
 						mdia->tmp_nal_copy_buffer = (u8*) gf_realloc(mdia->tmp_nal_copy_buffer, ref_nalu_size );
+						if (!mdia->tmp_nal_copy_buffer) return GF_OUT_OF_MEM;
+						mdia->tmp_nal_copy_buffer_alloc = ref_nalu_size;
 					}
 					gf_bs_read_data(mdia->extracted_bs, mdia->tmp_nal_copy_buffer, ref_nalu_size);
 
@@ -259,8 +260,9 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 		break;
 	case 2:
 		if (nal_size - nb_bytes_nalh > mdia->tmp_nal_copy_buffer_alloc) {
-			mdia->tmp_nal_copy_buffer_alloc = nal_size - nb_bytes_nalh;
 			mdia->tmp_nal_copy_buffer = (u8*) gf_realloc(mdia->tmp_nal_copy_buffer, (nal_size - nb_bytes_nalh) );
+			if (!mdia->tmp_nal_copy_buffer) return GF_OUT_OF_MEM;
+			mdia->tmp_nal_copy_buffer_alloc = nal_size - nb_bytes_nalh;
 		}
 		gf_bs_read_data(mdia->nalu_parser, mdia->tmp_nal_copy_buffer, nal_size - nb_bytes_nalh);
 		if (rewrite_start_codes)
@@ -514,6 +516,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 						if (base_samp && base_samp->data) {
 							if (!sample->alloc_size || (sample->alloc_size<sample->dataLength+base_samp->dataLength) ) {
 								sample->data = (u8*)gf_realloc(sample->data, sample->dataLength+base_samp->dataLength);
+								if (!sample->data) {
+									sample->alloc_size = 0;
+									return GF_OUT_OF_MEM;
+								}
 								if (sample->alloc_size) sample->alloc_size = sample->dataLength+base_samp->dataLength;
 							}
 							memmove(sample->data + base_samp->dataLength, sample->data , sample->dataLength);
@@ -547,6 +553,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				if (tile_samp  && tile_samp ->data) {
 					if (!sample->alloc_size || (sample->alloc_size<sample->dataLength+tile_samp->dataLength) ) {
 						sample->data = (u8*)gf_realloc(sample->data, sample->dataLength+tile_samp->dataLength);
+						if (!sample->data) {
+							sample->alloc_size = 0;
+							return GF_OUT_OF_MEM;
+						}
 						if (sample->alloc_size) sample->alloc_size = sample->dataLength+tile_samp->dataLength;
 					}
 					memcpy(sample->data + sample->dataLength, tile_samp->data, tile_samp->dataLength);
@@ -638,6 +648,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	if (mdia->in_sample_buffer_alloc<sample->dataLength) {
 		mdia->in_sample_buffer_alloc = sample->dataLength;
 		mdia->in_sample_buffer = (u8*)gf_realloc(mdia->in_sample_buffer, sample->dataLength);
+		if (!mdia->in_sample_buffer) {
+			mdia->in_sample_buffer_alloc = 0;
+			return GF_OUT_OF_MEM;
+		}
 	}
 	if (sample->data && sample->dataLength)
 		memcpy(mdia->in_sample_buffer, sample->data, sample->dataLength);
@@ -779,8 +793,9 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			break;
 		}
 		if (nal_size > mdia->tmp_nal_copy_buffer_alloc) {
-			mdia->tmp_nal_copy_buffer_alloc = nal_size;
 			mdia->tmp_nal_copy_buffer = (u8*) gf_realloc(mdia->tmp_nal_copy_buffer, nal_size);
+			if (!mdia->tmp_nal_copy_buffer) return GF_OUT_OF_MEM;
+			mdia->tmp_nal_copy_buffer_alloc = nal_size;
 		}
 		if (is_hevc) {
 			nal_hdr = gf_bs_read_u16(mdia->nalu_parser);
@@ -995,9 +1010,14 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 	for (i=0; i<count; i++) {
 		p1 = (GF_NALUFFParam*)gf_list_get(cfg->sequenceParameterSets, i);
 		p2 = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
+		if (!p2) continue;
 		p2->size = p1->size;
 		p2->id = p1->id;
 		p2->data = (u8 *)gf_malloc(p1->size);
+		if (!p2->data) {
+			gf_free(p2);
+			continue;
+		}
 		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
 		gf_list_add(cfg_new->sequenceParameterSets, p2);
 	}
@@ -1006,9 +1026,14 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 	for (i=0; i<count; i++) {
 		p1 = (GF_NALUFFParam*)gf_list_get(cfg->pictureParameterSets, i);
 		p2 = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
+		if (!p2) continue;
 		p2->size = p1->size;
 		p2->id = p1->id;
 		p2->data = (u8*)gf_malloc(p1->size);
+		if (!p2->data) {
+			gf_free(p2);
+			continue;
+		}
 		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
 		gf_list_add(cfg_new->pictureParameterSets, p2);
 	}
@@ -1019,9 +1044,14 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 		for (i=0; i<count; i++) {
 			p1 = (GF_NALUFFParam*)gf_list_get(cfg->sequenceParameterSetExtensions, i);
 			p2 = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
+			if (!p2) continue;
 			p2->size = p1->size;
 			p2->id = p1->id;
 			p2->data = (u8 *)gf_malloc(p1->size);
+			if (!p2->data) {
+				gf_free(p2);
+				continue;
+			}
 			memcpy(p2->data, p1->data, sizeof(char)*p1->size);
 			gf_list_add(cfg_new->sequenceParameterSetExtensions, p2);
 		}
@@ -1413,6 +1443,7 @@ static GF_AV1Config* AV1_DuplicateConfig(GF_AV1Config const * const cfg)
 	u32 i = 0;
 	GF_AV1Config *out;
 	GF_SAFEALLOC(out, GF_AV1Config);
+	if (!out) return NULL;
 
 	out->marker = cfg->marker;
 	out->version = cfg->version;
@@ -1437,6 +1468,10 @@ static GF_AV1Config* AV1_DuplicateConfig(GF_AV1Config const * const cfg)
 		dst->obu_length = src->obu_length;
 		dst->obu_type = src->obu_type;
 		dst->obu = (u8 *)gf_malloc((size_t)dst->obu_length);
+		if (!dst->obu) {
+			gf_free(dst);
+			continue;
+		}
 		memcpy(dst->obu, src->obu, (size_t)src->obu_length);
 		gf_list_add(out->obu_array, dst);
 	}
@@ -1456,14 +1491,15 @@ static GF_IAConfig* IAMF_DuplicateConfig(GF_IAConfig const * const cfg)
 		GF_IamfObu *src = (GF_IamfObu *) gf_list_get(cfg->configOBUs, i);
 		GF_IamfObu *dst;
 		GF_SAFEALLOC(dst, GF_IamfObu);
-		if (!dst) {
+		if (dst) dst->raw_obu_bytes = (u8 *)gf_malloc(src->obu_length);
+		if (!dst || !dst->raw_obu_bytes) {
+			if (dst) gf_free(dst);
 			gf_odf_iamf_cfg_del(out);
 			return NULL;
 		}
 
 		dst->obu_length = src->obu_length;
 		dst->obu_type = src->obu_type;
-		dst->raw_obu_bytes = (u8 *)gf_malloc((size_t)dst->obu_length);
 		memcpy(dst->raw_obu_bytes, src->raw_obu_bytes, (size_t)src->obu_length);
 		gf_list_add(out->configOBUs, dst);
 	}
@@ -1524,6 +1560,10 @@ static GF_AVS3VConfig* AVS3V_DuplicateConfig(GF_AVS3VConfig const * const cfg)
 		out->configurationVersion = cfg->configurationVersion;
 		out->sequence_header_length = cfg->sequence_header_length;
 		out->sequence_header = (u8 *)gf_malloc(cfg->sequence_header_length);
+		if (!out->sequence_header) {
+			gf_free(out);
+			return NULL;
+		}
 		memcpy(out->sequence_header, cfg->sequence_header, cfg->sequence_header_length);
 		out->library_dependency_idc = cfg->library_dependency_idc;
 	}
@@ -2868,6 +2908,7 @@ GF_Err m4ds_box_read(GF_Box *s, GF_BitStream *bs)
 	u32 od_size = (u32) ptr->size;
 	if (!od_size) return GF_OK;
 	enc_od = (u8 *)gf_malloc(od_size);
+	if (!enc_od) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, enc_od, od_size);
 	e = gf_odf_desc_list_read(enc_od, od_size, ptr->descriptors);
 	gf_free(enc_od);
@@ -2967,6 +3008,10 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 			return GF_ISOM_INVALID_FILE;
 		}
 		sl->data = (u8 *)gf_malloc(sl->size);
+		if (!sl->data) {
+			gf_free(sl);
+			return GF_OUT_OF_MEM;
+		}
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(ptr->config->sequenceParameterSets, sl);
 		ptr->size -= sl->size;
@@ -2985,6 +3030,10 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 			return GF_ISOM_INVALID_FILE;
 		}
 		sl->data = (u8 *)gf_malloc(sl->size);
+		if (!sl->data) {
+			gf_free(sl);
+			return GF_OUT_OF_MEM;
+		}
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(ptr->config->pictureParameterSets, sl);
 		ptr->size -= sl->size;
@@ -3056,6 +3105,10 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 				return GF_ISOM_INVALID_FILE;
 			}
 			sl->data = (u8 *)gf_malloc(sl->size);
+			if (!sl->data) {
+				gf_free(sl);
+				return GF_OUT_OF_MEM;
+			}
 			gf_bs_read_data(bs, sl->data, sl->size);
 			gf_list_add(ptr->config->sequenceParameterSetExtensions, sl);
 			ptr->size -= sl->size;

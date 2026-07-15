@@ -281,6 +281,7 @@ extern "C" {
 	GF_VideoOutput *NewDektecVideoOutput()
 	{
 		GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
+		if (!driv) return NULL;
 		memset(driv, 0, sizeof(GF_VideoOutput));
 		GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "dektec", "gpac distribution")
 

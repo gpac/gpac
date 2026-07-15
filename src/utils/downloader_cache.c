@@ -799,6 +799,11 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 			if (entry->contentLength) entry->mem_allocated = entry->contentLength;
 			else if (!entry->mem_allocated) entry->mem_allocated = 81920;
 			entry->mem_storage = (u8*)gf_realloc(entry->mem_storage, (entry->mem_allocated + 2) );
+			if (!entry->mem_storage) {
+				entry->mem_allocated = 0;
+				gf_mx_v(entry->cache_blob.mx);
+				return GF_OUT_OF_MEM;
+			}
 		}
 		entry->cache_blob.data = entry->mem_storage;
 		entry->cache_blob.size = entry->contentLength;
@@ -859,6 +864,11 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		if (entry->written_in_cache + size > entry->mem_allocated) {
 			u32 new_size = MAX(entry->mem_allocated*2, entry->written_in_cache + size);
 			entry->mem_storage = (u8*)gf_realloc(entry->mem_storage, (new_size+2));
+			if (!entry->mem_storage) {
+				entry->mem_allocated = 0;
+				gf_mx_v(entry->cache_blob.mx);
+				return GF_OUT_OF_MEM;
+			}
 			entry->mem_allocated = new_size;
 			entry->cache_blob.data = entry->mem_storage;
 			entry->cache_blob.size = entry->contentLength;
@@ -1203,6 +1213,11 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
 			u32 new_size;
 			new_size = MAX(entry->mem_allocated*2, blob->size+1);
 			entry->mem_storage = (u8*)gf_realloc(entry->mem_allocated ? entry->mem_storage : NULL, (new_size+2));
+			if (!entry->mem_storage) {
+				entry->mem_allocated = 0;
+				gf_mx_v(entry->cache_blob.mx);
+				return GF_FALSE;
+			}
 			entry->mem_allocated = new_size;
 			entry->cache_blob.data = entry->mem_storage;
 			entry->cache_blob.size = entry->contentLength;

@@ -209,22 +209,27 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->dsi_crc = dsi_crc;
 
 	//parse DSI
+	GF_Err e = GF_OK;
 	bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
 	entry_type = gf_bs_read_u32(bs);
 	if (entry_type == GF_ISOM_BOX_TYPE_WVTT) {
 		GF_Box *b;
-		gf_isom_box_parse(&b, bs);
+		e = gf_isom_box_parse(&b, bs);
 		ctx->dsi = ((GF_StringBox *)b)->string;
 		((GF_StringBox *)b)->string = NULL;
 		gf_isom_box_del(b);
 	} else {
 		ctx->dsi = (char *)gf_malloc( p->value.data.size + 1);
-		memcpy(ctx->dsi, p->value.data.ptr, p->value.data.size);
-		ctx->dsi[p->value.data.size] = 0;
+		if (!ctx->dsi)
+			e = GF_OUT_OF_MEM;
+		else {
+			memcpy(ctx->dsi, p->value.data.ptr, p->value.data.size);
+			ctx->dsi[p->value.data.size] = 0;
+		}
 	}
 	gf_bs_del(bs);
 
-	return GF_OK;
+	return e;
 }
 
 

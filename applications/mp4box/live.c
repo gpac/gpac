@@ -124,6 +124,7 @@ static void live_session_callback(void *calling_object, u16 ESID, u8 *data, u32 
 			if (livesess->carousel_generation && rtpch->carousel_period) {
 				if (rtpch->carousel_alloc < size) {
 					rtpch->carousel_data = (u8 *)gf_realloc(rtpch->carousel_data, size);
+					if (!rtpch->carousel_data) return;
 					rtpch->carousel_alloc = size;
 				}
 				memcpy(rtpch->carousel_data, data, size);
@@ -680,6 +681,7 @@ int live_session(int argc, char **argv)
 
 				if (update_length && update_buffer_size <= update_length) {
 					update_buffer = (char *)gf_realloc(update_buffer, update_length+1);
+					if (!update_buffer) return 2;
 					update_buffer_size = update_length+1;
 				}
 				if (update_length && (bytes_read>hdr_length) ) {

@@ -4306,8 +4306,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		GF_HEVCConfig *hvcc=NULL;
 		if (dsi) {
 			hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, (!dsi_enh && (codec_id==GF_CODECID_LHVC)) ? GF_TRUE : GF_FALSE);
-			if (dsi_enh) {
+			if (dsi_enh)
 				GF_SAFEALLOC(hvcs, HEVCState);
+			if (dsi_enh && hvcs) {
 				for (i=0; i<gf_list_count(hvcc->param_array); i++) {
 					GF_NALUFFParamArray *pa = (GF_NALUFFParamArray *)gf_list_get(hvcc->param_array, i);
 					for (j=0; j<gf_list_count(pa->nalus); j++) {
@@ -4377,12 +4378,14 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			if (avcc) {
 				AVCState *avcs;
 				GF_SAFEALLOC(avcs, AVCState);
-				for (u32 i=0; i<gf_list_count(avcc->sequenceParameterSets); i++) {
-					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avcc->sequenceParameterSets, i);
-					s32 idx = gf_avc_read_sps(sl->data, sl->size, avcs, 0, NULL);
-					if (idx>=0) inspect_printf(dump, " %dx%d", avcs->sps[idx].width, avcs->sps[idx].height);
+				if (avcs) {
+					for (u32 i=0; i<gf_list_count(avcc->sequenceParameterSets); i++) {
+						GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avcc->sequenceParameterSets, i);
+						s32 idx = gf_avc_read_sps(sl->data, sl->size, avcs, 0, NULL);
+						if (idx>=0) inspect_printf(dump, " %dx%d", avcs->sps[idx].width, avcs->sps[idx].height);
+					}
+					gf_free(avcs);
 				}
-				gf_free(avcs);
 				gf_odf_avc_cfg_del(avcc);
 			}
 		}

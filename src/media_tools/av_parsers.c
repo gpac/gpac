@@ -53,7 +53,7 @@ static u32 gf_bs_read_int_log_idx3(GF_BitStream *bs, u32 nBits, const char *fnam
 #define gf_bs_read_int_log_idx(_bs, _nBits, _fname, _idx) gf_bs_read_int_log_idx3(_bs, _nBits, _fname, _idx, -1, -1)
 #define gf_bs_read_int_log_idx2(_bs, _nBits, _fname, _idx1, _idx2) gf_bs_read_int_log_idx3(_bs, _nBits, _fname, (s32) _idx1, (s32) _idx2, -1)
 
-#define gf_bs_read_bool_log(_bs, _fname) gf_bs_read_int_log_idx3(_bs, 1, _fname, -1, -1, -1) ? GF_TRUE : GF_FALSE
+#define gf_bs_read_bool_log(_bs, _fname) (gf_bs_read_int_log_idx3(_bs, 1, _fname, -1, -1, -1) ? GF_TRUE : GF_FALSE)
 #define gf_bs_read_bool_log_idx(_bs, _fname, _idx) (Bool) gf_bs_read_int_log_idx3(_bs, 1, _fname, _idx, -1, -1)
 #define gf_bs_read_bool_log_idx2(_bs, _fname, _idx1, _idx2) (Bool) gf_bs_read_int_log_idx3(_bs, 1, _fname, (s32) _idx1, (s32) _idx2, -1)
 
@@ -376,6 +376,7 @@ void gf_m4v_rewrite_pl(u8 **o_data, u32 *o_dataLen, u8 PL)
 	}
 	/*emulate VOS at beggining*/
 	(*o_data) = (u8 *)gf_malloc(dataLen + 5);
+	if (! *o_data) return;
 	(*o_data)[0] = 0;
 	(*o_data)[1] = 0;
 	(*o_data)[2] = 1;
@@ -1549,7 +1550,7 @@ static u32 av1_read_ns(GF_BitStream *bs, u32 n, const char *fname)
 		}
 		return v;
 	}
-	extra_bit = gf_bs_read_bool(bs); 
+	extra_bit = gf_bs_read_bool(bs);
 	res = (v << 1) - m + extra_bit;
 	if (fname) {
 		gf_bs_log(bs, w, fname, res);
@@ -1642,7 +1643,7 @@ static u32 av1_uvlc(GF_BitStream *bs, const char *fname)
 	u32 res;
 	u8 leadingZeros = 0;
 	while (1) {
-		u32 done = gf_bs_read_bool(bs); 
+		u32 done = gf_bs_read_bool(bs);
 		if (done)
 			break;
 		leadingZeros++;
@@ -3210,7 +3211,7 @@ static u32 av1_decode_subexp(GF_BitStream *bs, s32 numSyms)
 			return subexp_final_bits + mk;
 		}
 		else {
-			s32 subexp_more_bits = gf_bs_read_bool(bs); 
+			s32 subexp_more_bits = gf_bs_read_bool(bs);
 			if (subexp_more_bits) {
 				i++;
 				mk += a;
@@ -4627,8 +4628,8 @@ GF_Err gf_media_prores_parse_bs(GF_BitStream *bs, GF_ProResFrameInfo *prores_fra
 	gf_bs_read_int(bs, 4);
 	prores_frame->alpha_channel_type = gf_bs_read_int(bs, 4);
 	gf_bs_read_int(bs, 14);
-	prores_frame->load_luma_quant_matrix = gf_bs_read_bool(bs); 
-	prores_frame->load_chroma_quant_matrix = gf_bs_read_bool(bs); 
+	prores_frame->load_luma_quant_matrix = gf_bs_read_bool(bs);
+	prores_frame->load_chroma_quant_matrix = gf_bs_read_bool(bs);
 	if (prores_frame->load_luma_quant_matrix) {
 		for (i=0; i<8; i++) {
 			for (j=0; j<8; j++) {
@@ -4720,14 +4721,14 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
 		}
 	}
 
-	obu_trimming_status_flag = gf_bs_read_bool(bs); 
+	obu_trimming_status_flag = gf_bs_read_bool(bs);
 	if (obu_trimming_status_flag) {
 		if (!iamf_is_audio_frame_obu(*obu_type)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_trimming_status_flag set to 0, but got 1.\n", gf_iamf_get_obu_name(*obu_type)));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
-	obu_extension_flag = gf_bs_read_bool(bs); 
+	obu_extension_flag = gf_bs_read_bool(bs);
 
 
 	/* gpac's `obu_size` includes the header and payload, which is different
@@ -4997,6 +4998,10 @@ static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfO
 	gf_bs_seek(bs, pos);
 
 	a->raw_obu_bytes = (u8 *)gf_malloc((size_t)obu_size);
+	if (!a->raw_obu_bytes) {
+		gf_free(a);
+		return;
+	}
 	gf_bs_read_data(bs, a->raw_obu_bytes, (u32)obu_size);
 	a->obu_length = obu_size;
 
@@ -5497,7 +5502,7 @@ u32 gf_bs_read_ue_log_idx3(GF_BitStream *bs, const char *fname, s32 idx1, s32 id
 		if (nb_lead>=32) {
 			break;
 		}
-		code = gf_bs_read_bool(bs); 
+		code = gf_bs_read_bool(bs);
 		bits++;
 	}
 
@@ -6712,13 +6717,13 @@ static s32 hevc_parse_pic_timing_sei(GF_BitStream *bs, HEVCState *hevc)
 
 	pt->num_clock_ts = gf_bs_read_int(bs, 2);
 	for (int i = 0; i < pt->num_clock_ts; i++) {
-		Bool clock_timestamp_flag = gf_bs_read_bool(bs); 
+		Bool clock_timestamp_flag = gf_bs_read_bool(bs);
 		if (clock_timestamp_flag) {
 			AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
 			tc->clock_timestamp_flag = clock_timestamp_flag;
 			Bool unit_field_based_flag = gf_bs_read_bool_log_idx(bs, "units_field_based_flag", i);
 			tc->counting_type = gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
-			Bool full_timestamp_flag = gf_bs_read_bool(bs); 
+			Bool full_timestamp_flag = gf_bs_read_bool(bs);
 			gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
 			tc->cnt_dropped_flag = gf_bs_read_bool_log_idx(bs, "cnt_dropped_flag", i);
 
@@ -7764,6 +7769,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 
 GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 {
+	GF_Err e = GF_OK;
 	AVCState *avc_state;
 	u32 i, bit_offset, flag;
 	s32 idx;
@@ -7783,11 +7789,17 @@ GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 		u32 no_emulation_buf_size = 0, emulation_bytes = 0;
 		idx = gf_avc_read_sps(slc->data, slc->size, avc_state, 0, &bit_offset);
 		if (idx<0) {
-			continue;
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			break;
 		}
 
 		/*SPS still contains emulation bytes*/
 		no_emulation_buf = (u8 *)gf_malloc(slc->size - 1);
+		if (!no_emulation_buf) {
+			e = GF_OUT_OF_MEM;
+			break;
+		}
+
 		no_emulation_buf_size = gf_media_nalu_remove_emulation_bytes(slc->data + 1, no_emulation_buf, slc->size - 1);
 
 		orig = gf_bs_new(no_emulation_buf, no_emulation_buf_size, GF_BITSTREAM_READ);
@@ -7816,15 +7828,21 @@ GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 		/*set anti-emulation*/
 		gf_bs_get_content(mod, &no_emulation_buf, &flag);
 		emulation_bytes = gf_media_nalu_emulation_bytes_add_count(no_emulation_buf, flag);
-		if (flag+emulation_bytes+1>slc->size)
+		if (flag+emulation_bytes+1>slc->size) {
 			slc->data = (u8 *)gf_realloc(slc->data, flag+emulation_bytes+1);
-		slc->size = gf_media_nalu_add_emulation_bytes(no_emulation_buf, slc->data + 1, flag) + 1;
-
+		}
+		if (slc->data)
+			slc->size = gf_media_nalu_add_emulation_bytes(no_emulation_buf, slc->data + 1, flag) + 1;
+		else {
+			slc->size = 0;
+			e = GF_OUT_OF_MEM;
+		}
 		gf_bs_del(mod);
 		gf_free(no_emulation_buf);
+		if (e) break;
 	}
 	gf_free(avc_state);
-	return GF_OK;
+	return e;
 }
 
 GF_EXPORT
@@ -9453,7 +9471,7 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 		if (gf_bs_read_bool_log(bs, "vps_extension2_flag")) {
 #if 0
 			while (gf_bs_available(bs)) {
-				/*vps_extension_data_flag */ gf_bs_read_bool(bs); 
+				/*vps_extension_data_flag */ gf_bs_read_bool(bs);
 			}
 #endif
 
@@ -9479,6 +9497,7 @@ s32 gf_hevc_read_vps_ex(u8 *data, u32 *size, HEVCState *hevc, Bool remove_extens
 	//when removing VPS ext, we have to get the full buffer without emulation prevention bytes becuase we do a bit-by-bit copy of the vps
 	else {
 		data_without_emulation_bytes = (u8 *)gf_malloc(*size);
+		if (!data_without_emulation_bytes) return -1;
 		data_without_emulation_bytes_size = gf_media_nalu_remove_emulation_bytes(data, data_without_emulation_bytes, (*size));
 		bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	}
@@ -9503,7 +9522,7 @@ s32 gf_hevc_read_vps_ex(u8 *data, u32 *size, HEVCState *hevc, Bool remove_extens
 		gf_bs_write_u16(w_bs, gf_bs_read_u16(bs) );
 		bit_pos -= 48;
 		while (bit_pos) {
-			u32 v = gf_bs_read_bool(bs); 
+			u32 v = gf_bs_read_bool(bs);
 			gf_bs_write_int(w_bs, v, 1);
 			bit_pos--;
 		}
@@ -9874,7 +9893,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	if (gf_bs_read_bool_log(bs, "sps_extension_flag")) {
 #if 0
 		while (gf_bs_available(bs)) {
-			/*sps_extension_data_flag */ gf_bs_read_bool(bs); 
+			/*sps_extension_data_flag */ gf_bs_read_bool(bs);
 		}
 #endif
 
@@ -10362,13 +10381,12 @@ s32 gf_hevc_parse_nalu(const u8 *data, u32 size, HEVCState *hevc, u8 *nal_unit_t
 GF_EXPORT
 GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 {
-	GF_BitStream *orig, *mod;
+	GF_Err e = GF_OK;
 	HEVCState *hvc_state;
 	u32 i, bit_offset, flag;
 	s32 idx;
 	GF_NALUFFParamArray *spss;
 	GF_NALUFFParam *slc;
-	orig = NULL;
 
 	GF_SAFEALLOC(hvc_state, HEVCState);
 	if (!hvc_state) return GF_OUT_OF_MEM;
@@ -10388,19 +10406,22 @@ GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 
 	i = 0;
 	while ((slc = (GF_NALUFFParam *)gf_list_enum(spss->nalus, &i))) {
+		GF_BitStream *orig, *mod;
 		u8 *no_emulation_buf;
 		u32 no_emulation_buf_size, emulation_bytes;
 
 		/*SPS may still contains emulation bytes*/
 		no_emulation_buf = (u8 *)gf_malloc(slc->size);
+		if (!no_emulation_buf) {
+			e = GF_OUT_OF_MEM;
+			break;
+		}
 		no_emulation_buf_size = gf_media_nalu_remove_emulation_bytes(slc->data, no_emulation_buf, slc->size);
 
 		idx = gf_hevc_read_sps_ex(no_emulation_buf, no_emulation_buf_size, hvc_state, &bit_offset);
 		if (idx < 0) {
-			if (orig)
-				gf_bs_del(orig);
-			gf_free(no_emulation_buf);
-			continue;
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			break;
 		}
 
 		orig = gf_bs_new(no_emulation_buf, no_emulation_buf_size, GF_BITSTREAM_READ);
@@ -10430,13 +10451,19 @@ GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 		if (no_emulation_buf_size + emulation_bytes > slc->size)
 			slc->data = (u8 *)gf_realloc(slc->data, no_emulation_buf_size + emulation_bytes);
 
-		slc->size = gf_media_nalu_add_emulation_bytes(no_emulation_buf, slc->data, no_emulation_buf_size);
+		if (slc->data)
+			slc->size = gf_media_nalu_add_emulation_bytes(no_emulation_buf, slc->data, no_emulation_buf_size);
+		else {
+			slc->size = 0;
+			e = GF_OUT_OF_MEM;
+		}
 
 		gf_bs_del(mod);
 		gf_free(no_emulation_buf);
+		if (e) break;
 	}
 	gf_free(hvc_state);
-	return GF_OK;
+	return e;
 }
 
 
@@ -10987,7 +11014,7 @@ next_block:
 				u32 mixdeflen = gf_bs_read_int(bs, 5);
 				mixdeflen = 8 * (mixdeflen + 2);
 				while (mixdeflen) {
-					gf_bs_read_bool(bs); 
+					gf_bs_read_bool(bs);
 					mixdeflen--;
 				}
 			}
@@ -11027,16 +11054,16 @@ next_block:
 			//audprodi2e
 			if (gf_bs_read_int(bs, 1)) gf_bs_read_int(bs, 8);
 		}
-		if (fscod < 0x3)  gf_bs_read_bool(bs); 
+		if (fscod < 0x3)  gf_bs_read_bool(bs);
 	}
-	if ((strmtyp == 0) && (numblkscod != 0x3)) gf_bs_read_bool(bs); 
+	if ((strmtyp == 0) && (numblkscod != 0x3)) gf_bs_read_bool(bs);
 	if (strmtyp == 0x2) {
 		u32 blkid=0;
 		if (numblkscod == 0x3) blkid=1;
-		else blkid = gf_bs_read_bool(bs); 
+		else blkid = gf_bs_read_bool(bs);
 		if (blkid) gf_bs_read_int(bs, 6);
 	}
-	u8 addbsie = gf_bs_read_bool(bs); 
+	u8 addbsie = gf_bs_read_bool(bs);
 	if (addbsie) {
 		u32 addbsil = gf_bs_read_int(bs, 6) + 1;
 		//we only use the first 2 bytes - cf 8.3 of ETSI 103 420 V1.2.1
@@ -11094,16 +11121,16 @@ Bool gf_eac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_
 u32 gf_id3_read_size(GF_BitStream *bs)
 {
 	u32 size = 0;
-	gf_bs_read_bool(bs); 
+	gf_bs_read_bool(bs);
 	size |= gf_bs_read_int(bs, 7);
 	size<<=7;
-	gf_bs_read_bool(bs); 
+	gf_bs_read_bool(bs);
 	size |= gf_bs_read_int(bs, 7);
 	size<<=7;
-	gf_bs_read_bool(bs); 
+	gf_bs_read_bool(bs);
 	size |= gf_bs_read_int(bs, 7);
 	size<<=7;
-	gf_bs_read_bool(bs); 
+	gf_bs_read_bool(bs);
 	size |= gf_bs_read_int(bs, 7);
 	return size;
 }
@@ -11283,6 +11310,7 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 			u32 max_class = 0;
 			nb_part = oggpack_read(&opb, 5);
 			parts = (u32*)gf_malloc(sizeof(u32) * nb_part);
+			if (!parts) return GF_FALSE;
 			for (j = 0; j < nb_part; j++) {
 				parts[j] = oggpack_read(&opb, 4);
 				if (parts[j]==(u32) -1) {
@@ -11293,6 +11321,10 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 				if (max_class < parts[j]) max_class = parts[j];
 			}
 			class_dims = (u32*)gf_malloc(sizeof(u32) * (max_class + 1));
+			if (!class_dims) {
+				gf_free(parts);
+				return GF_FALSE;
+			}
 			for (j = 0; j < max_class + 1; j++) {
 				u32 class_sub;
 				class_dims[j] = oggpack_read(&opb, 3) + 1;
@@ -11909,8 +11941,8 @@ s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size, u64 *ch_layout)
 				if (idx==0x1f)
 					gf_bs_read_int(bs, 24);
 				/*idx = */gf_bs_read_int(bs, 3);
-				gf_bs_read_bool(bs); 
-				gf_bs_read_bool(bs); 
+				gf_bs_read_bool(bs);
+				gf_bs_read_bool(bs);
 
 				//speaker config
 				idx = gf_bs_read_int(bs, 2);
@@ -13762,7 +13794,7 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 		}
 	}
 
-	u8 align_bit = gf_bs_read_bool(bs); 
+	u8 align_bit = gf_bs_read_bool(bs);
 	if (align_bit != 1) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[VVC] Align bit at end of slice header not set to 1 !\n"));
 		//return error only for strict mdoe
@@ -14005,13 +14037,12 @@ Bool gf_vvc_slice_is_ref(VVCState *vvc)
 GF_EXPORT
 GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 {
-	GF_BitStream *orig, *mod;
+	GF_Err e = GF_OK;
 	VVCState *vvc;
 	u32 i, bit_offset, flag;
 	s32 idx;
 	GF_NALUFFParamArray *spss;
 	GF_NALUFFParam *slc;
-	orig = NULL;
 
 	GF_SAFEALLOC(vvc, VVCState);
 	if (!vvc) return GF_OUT_OF_MEM;
@@ -14031,12 +14062,17 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 
 	i = 0;
 	while ((slc = (GF_NALUFFParam *)gf_list_enum(spss->nalus, &i))) {
+		GF_BitStream *orig, *mod;
 		u8 *no_emulation_buf;
 		u32 no_emulation_buf_size, emulation_bytes;
 		u8 nal_unit_type, temporal_id, layer_id;
 
 		/*SPS may still contains emulation bytes*/
 		no_emulation_buf = (u8 *)gf_malloc(slc->size);
+		if (!no_emulation_buf) {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			break;
+		}
 		no_emulation_buf_size = gf_media_nalu_remove_emulation_bytes(slc->data, no_emulation_buf, slc->size);
 
 		orig = gf_bs_new(no_emulation_buf, no_emulation_buf_size, GF_BITSTREAM_READ);
@@ -14044,12 +14080,9 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 		idx = gf_vvc_read_sps_bs_internal(orig, vvc, layer_id, &bit_offset);
 
 		if (idx < 0) {
-			if (orig) {
-				gf_bs_del(orig);
-				orig = NULL;
-			}
-			gf_free(no_emulation_buf);
-			continue;
+			gf_bs_del(orig);
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			break;
 		}
 
 		gf_bs_seek(orig, 0);
@@ -14079,13 +14112,19 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 		if (no_emulation_buf_size + emulation_bytes > slc->size)
 			slc->data = (u8 *)gf_realloc(slc->data, no_emulation_buf_size + emulation_bytes);
 
-		slc->size = gf_media_nalu_add_emulation_bytes(no_emulation_buf, slc->data, no_emulation_buf_size);
+		if (slc->data)
+			slc->size = gf_media_nalu_add_emulation_bytes(no_emulation_buf, slc->data, no_emulation_buf_size);
+		else {
+			slc->size = 0;
+			e = GF_OUT_OF_MEM;
+		}
 
 		gf_bs_del(mod);
 		gf_free(no_emulation_buf);
+		if (e) break;
 	}
 	gf_free(vvc);
-	return GF_OK;
+	return e;
 }
 
 
@@ -14205,11 +14244,11 @@ GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **d
 				/*cfmt*/gf_bs_read_int(bs, 2);
 				/*fps*/gf_bs_read_int(bs, 3);
 				/*btrt*/gf_bs_read_int(bs, 5);
-				gf_bs_read_bool(bs); 
+				gf_bs_read_bool(bs);
 				/*mw*/gf_bs_read_int(bs, 12);
 				/*mh*/gf_bs_read_int(bs, 12);
-				/*bcast*/gf_bs_read_bool(bs); 
-				interlace = gf_bs_read_bool(bs); 
+				/*bcast*/gf_bs_read_bool(bs);
+				interlace = gf_bs_read_bool(bs);
 			}
 			gf_bs_del(bs);
 		}
@@ -14414,7 +14453,7 @@ static u32 gf_ac4_variable_bits(GF_BitStream *bs, int bits)
 	u32 b_moreBits = 0;
 	do{
 		value += gf_bs_read_int(bs, bits);
-		b_moreBits = gf_bs_read_bool(bs); 
+		b_moreBits = gf_bs_read_bool(bs);
 		if (b_moreBits == 1) {
 			value <<= bits;
 			value += (1<<bits);
@@ -14568,11 +14607,11 @@ static u32 gf_ac4_get_channel_mode(GF_BitStream *bs,
 {
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.2.7.2 Table 78
 	u32 channel_mode_code = 0;
-	channel_mode_code = gf_bs_read_bool(bs); 
+	channel_mode_code = gf_bs_read_bool(bs);
 	if (channel_mode_code == 0) {   // Mono 0b0
 		return AC4_CH_MODE_MONO;
 	}
-	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_bool(bs); 
+	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_bool(bs);
 	if (channel_mode_code == 2) {   // Stereo  0b10
 		return AC4_CH_MODE_STEREO;
 	}
@@ -14610,14 +14649,14 @@ static u32 gf_ac4_get_channel_mode(GF_BitStream *bs,
 		case 125:                   // 7.1: 3/2/2.1 0b1111101
 			return AC4_CH_MODE_71_322;
 	}
-	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_bool(bs); 
+	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_bool(bs);
 	switch (channel_mode_code) {
 		case 252:                   // 7.0.4 0b11111100
 			return AC4_CH_MODE_7_0_4;
 		case 253:                   // 7.1.4 0b11111101
 			return AC4_CH_MODE_7_1_4;
 	}
-	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_bool(bs); 
+	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_bool(bs);
 	switch (channel_mode_code) {
 		case 508:                   // 9.0.4 0b111111100
 			return AC4_CH_MODE_9_0_4;
@@ -15349,6 +15388,7 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 			}
 
 			GF_SAFEALLOC(substream, GF_AC4SubStream);
+			if (!substream) return GF_FALSE;
 			gf_ac4_substream_info_chan(bs,
 									   substream,
 									   presentation_version,
@@ -15382,6 +15422,7 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 
 		for (i = 0; i < ginfo->n_lf_substreams; i++) {
 			GF_SAFEALLOC(substream, GF_AC4SubStream);
+			if (!substream) return GF_FALSE;
 			local_channel_count = 0;
 
 			substream->b_ajoc = gf_bs_read_bool_log(bs, "b_ajoc");
@@ -15477,6 +15518,7 @@ static Bool gf_ac4_sgi_specifier_add(GF_BitStream *bs,
 	u32 *idx = NULL;
 
 	GF_SAFEALLOC(idx, u32);
+	if (!idx) return GF_FALSE;
 	*idx = gf_ac4_sgi_specifier(bs, bitstream_version);
 	gf_list_add(idx_list, idx);
 
@@ -16058,6 +16100,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 
 		for (i = 0; i < n_presentations; i++) {
 			GF_SAFEALLOC(pinfo, GF_AC4PresentationV1);
+			if (!pinfo) return GF_FALSE;
 			gf_ac4_presentation_v1_info(bs,
 										pinfo,
 										bitstream_version,
@@ -16085,6 +16128,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			default_presentation_flag = gf_ac4_is_substream_group_part_of_default_presentation(hdr_p_list, i);
 
 			GF_SAFEALLOC(group, GF_AC4SubStreamGroupV1);
+			if (!group) return GF_FALSE;
 			gf_ac4_substream_group_info(bs,
 										group,
 										bitstream_version,

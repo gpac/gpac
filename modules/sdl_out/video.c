@@ -446,6 +446,10 @@ void SDLVid_SetIcon(SDLVidCtx *ctx)
 	gf_img_png_dec(buffer, size, &w, &h, &pf, NULL, &dst_size);
 	Bpp = gf_pixel_get_bytes_per_pixel(pf);
 	dec_buf = (u8 *)gf_malloc(dst_size);
+	if (!dec_buf) {
+		gf_free(buffer);
+		return;
+	}
 	gf_img_png_dec(buffer, size, &w, &h, &pf, dec_buf, &dst_size);
 	//RGBA only
 	SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(dec_buf, w, h, Bpp*8, w*Bpp, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
@@ -1449,7 +1453,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 
 	ctx->tx_back_buffer = SDL_CreateTexture(ctx->renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, newWidth, newHeight);
 	ctx->back_buffer_pixels = (u8 *)gf_malloc(3*newWidth*newHeight);
-
+	if (!ctx->back_buffer_pixels) return GF_OUT_OF_MEM;
 
 	SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 0, 255);
 	SDL_RenderClear(ctx->renderer);
@@ -2185,10 +2189,15 @@ void *SDL_NewVideo()
 	GF_VideoOutput *driv;
 
 	driv = (GF_VideoOutput*)gf_malloc(sizeof(GF_VideoOutput));
+	if (!driv) return NULL;
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "sdl", "gpac distribution");
 
 	ctx = (SDLVidCtx*)gf_malloc(sizeof(SDLVidCtx));
+	if (!ctx) {
+		gf_free(driv);
+		return NULL;
+	}
 	memset(ctx, 0, sizeof(SDLVidCtx));
 #ifdef	SDL_WINDOW_THREAD
 	ctx->sdl_th = gf_th_new("SDLVideo");

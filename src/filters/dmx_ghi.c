@@ -379,7 +379,7 @@ static Bool ghi_dmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 	return GF_FALSE;
 }
 
-static void ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStream *st)
+static GF_Err ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStream *st)
 {
 #ifndef GPAC_DISABLE_MPD
 	if (!gf_list_count(st->opids)) {
@@ -437,6 +437,7 @@ static void ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 			obuf_size = (vlen+1)*2;
 			if (obuf_alloc<obuf_size) {
 				obuf = (u8 *)gf_realloc(obuf, obuf_size);
+				if (!obuf) continue;
 				obuf_alloc = obuf_size;
 			}
 			vlen = gf_base64_decode((u8*)value, vlen, obuf, obuf_size);
@@ -475,13 +476,15 @@ static void ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 
 	for (i=1; i<gf_list_count(st->opids); i++) {
 		GF_FilterPid *a_opid = (struct __gf_filter_pid *)gf_list_get(st->opids, i);
-		gf_filter_pid_copy_properties(a_opid, opid);
+		GF_Err e = gf_filter_pid_copy_properties(a_opid, opid);
+		if (e) return e;
 	}
 	set_opids_props(ctx, st);
 #endif
+	return GF_OK;
 }
 
-static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStream *st, GF_BitStream *bs)
+static GF_Err ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStream *st, GF_BitStream *bs)
 {
 	u32 i;
 	if (!gf_list_count(st->opids)) {
@@ -586,6 +589,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 				break;
 			}
 			p.value.data.ptr = (u8 *)gf_malloc(p.value.data.size);
+			if (!p.value.data.ptr) return GF_OUT_OF_MEM;
 			gf_bs_read_data(bs, p.value.data.ptr, p.value.data.size);
 			p.type = GF_PROP_DATA_NO_COPY;
 			do_reset = GF_FALSE;
@@ -601,8 +605,10 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 				break;
 			}
 			p.value.string_list.vals = (char **)gf_malloc(sizeof(char*) * p.value.string_list.nb_items);
+			if (!p.value.string_list.vals) return GF_OUT_OF_MEM;
 			for (pidx=0; pidx<p.value.string_list.nb_items; pidx++) {
 				p.value.string_list.vals[pidx] = gf_bs_read_utf8(bs);
+				if (!p.value.string_list.vals[pidx]) return GF_OUT_OF_MEM;
 			}
 			do_reset = GF_FALSE;
 			break;
@@ -618,6 +624,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 				break;
 			}
 			p.value.uint_list.vals = (u32 *)gf_malloc(sizeof(u32) * p.value.string_list.nb_items);
+			if (!p.value.uint_list.vals) return GF_OUT_OF_MEM;
 			for (pidx=0; pidx<p.value.uint_list.nb_items; pidx++) {
 				p.value.uint_list.vals[pidx] = gf_bs_read_u32(bs);
 			}
@@ -631,6 +638,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 				break;
 			}
 			p.value.v2i_list.vals = (GF_PropVec2i *)gf_malloc(sizeof(GF_PropVec2i) * p.value.v2i_list.nb_items);
+			if (!p.value.v2i_list.vals) return GF_OUT_OF_MEM;
 			for (pidx=0; pidx<p.value.v2i_list.nb_items; pidx++) {
 				p.value.v2i_list.vals[pidx].x = gf_bs_read_u32(bs);
 				p.value.v2i_list.vals[pidx].y = gf_bs_read_u32(bs);
@@ -649,17 +657,18 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 		if (do_reset) gf_props_reset_single(&p);
 
 		if ((gf_bs_get_position(bs) > end) || gf_bs_is_overflow(bs)) {
-			//e = GF_NON_COMPLIANT_BITSTREAM;
-			break;
+			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
 
 	//copy props to other
 	for (i=1; i<gf_list_count(st->opids); i++) {
 		GF_FilterPid *a_opid = (struct __gf_filter_pid *)gf_list_get(st->opids, i);
-		gf_filter_pid_copy_properties(a_opid, opid);
+		GF_Err e = gf_filter_pid_copy_properties(a_opid, opid);
+		if (e) return e;
 	}
 	set_opids_props(ctx, st);
+	return GF_OK;
 }
 
 static void ghi_dmx_unmark_muxed(GHIDmxCtx *ctx)
@@ -741,6 +750,7 @@ void ghi_dmx_parse_seg(GHIDmxCtx *ctx, GF_BitStream *bs, GHIStream *st, s32 num_
 	while (1) {
 		GHISegInfo *s;
 		GF_SAFEALLOC(s, GHISegInfo);
+		if (!s) continue;
 		gf_list_add(st->segs_bin, s);
 
 		if (st->rep_flags & 1) s->first_tfdt = gf_bs_read_u64(bs);
@@ -930,6 +940,7 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 			if (!rep->res_url) continue;
 			GHIStream *st;
 			GF_SAFEALLOC(st, GHIStream);
+			if (!st) return GF_OUT_OF_MEM;
 			st->rep_id = rep->id;
 			rep->id = NULL;
 			st->res_url = rep->res_url;
@@ -1080,10 +1091,12 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 			ghi_dmx_parse_seg(ctx, bs, st, 0);
 
 		if (ctx->gm && !ctx->force) {
+			GF_Err e;
 			if (st->segs_bin)
-				ghi_dmx_declare_opid_bin(filter, ctx, st, bs);
+				e = ghi_dmx_declare_opid_bin(filter, ctx, st, bs);
 			else
-				ghi_dmx_declare_opid_xml(filter, ctx, st);
+				e = ghi_dmx_declare_opid_xml(filter, ctx, st);
+			if (e) return e;
 			continue;
 		}
 

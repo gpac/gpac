@@ -658,6 +658,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			u32 nb_bytes= *read_size;
 			sess->active_cache->blob.data = (GF_CacheBlob *)gf_realloc(sess->active_cache->blob.data, sess->active_cache->blob.size + nb_bytes);
 			if (!sess->active_cache->blob.data) {
+				sess->active_cache->blob.size = 0;
 				sess->active_cache->blob.flags |= GF_BLOB_CORRUPTED;
 			} else {
 				memcpy(sess->active_cache->blob.data + sess->active_cache->blob.size, buffer, nb_bytes);

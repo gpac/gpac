@@ -451,6 +451,7 @@ static const u8 *audiobuffer_fetch_frame(void *callback, u32 *size, u32 *planar_
 		/*BLOCK ALIGN*/
 		while (st->buffer_size%blockAlign) st->buffer_size++;
 		st->buffer = (u8 *)gf_malloc(st->buffer_size);
+		if (!st->buffer) return NULL;
 		memset(st->buffer, 0, sizeof(char) * st->buffer_size);
 		st->read_pos = st->write_pos = 0;
 	}

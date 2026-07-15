@@ -702,7 +702,10 @@ GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dep
 		ALLOC_INC(sdtp->sample_alloc);
 		if (sdtp->sampleCount >= sdtp->sample_alloc) sdtp->sample_alloc = sdtp->sampleCount+1;
 		sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sdtp->sample_alloc);
-		if (!sdtp->sample_info) return GF_OUT_OF_MEM;
+		if (!sdtp->sample_info) {
+			sdtp->sample_alloc = 0;
+			return GF_OUT_OF_MEM;
+		}
 	}
 	sdtp->sample_info[sdtp->sampleCount] = flags;
 	sdtp->sampleCount ++;
@@ -1891,7 +1894,10 @@ GF_Err stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap)
 	if (stbl->SyncSample->alloc_size == stbl->SyncSample->nb_entries) {
 		ALLOC_INC(stbl->SyncSample->alloc_size);
 		stbl->SyncSample->sampleNumbers = (u32*) gf_realloc(stbl->SyncSample->sampleNumbers, sizeof(u32) * stbl->SyncSample->alloc_size);
-		if (!stbl->SyncSample->sampleNumbers) return GF_OUT_OF_MEM;
+		if (!stbl->SyncSample->sampleNumbers) {
+			stbl->SyncSample->alloc_size = 0;
+			return GF_OUT_OF_MEM;
+		}
 		memset(&stbl->SyncSample->sampleNumbers[stbl->SyncSample->nb_entries], 0, sizeof(u32) * (stbl->SyncSample->alloc_size-stbl->SyncSample->nb_entries) );
 	}
 	stbl->SyncSample->sampleNumbers[stbl->SyncSample->nb_entries] = stbl->SampleSize->sampleCount;

@@ -911,7 +911,7 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 #endif
 
 
-void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_mode)
+GF_Err dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_mode)
 {
 	u32 i, j, k, count;
 	Bool has_ctts_error, is_fragmented=GF_FALSE;
@@ -933,7 +933,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
 			M4_LOG(GF_LOG_ERROR, ("Failed to open %s\n", szBuf));
-			return;
+			return GF_IO_ERR;
 		}
 	} else {
 		dump = stdout;
@@ -959,6 +959,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 			if (nb_timings_alloc<count) {
 				nb_timings_alloc = count;
 				timings = (struct _ts_info *)gf_realloc(timings, sizeof (struct _ts_info) * count);
+				if (!timings) return GF_OUT_OF_MEM;
 			}
 			nb_timings = 0;
 		}
@@ -1036,6 +1037,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 	if (has_ctts_error) {
 		M4_LOG(GF_LOG_ERROR, ("\tFile has CTTS table errors\n"));
 	}
+	return GF_OK;
 }
 
 
@@ -1147,15 +1149,18 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 			is_hevc = GF_TRUE;
 #ifndef GPAC_DISABLE_AV_PARSERS
 			GF_SAFEALLOC(hevc_state, HEVCState)
+			if (!hevc_state) return GF_OUT_OF_MEM;
 #endif
 		} else if (vvccfg) {
 			is_vvc = GF_TRUE;
 #ifndef GPAC_DISABLE_AV_PARSERS
 			GF_SAFEALLOC(vvc_state, VVCState)
+			if (!vvc_state) return GF_OUT_OF_MEM;
 #endif
 		} else if (avccfg || svccfg || mvccfg) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 			GF_SAFEALLOC(avc_state, AVCState)
+			if (!avc_state) return GF_OUT_OF_MEM;
 #endif
 		}
 
@@ -1845,6 +1850,12 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 		nb_chunks_total += gf_isom_get_chunk_count(file, i+1);
 	}
 	all_chunks = (ChunkInfo *)gf_malloc(sizeof(ChunkInfo) * nb_chunks_total);
+	if (!all_chunks) {
+		if (inName)
+			gf_fclose(dump);
+		M4_LOG(GF_LOG_ERROR, ("Failed to dump isom chunks, not enough memory\n"));
+		return;
+	}
 	memset(all_chunks, 0, sizeof(ChunkInfo) * nb_chunks_total);
 
 	cur = 0;
@@ -4348,12 +4359,14 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 			u16 *src_str = (u16 *) data;
 			u32 len = UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(src_str);
 			char *utf8str = (char *)gf_malloc(len + 1);
-			u32 res_len = gf_utf8_wcstombs(utf8str, len, (const unsigned short **) &src_str);
-			if (res_len != GF_UTF8_FAIL) {
-				utf8str[res_len] = 0;
-				fprintf(stderr, "%s\n", utf8str);
+			if (utf8str) {
+				u32 res_len = gf_utf8_wcstombs(utf8str, len, (const unsigned short **) &src_str);
+				if (res_len != GF_UTF8_FAIL) {
+					utf8str[res_len] = 0;
+					fprintf(stderr, "%s\n", utf8str);
+				}
+				gf_free(utf8str);
 			}
-			gf_free(utf8str);
 		}
 	}
 

@@ -107,10 +107,13 @@ GF_Err gf_evg_enable_threading(GF_EVGSurface *surf, s32 nb_threads)
 	surf->nb_threads = (u32) nb_threads;
 	if (!surf->nb_threads) return GF_OK;
 	surf->th_raster_ctx = (EVGRasterCtx *)gf_malloc(sizeof(EVGRasterCtx) * surf->nb_threads);
+	if (!surf->th_raster_ctx) {
+		surf->nb_threads = 0;
+		return GF_OUT_OF_MEM;
+	}
 	sprintf(szName, "EVGMX%p", surf);
 	surf->raster_mutex = gf_mx_new(szName);
-
-	if (!surf->th_raster_ctx || !surf->raster_mutex) {
+	if (!surf->raster_mutex) {
 		surf->nb_threads = 0;
 		return GF_OUT_OF_MEM;
 	}
@@ -133,6 +136,7 @@ GF_Err gf_evg_enable_threading(GF_EVGSurface *surf, s32 nb_threads)
 
 		if (run_size) {
 			rctx->stencil_pix_run = (void *)gf_realloc(rctx->stencil_pix_run, run_size);
+			if (!rctx->stencil_pix_run) return GF_OUT_OF_MEM;
 		}
 
 		if (!rctx->gray_spans || !rctx->stencil_pix_run) {

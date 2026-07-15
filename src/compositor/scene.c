@@ -3012,7 +3012,7 @@ void gf_scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)
 {
 	if (addon->root_od) {
 		addon->root_od->addon = NULL;
-		if (disconnect) {				
+		if (disconnect) {
 			gf_scene_remove_object(addon->root_od->parentscene, addon->root_od, 2);
 			gf_odm_disconnect(addon->root_od, 1);
 		}

@@ -363,11 +363,16 @@ void *NewAAOutRender()
 	DroidContext *ctx;
 	GF_AudioOutput *driv;
 	ctx = (DroidContext *)gf_malloc(sizeof(DroidContext));
+	if (!ctx) return NULL;
 	memset(ctx, 0, sizeof(DroidContext));
 	ctx->num_buffers = 1;
 	ctx->pan = 50;
 	ctx->volume = 100;
 	driv = (GF_AudioOutput *)gf_malloc(sizeof(GF_AudioOutput));
+	if (!driv) {
+		gf_free(ctx);
+		return NULL;
+	}
 	memset(driv, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "android", "gpac distribution")
 

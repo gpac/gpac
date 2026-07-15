@@ -435,7 +435,9 @@ static GF_Err vflip_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[VFlip] Configured output full frame size %dx%d\n", ctx->w, ctx->h));
 
 		ctx->line_buffer_vf = (char *)gf_realloc(ctx->line_buffer_vf, ctx->dst_stride[0] );
+		if (!ctx->line_buffer_vf) { ctx->w = 0; return GF_OUT_OF_MEM; }
 		ctx->line_buffer_hf = (char *)gf_realloc(ctx->line_buffer_hf, ctx->src_stride[0] );
+		if (!ctx->line_buffer_hf) { ctx->w = 0; return GF_OUT_OF_MEM; }
 
 		ctx->packed_422 = GF_FALSE;
 		switch (pfmt) {

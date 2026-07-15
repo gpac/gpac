@@ -6400,9 +6400,12 @@ GF_Err colr_box_dump(GF_Box *a, FILE * trace)
 				gf_fprintf(trace, "<profile><![CDATA[");
 				size_64 = 2*ptr->opaque_size+3;
 				prof_data_64 = (u8 *)gf_malloc(size_64);
-				size_64 = gf_base64_encode(ptr->opaque, ptr->opaque_size, prof_data_64, size_64);
-				prof_data_64[size_64] = 0;
-				gf_fprintf(trace, "%s", prof_data_64);
+				if (prof_data_64) {
+					size_64 = gf_base64_encode(ptr->opaque, ptr->opaque_size, prof_data_64, size_64);
+					prof_data_64[size_64] = 0;
+					gf_fprintf(trace, "%s", prof_data_64);
+					gf_free(prof_data_64);
+				}
 				gf_fprintf(trace, "]]></profile>");
 			}
 			break;
@@ -7482,6 +7485,7 @@ GF_Err xtra_box_dump(GF_Box *a, FILE * trace)
 			u16 *src_str = (u16 *) tag->prop_value;
 			u32 len = UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(src_str);
 			char *utf8str = (char *)gf_malloc(len + 1);
+			if (!utf8str) return GF_OUT_OF_MEM;
 			u32 res_len = gf_utf8_wcstombs(utf8str, len, (const unsigned short **) &src_str);
 			if (res_len != GF_UTF8_FAIL) {
 				utf8str[res_len] = 0;

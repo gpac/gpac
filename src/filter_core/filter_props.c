@@ -103,8 +103,10 @@ static void parse_data_format(GF_PropertyValue *p, char list_sep_char, const cha
 	}
 	if (!strcmp(scode, "%s"))
 		is_string = GF_TRUE;
-	else
+	else {
 		p->value.data.ptr = (u8 *)gf_malloc(nb_items*size);
+		if (!p->value.data.ptr) return;
+	}
 
 	u32 res = 0;
 	if (is_string || p->value.data.ptr) {
@@ -129,9 +131,13 @@ static void parse_data_format(GF_PropertyValue *p, char list_sep_char, const cha
 				//copy also the trailing 0
 				u32 slen = 1 + (u32) strlen(v);
 				str_val = (char *)gf_realloc(str_val, str_val_len+slen);
-				memcpy(str_val+str_val_len, str_val, slen);
-				str_val_len += slen;
-				lres = 1;
+				if (str_val) {
+					memcpy(str_val+str_val_len, str_val, slen);
+					str_val_len += slen;
+					lres = 1;
+				} else {
+					lres = 0;
+				}
 			} else {
 				lres = sscanf(value, scode, &p->value.data.ptr[nb_items*size]);
 			}
@@ -539,6 +545,10 @@ GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const 
 			value += 2;
 			p.value.data.size = (u32) strlen(value) / 2;
 			p.value.data.ptr = (u8 *)gf_malloc(p.value.data.size);
+			if (!p.value.data.ptr) {
+				p.type=GF_PROP_FORBIDDEN;
+				break;
+			}
 			for (i=0; i<p.value.data.size; i++) {
 				char szV[3];
 				u32 res;
@@ -666,6 +676,10 @@ GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const 
 				len = (u32) (sep - v);
 
 			nv = (char *)gf_malloc(len+1);
+			if (!nv) {
+				if (!sep) break;
+				v = sep+1;
+			}
 			memcpy(nv, v, sizeof(char)*len);
 			nv[len] = 0;
 			if (!strnicmp(nv, "file@", 5) ) {
@@ -676,14 +690,22 @@ GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const 
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot load data from file %s\n", nv+5));
 				} else {
 					p.value.string_list.vals = (char **)gf_realloc(p.value.string_list.vals, sizeof(char *) * (p.value.string_list.nb_items+1));
-					p.value.string_list.vals[p.value.string_list.nb_items] = (char *)data;
-					p.value.string_list.nb_items++;
+					if (!p.value.string_list.vals) {
+						p.value.string_list.nb_items = 0;
+					} else {
+						p.value.string_list.vals[p.value.string_list.nb_items] = (char *)data;
+						p.value.string_list.nb_items++;
+					}
 				}
 				gf_free(nv);
 			} else {
 				p.value.string_list.vals = (char **)gf_realloc(p.value.string_list.vals, sizeof(char *) * (p.value.string_list.nb_items+1));
-				p.value.string_list.vals[p.value.string_list.nb_items] = nv;
-				p.value.string_list.nb_items++;
+				if (!p.value.string_list.vals) {
+					p.value.string_list.nb_items = 0;
+				} else {
+					p.value.string_list.vals[p.value.string_list.nb_items] = nv;
+					p.value.string_list.nb_items++;
+				}
 			}
 			if (!sep) break;
 			v = sep+1;
@@ -716,7 +738,11 @@ GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const 
 					val_uint = 0;
 				}
 				p.value.uint_list.vals = (u32 *)gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
-				p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
+				if (!p.value.uint_list.vals) {
+					p.value.uint_list.nb_items = 0;
+				} else {
+					p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
+				}
 			} else if (p.type == GF_PROP_4CC_LIST) {
 				u32 val_uint = gf_4cc_parse(szV);
 				if (!val_uint) {
@@ -724,7 +750,11 @@ GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const 
 					val_uint = 0;
 				}
 				p.value.uint_list.vals = (u32 *)gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
-				p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
+				if (!p.value.uint_list.vals) {
+					p.value.uint_list.nb_items = 0;
+				} else {
+					p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
+				}
 			} else if (p.type == GF_PROP_SINT_LIST) {
 				s32 val_int;
 				if (sscanf(szV, "%d", &val_int) != 1) {
@@ -732,7 +762,11 @@ GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const 
 					val_int = 0;
 				}
 				p.value.sint_list.vals = (s32 *)gf_realloc(p.value.sint_list.vals, (p.value.sint_list.nb_items+1) * sizeof(s32));
-				p.value.sint_list.vals[p.value.sint_list.nb_items] = val_int;
+				if (!p.value.sint_list.vals) {
+					p.value.sint_list.nb_items = 0;
+				} else {
+					p.value.sint_list.vals[p.value.sint_list.nb_items] = val_int;
+				}
 			} else {
 				s32 v1=0, v2=0;
 				if (sscanf(szV, "%dx%d", &v1, &v2) != 2) {
@@ -742,8 +776,12 @@ GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const 
 					v1 = v2 = 0;
 				}
 				p.value.v2i_list.vals = (GF_PropVec2i *)gf_realloc(p.value.v2i_list.vals, (p.value.v2i_list.nb_items+1) * sizeof(GF_PropVec2i));
-				p.value.v2i_list.vals[p.value.v2i_list.nb_items].x = v1;
-				p.value.v2i_list.vals[p.value.v2i_list.nb_items].y = v2;
+				if (!p.value.v2i_list.vals) {
+					p.value.v2i_list.nb_items = 0;
+				} else {
+					p.value.v2i_list.vals[p.value.v2i_list.nb_items].x = v1;
+					p.value.v2i_list.vals[p.value.v2i_list.nb_items].y = v2;
+				}
 			}
 			p.value.uint_list.nb_items++;
 			if (!sep) break;
@@ -1187,7 +1225,7 @@ static GF_Err gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyVal
 		else if (prop->prop.type == GF_PROP_SINT_LIST) it_size = sizeof(s32);
 		else if (prop->prop.type == GF_PROP_VEC2I_LIST) it_size = sizeof(GF_PropVec2i);
 		prop->prop.value.uint_list.vals = (u32 *)gf_malloc(it_size * value->value.uint_list.nb_items);
-		if (!value->value.uint_list.nb_items) return GF_OUT_OF_MEM;
+		if (!prop->prop.value.uint_list.vals) return GF_OUT_OF_MEM;
 		memcpy(prop->prop.value.uint_list.vals, value->value.uint_list.vals, it_size * value->value.uint_list.nb_items);
 		prop->prop.value.uint_list.nb_items = value->value.uint_list.nb_items;
 	}

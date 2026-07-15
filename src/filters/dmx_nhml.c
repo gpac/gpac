@@ -510,6 +510,11 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 	if (ctx->samp_buffer_alloc < ctx->samp_buffer_size+1) {
 		ctx->samp_buffer_alloc = ctx->samp_buffer_size+1;
 		ctx->samp_buffer = (u8 *)gf_realloc(ctx->samp_buffer, ctx->samp_buffer_alloc);
+		if (!ctx->samp_buffer) {
+			ctx->samp_buffer_alloc = 0;
+			e = GF_OUT_OF_MEM;
+			goto exit;
+		}
 	}
 	gf_fseek(xml, breaker.from_pos, SEEK_SET);
 	if (0 == gf_fread(ctx->samp_buffer, ctx->samp_buffer_size, xml)) {
@@ -553,6 +558,10 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, u32 compress_type, char *
 	if (ctx->zlib_buffer_alloc < size) {
 		ctx->zlib_buffer_alloc = size;
 		ctx->zlib_buffer = (char *)gf_realloc(ctx->zlib_buffer, size);
+		if (!ctx->zlib_buffer) {
+			ctx->zlib_buffer_alloc = 0;
+			return GF_OUT_OF_MEM;
+		}
 	}
 
 	stream.next_in = (Bytef*) ctx->samp_buffer + offset;
@@ -590,11 +599,16 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, u32 compress_type, char *
 	if (dict) {
 		if (*dict) gf_free(*dict);
 		*dict = (char*)gf_malloc(ctx->samp_buffer_size);
+		if (! *dict) return GF_OUT_OF_MEM;
 		memcpy(*dict, ctx->samp_buffer, ctx->samp_buffer_size);
 	}
 	if (!ctx->samp_buffer || ctx->samp_buffer_alloc < stream.total_out + MAX(1, offset)) {
 		ctx->samp_buffer_alloc = (u32) MAX( (stream.total_out*2) + 1, offset + stream.total_out ) ;
 		ctx->samp_buffer = (u8 *)gf_realloc(ctx->samp_buffer, ctx->samp_buffer_alloc);
+		if (!ctx->samp_buffer) {
+			ctx->samp_buffer_alloc = 0;
+			return GF_OUT_OF_MEM;
+		}
 	}
 
 	memcpy(ctx->samp_buffer + offset, ctx->zlib_buffer, sizeof(char)*stream.total_out);
@@ -854,6 +868,7 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 		/* for text based streams, the decoder specific info can be at the beginning of the file */
 		specInfoSize = ctx->header_end;
 		specInfo = (u8 *)gf_malloc(specInfoSize+1);
+		if (!specInfo) return GF_OUT_OF_MEM;
 		specInfoSize = (u32) gf_fread(specInfo, specInfoSize, ctx->mdia);
 		specInfo[specInfoSize] = 0;
 		ctx->header_end = specInfoSize;
@@ -1531,6 +1546,11 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			if (ctx->samp_buffer_alloc < ctx->samp_buffer_size+1) {
 				ctx->samp_buffer_alloc = ctx->samp_buffer_size+1;
 				ctx->samp_buffer = (u8 *)gf_realloc(ctx->samp_buffer, ctx->samp_buffer_alloc);
+				if (!ctx->samp_buffer) {
+					ctx->samp_buffer_alloc = 0;
+					gf_free(content);
+					return GF_OUT_OF_MEM;
+				}
 			}
 			nhml_get_bs(&ctx->bs_w, ctx->samp_buffer, ctx->samp_buffer_size, GF_BITSTREAM_WRITE);
 			gf_bs_write_u16(ctx->bs_w, ctx->samp_buffer_size - 2);
@@ -1548,6 +1568,10 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				if (len + 1 > ctx->samp_buffer_alloc) {
 					ctx->samp_buffer_alloc = len+1;
 					ctx->samp_buffer = (u8 *)gf_realloc(ctx->samp_buffer, ctx->samp_buffer_alloc);
+					if (!ctx->samp_buffer) {
+						ctx->samp_buffer_alloc = 0;
+						return GF_OUT_OF_MEM;
+					}
 				}
 				ctx->samp_buffer_size = gf_base64_decode((u8*)start, len, ctx->samp_buffer, ctx->samp_buffer_alloc);
 			}
@@ -1593,6 +1617,10 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 						if (ctx->samp_buffer_size + 4 > ctx->samp_buffer_alloc) {
 							ctx->samp_buffer_alloc = ctx->samp_buffer_size + 4;
 							ctx->samp_buffer = (u8 *)gf_realloc(ctx->samp_buffer, ctx->samp_buffer_alloc);
+							if (!ctx->samp_buffer) {
+								ctx->samp_buffer_alloc = 0;
+								return GF_OUT_OF_MEM;
+							}
 						}
 						nhml_get_bs(&ctx->bs_w, ctx->samp_buffer, ctx->samp_buffer_alloc, GF_BITSTREAM_WRITE);
 						gf_bs_write_u16(ctx->bs_w, ctx->samp_buffer_size+1);
@@ -1617,6 +1645,10 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 						if (ctx->samp_buffer_alloc < ctx->samp_buffer_size + 1) {
 							ctx->samp_buffer_alloc = ctx->samp_buffer_size + 1;
 							ctx->samp_buffer = (u8 *)gf_realloc(ctx->samp_buffer, ctx->samp_buffer_alloc);
+							if (!ctx->samp_buffer) {
+								ctx->samp_buffer_alloc = 0;
+								return GF_OUT_OF_MEM;
+							}
 						}
 						if (ctx->samp_buffer) {
 							read = (u32) gf_fread(ctx->samp_buffer, ctx->samp_buffer_size, f);
@@ -1658,6 +1690,11 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			if (ctx->samp_buffer_size + 1 > ctx->samp_buffer_alloc) {
 				ctx->samp_buffer_alloc = ctx->samp_buffer_size+1;
 				ctx->samp_buffer = (u8 *)gf_realloc(ctx->samp_buffer, ctx->samp_buffer_alloc);
+				if (!ctx->samp_buffer) {
+					ctx->samp_buffer_alloc = 0;
+					gf_free(output);
+					return GF_OUT_OF_MEM;
+				}
 			}
 			memcpy(ctx->samp_buffer, output, ctx->samp_buffer_size);
 			gf_free(output);

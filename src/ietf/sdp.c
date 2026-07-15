@@ -42,6 +42,7 @@ GF_EXPORT
 GF_SDP_FMTP *gf_sdp_fmtp_new()
 {
 	GF_SDP_FMTP *tmp = (GF_SDP_FMTP*)gf_malloc(sizeof(GF_SDP_FMTP));
+	if (!tmp) return NULL;
 	tmp->PayloadType = 0;
 	tmp->Attributes = gf_list_new();
 	return tmp;
@@ -195,6 +196,7 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 		GF_RTPMap *map;
 		if (!media) return;
 		map = (GF_RTPMap*)gf_malloc(sizeof(GF_RTPMap));
+		if (!map) return;
 		pos = gf_token_get(buffer, pos, ": \r\n", comp, SDP_MAX_LINE);
 		map->PayloadType = atoi(comp);
 		pos = gf_token_get(buffer, pos, " /\r\n", comp, SDP_MAX_LINE);
@@ -222,6 +224,7 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 			pos = gf_token_get(buffer, pos, "; =\r\n", comp, SDP_MAX_LINE);
 			if (pos <= 0) break;
 			att = (GF_X_Attribute*)gf_malloc(sizeof(GF_X_Attribute));
+			if (!att) break;
 			att->Name = gf_strdup(comp);
 			att->Value = NULL;
 			pos ++;
@@ -237,6 +240,7 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	//we add <attribute> <value> in case ...
 	pos = gf_token_get(buffer, 0, " :\r\n", comp, SDP_MAX_LINE);
 	att = (GF_X_Attribute*)gf_malloc(sizeof(GF_X_Attribute));
+	if (!att) return;
 	att->Name = gf_strdup(comp);
 	att->Value = NULL;
 
@@ -867,6 +871,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 	if (strlen(str)+pos + (space ? 1 : 0) >= buf_size) {	\
 		buf_size += SDP_WRITE_STEPALLOC;	\
 		buf = (char *)gf_realloc(buf, buf_size); \
+		if (!buf) return GF_OUT_OF_MEM; \
 	}	\
 	gf_strcpy(buf+pos, str);		\
 	pos += (u32) strlen(str);		\
@@ -936,6 +941,7 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 	if (e) return e;
 
 	buf = (char *)gf_malloc(SDP_WRITE_STEPALLOC);
+	if (!buf) return GF_OUT_OF_MEM;
 	buf_size = SDP_WRITE_STEPALLOC;
 	pos = 0;
 
@@ -1205,12 +1211,11 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 		}
 	}
 
-(u8 *)//finally gf_realloc
 	//finall NULL char
 	pos += 1;
 	buf = (char *)gf_realloc(buf, pos);
 	*out_str_buf = buf;
-	return GF_OK;
+	return buf ? GF_OK : GF_OUT_OF_MEM;
 }
 #endif
 

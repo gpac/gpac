@@ -80,6 +80,7 @@ GF_EXPORT
 GF_M2TS_DSMCC_OVERLORD* gf_m2ts_init_dsmcc_overlord(u32 service_id) {
 	GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord;
 	GF_SAFEALLOC(dsmcc_overlord,GF_M2TS_DSMCC_OVERLORD);
+	if (!dsmcc_overlord) return NULL;
 	dsmcc_overlord->dsmcc_modules = gf_list_new();
 	dsmcc_overlord->service_id = service_id;
 	return dsmcc_overlord;
@@ -122,6 +123,7 @@ void on_dsmcc_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		u32_data_size = pck->data_len;
 		u32_table_id = data[0];
 		GF_SAFEALLOC(dsmcc,GF_M2TS_DSMCC_SECTION);
+		if (!dsmcc) return;
 
 		e = gf_m2ts_process_dsmcc(dsmcc_overlord,dsmcc,data,u32_data_size,u32_table_id);
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_DSMCC_FOUND, pck);
@@ -229,6 +231,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 {
 	GF_M2TS_DSMCC_DOWNLOAD_DATA_MESSAGE* DataMessage;
 	GF_SAFEALLOC(DataMessage,GF_M2TS_DSMCC_DOWNLOAD_DATA_MESSAGE);
+	if (!DataMessage) return GF_OUT_OF_MEM;
 
 	/* Header */
 	gf_m2ts_dsmcc_process_message_header(&DataMessage->DownloadDataHeader,data,bs,data_shift,1);
@@ -240,6 +243,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 	{
 		GF_M2TS_DSMCC_DOWNLOAD_INFO_REQUEST*  DownloadInfoRequest;
 		GF_SAFEALLOC(DownloadInfoRequest,GF_M2TS_DSMCC_DOWNLOAD_INFO_REQUEST);
+		if (!DownloadInfoRequest) return GF_OUT_OF_MEM;
 		DataMessage->dataMessagePayload = DownloadInfoRequest;
 
 		/* Payload */
@@ -248,6 +252,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 		gf_m2ts_dsmcc_process_compatibility_descriptor(&DownloadInfoRequest->CompatibilityDescr,data,bs,data_shift);
 		DownloadInfoRequest->privateDataLength = gf_bs_read_int(bs,16);
 		DownloadInfoRequest->privateDataByte = (char*)gf_calloc(DownloadInfoRequest->privateDataLength,1);
+		if (!DownloadInfoRequest->privateDataByte) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, (u8 *)DownloadInfoRequest->privateDataByte,(u32)(DownloadInfoRequest->privateDataLength));
 		break;
 	}
@@ -256,6 +261,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 		u32 i,nb_modules;
 		GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC* DownloadInfoIndication;
 		GF_SAFEALLOC(DownloadInfoIndication,GF_M2TS_DSMCC_DOWNLOAD_INFO_RESP_INDIC);
+		if (!DownloadInfoIndication) return GF_OUT_OF_MEM;
 		DataMessage->dataMessagePayload = DownloadInfoIndication;
 
 		/* Payload */
@@ -279,6 +285,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 				DownloadInfoIndication->Modules.moduleVersion = gf_bs_read_int(bs,8);
 				DownloadInfoIndication->Modules.moduleInfoLength = gf_bs_read_int(bs,8);
 				DownloadInfoIndication->Modules.moduleInfoByte = (char*)gf_calloc(DownloadInfoIndication->Modules.moduleInfoLength,1);
+				if (!DownloadInfoIndication->Modules.moduleInfoByte) break;
 				gf_bs_read_data(bs,DownloadInfoIndication->Modules.moduleInfoByte,(u32)(DownloadInfoIndication->Modules.moduleInfoLength));
 				if(!dsmcc_create_module_validation(&DownloadInfoIndication->Modules,DownloadInfoIndication->downloadId,dsmcc_overlord,nb_modules)) {
 					/* Creation of the module */
@@ -299,6 +306,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 			}
 			DownloadInfoIndication->privateDataLength = gf_bs_read_int(bs,16);
 			DownloadInfoIndication->privateDataByte = (char*)gf_calloc(DownloadInfoIndication->privateDataLength,1);
+			if (!DownloadInfoIndication->privateDataByte) return GF_OUT_OF_MEM;
 			gf_bs_read_data(bs, (u8 *)DownloadInfoIndication->privateDataByte,(u32)(DownloadInfoIndication->privateDataLength));
 		}
 		break;
@@ -308,6 +316,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 		u32 modules_count, i;
 		GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock;
 		GF_SAFEALLOC(DownloadDataBlock,GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK);
+		if (!DownloadDataBlock) return GF_OUT_OF_MEM;
 		DataMessage->dataMessagePayload = DownloadDataBlock;
 		modules_count = gf_list_count(dsmcc_overlord->dsmcc_modules);
 
@@ -338,6 +347,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 					return GF_CORRUPTED_DATA;
 				}
 				DownloadDataBlock->blockDataByte = (char*)gf_calloc(DownloadDataBlock->dataBlocksize,1);
+				if (!DownloadDataBlock->blockDataByte) return GF_OUT_OF_MEM;
 				*data_shift = (u32)(gf_bs_get_position(bs));
 				gf_bs_read_data(bs, (u8 *)DownloadDataBlock->blockDataByte,DownloadDataBlock->dataBlocksize);
 				memcpy(dsmcc_module->buffer+dsmcc_module->byte_sift,DownloadDataBlock->blockDataByte,DownloadDataBlock->dataBlocksize*sizeof(char));
@@ -357,6 +367,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 	{
 		GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE* DownloadDataRequest;
 		GF_SAFEALLOC(DownloadDataRequest,GF_M2TS_DSMCC_DOWNLOAD_DATA_REQUEST_MESSAGE);
+		if (!DownloadDataRequest) return GF_OUT_OF_MEM;
 		DataMessage->dataMessagePayload = DownloadDataRequest;
 		DownloadDataRequest->moduleId = gf_bs_read_int(bs,16);
 		DownloadDataRequest->blockNumber = gf_bs_read_int(bs,16);
@@ -368,6 +379,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 	{
 		GF_M2TS_DSMCC_DOWNLOAD_CANCEL* DownloadCancel;
 		GF_SAFEALLOC(DownloadCancel,GF_M2TS_DSMCC_DOWNLOAD_CANCEL);
+		if (!DownloadCancel) return GF_OUT_OF_MEM;
 		DataMessage->dataMessagePayload = DownloadCancel;
 		DownloadCancel->downloadId = gf_bs_read_int(bs,32);
 		DownloadCancel->moduleId = gf_bs_read_int(bs,16);
@@ -387,6 +399,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 		GF_Err e;
 		GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT* DownloadServerInit;
 		GF_SAFEALLOC(DownloadServerInit,GF_M2TS_DSMCC_DOWNLOAD_SERVER_INIT);
+		if (!DownloadServerInit) return GF_OUT_OF_MEM;
 		DataMessage->dataMessagePayload = DownloadServerInit;
 		gf_bs_read_data(bs,DownloadServerInit->serverId,20);
 		gf_m2ts_dsmcc_process_compatibility_descriptor(&DownloadServerInit->CompatibilityDescr,data,bs,data_shift);
@@ -397,6 +410,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 
 			GF_M2TS_DSMCC_SERVICE_GATEWAY_INFO* ServiceGateWayInfo;
 			GF_SAFEALLOC(ServiceGateWayInfo,GF_M2TS_DSMCC_SERVICE_GATEWAY_INFO);
+			if (!ServiceGateWayInfo) return GF_OUT_OF_MEM;
 
 			/* IOR */
 			e = dsmcc_biop_get_ior(bs,&ServiceGateWayInfo->IOR);
@@ -407,6 +421,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 			}
 			ServiceGateWayInfo->downloadTaps_count = gf_bs_read_int(bs,8);
 			ServiceGateWayInfo->Taps = (GF_M2TS_DSMCC_BIOP_TAPS*)gf_calloc(ServiceGateWayInfo->downloadTaps_count,sizeof(GF_M2TS_DSMCC_BIOP_TAPS));
+			if (!ServiceGateWayInfo->Taps) return GF_OUT_OF_MEM;
 			for(i=0; i<ServiceGateWayInfo->downloadTaps_count; i++) {
 				ServiceGateWayInfo->Taps[i].id = gf_bs_read_int(bs,16);
 				ServiceGateWayInfo->Taps[i].use = gf_bs_read_int(bs,16);
@@ -418,6 +433,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 			}
 			ServiceGateWayInfo->serviceContextList_count = gf_bs_read_int(bs,8);
 			ServiceGateWayInfo->ServiceContext = (GF_M2TS_DSMCC_SERVICE_CONTEXT*)gf_calloc(ServiceGateWayInfo->serviceContextList_count,sizeof(GF_M2TS_DSMCC_SERVICE_CONTEXT));
+			if (!ServiceGateWayInfo->ServiceContext) return GF_OUT_OF_MEM;
 			dsmcc_biop_get_context(bs,ServiceGateWayInfo->ServiceContext,ServiceGateWayInfo->serviceContextList_count);
 			ServiceGateWayInfo->userInfoLength = gf_bs_read_int(bs,16);
 			if(ServiceGateWayInfo->userInfoLength != 0) {
@@ -428,6 +444,7 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 			if(!dsmcc_overlord->ServiceGateway && gf_list_count(ServiceGateWayInfo->IOR.taggedProfile)) {
 				GF_M2TS_DSMCC_BIOP_TAGGED_PROFILE* taggedProfile = (GF_M2TS_DSMCC_BIOP_TAGGED_PROFILE*)gf_list_get(ServiceGateWayInfo->IOR.taggedProfile,0);
 				dsmcc_overlord->ServiceGateway = (GF_M2TS_DSMCC_SERVICE_GATEWAY*)gf_calloc(1,sizeof(GF_M2TS_DSMCC_SERVICE_GATEWAY));
+				if (!dsmcc_overlord->ServiceGateway) return GF_OUT_OF_MEM;
 				dsmcc_overlord->ServiceGateway->downloadId = taggedProfile->BIOPProfileBody->ObjectLocation.carouselId;
 				dsmcc_overlord->ServiceGateway->moduleId = taggedProfile->BIOPProfileBody->ObjectLocation.moduleId;
 				dsmcc_overlord->ServiceGateway->service_id = dsmcc_overlord->service_id;
@@ -487,6 +504,7 @@ static GF_Err gf_m2ts_dsmcc_process_message_header(GF_M2TS_DSMCC_MESSAGE_DATA_HE
 		MessageHeader->DsmccAdaptationHeader->adaptationType = gf_bs_read_int(bs,8);
 
 		MessageHeader->DsmccAdaptationHeader->adaptationDataByte = (char*)gf_calloc(MessageHeader->adaptationLength,1);
+		if (!MessageHeader->DsmccAdaptationHeader->adaptationDataByte) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs,MessageHeader->DsmccAdaptationHeader->adaptationDataByte,(u32)(MessageHeader->adaptationLength));
 
 	}
@@ -624,7 +642,6 @@ static GF_Err dsmcc_module_complete(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Buffer size is not equal to the module size. Flushing the data \n"));
 					gf_free(dsmcc_module->buffer);
 					dsmcc_module->buffer = NULL;
-					dsmcc_module->buffer = (char*)gf_calloc(dsmcc_module->size,1);
 					dsmcc_module->section_number = 0;
 					return GF_CORRUPTED_DATA;
 				}
@@ -635,7 +652,6 @@ static GF_Err dsmcc_module_complete(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error during the processing of the module data. Flushing the data \n"));
 				gf_free(dsmcc_module->buffer);
 				dsmcc_module->buffer = NULL;
-				dsmcc_module->buffer = (char*)gf_calloc(dsmcc_module->size,1);
 				dsmcc_module->section_number = 0;
 				return GF_CORRUPTED_DATA;
 			} else {
@@ -780,6 +796,7 @@ static GF_Err dsmcc_get_biop_module_info(GF_M2TS_DSMCC_MODULE* dsmcc_module,char
 
 	bs = gf_bs_new(data,data_size,GF_BITSTREAM_READ);
 	GF_SAFEALLOC(BIOP_ModuleInfo,GF_M2TS_DSMCC_BIOP_MODULE_INFO);
+	if (!BIOP_ModuleInfo) return GF_OUT_OF_MEM;
 	BIOP_ModuleInfo->descriptor = gf_list_new();
 
 	BIOP_ModuleInfo->moduleTimeOut = gf_bs_read_int(bs,32);
@@ -794,6 +811,7 @@ static GF_Err dsmcc_get_biop_module_info(GF_M2TS_DSMCC_MODULE* dsmcc_module,char
 	}
 
 	BIOP_ModuleInfo->Taps = (GF_M2TS_DSMCC_BIOP_TAPS*)gf_calloc(BIOP_ModuleInfo->taps_count,sizeof(GF_M2TS_DSMCC_BIOP_TAPS));
+	if (!BIOP_ModuleInfo->Taps) return GF_OUT_OF_MEM;
 	for(i = 0; i < BIOP_ModuleInfo->taps_count; i++) {
 		BIOP_ModuleInfo->Taps[i].id = gf_bs_read_int(bs,16);
 		BIOP_ModuleInfo->Taps[i].use = gf_bs_read_int(bs,16);
@@ -929,6 +947,7 @@ static GF_M2TS_DSMCC_BIOP_HEADER* dsmcc_process_biop_header(GF_BitStream* bs) {
 
 	GF_M2TS_DSMCC_BIOP_HEADER* BIOP_Header;
 	GF_SAFEALLOC(BIOP_Header,GF_M2TS_DSMCC_BIOP_HEADER);
+	if (!BIOP_Header) return NULL;
 
 	BIOP_Header->magic = gf_bs_read_int(bs,32);
 	if(BIOP_Header->magic != 0x42494F50) {
@@ -962,7 +981,7 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 	GF_M2TS_DSMCC_FILE* File;
 
 	GF_SAFEALLOC(BIOP_File,GF_M2TS_DSMCC_BIOP_FILE);
-
+	if (!BIOP_File) return GF_OUT_OF_MEM;
 	ServiceGateway = dsmcc_overlord->ServiceGateway;
 
 	BIOP_File->Header = BIOP_Header;
@@ -1041,7 +1060,7 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 	GF_M2TS_DSMCC_SERVICE_GATEWAY* ServiceGateway;
 
 	GF_SAFEALLOC(BIOP_Directory,GF_M2TS_DSMCC_BIOP_DIRECTORY);
-
+	if (!BIOP_Directory) return GF_OUT_OF_MEM;
 	ServiceGateway = dsmcc_overlord->ServiceGateway;
 
 	/* Get the Header */
@@ -1071,6 +1090,7 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 	BIOP_Directory->messageBody_length = gf_bs_read_int(bs,32);
 	BIOP_Directory->bindings_count = gf_bs_read_int(bs,16);
 	BIOP_Directory->Name = (GF_M2TS_DSMCC_BIOP_NAME*)gf_calloc(BIOP_Directory->bindings_count,sizeof(GF_M2TS_DSMCC_BIOP_NAME));
+	if (!BIOP_Directory->Name) return GF_OUT_OF_MEM;
 
 	/* Get the linked files */
 	for(i = 0; i<BIOP_Directory->bindings_count; i++) {
@@ -1081,6 +1101,7 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 		BIOP_Directory->Name[i].id_length = gf_bs_read_int(bs,8);
 		if(BIOP_Directory->Name[i].id_length) {
 			BIOP_Directory->Name[i].id_data = (char*)gf_calloc(BIOP_Directory->Name[i].id_length,1);
+			if (!BIOP_Directory->Name[i].id_data) return GF_OUT_OF_MEM;
 			gf_bs_read_data(bs,BIOP_Directory->Name[i].id_data,(u32)(BIOP_Directory->Name[i].id_length));
 		}
 		BIOP_Directory->Name[i].kind_length = gf_bs_read_int(bs,8);
@@ -1142,6 +1163,7 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 				GF_M2TS_DSMCC_DIR* Directory;
 				GF_M2TS_DSMCC_BIOP_TAGGED_PROFILE* taggedProfile = (GF_M2TS_DSMCC_BIOP_TAGGED_PROFILE*)gf_list_get(BIOP_Directory->Name[i].IOR.taggedProfile,0);
 				GF_SAFEALLOC(Directory,GF_M2TS_DSMCC_DIR);
+				if (!Directory) return GF_OUT_OF_MEM;
 				Directory->name = (char*)gf_strdup(BIOP_Directory->Name[i].id_data);
 				Directory->File = gf_list_new();
 				Directory->objectKey_data = taggedProfile->BIOPProfileBody->ObjectLocation.objectKey_data;
@@ -1160,6 +1182,7 @@ static GF_Err dsmcc_process_biop_directory(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_H
 				GF_M2TS_DSMCC_FILE* File;
 				GF_M2TS_DSMCC_BIOP_TAGGED_PROFILE* taggedProfile = (GF_M2TS_DSMCC_BIOP_TAGGED_PROFILE*)gf_list_get(BIOP_Directory->Name[i].IOR.taggedProfile,0);
 				GF_SAFEALLOC(File,GF_M2TS_DSMCC_FILE);
+				if (!File) return GF_OUT_OF_MEM;
 				File->name = (char*)gf_strdup(BIOP_Directory->Name[i].id_data);
 				File->objectKey_data = taggedProfile->BIOPProfileBody->ObjectLocation.objectKey_data;
 				File->downloadId = taggedProfile->BIOPProfileBody->ObjectLocation.carouselId;
@@ -1182,7 +1205,7 @@ static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIO
 	//GF_M2TS_DSMCC_FILE* File;
 
 	GF_SAFEALLOC(BIOP_StreamEvent,GF_M2TS_DSMCC_BIOP_STREAM_EVENT);
-
+	if (!BIOP_StreamEvent) return GF_OUT_OF_MEM;
 	BIOP_StreamEvent->Header = BIOP_Header;
 	/* Get Info */
 	BIOP_StreamEvent->Info.aDescription_length = gf_bs_read_int(bs,8);
@@ -1218,6 +1241,8 @@ static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIO
 	BIOP_StreamEvent->messageBody_length = gf_bs_read_int(bs,32);
 	BIOP_StreamEvent->taps_count = gf_bs_read_int(bs,8);
 	BIOP_StreamEvent->Taps = (GF_M2TS_DSMCC_BIOP_TAPS*)gf_calloc(BIOP_StreamEvent->taps_count,sizeof(GF_M2TS_DSMCC_BIOP_TAPS));
+	if (!BIOP_StreamEvent->Taps) return GF_OUT_OF_MEM;
+
 	for (i=0; i<BIOP_StreamEvent->taps_count; i++) {
 		BIOP_StreamEvent->Taps[i].id = gf_bs_read_int(bs,16);
 		BIOP_StreamEvent->Taps[i].use = gf_bs_read_int(bs,16);
@@ -1250,7 +1275,7 @@ static GF_Err dsmcc_process_biop_stream_message(GF_BitStream* bs,GF_M2TS_DSMCC_B
 	GF_M2TS_DSMCC_BIOP_STREAM_MESSAGE* BIOP_StreamMessage;
 
 	GF_SAFEALLOC(BIOP_StreamMessage,GF_M2TS_DSMCC_BIOP_STREAM_MESSAGE);
-
+	if (!BIOP_StreamMessage) return GF_OUT_OF_MEM;
 	BIOP_StreamMessage->Header = BIOP_Header;
 	/* Get Info */
 	BIOP_StreamMessage->Info.aDescription_length = gf_bs_read_int(bs,8);
@@ -1273,6 +1298,7 @@ static GF_Err dsmcc_process_biop_stream_message(GF_BitStream* bs,GF_M2TS_DSMCC_B
 	BIOP_StreamMessage->messageBody_length = gf_bs_read_int(bs,32);
 	BIOP_StreamMessage->taps_count = gf_bs_read_int(bs,8);
 	BIOP_StreamMessage->Taps = (GF_M2TS_DSMCC_BIOP_TAPS*)gf_calloc(BIOP_StreamMessage->taps_count,sizeof(GF_M2TS_DSMCC_BIOP_TAPS));
+	if (!BIOP_StreamMessage->Taps) return GF_OUT_OF_MEM;
 	for(i=0; i<BIOP_StreamMessage->taps_count; i++) {
 		BIOP_StreamMessage->Taps[i].id = gf_bs_read_int(bs,16);
 		BIOP_StreamMessage->Taps[i].use = gf_bs_read_int(bs,16);
@@ -1297,12 +1323,17 @@ static GF_M2TS_DSMCC_MODULE* dsmcc_create_module(GF_M2TS_DSMCC_OVERLORD* dsmcc_o
 	u32 module_index;
 	GF_M2TS_DSMCC_MODULE* dsmcc_module;
 	GF_SAFEALLOC(dsmcc_module,GF_M2TS_DSMCC_MODULE);
+	if (!dsmcc_module) return NULL;
 	dsmcc_module->downloadId = DownloadInfoIndication->downloadId;
 	dsmcc_module->moduleId = DownloadInfoIndication->Modules.moduleId;
 	dsmcc_module->size = DownloadInfoIndication->Modules.moduleSize;
 	dsmcc_module->version_number = DownloadInfoIndication->Modules.moduleVersion;
 	dsmcc_module->block_size = DownloadInfoIndication->blockSize;
 	dsmcc_module->buffer = (char*)gf_calloc(dsmcc_module->size,1);
+	if (!dsmcc_module->buffer) {
+		gf_free(dsmcc_module);
+		return NULL;
+	}
 	module_index = gf_list_count(dsmcc_overlord->dsmcc_modules);
 	dsmcc_overlord->processed[module_index].moduleId = dsmcc_module->moduleId;
 	dsmcc_overlord->processed[module_index].downloadId = dsmcc_module->downloadId;
@@ -1328,6 +1359,7 @@ static void dsmcc_biop_descriptor(GF_BitStream* bs,GF_List* list,u32 size) {
 		{
 			GF_M2TS_DSMCC_BIOP_CACHING_PRIORITY_DESCRIPTOR* CachingPriorityDescr;
 			GF_SAFEALLOC(CachingPriorityDescr,GF_M2TS_DSMCC_BIOP_CACHING_PRIORITY_DESCRIPTOR);
+			if (!CachingPriorityDescr) return GF_OUT_OF_MEM;
 			CachingPriorityDescr->descriptor_tag = descr_tag;
 			CachingPriorityDescr->descriptor_length = gf_bs_read_int(bs,8);
 			CachingPriorityDescr->priority_value = gf_bs_read_int(bs,8);
@@ -1339,6 +1371,7 @@ static void dsmcc_biop_descriptor(GF_BitStream* bs,GF_List* list,u32 size) {
 		{
 			GF_M2TS_DSMCC_BIOP_COMPRESSED_MODULE_DESCRIPTOR* CompModuleDescr;
 			GF_SAFEALLOC(CompModuleDescr,GF_M2TS_DSMCC_BIOP_COMPRESSED_MODULE_DESCRIPTOR);
+			if (!CompModuleDescr) return GF_OUT_OF_MEM;
 			CompModuleDescr->descriptor_tag = descr_tag;
 			CompModuleDescr->descriptor_length = gf_bs_read_int(bs,8);
 			CompModuleDescr->compression_method = gf_bs_read_int(bs,8);
@@ -1352,10 +1385,12 @@ static void dsmcc_biop_descriptor(GF_BitStream* bs,GF_List* list,u32 size) {
 		{
 			GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR* ContentTypeDescr;
 			GF_SAFEALLOC(ContentTypeDescr,GF_M2TS_DSMCC_BIOP_CONTENT_TYPE_DESRIPTOR);
+			if (!ContentTypeDescr) return GF_OUT_OF_MEM;
 			ContentTypeDescr->descriptor_tag = descr_tag;
 			ContentTypeDescr->descriptor_length = gf_bs_read_int(bs,8);
 			ContentTypeDescr->content_type_data_byte = (char*)gf_calloc(ContentTypeDescr->descriptor_length,1);
-			gf_bs_read_data(bs, (u8 *)ContentTypeDescr->content_type_data_byte,(u32)(ContentTypeDescr->descriptor_length));
+			if (ContentTypeDescr->content_type_data_byte)
+				gf_bs_read_data(bs, (u8 *)ContentTypeDescr->content_type_data_byte,(u32)(ContentTypeDescr->descriptor_length));
 			gf_list_add(list,ContentTypeDescr);
 		}
 		default:
@@ -1401,6 +1436,7 @@ static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR)
 	for(i = 0; i < IOR->taggedProfiles_count; i++) {
 		GF_M2TS_DSMCC_BIOP_TAGGED_PROFILE* taggedProfile;
 		GF_SAFEALLOC(taggedProfile,GF_M2TS_DSMCC_BIOP_TAGGED_PROFILE);
+		if (!taggedProfile) return GF_OUT_OF_MEM;
 		gf_list_add(IOR->taggedProfile,taggedProfile);
 		taggedProfile->profileId_tag = gf_bs_read_int(bs,32);
 		taggedProfile->profile_data_length = gf_bs_read_int(bs,32);
@@ -1416,6 +1452,7 @@ static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR)
 		{
 			/* Object Location */
 			GF_SAFEALLOC(taggedProfile->BIOPProfileBody,GF_M2TS_DSMCC_BIOP_PROFILE_BODY);
+			if (!taggedProfile->BIOPProfileBody) return GF_OUT_OF_MEM;
 			taggedProfile->BIOPProfileBody->ObjectLocation.componentId_tag = gf_bs_read_int(bs,32);
 			if(taggedProfile->BIOPProfileBody->ObjectLocation.componentId_tag != 0x49534F50) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error in Profile Body : component tag has a wrong value, abording the processing \n"));
@@ -1448,6 +1485,7 @@ static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR)
 			taggedProfile->BIOPProfileBody->ConnBinder.component_data_length = gf_bs_read_int(bs,8);
 			taggedProfile->BIOPProfileBody->ConnBinder.taps_count = gf_bs_read_int(bs,8);
 			taggedProfile->BIOPProfileBody->ConnBinder.Taps = (GF_M2TS_DSMCC_BIOP_TAPS*)gf_calloc(taggedProfile->BIOPProfileBody->ConnBinder.taps_count,sizeof(GF_M2TS_DSMCC_BIOP_TAPS));
+			if (!taggedProfile->BIOPProfileBody->ConnBinder.Taps) return GF_OUT_OF_MEM;
 			for(j=0; j<taggedProfile->BIOPProfileBody->ConnBinder.taps_count; j++) {
 				taggedProfile->BIOPProfileBody->ConnBinder.Taps[i].id = gf_bs_read_int(bs,16);
 				if(taggedProfile->BIOPProfileBody->ConnBinder.Taps[i].id != 0x00) {
@@ -1484,6 +1522,7 @@ static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR)
 		{
 			/* Service Location */
 			GF_SAFEALLOC(taggedProfile->ServiceLocation,GF_M2TS_DSMCC_BIOP_SERVICE_LOCATION);
+			if (!taggedProfile->ServiceLocation) return GF_OUT_OF_MEM;
 			taggedProfile->ServiceLocation->componentId_tag = gf_bs_read_int(bs,32);
 			if(taggedProfile->ServiceLocation->componentId_tag != 0x49534F46) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error in Service Location : component tag has a wrong value, abording the processing \n"));
@@ -1510,6 +1549,7 @@ static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR)
 			}
 			taggedProfile->ServiceLocation->nameComponents_count = gf_bs_read_int(bs,32);
 			taggedProfile->ServiceLocation->NameComponent = (GF_M2TS_DSMCC_BIOP_NAME_COMPONENT*)gf_calloc(taggedProfile->ServiceLocation->nameComponents_count,sizeof(GF_M2TS_DSMCC_BIOP_NAME_COMPONENT));
+			if (!taggedProfile->ServiceLocation->NameComponent) return GF_OUT_OF_MEM;
 			for(j = 0; j < taggedProfile->ServiceLocation->nameComponents_count; j++) {
 				taggedProfile->ServiceLocation->NameComponent[j].id_length = gf_bs_read_int(bs,32);
 				if(taggedProfile->ServiceLocation->NameComponent[j].id_length != 0) {
@@ -1537,6 +1577,7 @@ static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR)
 		}
 		}
 		taggedProfile->LiteComponent = (GF_M2TS_DSMCC_BIOP_LITE_COMPONENT*)gf_calloc(left_lite_component,sizeof(GF_M2TS_DSMCC_BIOP_LITE_COMPONENT));
+		if (!taggedProfile->LiteComponent) return GF_OUT_OF_MEM;
 		for(j = 0; j<left_lite_component ; j++) {
 			taggedProfile->LiteComponent[j].componentId_tag = gf_bs_read_int(bs,32);
 			taggedProfile->LiteComponent[j].component_data_length = gf_bs_read_int(bs,8);
@@ -1607,6 +1648,7 @@ static char* dsmcc_get_file_namepath(GF_M2TS_DSMCC_DIR* Dir,char* name) {
 	GF_M2TS_DSMCC_DIR* directory = Dir;
 
 	Path = gf_calloc(512,sizeof(char));
+	if (!Path) return NULL;
 	sprintf(Path,"%s%c%s",directory->name,GF_PATH_SEPARATOR,name);
 	while(directory->parent != NULL) {
 		GF_M2TS_DSMCC_DIR* tempdir;
@@ -1812,7 +1854,7 @@ static void dsmcc_free_biop_ior(GF_M2TS_DSMCC_IOR* IOR)
 		{
 			/* Object Location */
 			GF_SAFEALLOC(taggedProfile->BIOPProfileBody,GF_M2TS_DSMCC_BIOP_PROFILE_BODY);
-
+			if (!taggedProfile->BIOPProfileBody) return GF_OUT_OF_MEM;
 			gf_free(taggedProfile->BIOPProfileBody->ConnBinder.Taps);
 			if(taggedProfile->BIOPProfileBody->ConnBinder.component_data_length-18 != 0) {
 				gf_free(taggedProfile->BIOPProfileBody->ConnBinder.additional_tap_byte);

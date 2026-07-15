@@ -309,7 +309,7 @@ static void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
 
 //for now we only use regular sample to group internally (except when dumping), not the pattern version
 //we unrill the pattern and replace the compact version with a regular one
-static void convert_compact_sample_groups(u32 all_samples, GF_List *child_boxes, GF_List *sampleGroups)
+static GF_Err convert_compact_sample_groups(u32 all_samples, GF_List *child_boxes, GF_List *sampleGroups)
 {
 	u32 i;
 	for (i=0; i<gf_list_count(sampleGroups); i++) {
@@ -363,6 +363,7 @@ static void convert_compact_sample_groups(u32 all_samples, GF_List *child_boxes,
 					nb_same_index++;
 				}
 				sbgp->sample_entries = (GF_SampleGroupEntry *)gf_realloc(sbgp->sample_entries, sizeof(GF_SampleGroupEntry) * (sbgp->entry_count+1));
+				if (!sbgp->sample_entries) return GF_OUT_OF_MEM;
 				if (nb_same_index>nb_samples)
 					nb_same_index = nb_samples;
 
@@ -377,6 +378,7 @@ static void convert_compact_sample_groups(u32 all_samples, GF_List *child_boxes,
 		}
 		gf_isom_box_del((GF_Box*)csgp);
 	}
+	return GF_OK;
 }
 
 static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)

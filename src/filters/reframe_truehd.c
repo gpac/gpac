@@ -339,6 +339,10 @@ static void truehd_check_dur(GF_Filter *filter, GF_TrueHDDmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (TrueHDIdx *)gf_realloc(ctx->indexes, sizeof(TrueHDIdx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = ctx->index_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = gf_bs_get_position(bs);
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= sr;
@@ -588,7 +592,7 @@ restart:
 		if (ctx->truehd_buffer_size + pck_size > ctx->truehd_buffer_alloc) {
 			ctx->truehd_buffer_alloc = ctx->truehd_buffer_size + pck_size;
 			ctx->truehd_buffer = (u8 *)gf_realloc(ctx->truehd_buffer, ctx->truehd_buffer_alloc);
-			if (!ctx->truehd_buffer) return GF_OUT_OF_MEM;
+			if (!ctx->truehd_buffer) { ctx->truehd_buffer_alloc = 0; return GF_OUT_OF_MEM; }
 		}
 		memcpy(ctx->truehd_buffer + ctx->truehd_buffer_size, data, pck_size);
 		ctx->truehd_buffer_size += pck_size;

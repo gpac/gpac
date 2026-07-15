@@ -410,6 +410,7 @@ GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg)
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
 	len = gf_bs_read_int(bs, 8);
 	cfg->deviceName = (char*)gf_malloc(len+1);
+	if (!cfg->deviceName) return GF_OUT_OF_MEM;
 	for (i=0; i<len; i++) cfg->deviceName[i] = gf_bs_read_int(bs, 8);
 	cfg->deviceName[i] = 0;
 
@@ -731,11 +732,20 @@ GF_TextSampleDescriptor *gf_odf_tx3g_read(u8 *dsi, u32 dsi_size)
 	gpp_read_style(bs, &txtc->default_style);
 	txtc->font_count = gf_bs_read_u16(bs);
 	txtc->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord)*txtc->font_count);
+	if (!txtc->fonts) {
+		gf_odf_desc_del((GF_Descriptor *)txtc);
+		gf_bs_del(bs);
+		return NULL;
+	}
 	for (i=0; i<txtc->font_count; i++) {
 		u8 len;
 		txtc->fonts[i].fontID = gf_bs_read_u16(bs);
 		len = gf_bs_read_u8(bs);
 		txtc->fonts[i].fontName = (char*)gf_malloc(len+1);
+		if (!txtc->fonts[i].fontName) {
+			txtc->font_count = i+1;
+			break;
+		}
 		gf_bs_read_data(bs, (u8*)txtc->fonts[i].fontName, len);
 		txtc->fonts[i].fontName[len] = 0;
 	}
@@ -881,6 +891,10 @@ GF_Err gf_odf_get_text_config(u8 *data, u32 data_len, u32 codecid, GF_TextConfig
 				goto exit;
 			}
 			txdesc = (GF_TextSampleDescriptor *)gf_malloc(sizeof(GF_TextSampleDescriptor));
+			if (!txdesc) {
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
 			txdesc->sample_index = sample_index;
 			txdesc->displayFlags = a->displayFlags;
 			txdesc->back_color = a->back_color;
@@ -891,6 +905,7 @@ GF_Err gf_odf_get_text_config(u8 *data, u32 data_len, u32 codecid, GF_TextConfig
 			txdesc->font_count = a->font_table ? a->font_table->entry_count : 0;
 			if (txdesc->font_count) {
 				txdesc->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord)*txdesc->font_count);
+				if (!txdesc->fonts) txdesc->font_count = 0;
 				for (j=0; j<txdesc->font_count; j++) {
 					txdesc->fonts[j].fontID = a->font_table->fonts[j].fontID;
 					txdesc->fonts[j].fontName = a->font_table->fonts[j].fontName ? gf_strdup(a->font_table->fonts[j].fontName) : NULL;
@@ -1117,13 +1132,14 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 				return NULL;
 			}
 			GF_SAFEALLOC(sl, GF_NALUFFParam );
-			if (!sl) {
+			if (sl) sl->data = (u8 *)gf_malloc(size);
+			if (!sl || !sl->data) {
+				if (sl) gf_free(sl);
 				gf_odf_hevc_cfg_del(cfg);
 				return NULL;
 			}
 
 			sl->size = size;
-			sl->data = (u8 *)gf_malloc(sl->size);
 			gf_bs_read_data(bs, sl->data, sl->size);
 			gf_list_add(ar->nalus, sl);
 		}
@@ -1806,7 +1822,7 @@ GF_DOVIDecoderConfigurationRecord *gf_odf_dovi_cfg_read_bs(GF_BitStream *bs)
 {
 	GF_DOVIDecoderConfigurationRecord *cfg;
 	GF_SAFEALLOC(cfg, GF_DOVIDecoderConfigurationRecord);
-
+	if (!cfg) return NULL;
 	cfg->dv_version_major = gf_bs_read_u8(bs);
 	cfg->dv_version_minor = gf_bs_read_u8(bs);
 	cfg->dv_profile = gf_bs_read_int(bs, 7);
@@ -2061,6 +2077,7 @@ GF_Err gf_odf_ac4_cfg_substream_group_dsi(GF_AC4SubStreamGroupV1 *g, GF_BitStrea
 	for (i = 0; i < g->n_lf_substreams; i++ ){
 		if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 			GF_SAFEALLOC(s, GF_AC4SubStream);
+			if (!s) return GF_OUT_OF_MEM;
 		} else { // write or get_size
 			s = (GF_AC4SubStream*)gf_list_get(g->substreams, i);
 		}
@@ -2133,6 +2150,7 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 		if (p->presentation_config == 0x1f) {
 			if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 				GF_SAFEALLOC(g, GF_AC4SubStreamGroupV1);
+				if (!g) return GF_OUT_OF_MEM;
 				gf_list_add(p->substream_groups, g);
 				p->n_substream_groups = 1;
 			} else { // write or get_size
@@ -2163,6 +2181,7 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 			for (i = 0; i < p->n_substream_groups; i++) {
 				if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 					GF_SAFEALLOC(g, GF_AC4SubStreamGroupV1);
+					if (!g) return GF_OUT_OF_MEM;
 					gf_list_add(p->substream_groups, g);
 				} else { // write or get_size
 					g = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, i);
@@ -2262,6 +2281,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 				if (!p) continue;
 				if (p->presentation_version == 2) {
 					GF_SAFEALLOC(imsp, GF_AC4PresentationV1);
+					if (!imsp) return GF_OUT_OF_MEM;
 					gf_odf_ac4_presentation_deep_copy(imsp, p);
 
 					imsp->presentation_version = 1;
@@ -2298,6 +2318,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 	for (i = 0; i < dsi->n_presentations; i++) {
 		if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 			GF_SAFEALLOC(p, GF_AC4PresentationV1);
+			if (!p) return GF_OUT_OF_MEM;
 			gf_list_add(dsi->presentations, p);
 
 			p->presentation_version = gf_bs_read_int(bs, 8);
@@ -2463,8 +2484,10 @@ void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src)
 		pres_src = (GF_AC4PresentationV1*)gf_list_get(presentations_src, i);
 
 		GF_SAFEALLOC(pres_dst, GF_AC4PresentationV1);
-		gf_odf_ac4_presentation_deep_copy(pres_dst, pres_src);
-		gf_list_add(dst->stream.presentations, pres_dst);
+		if (pres_dst) {
+			gf_odf_ac4_presentation_deep_copy(pres_dst, pres_src);
+			gf_list_add(dst->stream.presentations, pres_dst);
+		}
 	}
 }
 
@@ -2489,6 +2512,7 @@ static void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF
 		group_src = (GF_AC4SubStreamGroupV1*)gf_list_get(pres_src->substream_groups, j);
 
 		GF_SAFEALLOC(group_dst, GF_AC4SubStreamGroupV1);
+		if (!group_dst) continue;
 		memcpy(group_dst, group_src, sizeof(GF_AC4SubStreamGroupV1));
 		gf_list_add(pres_dst->substream_groups, group_dst);
 
@@ -2501,6 +2525,7 @@ static void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF
 			subs_src = (GF_AC4SubStream*) gf_list_get(group_src->substreams, s);
 
 			GF_SAFEALLOC(subs_dst, GF_AC4SubStream);
+			if (!subs_dst) continue;
 			memcpy(subs_dst, subs_src, sizeof(GF_AC4SubStream));
 			gf_list_add(group_dst->substreams, subs_dst);
 		}

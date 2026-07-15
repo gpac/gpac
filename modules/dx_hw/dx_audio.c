@@ -456,7 +456,15 @@ void *NewAudioOutput()
 
 
 	ctx = (DSContext*)gf_malloc(sizeof(DSContext));
+	if (!ctx) return NULL;
 	memset(ctx, 0, sizeof(DSContext));
+
+	driv = (GF_AudioOutput*)gf_malloc(sizeof(GF_AudioOutput));
+	if (!driv) {
+		gf_free(ctx);
+		return NULL;
+	}
+
 #ifdef UNICODE
 	ctx->hDSoundLib = LoadLibrary(L"dsound.dll");
 #else
@@ -468,11 +476,11 @@ void *NewAudioOutput()
 	if (!ctx->DirectSoundCreate) {
 		if (ctx->hDSoundLib) FreeLibrary(ctx->hDSoundLib);
 		gf_free(ctx);
+		gf_free(driv);
 		return NULL;
 	}
 
 
-	driv = (GF_AudioOutput*)gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "directsnd", "gpac distribution");
 

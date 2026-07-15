@@ -153,7 +153,7 @@ REG_DEC(tsgendts)
 REG_DEC(httpout)
 REG_DEC(uncvdec)
 
-#if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_HAVE_DTAPI) && !defined(WIN32) 
+#if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_HAVE_DTAPI) && !defined(WIN32)
 REG_DEC(dtout)
 #endif
 

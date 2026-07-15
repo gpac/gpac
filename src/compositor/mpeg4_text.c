@@ -144,11 +144,17 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 				continue;
 
 			span = (GF_TextSpan*) gf_malloc(sizeof(GF_TextSpan));
+			if (!span) continue;
+
 			memcpy(span, tspan, sizeof(GF_TextSpan));
 
 			span->nb_glyphs = split_words ? (j - first_char) : 1;
 			if (split_words && !is_space) span->nb_glyphs++;
 			span->glyphs = (GF_Glyph**)gf_malloc(sizeof(GF_Glyph *)*span->nb_glyphs);
+			if (!span->glyphs) {
+				gf_free(span);
+				continue;
+			}
 
 			span->bounds.height = st->ascent + st->descent;
 			span->bounds.y = start_y;
@@ -178,9 +184,18 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 
 			if (is_space && split_words) {
 				span = (GF_TextSpan*) gf_malloc(sizeof(GF_TextSpan));
+				if (!span) {
+					first_char = j+1;
+					continue;
+				}
 				memcpy(span, tspan, sizeof(GF_TextSpan));
 				span->nb_glyphs = 1;
 				span->glyphs = (GF_Glyph**)gf_malloc(sizeof(GF_Glyph *));
+				if (!span->glyphs) {
+					gf_free(span);
+					first_char = j+1;
+					continue;
+				}
 
 				gf_list_add(st->spans, span);
 				span->bounds.height = st->ascent + st->descent;

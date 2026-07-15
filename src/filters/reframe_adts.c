@@ -275,6 +275,10 @@ static void adts_dmx_check_dur(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (ADTSIdx *)gf_realloc(ctx->indexes, sizeof(ADTSIdx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = ctx->index_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = gf_bs_get_position(bs) - hdr.hdr_size;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= GF_M4ASampleRates[sr_idx];
@@ -611,6 +615,10 @@ restart:
 		if (ctx->adts_buffer_size + pck_size > ctx->adts_buffer_alloc) {
 			ctx->adts_buffer_alloc = ctx->adts_buffer_size + pck_size;
 			ctx->adts_buffer = (u8 *)gf_realloc(ctx->adts_buffer, ctx->adts_buffer_alloc);
+			if (!ctx->adts_buffer) {
+				ctx->adts_buffer_alloc = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
 		memcpy(ctx->adts_buffer + ctx->adts_buffer_size, data, pck_size);
 		ctx->adts_buffer_size += pck_size;
@@ -654,6 +662,10 @@ restart:
 				bytes_to_drop = 10;
 				if (ctx->id3_buffer_alloc < ctx->tag_size+10) {
 					ctx->id3_buffer = (u8 *)gf_realloc(ctx->id3_buffer, ctx->tag_size+10);
+					if (!ctx->id3_buffer) {
+						ctx->id3_buffer_alloc = 0;
+						goto drop_byte;
+					}
 					ctx->id3_buffer_alloc = ctx->tag_size+10;
 				}
 				memcpy(ctx->id3_buffer, start, 10);

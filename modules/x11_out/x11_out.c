@@ -855,6 +855,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 	/*if we're using YUV blit to offscreen, we must use a pixmap*/
 	if (vout->hw_caps & GF_VIDEO_HW_HAS_YUV) {
 		GF_SAFEALLOC(xWindow->shmseginfo, XShmSegmentInfo);
+		if (!xWindow->shmseginfo) return GF_OUT_OF_MEM;
 		xWindow->shmseginfo->shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0776);
 		xWindow->shmseginfo->shmaddr = shmat(xWindow->shmseginfo->shmid, 0, 0);
 		xWindow->shmseginfo->readOnly = False;
@@ -871,6 +872,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[X11] Using X11 Pixmap %08x\n", (u32)xWindow->pixmap));
 	} else if (xWindow->use_shared_memory) {
 		GF_SAFEALLOC(xWindow->shmseginfo, XShmSegmentInfo);
+		if (!xWindow->shmseginfo) return GF_OUT_OF_MEM;
 		xWindow->surface = XShmCreateImage (xWindow->display, xWindow->visual,
 		                                    xWindow->depth, ZPixmap, NULL, xWindow->shmseginfo,
 		                                    VideoWidth, VideoHeight);
@@ -884,6 +886,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 #endif
 	{
 		xWindow->x_data = (char *) gf_malloc(size);
+		if (!xWindow->x_data) return GF_OUT_OF_MEM;
 		xWindow->surface = XCreateImage (xWindow->display, xWindow->visual,
 		                                 xWindow->depth, ZPixmap,
 		                                 0,

@@ -495,6 +495,10 @@ static void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 			if (!strnicmp(ptr, "0x", 2)) ptr +=2;
 			u32 len = (u32)strlen(ptr)/2;
 			emib->message_data = (u8*)gf_malloc(len);
+			if (!emib->message_data) {
+				emib->message_data_size = 0;
+				continue;
+			}
 			emib->message_data_size = len;
 			for (u32 i=0; i<len; ++i, ptr+=2) {
 				int val=0;
@@ -682,9 +686,9 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 
 			gf_bs_write_data(bs, (u8*)szString, len);
 		} else if (szBase64) {
+			u32 ret;
 			u32 len = (u32) strlen(szBase64);
 			u8 *data = (u8 *) gf_malloc(len);
-			u32 ret;
 			if (!data) {
 				e = GF_OUT_OF_MEM;
 				goto exit;

@@ -402,7 +402,7 @@ GF_Err mcdec_delete_surface(GF_MCDecSurfaceTexture  surfaceTex)
 	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
 	if ( res == JNI_EDETACHED ) {
 		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
-	} 
+	}
 	if (!env) return GF_BAD_PARAM;
 
 	(*env)->DeleteGlobalRef(env, cSurface);

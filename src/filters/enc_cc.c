@@ -280,13 +280,27 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 	if (cc) {
 		// Create the caption frame
 		if (!cc->is_clear) {
-			if (!ctx->ccframe) GF_SAFEALLOC(ctx->ccframe, caption_frame_t);
+			if (!ctx->ccframe) {
+				GF_SAFEALLOC(ctx->ccframe, caption_frame_t);
+				if (!ctx->ccframe) {
+					gf_filter_pck_forward(vpck, ctx->opid);
+					gf_filter_pck_unref(vpck);
+					return;
+				}
+			}
 			caption_frame_from_text(ctx->ccframe, (const utf8_char_t *) cc->text);
 			gf_free(cc->text);
 		}
 
 		// Create the SEI from the caption frame
-		if (!ctx->sei) GF_SAFEALLOC(ctx->sei, sei_t);
+		if (!ctx->sei) {
+			GF_SAFEALLOC(ctx->sei, sei_t);
+			if (!ctx->sei) {
+				gf_filter_pck_forward(vpck, ctx->opid);
+				gf_filter_pck_unref(vpck);
+				return;
+			}
+		}
 		sei_free(ctx->sei); // also inits the sei
 		ctx->sei->timestamp = cc->cts / (double) ctx->s_ts;
 		status = cc->is_clear ? sei_from_caption_clear(ctx->sei) : sei_from_caption_frame(ctx->sei, ctx->ccframe);

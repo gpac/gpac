@@ -352,8 +352,10 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			p.type = GF_PROP_STRING_LIST;
 			p.value.string_list.nb_items = 1;
 			p.value.string_list.vals = (char **)gf_malloc(sizeof(char *));
-			p.value.string_list.vals[0] = gf_strdup("custom");
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','k'), &p);
+			if (p.value.string_list.vals) {
+				p.value.string_list.vals[0] = gf_strdup("custom");
+				gf_filter_pck_set_property(pck, GF_4CC('c','u','s','k'), &p);
+			}
 			p.type = GF_PROP_UINT_LIST;
 			p.value.uint_list.nb_items = 1;
 			p.value.uint_list.vals = &val;
@@ -549,7 +551,7 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		gf_filter_pid_set_framing_mode(pidctx->src_pid, GF_TRUE);
 		pidctx->sha_ctx = gf_sha1_starts();
 	}
-	//sink mode, request full reconstruction of input blocks or not depending on framing mode 
+	//sink mode, request full reconstruction of input blocks or not depending on framing mode
 	else {
 		GF_FilterEvent evt;
 		gf_filter_pid_set_framing_mode(pidctx->src_pid, stack->framing ? GF_FALSE : GF_TRUE);

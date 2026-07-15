@@ -126,7 +126,7 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 		if (!ctx->block_size) ctx->block_size = 5000;
 		while (ctx->block_size % 4) ctx->block_size++;
 		ctx->block = (u8 *)gf_malloc(ctx->block_size +1);
-		return GF_OK;
+		return ctx->block ? GF_OK : GF_OUT_OF_MEM;
 	}
 
 
@@ -252,6 +252,7 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 			else ctx->block_size = 5000;
 		}
 		ctx->block = (u8 *)gf_malloc(ctx->block_size +1);
+		if (!ctx->block) return GF_OUT_OF_MEM;
 	}
 	return GF_OK;
 }
@@ -376,6 +377,10 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (evt->seek.hint_block_size > ctx->block_size) {
 			ctx->block_size = evt->seek.hint_block_size;
 			ctx->block = (u8 *)gf_realloc(ctx->block, ctx->block_size+1);
+			if (!ctx->block) {
+				ctx->block_size = 0;
+				return GF_FALSE;
+			}
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
@@ -588,6 +593,10 @@ static GF_Err filein_process(GF_Filter *filter)
 					else ctx->block_size = 5000;
 				}
 				ctx->block = (u8 *)gf_realloc(ctx->block, ctx->block_size +1);
+				if (!ctx->block) {
+					ctx->block_size = 0;
+					return GF_OUT_OF_MEM;
+				}
 			}
 		}
 
@@ -604,6 +613,10 @@ static GF_Err filein_process(GF_Filter *filter)
 
 				ctx->block_size = probe_size;
 				ctx->block = (u8 *)gf_realloc(ctx->block, ctx->block_size+1);
+				if (!ctx->block) {
+					ctx->block_size = 0;
+					return GF_OUT_OF_MEM;
+				}
 #ifdef GPAC_HAS_FD
 				if (ctx->fd>=0) {
 					nb_read += (u32) read(ctx->fd, ctx->block + nb_read, probe_size-nb_read);

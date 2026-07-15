@@ -96,7 +96,7 @@ typedef struct
 	GF_Fraction64 dur;
 	Double speed, hold;
 	u32 back, vrot;
-	GF_VideoFlipMode vflip; 
+	GF_VideoFlipMode vflip;
 	GF_PropVec2i wsize, owsize;
 	GF_PropVec2i wpos;
 	Double start;

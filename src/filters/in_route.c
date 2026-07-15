@@ -795,6 +795,7 @@ RouteRepairServer *routein_push_repair_server(ROUTEInCtx *ctx, const char *url, 
 	}
 
 	GF_SAFEALLOC(server, RouteRepairServer);
+	if (!server) return NULL;
 	server->accept_ranges = RANGE_SUPPORT_PROBE;
 	server->service_id = service_id;
 	server->support_h2 = GF_TRUE;
@@ -923,6 +924,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		else if (ctx->repair < ROUTEIN_REPAIR_FULL) ctx->max_sess = 1;
 
 		ctx->http_repair_sessions = (RouteRepairSession *)gf_malloc(sizeof(RouteRepairSession)*ctx->max_sess);
+		if (!ctx->http_repair_sessions) return GF_OUT_OF_MEM;
 		memset(ctx->http_repair_sessions, 0, sizeof(RouteRepairSession)*ctx->max_sess);
 
 		ctx->seg_repair_queue = gf_list_new();

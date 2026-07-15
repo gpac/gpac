@@ -81,6 +81,10 @@ void gray_record_cell(GF_EVGSurface *surf)
 
 			if (sl->num >= sl->alloc) {
 				sl->cells = (AACell*)gf_realloc(sl->cells, sizeof(AACell)* (sl->alloc + AA_CELL_STEP_ALLOC));
+				if (!sl->cells) {
+					sl->num = sl->alloc = 0;
+					return;
+				}
 				sl->alloc += AA_CELL_STEP_ALLOC;
 			}
 			cell = &sl->cells[sl->num];
@@ -589,6 +593,10 @@ static void gray_hline(EVGRasterCtx *raster, TCoord  x, TCoord  y, TPos area, in
 		if ((u32) count==raster->alloc_gray_spans) {
 			raster->alloc_gray_spans*=2;
 			raster->gray_spans = (EVG_Span *)gf_realloc(raster->gray_spans, sizeof(EVG_Span)*raster->alloc_gray_spans);
+			if (!raster->gray_spans) {
+				raster->alloc_gray_spans = 0;
+				return;
+			}
 			span = raster->gray_spans + count - 1;
 		}
 		span++;

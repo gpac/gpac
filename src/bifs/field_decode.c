@@ -129,16 +129,19 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			ct->data_len = length;
 			if (ct->data) gf_free(ct->data);
 			ct->data = (u8*)gf_malloc(length);
+			if (!ct->data) return GF_OUT_OF_MEM;
 			gf_bs_read_data(bs, ct->data, length);
 		} else if (node && (node->sgprivate->tag==TAG_MPEG4_BitWrapper) ) {
 			M_BitWrapper *bw = (M_BitWrapper*) node;
 			if (bw->buffer.buffer) gf_free(bw->buffer.buffer);
 			bw->buffer_len = length;
 			bw->buffer.buffer = (char*)gf_malloc(length);
+			if (!bw->buffer.buffer) return GF_OUT_OF_MEM;
 			gf_bs_read_data(bs, (u8*)bw->buffer.buffer, length);
 		} else {
 			if ( ((SFString *)field->far_ptr)->buffer ) gf_free( ((SFString *)field->far_ptr)->buffer);
 			((SFString *)field->far_ptr)->buffer = (char *)gf_malloc(length+1);
+			if (! ((SFString *)field->far_ptr)->buffer ) return GF_OUT_OF_MEM;
 			memset(((SFString *)field->far_ptr)->buffer , 0, length+1);
 			for (i=0; i<length; i++) {
 				((SFString *)field->far_ptr)->buffer[i] = gf_bs_read_int(bs, 8);
@@ -193,6 +196,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		((SFImage *)field->far_ptr)->height = h;
 		((SFImage *)field->far_ptr)->numComponents = length;
 		((SFImage *)field->far_ptr)->pixels = (unsigned char *)gf_malloc(sizeof(unsigned char)*size);
+		if (! ((SFImage *)field->far_ptr)->pixels) return GF_OUT_OF_MEM;
 		//WARNING: Buffers are NOT ALIGNED IN THE BITSTREAM
 		for (i=0; i<size; i++) {
 			((SFImage *)field->far_ptr)->pixels[i] = gf_bs_read_int(bs, 8);

@@ -280,6 +280,10 @@ GF_RTPInStream *rtpin_stream_new_standalone(GF_RTPIn *rtp, const char *flow_ip, 
 	if (!tmp) return NULL;
 	tmp->rtpin = rtp;
 	tmp->buffer = (u8 *)gf_malloc(rtp->block_size);
+	if (!tmp->buffer) {
+		gf_free(tmp);
+		return NULL;
+	}
 
 	/*create an RTP channel*/
 	tmp->rtp_ch = gf_rtp_new_ex(gf_filter_get_netcap_id(rtp->filter));
@@ -420,6 +424,10 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 		if (!tmp) return NULL;
 		tmp->rtpin = rtp;
 		tmp->buffer = (u8 *)gf_malloc(rtp->block_size);
+		if (!tmp->buffer) {
+			gf_free(tmp);
+			return NULL;
+		}
 	}
 
 	/*create an RTP channel*/
@@ -488,8 +496,10 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 			if (data) {
 				rvc_size = (u32) strlen(data) * 3 / 4 + 1;
 				rvc_data = (u8*)gf_malloc(rvc_size);
-				rvc_size = gf_base64_decode((u8*)data, (u32) strlen(data), rvc_data, rvc_size);
-				rvc_data[rvc_size] = 0;
+				if (rvc_data) {
+					rvc_size = gf_base64_decode((u8*)data, (u32) strlen(data), rvc_data, rvc_size);
+					rvc_data[rvc_size] = 0;
+				}
 			}
 			if (!strncmp(rvc_config_att, "data:application/rvc-config+xml+gz", 34)) is_gz = GF_TRUE;
 		} else if (!strnicmp(rvc_config_att, "http://", 7) || !strnicmp(rvc_config_att, "https://", 8) ) {

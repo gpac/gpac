@@ -900,7 +900,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 			ctx->out_size = ctx->stride * ctx->height * 2;
 		} else if (chromat_format == OH_YUV444 ) {
 			ctx->out_size = ctx->stride * ctx->height * 3;
-		} 
+		}
 		//force top/bottom output of left and right frame, double height
 		if (ctx->pack_hfr) {
 			ctx->out_size *= 4;
@@ -1297,6 +1297,10 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			if (ctx->inject_buffer_alloc_size < ctx->streams[idx].inject_hdr_size + data_size) {
 				ctx->inject_buffer_alloc_size = ctx->streams[idx].inject_hdr_size + data_size;
 				ctx->inject_buffer = (u8 *)gf_realloc(ctx->inject_buffer, ctx->inject_buffer_alloc_size);
+				if (!ctx->inject_buffer) {
+					ctx->inject_buffer_alloc_size = 0;
+					return GF_OUT_OF_MEM;
+				}
 			}
 			memcpy(ctx->inject_buffer, ctx->streams[idx].inject_hdr, ctx->streams[idx].inject_hdr_size);
 			memcpy(ctx->inject_buffer+ctx->streams[idx].inject_hdr_size, data, data_size);
@@ -1324,6 +1328,10 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 				if (ctx->reaggregation_alloc_size < ctx->reaggregation_size + data_size) {
 					ctx->reaggregation_alloc_size = ctx->reaggregation_size + data_size;
 					ctx->reaggregation_buffer = (u8 *)gf_realloc(ctx->reaggregation_buffer, ctx->reaggregation_alloc_size);
+					if (!ctx->reaggregation_buffer) {
+						ctx->reaggregation_alloc_size = 0;
+						return GF_OUT_OF_MEM;
+					}
 				}
 				memcpy(ctx->reaggregation_buffer + ctx->reaggregation_size, data, sizeof(char)*data_size);
 				ctx->reaggregation_size += data_size;

@@ -257,15 +257,21 @@ void gf_mesh_build_aabbtree(GF_Mesh *mesh)
 
 	nb_idx = mesh->i_count / 3;
 	mesh->aabb_indices = (IDX_TYPE*)gf_malloc(sizeof(IDX_TYPE) * nb_idx);
+	if (!mesh->aabb_indices) return;
+
 	for (i=0; i<nb_idx; i++) mesh->aabb_indices[i] = i;
 
 	GF_SAFEALLOC(mesh->aabb_root, AABBNode);
-	if (mesh->aabb_root) {
-		mesh->aabb_root->min = mesh->bounds.min_edge;
-		mesh->aabb_root->max = mesh->bounds.max_edge;
-		mesh->aabb_root->indices = mesh->aabb_indices;
-		mesh->aabb_root->nb_idx = nb_idx;
+	if (!mesh->aabb_root) {
+		gf_free(mesh->aabb_indices);
+		mesh->aabb_indices = NULL;
+		return;
 	}
+	mesh->aabb_root->min = mesh->bounds.min_edge;
+	mesh->aabb_root->max = mesh->bounds.max_edge;
+	mesh->aabb_root->indices = mesh->aabb_indices;
+	mesh->aabb_root->nb_idx = nb_idx;
+
 	pars.nb_nodes = 1;
 	pars.depth = 0;
 	mesh_subdivide_aabbtree(mesh, mesh->aabb_root, &pars);

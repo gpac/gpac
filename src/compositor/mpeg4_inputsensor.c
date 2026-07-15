@@ -95,6 +95,7 @@ typedef struct
 static void add_field(GF_InputSensorCtx *priv, u32 fieldType, const char *fieldName)
 {
 	GF_FieldInfo *field = (GF_FieldInfo *) gf_malloc(sizeof(GF_FieldInfo));
+	if (!field) return;
 	memset(field, 0, sizeof(GF_FieldInfo));
 	field->fieldType = fieldType;
 	field->far_ptr = gf_sg_vrml_field_pointer_new(fieldType);
@@ -363,6 +364,7 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const u8 *inBuffer, u32 
 			if (len == GF_UTF8_FAIL) len = 1;
 			if (outText->buffer) gf_free(outText->buffer);
 			outText->buffer = (char*)gf_malloc(len);
+			if (!outText->buffer) return GF_OUT_OF_MEM;
 			memcpy(outText->buffer, tmp_utf8, sizeof(char) * (len-1) );
 			outText->buffer[len-1] = 0;
 			if (inText->buffer) gf_free(inText->buffer);
@@ -386,6 +388,7 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const u8 *inBuffer, u32 
 			if (len == GF_UTF8_FAIL) len = 0;
 			if (inText->buffer) gf_free(inText->buffer);
 			inText->buffer = (char*)gf_malloc(len+1);
+			if (!inText->buffer) return GF_OUT_OF_MEM;
 			memcpy(inText->buffer, tmp_utf8, sizeof(char) * len);
 			inText->buffer[len] = 0;
 			field1->eventType = 1;
@@ -793,6 +796,7 @@ Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, 
 			len = gf_utf8_wcstombs(szStr, 10, &ptr);
 			if (len == GF_UTF8_FAIL) len = 0;
 			n->keyPress.buffer = (char*)gf_malloc(len+1);
+			if (!n->keyPress.buffer) return GF_FALSE;
 			memcpy(n->keyPress.buffer, szStr, sizeof(char) * len);
 			n->keyPress.buffer[len] = 0;
 			gf_node_event_out_str((GF_Node *)n, "keyPress");
@@ -805,6 +809,7 @@ Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, 
 			len = gf_utf8_wcstombs(szStr, 10, &ptr);
 			if (len == GF_UTF8_FAIL) len = 0;
 			n->keyRelease.buffer = (char*)gf_malloc(len+1);
+			if (!n->keyRelease.buffer) return GF_FALSE;
 			memcpy(n->keyRelease.buffer, szStr, sizeof(char) * len);
 			n->keyRelease.buffer[len] = 0;
 			gf_node_event_out_str((GF_Node *)n, "keyRelease");

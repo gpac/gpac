@@ -514,6 +514,10 @@ GF_RTPStreamer *gf_rtp_streamer_new_ex(const GF_RTPStreamerConfig *cfg, Bool for
 
 	stream->buffer_alloc = cfg->MTU+12;
 	stream->buffer = (u8*)gf_malloc(stream->buffer_alloc);
+	if (!stream->buffer) {
+		gf_rtp_streamer_del(stream);
+		return NULL;
+	}
 
 	return stream;
 }
@@ -842,6 +846,7 @@ char *gf_rtp_streamer_format_sdp_header(const char *app_name, const char *ip_des
 
 	size = gf_fsize(tmp);
 	sdp = (char*)gf_malloc((size_t)(size+1));
+	if (!sdp) return NULL;
 	size = gf_fread(sdp, (size_t)size, tmp);
 	sdp[size] = 0;
 	gf_fclose(tmp);

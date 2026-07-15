@@ -1441,6 +1441,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 
 	gf_svg_flatten_attributes((SVG_Element *)e, &all_atts);
 	e->xlinkp = (XLinkAttributesPointers *)gf_malloc(sizeof(XLinkAttributesPointers));
+	if (!e->xlinkp) return;
 	xlinkp = e->xlinkp;
 	xlinkp->href = all_atts.xlink_href;
 	xlinkp->type = all_atts.xlink_type;
@@ -1522,6 +1523,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 	}
 
 	e->animp = (SMILAnimationAttributesPointers *)gf_malloc(sizeof(SMILAnimationAttributesPointers));
+	if (!e->animp) return;
 	animp = e->animp;
 	animp->accumulate	 = all_atts.accumulate;
 	animp->additive		 = all_atts.additive;

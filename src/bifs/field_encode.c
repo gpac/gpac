@@ -413,6 +413,10 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	numBitsDEF = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF) - 1);
 
 	enc_fields = (s32*)gf_malloc(sizeof(s32) * count);
+	if (!enc_fields) {
+		if (clone) gf_node_unregister(clone, NULL);
+		return GF_OUT_OF_MEM;
+	}
 	nbFinal = 0;
 	for (i=0; i<count; i++) {
 		enc_fields[i] = -1;

@@ -51,12 +51,14 @@ GF_STATIC char *xml_translate_xml_string(char *str)
 	u32 size, i, j;
 	if (!str || !strlen(str)) return NULL;
 	value = (char *)gf_malloc(500);
+	if (!value) return NULL;
 	size = 500;
 	i = j = 0;
 	while (str[i]) {
 		if (j+20 >= size) {
 			size += 500;
 			value = (char *)gf_realloc(value, size);
+			if (!value) return NULL;
 		}
 		if (str[i] == '&') {
 			if (str[i+1]=='#') {
@@ -200,6 +202,10 @@ static GF_XMLSaxAttribute *xml_get_sax_attribute(GF_SAXParser *parser)
 		parser->nb_alloc_attrs++;
 		parser->sax_attrs = (GF_XMLSaxAttribute *)gf_realloc(parser->sax_attrs, sizeof(GF_XMLSaxAttribute)*parser->nb_alloc_attrs);
 		parser->attrs = (GF_XMLAttribute *)gf_realloc(parser->attrs, sizeof(GF_XMLAttribute)*parser->nb_alloc_attrs);
+		if (!parser->sax_attrs || !parser->attrs) {
+			parser->nb_alloc_attrs = 0;
+			return NULL;
+		}
 	}
 	return &parser->sax_attrs[parser->nb_attrs++];
 }
@@ -1048,10 +1054,14 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 			entityEnd[0] = 0;
 			len = (u32) strlen(entityStart) + (u32) strlen(current) + 1;
 			name = (char*)gf_malloc(len);
-			sprintf(name, "%s%s;", entityStart+1, current);
+			if (!name) {
+				ent = NULL;
+			} else {
+				sprintf(name, "%s%s;", entityStart+1, current);
 
-			ent = gf_xml_locate_entity(parser, name, &needs_text);
-			gf_free(name);
+				ent = gf_xml_locate_entity(parser, name, &needs_text);
+				gf_free(name);
+			}
 
 			//entity not found, parse as regular string
 			if (!ent && !needs_text) {
@@ -1123,6 +1133,7 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, const void *string)
 		const u16 *sptr = (const u16 *)string;
 		u32 len = 2 * gf_utf8_wcslen(sptr);
 		utf_conv = (char *)gf_malloc(len+1);
+		if (!utf_conv) return GF_OUT_OF_MEM;
 		len = gf_utf8_wcstombs(utf_conv, len, &sptr);
 		if (len == GF_UTF8_FAIL) {
 			parser->sax_state = SAX_STATE_SYNTAX_ERROR;
@@ -1430,6 +1441,7 @@ u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser)
 GF_EXPORT
 char *gf_xml_sax_peek_node(GF_SAXParser *parser, const char *att_name, const char *att_value, const char *substitute, const char *get_attr, const char *end_pattern, Bool *is_substitute)
 {
+	GF_Err e = GF_OK;
 	u32 state, att_len, alloc_size, _len;
 #ifdef NO_GZIP
 	u64 pos;
@@ -1446,6 +1458,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, const char *att_name, const cha
 								alloc_size = 1 + (u32) strlen(__str);	\
 								if (!__is_copy) alloc_size += (u32) strlen(szLine); \
 								szLine = (char*)gf_realloc(szLine, alloc_size);	\
+								if (!szLine) { e = GF_OUT_OF_MEM; goto exit; } \
 							}\
 							if (__is_copy) { memmove(szLine, __str, sizeof(char)*_len); szLine[_len] = 0; }\
 							else gf_strlcat(szLine, __str, alloc_size); \
@@ -1610,7 +1623,6 @@ exit:
 	gf_free(szLine);
 	gf_free(szLine1);
 	gf_free(szLine2);
-
 	if (!from_buffer) {
 #ifdef NO_GZIP
 		gf_fseek(parser->f_in, pos, SEEK_SET);
@@ -1619,6 +1631,11 @@ exit:
 		gf_gzseek(parser->gz_in, pos, SEEK_SET);
 #endif
 	}
+	if (e) {
+		if (result) gf_free(result);
+		return NULL;
+	}
+
 	return result;
 }
 
@@ -1970,7 +1987,7 @@ GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx)
 }
 
 
-static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape, char **str, u32 *alloc_size, u32 *size)
+static GF_Err gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape, char **str, u32 *alloc_size, u32 *size)
 {
 	u32 i, count, vlen, tot_s;
 	char *name;
@@ -1982,6 +1999,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 	{                                                      \
 		(*alloc_size) = MAX(tot_s, 2 * (*alloc_size)) + 1; \
 		(*str) = (char*)gf_realloc((*str), (*alloc_size));        \
+		if (! *str) return GF_OUT_OF_MEM;					\
 	}                                                      \
 	memcpy((*str) + (*size), v, vlen + 1);                 \
 	*size += vlen;
@@ -2025,7 +2043,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 		SET_STRING("![CDATA[");
 		SET_STRING(node->name);
 		SET_STRING("]]>");
-		return;
+		return GF_OK;
 	case GF_XML_TEXT_TYPE:
 		name = node->name;
 		if ((name[0]=='\r') && (name[1]=='\n'))
@@ -2036,7 +2054,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 		} else {
 			SET_STRING_ESCAPED(name);
 		}
-		return;
+		return GF_OK;
 	}
 
 	if (!content_only) {
@@ -2060,7 +2078,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 
 		if (!gf_list_count(node->content)) {
 			SET_STRING("/>");
-			return;
+			return GF_OK;
 		}
 		SET_STRING(">");
 	}
@@ -2079,6 +2097,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 		SET_STRING(node->name);
 		SET_STRING(">");
 	}
+	return GF_OK;
 }
 
 GF_EXPORT

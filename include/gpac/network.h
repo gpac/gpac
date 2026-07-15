@@ -749,8 +749,9 @@ void gf_sk_group_del(GF_SockGroup *sg);
 Registers a socket to a socket group
 \param sg socket group object
 \param sk socket object to register
+\return error if any
  */
-void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk);
+GF_Err gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk);
 /*!
 Unregisters a socket from a socket group
 \param sg socket group object

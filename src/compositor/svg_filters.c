@@ -246,6 +246,10 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 	if (st->txh.stride * st->txh.height > st->alloc_size) {
 		st->alloc_size = st->txh.stride * st->txh.height;
 		st->data = (u8*)gf_realloc(st->data, st->alloc_size);
+		if (!st->data) {
+			st->alloc_size = 0;
+			return;
+		}
 	}
 	memset(st->data, 0x0, sizeof(char) * st->txh.stride * st->txh.height);
 	st->txh.data = (char *) st->data;

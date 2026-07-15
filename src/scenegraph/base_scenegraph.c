@@ -787,6 +787,7 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 			GF_ParentList *item, *nlist = node->sgprivate->parents;
 			while (nlist->next) nlist = nlist->next;
 			item = (GF_ParentList*)gf_malloc(sizeof(GF_ParentList));
+			if (!item) return GF_OUT_OF_MEM;
 			item->next = NULL;
 			item->node = parentNode;
 			nlist->next = item;
@@ -997,6 +998,7 @@ static GFINLINE void insert_node_def(GF_SceneGraph *sg, GF_Node *def, u32 ID, co
 	NodeIDedItem *reg_node, *cur;
 
 	reg_node = (NodeIDedItem *) gf_malloc(sizeof(NodeIDedItem));
+	if (!reg_node) return;
 	reg_node->node = def;
 	reg_node->NodeID = ID;
 	reg_node->NodeName = name ? gf_strdup(name) : NULL;
@@ -1269,6 +1271,7 @@ void gf_node_setup(GF_Node *p, u32 tag)
 GF_Node *gf_sg_new_base_node()
 {
 	GF_Node *newnode = (GF_Node *)gf_malloc(sizeof(GF_Node));
+	if (!newnode) return NULL;
 	gf_node_setup(newnode, TAG_UndefinedNode);
 	return newnode;
 }

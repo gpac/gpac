@@ -168,6 +168,7 @@ GF_RTSPTransport *gf_rtsp_transport_clone(GF_RTSPTransport *original)
 	if (!original) return NULL;
 
 	tr = (GF_RTSPTransport*) gf_malloc(sizeof(GF_RTSPTransport));
+	if (!tr) return NULL;
 	memcpy(tr, original, sizeof(GF_RTSPTransport));
 	tr->destination = tr->source = tr->Profile = NULL;
 	if (original->destination) tr->destination = gf_strdup(original->destination);
@@ -410,7 +411,10 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 			goto exit;
 		}
 		rsp->body = (char *)gf_malloc(rsp->Content_Length);
-		memcpy(rsp->body, sess->tcp_buffer+sess->CurrentPos + BodyStart, rsp->Content_Length);
+		if (rsp->body)
+			memcpy(rsp->body, sess->tcp_buffer+sess->CurrentPos + BodyStart, rsp->Content_Length);
+		else
+			e = GF_OUT_OF_MEM;
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Got Response:\n%s\n", sess->tcp_buffer+sess->CurrentPos));
@@ -494,6 +498,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 
 	size = RTSP_WRITE_STEPALLOC;
 	buffer = (char *) gf_malloc(size);
+	if (!buffer) return GF_OUT_OF_MEM;
 	cur_pos = 0;
 
 	//RTSP line

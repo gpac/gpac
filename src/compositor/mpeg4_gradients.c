@@ -122,6 +122,8 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 	st->txh.transparent = GF_FALSE;
 	const_a = (lg->opacity.count == 1) ? GF_TRUE : GF_FALSE;
 	cols = (u32*)gf_malloc(sizeof(u32) * lg->key.count);
+	if (!cols) return;
+
 	for (i=0; i<lg->key.count; i++) {
 		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, lg->keyValue.vals[i].red, lg->keyValue.vals[i].green, lg->keyValue.vals[i].blue);
@@ -213,6 +215,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 	if (transparent) {
 		if (!st->tx_data) {
 			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			if (!st->tx_data) { e = GF_OUT_OF_MEM; goto exit; }
 		}
 		memset(st->tx_data, 0, sizeof(char)*txh->stride*txh->height);
 
@@ -225,6 +228,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 	} else {
 		if (!st->tx_data) {
 			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
+			if (!st->tx_data) { e = GF_OUT_OF_MEM; goto exit; }
 		}
 		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
@@ -234,11 +238,13 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 			transparent = GF_TRUE;
 			gf_free(st->tx_data);
 			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			if (!st->tx_data) { e = GF_OUT_OF_MEM; goto exit; }
 			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB);
 		}
 	}
 	st->txh.transparent = transparent;
 
+exit:
 	if (e) {
 		gf_free(st->tx_data);
 		gf_evg_stencil_delete(texture2D);
@@ -267,6 +273,12 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 	gf_evg_stencil_set_linear_gradient(stenc, start.x, start.y, end.x, end.y);
 	const_a = (lg->opacity.count == 1) ? GF_TRUE : GF_FALSE;
 	cols = (u32*)gf_malloc(sizeof(u32) * lg->key.count);
+	if (!cols) {
+		gf_evg_stencil_delete(texture2D);
+		gf_evg_surface_delete(surface);
+		gf_evg_stencil_delete(stenc);
+		return;
+	}
 	for (i=0; i<lg->key.count; i++) {
 		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, lg->keyValue.vals[i].red, lg->keyValue.vals[i].green, lg->keyValue.vals[i].blue);
@@ -406,6 +418,7 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 	if (transparent) {
 		if (!st->tx_data) {
 			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			if (!st->tx_data) { e = GF_OUT_OF_MEM; goto exit; }
 		}
 		memset(st->tx_data, 0, sizeof(char)*txh->stride*txh->height);
 
@@ -420,6 +433,7 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 	} else {
 		if (!st->tx_data) {
 			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
+			if (!st->tx_data) { e = GF_OUT_OF_MEM; goto exit; }
 		}
 		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
@@ -429,11 +443,13 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 			transparent = GF_TRUE;
 			gf_free(st->tx_data);
 			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			if (!st->tx_data) { e = GF_OUT_OF_MEM; goto exit; }
 			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB);
 		}
 	}
 	st->txh.transparent = transparent;
 
+exit:
 	if (e) {
 		gf_free(st->tx_data);
 		gf_evg_stencil_delete(texture2D);
@@ -469,6 +485,12 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 
 	const_a = (rg->opacity.count == 1) ? GF_TRUE : GF_FALSE;
 	cols = (u32*) gf_malloc(sizeof(u32) * rg->key.count);
+	if (!cols) {
+		gf_evg_stencil_delete(texture2D);
+		gf_evg_surface_delete(surface);
+		gf_evg_stencil_delete(stenc);
+		return;
+	}
 	for (i=0; i<rg->key.count; i++) {
 		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, rg->keyValue.vals[i].red, rg->keyValue.vals[i].green, rg->keyValue.vals[i].blue);
@@ -576,6 +598,8 @@ static void UpdateRadialGradient(GF_TextureHandler *txh)
 
 	const_a = (rg->opacity.count == 1) ? GF_TRUE : GF_FALSE;
 	cols = (u32*)gf_malloc(sizeof(u32) * rg->key.count);
+	if (!cols) return;
+
 	for (i=0; i<rg->key.count; i++) {
 		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, rg->keyValue.vals[i].red, rg->keyValue.vals[i].green, rg->keyValue.vals[i].blue);

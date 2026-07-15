@@ -261,6 +261,10 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (MPGVidIdx *)gf_realloc(ctx->indexes, sizeof(MPGVidIdx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = ctx->index_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = pos;
 			ctx->indexes[ctx->index_size].start_time = (Double) (duration-ctx->cur_fps.den);
 			ctx->indexes[ctx->index_size].start_time /= ctx->cur_fps.num;
@@ -422,13 +426,14 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 
 	if (vosh_size) {
 		u32 i;
-		u8 * dcfg = (u8 *)gf_malloc(vosh_size);
-		memcpy(dcfg, data, sizeof(char)*vosh_size);
+		u8 *dcfg = (u8 *)gf_malloc(vosh_size);
+		if (dcfg)
+			memcpy(dcfg, data, sizeof(char)*vosh_size);
 
 		/*remove packed flag if any (VOSH user data)*/
 		ctx->is_packed = ctx->is_vfr = ctx->forced_packed = GF_FALSE;
 		i=0;
-		while (1) {
+		while (dcfg) {
 			u8 *frame = dcfg;
 			while ((i+3<vosh_size)  && ((frame[i]!=0) || (frame[i+1]!=0) || (frame[i+2]!=1))) i++;
 			if (i+4>=vosh_size) break;
@@ -443,7 +448,8 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 			}
 			break;
 		}
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dcfg, vosh_size));
+		if (dcfg)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dcfg, vosh_size));
 	}
 
 	if (ctx->is_file && ctx->index) {
@@ -672,6 +678,10 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size) {
 			ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size;
 			ctx->hdr_store = (u8 *)gf_realloc(ctx->hdr_store, ctx->hdr_store_alloc);
+			if (!ctx->hdr_store) {
+				ctx->hdr_store_alloc = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
 		memcpy(ctx->hdr_store + ctx->hdr_store_size, data, sizeof(char)*pck_size);
 		if (byte_offset != GF_FILTER_NO_BO) {
@@ -913,6 +923,10 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 						if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
 							ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - vosh_start);
 							ctx->hdr_store = (u8 *)gf_realloc(ctx->hdr_store, ctx->hdr_store_alloc);
+							if (!ctx->hdr_store) {
+								ctx->hdr_store_alloc = 0;
+								return GF_OUT_OF_MEM;
+							}
 						}
 						memmove(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
 						ctx->hdr_store_size += pck_size - (u32) vosh_start;
@@ -961,6 +975,10 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 						if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
 							ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - (u32) vosh_start);
 							ctx->hdr_store = (u8 *)gf_realloc(ctx->hdr_store, ctx->hdr_store_alloc);
+							if (!ctx->hdr_store) {
+								ctx->hdr_store_alloc = 0;
+								return GF_OUT_OF_MEM;
+							}
 						}
 						memmove(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
 						ctx->hdr_store_size += pck_size - (u32) vosh_start;
@@ -1232,7 +1250,7 @@ static GF_Err mpgviddmx_initialize(GF_Filter *filter)
 	ctx->hdr_store_size = 0;
 	ctx->hdr_store_alloc = MIN_HDR_STORE;
 	ctx->hdr_store = (u8 *)gf_malloc(ctx->hdr_store_alloc);
-	return GF_OK;
+	return ctx->hdr_store ? GF_OK : GF_OUT_OF_MEM;
 }
 
 static void mpgviddmx_finalize(GF_Filter *filter)

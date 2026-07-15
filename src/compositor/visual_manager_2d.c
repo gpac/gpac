@@ -118,6 +118,7 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 		DrawableContext *last = visual->cur_context;
 		for (i=0; i<50; i++) {
 			last->next = (DrawableContext *)gf_malloc(sizeof(DrawableContext));
+			if (!last->next) break;
 			last = last->next;
 			last->drawable = NULL;
 			last->col_mat = NULL;
@@ -709,7 +710,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		}
 
 		//OpenGL, force redraw of complete scene but signal we shoud only draw the background, not clear the canvas (nothing to redraw except GL textures)
-		if (hyb_force_redraw) { 
+		if (hyb_force_redraw) {
 			hyb_force_background = 2;
 			ra_add(&visual->to_redraw, &visual->surf_rect);
 		}
@@ -830,12 +831,13 @@ skip_background:
 		GF_DirtyRectangles dr;
 		dr.count = visual->to_redraw.count;
 		dr.list = (GF_IRect *)gf_malloc(sizeof(GF_IRect)*dr.count);
+		if (!dr.list) dr.count = 0;
 		for (i=0; i<dr.count; i++) {
 			dr.list[i] = visual->to_redraw.list[i].rect;
 		}
-		visual->compositor->video_out->FlushRectangles(visual->compositor->video_out, &dr);
+		visual->compositor->video_out->FlushRectangles(visual->compositor->video_out, dr.count ? &dr : NULL);
 		visual->compositor->skip_flush = 1;
-		gf_free(dr.list);
+		if (dr.list) gf_free(dr.list);
 	}
 
 exit:

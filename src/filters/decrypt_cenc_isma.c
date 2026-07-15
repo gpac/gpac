@@ -48,7 +48,7 @@ enum
 	DECRYPT_STATE_PLAY,
 };
 
-GF_OPT_ENUM (CENCDecDecryptMode, 
+GF_OPT_ENUM (CENCDecDecryptMode,
 	DECRYPT_FULL=0,
 	DECRYPT_NOKEY,
 	DECRYPT_SKIP,
@@ -759,6 +759,10 @@ static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
 
 			cstr->keys = (bin128 *)gf_realloc(cstr->keys, sizeof(bin128)*(key_idx+1));
 			cstr->KIDs = (bin128 *)gf_realloc(cstr->KIDs, sizeof(bin128)*(key_idx+1));
+			if (!cstr->keys || !cstr->KIDs) {
+				e = GF_OUT_OF_MEM;
+				break;
+			}
 			memcpy(cstr->keys[key_idx], key_val, sizeof(bin128));
 			memcpy(cstr->KIDs[key_idx], kid_val, sizeof(bin128));
 			key_idx++;
@@ -925,6 +929,10 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 
 	cstr->KID_count = 1;
 	cstr->keys = (bin128 *)gf_realloc(cstr->keys, cstr->KID_count*sizeof(bin128));
+	if (!cstr->keys) {
+		cstr->KID_count = 0;
+		return GF_OUT_OF_MEM;
+	}
 
 	cstr->hls_ignore_iv = GF_FALSE;
 	if (!strncmp(key_url, "urn:gpac:keys:value:", 20)) {
@@ -1066,6 +1074,10 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 		cstr->KIDs = (bin128 *)gf_realloc(cstr->KIDs, cstr->KID_count*sizeof(bin128));
 		cstr->keys = (bin128 *)gf_realloc(cstr->keys, cstr->KID_count*sizeof(bin128));
+		if (!cstr->keys || !cstr->KIDs) {
+			cstr->KID_count = 0;
+			return GF_OUT_OF_MEM;
+		}
 
 		memmove(cstr->KIDs, pssh_data + pos, cstr->KID_count*sizeof(bin128));
 		gf_bs_skip_bytes(ctx->bs_r, cstr->KID_count*sizeof(bin128));
@@ -1146,6 +1158,8 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 				return GF_IO_ERR;
 			}
 			enc_data = (u8 *)gf_malloc(priv_len - cypherOffset);
+			if (!enc_data) return GF_OUT_OF_MEM;
+
 			memcpy(enc_data, pssh_data + pos + cypherOffset, priv_len - cypherOffset);
 
 			gf_crypt_init(mc, cypherKey, use_cbc ? NULL : cypherIV);
@@ -1322,6 +1336,10 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 			cstr->KID_count = tci->nb_keys;
 			cstr->KIDs = (bin128 *)gf_realloc(cstr->KIDs, tci->nb_keys*sizeof(bin128));
 			cstr->keys = (bin128 *)gf_realloc(cstr->keys, tci->nb_keys*sizeof(bin128));
+			if (!cstr->KIDs || !cstr->keys) {
+				cstr->KID_count = 0;
+				return GF_OUT_OF_MEM;
+			}
 			for (i=0; i<tci->nb_keys; i++) {
 				memcpy(cstr->KIDs[i], tci->keys[i].KID, sizeof(bin128));
 				memcpy(cstr->keys[i], tci->keys[i].key, sizeof(bin128));
@@ -1501,6 +1519,10 @@ static GF_Err cenc_dec_setup_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u
 			cstr->KID_count = tci->nb_keys;
 			cstr->KIDs = (bin128 *)gf_realloc(cstr->KIDs, tci->nb_keys*sizeof(bin128));
 			cstr->keys = (bin128 *)gf_realloc(cstr->keys, tci->nb_keys*sizeof(bin128));
+			if (!cstr->KIDs || !cstr->keys) {
+				cstr->KID_count = 0;
+				return GF_OUT_OF_MEM;
+			}
 			for (i=0; i<tci->nb_keys; i++) {
 				memcpy(cstr->KIDs[i], tci->keys[i].KID, sizeof(bin128));
 				memcpy(cstr->keys[i], tci->keys[i].key, sizeof(bin128));
@@ -2276,6 +2298,10 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 	if (nb_keys > cstr->nb_crypts) {
 		cstr->crypts = (CENCDecKey *)gf_realloc(cstr->crypts, sizeof(CENCDecKey) * nb_keys);
+		if (!cstr->crypts) {
+			cstr->nb_crypts = 0;
+			return GF_OUT_OF_MEM;
+		}
 		memset(&cstr->crypts[cstr->nb_crypts], 0, sizeof(CENCDecKey) * (nb_keys-cstr->nb_crypts) );
 
 		if (cstr->crypts[0].crypt) {

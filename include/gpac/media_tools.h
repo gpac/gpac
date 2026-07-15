@@ -978,7 +978,7 @@ GF_OPT_ENUM (GF_DASHPSSHMode,
  Configure how default values for ISOBMFF are stored
 \param dasher the DASH segmenter object
 \param no_fragments_defaults if set, fragments default values are repeated in each traf and not set in trex. Default value is GF_FALSE
-\param pssh_mode sets the storage mode of PSSH in moov/moof/mpd. 
+\param pssh_mode sets the storage mode of PSSH in moov/moof/mpd.
 \param samplegroups_in_traf if set, all sample group definitions are stored in each traf and not set in init segment. Default value is GF_FALSE
 \param single_traf_per_moof if set, each moof will contain a single traf, even if source media is multiplexed. Default value is GF_FALSE
 \param tfdt_per_traf if set, each traf will contain a tfdt. Only applicable when single_traf_per_moof is GF_TRUE. Default value is GF_FALSE

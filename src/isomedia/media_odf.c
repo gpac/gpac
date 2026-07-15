@@ -206,6 +206,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			if (skipped && (skipped != esdR2->NbESDs) ) {
 				esdR2->NbESDs -= skipped;
 				esdR2->ES_ID = (unsigned short*)gf_realloc(esdR2->ES_ID, sizeof(unsigned short) * esdR2->NbESDs);
+				if (!esdR2->ES_ID) return GF_OUT_OF_MEM;
 			}
 			gf_odf_com_del((GF_ODCom **)&esdR);
 			gf_odf_codec_add_com(ODencode, (GF_ODCom *)esdR2);

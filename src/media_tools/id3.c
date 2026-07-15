@@ -43,6 +43,7 @@ GF_Err gf_id3_tag_new(GF_ID3_TAG *tag, u32 timescale, u64 pts, u8 *data, u32 dat
 
     tag->data_length = data_length;
     tag->data = (u8 *)gf_malloc(data_length);
+    if (!tag->data) return GF_OUT_OF_MEM;
     memcpy(tag->data, data, data_length);
 
     return GF_OK;
@@ -134,6 +135,7 @@ GF_Err gf_id3_from_bitstream(GF_ID3_TAG *tag, GF_BitStream *bs)
 
     tag->scheme_uri_length = gf_bs_read_u32(bs);
     tag->scheme_uri = (char *)gf_malloc(tag->scheme_uri_length);
+    if (!tag->scheme_uri) return GF_OUT_OF_MEM;
     u32 bytes_read = gf_bs_read_data(bs, (u8 *) tag->scheme_uri, tag->scheme_uri_length);
     if (bytes_read != tag->scheme_uri_length) {
         return GF_IO_ERR;
@@ -141,6 +143,7 @@ GF_Err gf_id3_from_bitstream(GF_ID3_TAG *tag, GF_BitStream *bs)
 
     tag->value_uri_length = gf_bs_read_u32(bs);
     tag->value_uri = (char *)gf_malloc(tag->value_uri_length);
+    if (!tag->value_uri) return GF_OUT_OF_MEM;
     bytes_read = gf_bs_read_data(bs, (u8 *) tag->value_uri, tag->value_uri_length);
     if (bytes_read != tag->value_uri_length) {
         return GF_IO_ERR;
@@ -148,6 +151,7 @@ GF_Err gf_id3_from_bitstream(GF_ID3_TAG *tag, GF_BitStream *bs)
 
     tag->data_length = gf_bs_read_u32(bs);
     tag->data = (u8 *)gf_malloc(tag->data_length);
+    if (!tag->data) return GF_OUT_OF_MEM;
     bytes_read = gf_bs_read_data(bs, tag->data, tag->data_length);
     if (bytes_read != tag->data_length) {
         return GF_IO_ERR;

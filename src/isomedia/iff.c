@@ -215,6 +215,7 @@ GF_Err colr_box_read(GF_Box *s, GF_BitStream *bs)
 		p->approx = gf_bs_read_u8(bs);
 		if (p->size) {
 			p->opaque = (u8 *)gf_malloc((size_t)p->size);
+			if (!p->opaque) return GF_OUT_OF_MEM;
 			p->opaque_size = (u32) p->size;
 			gf_bs_read_data(bs,p->opaque, p->opaque_size);
 		}
@@ -237,6 +238,7 @@ GF_Err colr_box_read(GF_Box *s, GF_BitStream *bs)
 			break;
 		default:
 			p->opaque = (u8 *)gf_malloc((size_t)p->size);
+			if (!p->opaque) return GF_OUT_OF_MEM;
 			p->opaque_size = (u32) p->size;
 			gf_bs_read_data(bs,p->opaque, p->opaque_size);
 			break;
@@ -328,6 +330,7 @@ GF_Err pixi_box_read(GF_Box *s, GF_BitStream *bs)
 	if (p->version == 0 && p->flags == 0) {
 		p->num_channels = gf_bs_read_u8(bs);
 		p->bits_per_channel = (u8 *)gf_malloc(p->num_channels);
+		if (!p->bits_per_channel) return GF_OUT_OF_MEM;
 		for (i = 0; i < p->num_channels; i++) {
 			ISOM_DECREASE_SIZE(p, 1)
 			p->bits_per_channel[i] = gf_bs_read_u8(bs);
@@ -846,6 +849,7 @@ GF_Err auxc_box_read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	p->data_size = (u32) p->size;
 	p->data = (u8 *)gf_malloc(p->data_size);
+	if (!p->data) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, p->data, p->data_size);
 	return GF_OK;
 }

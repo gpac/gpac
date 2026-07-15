@@ -620,6 +620,7 @@ GF_Node *AudioBuffer_Create()
 	p->stopTime = 0;
 	p->numChan = 1;
 	p->phaseGroup.vals = (SFInt32*)gf_malloc(sizeof(SFInt32)*1);
+	if (!p->phaseGroup.vals) return NULL;
 	p->phaseGroup.count = 1;
 	p->phaseGroup.vals[0] = 1;
 	p->length = FLT2FIX(0.0);
@@ -1821,6 +1822,7 @@ GF_Node *Background_Create()
 
 	/*default field values*/
 	p->skyColor.vals = (SFColor*)gf_malloc(sizeof(SFColor)*1);
+	if (!p->skyColor.vals) return NULL;
 	p->skyColor.count = 1;
 	p->skyColor.vals[0].red = FLT2FIX(0);
 	p->skyColor.vals[0].green = FLT2FIX(0);
@@ -5104,6 +5106,7 @@ GF_Node *Extrusion_Create()
 	p->convex = GF_TRUE;
 	p->creaseAngle = FLT2FIX(0.0);
 	p->crossSection.vals = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*5);
+	if (!p->crossSection.vals) return NULL;
 	p->crossSection.count = 5;
 	p->crossSection.vals[0].x = FLT2FIX(1);
 	p->crossSection.vals[0].y = FLT2FIX(1);
@@ -5117,17 +5120,20 @@ GF_Node *Extrusion_Create()
 	p->crossSection.vals[4].y = FLT2FIX(1);
 	p->endCap = GF_TRUE;
 	p->orientation.vals = (GF_Vec4*)gf_malloc(sizeof(GF_Vec4)*1);
+	if (!p->orientation.vals) return NULL;
 	p->orientation.count = 1;
 	p->orientation.vals[0].x = FLT2FIX(0);
 	p->orientation.vals[0].y = FLT2FIX(0);
 	p->orientation.vals[0].z = FLT2FIX(1);
 	p->orientation.vals[0].q = FLT2FIX(0);
 	p->scale.vals = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*1);
+	if (!p->scale.vals) return NULL;
 	p->scale.count = 1;
 	p->scale.vals[0].x = FLT2FIX(1);
 	p->scale.vals[0].y = FLT2FIX(1);
 	p->solid = GF_TRUE;
 	p->spine.vals = (SFVec3f *)gf_malloc(sizeof(SFVec3f)*2);
+	if (!p->spine.vals) return NULL;
 	p->spine.count = 2;
 	p->spine.vals[0].x = FLT2FIX(0);
 	p->spine.vals[0].y = FLT2FIX(0);
@@ -7292,11 +7298,13 @@ GF_Node *FontStyle_Create()
 
 	/*default field values*/
 	p->family.vals = (char**)gf_malloc(sizeof(char *)*1);
+	if (!p->family.vals) return NULL;
 	p->family.count = 1;
 	p->family.vals[0] = gf_strdup("SERIF");
 	p->horizontal = GF_TRUE;
 	p->justify.count = 1;
 	p->justify.vals = (char**)gf_malloc(sizeof(char *)*1);
+	if (!p->justify.vals) return NULL;
 	p->justify.vals[0] = gf_strdup("BEGIN");
 	p->leftToRight = GF_TRUE;
 	p->size = FLT2FIX(1.0);
@@ -9191,6 +9199,7 @@ GF_Node *Layout_Create()
 	p->size.y = FLT2FIX(-1);
 	p->horizontal = GF_TRUE;
 	p->justify.vals = (char**)gf_malloc(sizeof(char *)*1);
+	if (!p->justify.vals) return NULL;
 	p->justify.count = 1;
 	p->justify.vals[0] = gf_strdup("BEGIN");
 	p->leftToRight = GF_TRUE;
@@ -10105,6 +10114,7 @@ GF_Node *NavigationInfo_Create()
 
 	/*default field values*/
 	p->avatarSize.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*3);
+	if (!p->avatarSize.vals) return NULL;
 	p->avatarSize.count = 3;
 	p->avatarSize.vals[0] = FLT2FIX(0.25);
 	p->avatarSize.vals[1] = FLT2FIX(1.6);
@@ -10112,6 +10122,7 @@ GF_Node *NavigationInfo_Create()
 	p->headlight = GF_TRUE;
 	p->speed = FLT2FIX(1.0);
 	p->type.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->type.vals) return NULL;
 	p->type.count = 2;
 	p->type.vals[0] = gf_strdup("WALK");
 	p->type.vals[1] = gf_strdup("ANY");
@@ -16232,15 +16243,19 @@ GF_Node *AcousticMaterial_Create()
 	p->specularColor.blue = FLT2FIX(0);
 	p->transparency = FLT2FIX(0);
 	p->reffunc.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->reffunc.vals) return NULL;
 	p->reffunc.count = 1;
 	p->reffunc.vals[0] = FLT2FIX(0);
 	p->transfunc.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->transfunc.vals) return NULL;
 	p->transfunc.count = 1;
 	p->transfunc.vals[0] = FLT2FIX(1);
 	p->refFrequency.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->refFrequency.vals) return NULL;
 	p->refFrequency.count = 1;
 	p->refFrequency.vals[0] = FLT2FIX(0);
 	p->transFrequency.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->transFrequency.vals) return NULL;
 	p->transFrequency.count = 1;
 	p->transFrequency.vals[0] = FLT2FIX(0);
 	return (GF_Node *)p;
@@ -16415,9 +16430,11 @@ GF_Node *AcousticScene_Create()
 	p->Size.y = FLT2FIX(-1);
 	p->Size.z = FLT2FIX(-1);
 	p->reverbTime.vals = (SFTime*)gf_malloc(sizeof(SFTime)*1);
+	if (!p->reverbTime.vals) return NULL;
 	p->reverbTime.count = 1;
 	p->reverbTime.vals[0] = 0;
 	p->reverbFreq.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->reverbFreq.vals) return NULL;
 	p->reverbFreq.count = 1;
 	p->reverbFreq.vals[0] = FLT2FIX(1000);
 	p->reverbLevel = FLT2FIX(0.4);
@@ -21532,9 +21549,11 @@ GF_Node *DirectiveSound_Create()
 	p->location.z = FLT2FIX(0);
 	p->spatialize = GF_TRUE;
 	p->directivity.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->directivity.vals) return NULL;
 	p->directivity.count = 1;
 	p->directivity.vals[0] = FLT2FIX(1);
 	p->angles.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->angles.vals) return NULL;
 	p->angles.count = 1;
 	p->angles.vals[0] = FLT2FIX(1);
 	p->speedOfSound = FLT2FIX(340);
@@ -22167,14 +22186,17 @@ GF_Node *PerceptualParameters_Create()
 	p->heavyness = FLT2FIX(1.0);
 	p->liveness = FLT2FIX(1.0);
 	p->omniDirectivity.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->omniDirectivity.vals) return NULL;
 	p->omniDirectivity.count = 1;
 	p->omniDirectivity.vals[0] = FLT2FIX(1.0);
 	p->directFilterGains.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*3);
+	if (!p->directFilterGains.vals) return NULL;
 	p->directFilterGains.count = 3;
 	p->directFilterGains.vals[0] = FLT2FIX(1.0);
 	p->directFilterGains.vals[1] = FLT2FIX(1.0);
 	p->directFilterGains.vals[2] = FLT2FIX(1.0);
 	p->inputFilterGains.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*3);
+	if (!p->inputFilterGains.vals) return NULL;
 	p->inputFilterGains.count = 3;
 	p->inputFilterGains.vals[0] = FLT2FIX(1.0);
 	p->inputFilterGains.vals[1] = FLT2FIX(1.0);
@@ -22404,9 +22426,11 @@ GF_Node *TemporalTransform_Create()
 	p->scalability.x = FLT2FIX(1.0);
 	p->scalability.y = FLT2FIX(1.0);
 	p->stretchMode.vals = (SFInt32*)gf_malloc(sizeof(SFInt32)*1);
+	if (!p->stretchMode.vals) return NULL;
 	p->stretchMode.count = 1;
 	p->stretchMode.vals[0] = 0;
 	p->shrinkMode.vals = (SFInt32*)gf_malloc(sizeof(SFInt32)*1);
+	if (!p->shrinkMode.vals) return NULL;
 	p->shrinkMode.count = 1;
 	p->shrinkMode.vals[0] = 0;
 	p->maxDelay = 0;
@@ -22934,6 +22958,7 @@ GF_Node *MatteTexture_Create()
 	/*default field values*/
 	p->fraction = FLT2FIX(0);
 	p->parameter.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->parameter.vals) return NULL;
 	p->parameter.count = 1;
 	p->parameter.vals[0] = FLT2FIX(0);
 	return (GF_Node *)p;
@@ -24417,9 +24442,11 @@ GF_Node *XXLFM_FrameList_Create()
 
 	/*default field values*/
 	p->index.vals = (SFInt32*)gf_malloc(sizeof(SFInt32)*1);
+	if (!p->index.vals) return NULL;
 	p->index.count = 1;
 	p->index.vals[0] = -1;
 	p->frame.vals = (SFVec3f *)gf_malloc(sizeof(SFVec3f)*3);
+	if (!p->frame.vals) return NULL;
 	p->frame.count = 3;
 	p->frame.vals[0].x = FLT2FIX(1);
 	p->frame.vals[0].y = FLT2FIX(0);
@@ -26976,6 +27003,7 @@ GF_Node *PositionAnimator_Create()
 	p->fromTo.y = FLT2FIX(1);
 	p->keyType = 0;
 	p->keySpline.vals = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*2);
+	if (!p->keySpline.vals) return NULL;
 	p->keySpline.count = 2;
 	p->keySpline.vals[0].x = FLT2FIX(0);
 	p->keySpline.vals[0].y = FLT2FIX(0);
@@ -27189,6 +27217,7 @@ GF_Node *PositionAnimator2D_Create()
 	p->keyOrientation = 0;
 	p->keyType = 0;
 	p->keySpline.vals = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*2);
+	if (!p->keySpline.vals) return NULL;
 	p->keySpline.count = 2;
 	p->keySpline.vals[0].x = FLT2FIX(0);
 	p->keySpline.vals[0].y = FLT2FIX(0);
@@ -27628,12 +27657,14 @@ GF_Node *ProceduralTexture_Create()
 
 	/*default field values*/
 	p->aWarpmap.vals = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*2);
+	if (!p->aWarpmap.vals) return NULL;
 	p->aWarpmap.count = 2;
 	p->aWarpmap.vals[0].x = FLT2FIX(0);
 	p->aWarpmap.vals[0].y = FLT2FIX(0);
 	p->aWarpmap.vals[1].x = FLT2FIX(1);
 	p->aWarpmap.vals[1].y = FLT2FIX(1);
 	p->aWeights.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*16);
+	if (!p->aWeights.vals) return NULL;
 	p->aWeights.count = 16;
 	p->aWeights.vals[0] = FLT2FIX(0);
 	p->aWeights.vals[1] = FLT2FIX(0);
@@ -27652,12 +27683,14 @@ GF_Node *ProceduralTexture_Create()
 	p->aWeights.vals[14] = FLT2FIX(0);
 	p->aWeights.vals[15] = FLT2FIX(0);
 	p->bWarpmap.vals = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*2);
+	if (!p->bWarpmap.vals) return NULL;
 	p->bWarpmap.count = 2;
 	p->bWarpmap.vals[0].x = FLT2FIX(0);
 	p->bWarpmap.vals[0].y = FLT2FIX(0);
 	p->bWarpmap.vals[1].x = FLT2FIX(1);
 	p->bWarpmap.vals[1].y = FLT2FIX(1);
 	p->bWeights.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*16);
+	if (!p->bWeights.vals) return NULL;
 	p->bWeights.count = 16;
 	p->bWeights.vals[0] = FLT2FIX(0);
 	p->bWeights.vals[1] = FLT2FIX(0);
@@ -27678,6 +27711,7 @@ GF_Node *ProceduralTexture_Create()
 	p->cellWidth = 4;
 	p->cellHeight = 4;
 	p->color.vals = (SFColor*)gf_malloc(sizeof(SFColor)*4);
+	if (!p->color.vals) return NULL;
 	p->color.count = 4;
 	p->color.vals[0].red = FLT2FIX(0.3);
 	p->color.vals[0].green = FLT2FIX(0.698);
@@ -28583,6 +28617,7 @@ GF_Node *SBSegment_Create()
 	p->centerOfMass.z = FLT2FIX(0);
 	p->mass = FLT2FIX(0);
 	p->momentsOfInertia.vals = (SFVec3f *)gf_malloc(sizeof(SFVec3f)*3);
+	if (!p->momentsOfInertia.vals) return NULL;
 	p->momentsOfInertia.count = 3;
 	p->momentsOfInertia.vals[0].x = FLT2FIX(0);
 	p->momentsOfInertia.vals[0].y = FLT2FIX(0);
@@ -29313,6 +29348,7 @@ GF_Node *ScalarAnimator_Create()
 	p->fromTo.y = FLT2FIX(1);
 	p->keyType = 0;
 	p->keySpline.vals = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*2);
+	if (!p->keySpline.vals) return NULL;
 	p->keySpline.count = 2;
 	p->keySpline.vals[0].x = FLT2FIX(0);
 	p->keySpline.vals[0].y = FLT2FIX(0);
@@ -30947,6 +30983,7 @@ GF_Node *LinearGradient_Create()
 	p->endPoint.x = FLT2FIX(1);
 	p->endPoint.y = FLT2FIX(0);
 	p->opacity.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->opacity.vals) return NULL;
 	p->opacity.count = 1;
 	p->opacity.vals[0] = FLT2FIX(1);
 	p->spreadMethod = 0;
@@ -31144,6 +31181,7 @@ GF_Node *PathLayout_Create()
 
 	/*default field values*/
 	p->alignment.vals = (SFInt32*)gf_malloc(sizeof(SFInt32)*1);
+	if (!p->alignment.vals) return NULL;
 	p->alignment.count = 1;
 	p->alignment.vals[0] = 0;
 	p->pathOffset = FLT2FIX(0);
@@ -31344,6 +31382,7 @@ GF_Node *RadialGradient_Create()
 	p->focalPoint.x = FLT2FIX(0);
 	p->focalPoint.y = FLT2FIX(0);
 	p->opacity.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->opacity.vals) return NULL;
 	p->opacity.count = 1;
 	p->opacity.vals[0] = FLT2FIX(1);
 	p->radius = FLT2FIX(0.5);
@@ -31936,6 +31975,7 @@ GF_Node *Viewport_Create()
 	p->size.y = FLT2FIX(-1);
 	p->orientation = FLT2FIX(0);
 	p->alignment.vals = (SFInt32*)gf_malloc(sizeof(SFInt32)*1);
+	if (!p->alignment.vals) return NULL;
 	p->alignment.count = 1;
 	p->alignment.vals[0] = 0;
 	p->fit = 0;
@@ -32290,10 +32330,12 @@ GF_Node *XFontStyle_Create()
 
 	/*default field values*/
 	p->fontName.vals = (char**)gf_malloc(sizeof(char *)*1);
+	if (!p->fontName.vals) return NULL;
 	p->fontName.count = 1;
 	p->fontName.vals[0] = gf_strdup("SERIF");
 	p->horizontal = GF_TRUE;
 	p->justify.vals = (char**)gf_malloc(sizeof(char *)*1);
+	if (!p->justify.vals) return NULL;
 	p->justify.count = 1;
 	p->justify.vals[0] = gf_strdup("BEGIN");
 	p->leftToRight = GF_TRUE;
@@ -34699,6 +34741,7 @@ GF_Node *WideSound_Create()
 	p->spatialize = GF_TRUE;
 	p->shape = 0;
 	p->size.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->size.vals) return NULL;
 	p->size.count = 1;
 	p->size.vals[0] = FLT2FIX(0.0);
 	p->direction.x = FLT2FIX(0.0);
@@ -35652,6 +35695,7 @@ GF_Node *RoofNode_Create()
 	p->Type = 0;
 	p->Height = FLT2FIX(0.0);
 	p->SlopeAngle.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->SlopeAngle.vals) return NULL;
 	p->SlopeAngle.count = 1;
 	p->SlopeAngle.vals[0] = FLT2FIX(0.0);
 	p->EaveProjection = FLT2FIX(0.0);
@@ -35848,9 +35892,11 @@ GF_Node *FacadeNode_Create()
 	p->YRepeatInterval = FLT2FIX(0.0);
 	p->NbStories = 0;
 	p->NbFacadeCellsByStorey.vals = (SFInt32*)gf_malloc(sizeof(SFInt32)*1);
+	if (!p->NbFacadeCellsByStorey.vals) return NULL;
 	p->NbFacadeCellsByStorey.count = 1;
 	p->NbFacadeCellsByStorey.vals[0] = 0;
 	p->StoreyHeight.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->StoreyHeight.vals) return NULL;
 	p->StoreyHeight.count = 1;
 	p->StoreyHeight.vals[0] = FLT2FIX(1.0);
 	return (GF_Node *)p;

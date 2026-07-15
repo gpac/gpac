@@ -815,6 +815,7 @@ u32 gf_mse_parse_segment(void *par)
 					char *data;
 					assert(packet->is_new_data && packet->size);
 					data = (char *)gf_malloc(packet->size);
+					if (!data) goto exit;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] New AU parsed with PTS %g s\n", TIMESCALE_TO_SECONDS(packet->sl_header.compositionTimeStamp)));
 					memcpy(data, packet->data, packet->size);
 					packet->data = data;
@@ -851,6 +852,7 @@ void gf_mse_source_buffer_append_arraybuffer(GF_HTML_SourceBuffer *sb, GF_HTML_A
 	gf_mse_source_buffer_set_update(sb, GF_TRUE);
 
 	buffer->url = (char *)gf_malloc(256);
+	if (!buffer->url) return;
 	buffer->blob.data = buffer->data;
 	buffer->blob.size = buffer->length;
 	sprintf(buffer->url, "gmem://%p", &buffer->blob);

@@ -152,6 +152,11 @@ static void ac4dmx_check_dur(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 		else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 
 		ctx->indexes = (AC4Idx *)gf_realloc(ctx->indexes, sizeof(AC4Idx)*ctx->index_alloc_size);
+		if (!ctx->indexes) {
+			ctx->index_alloc_size = ctx->index_size = 0;
+			break;
+		}
+
 		ctx->indexes[ctx->index_size].pos = gf_bs_get_position(bs) + hdr.header_size;
 		ctx->indexes[ctx->index_size].duration = (Double) duration;
 		ctx->indexes[ctx->index_size].duration /= hdr.sample_rate;
@@ -361,6 +366,10 @@ restart:
 		if (ctx->ac4_buffer_size + pck_size > ctx->ac4_buffer_alloc) {
 			ctx->ac4_buffer_alloc = ctx->ac4_buffer_size + pck_size;
 			ctx->ac4_buffer = (u8 *)gf_realloc(ctx->ac4_buffer, ctx->ac4_buffer_alloc);
+			if (!ctx->ac4_buffer) {
+				ctx->ac4_buffer_alloc = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
 		memcpy(ctx->ac4_buffer + ctx->ac4_buffer_size, data, pck_size);
 		ctx->ac4_buffer_size += pck_size;
@@ -574,7 +583,7 @@ static const char *ac4dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 	if (nb_frames>=2) {
 		*score = nb_broken_frames ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
 		return "audio/ac4";
-	}	
+	}
 
 	return NULL;
 }

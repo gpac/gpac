@@ -690,11 +690,11 @@ static void routein_repair_get_isobmf_deps(ROUTEInCtx *ctx, RepairSegmentInfo *r
 		if (refs && (r->nb_refs>0)) {
 			if (r->nb_refs_alloc < r->nb_refs) {
 				r->refs = (s32 *)gf_realloc(r->refs, sizeof(s32)*r->nb_refs);
-				r->nb_refs_alloc = r->nb_refs;
 				if (!r->refs) {
 					r->nb_refs = -1;
 					continue;
 				}
+				r->nb_refs_alloc = r->nb_refs;
 			}
 			memcpy(r->refs, refs, sizeof(s32)*r->nb_refs);
 		}
@@ -1447,7 +1447,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	RepairSegmentInfo *rsi = (struct _route_repair_seg_info *)gf_list_pop_back(ctx->seg_repair_reservoir);
 	if (!rsi) {
 		GF_SAFEALLOC(rsi, RepairSegmentInfo);
-		rsi->ranges = gf_list_new();
+		if (rsi) rsi->ranges = gf_list_new();
 	}
 
 	if (!rsi) {

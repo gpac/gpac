@@ -375,6 +375,10 @@ GF_Err gf_img_jpeg_dec(const u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32
 
 	/*read scanlines (the scan is not one line by one line so alloc a placeholder for block scaning) */
 	scan_line = (u8 *)gf_malloc(stride * jpx.cinfo.rec_outbuf_height);
+	if (!scan_line) {
+		jpeg_destroy_decompress(&jpx.cinfo);
+		return GF_OUT_OF_MEM;
+	}
 	for (i = 0; i<jpx.cinfo.rec_outbuf_height; i++) {
 		lines[i] = scan_line + i * stride;
 	}
@@ -544,6 +548,11 @@ GF_Err gf_img_png_dec(const u8 *png, u32 png_size, u32 *width, u32 *height, u32 
 	/*read*/
 	stride = (u32) png_get_rowbytes(png_ptr, info_ptr);
 	udta.rows = (png_byte **) gf_malloc(sizeof(png_byte *) * png_get_image_height(png_ptr, info_ptr));
+	if (!udta.rows) {
+		png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
+		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
+		return GF_BUFFER_TOO_SMALL;
+	}
 	for (i=0; i<png_get_image_height(png_ptr, info_ptr); i++) {
 		udta.rows[i] = (png_bytep)dst + i*stride;
 	}
@@ -692,6 +701,10 @@ GF_Err gf_img_png_enc(const u8 *data, u32 width, u32 height, s32 stride, u32 pix
 		break;
 	}
 	row_pointers = (png_bytep *)gf_malloc(sizeof(png_bytep)*height);
+	if (!row_pointers) {
+		png_destroy_write_struct(&png_ptr, &info_ptr);
+		return GF_OUT_OF_MEM;
+	}
 	for (k = 0; k < (s32)height; k++)
 		row_pointers[k] = (png_bytep) data + k*stride;
 

@@ -326,6 +326,11 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			if (vtte->config) {
 				esd->decoderConfig->decoderSpecificInfo->dataLength = (u32) strlen(vtte->config->string);
 				esd->decoderConfig->decoderSpecificInfo->data = (u8 *)gf_malloc(esd->decoderConfig->decoderSpecificInfo->dataLength);
+				if (!esd->decoderConfig->decoderSpecificInfo->data) {
+					gf_odf_desc_del((GF_Descriptor *)esd);
+					*out_esd = NULL;
+					return GF_OUT_OF_MEM;
+				}
 				memcpy(esd->decoderConfig->decoderSpecificInfo->data, vtte->config->string, esd->decoderConfig->decoderSpecificInfo->dataLength);
 			}
 		}

@@ -43,7 +43,7 @@ unittest(mpd_event_streams)
 	{
 		u32 sz = 2*entry->message_size+3;
 		u8 *b64 = (u8 *)gf_malloc(sz);
-		assert_true(b64 != NULL);
+		if (b64 == NULL) assert_true(0);
 		sz = gf_base64_encode((u8*)entry->message, entry->message_size, b64, sz);
 		b64[sz] = 0;
 		assert_equal(sz, 48, "%u");

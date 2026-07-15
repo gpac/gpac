@@ -117,6 +117,13 @@ static void swf_init_decompress(SWFReader *read)
 	}
 	src = (u8 *)gf_malloc(size);
 	dst = (u8 *)gf_malloc(dst_size);
+	if (!src || !dst) {
+		if (src) gf_free(src);
+		if (dst) gf_free(dst);
+		gf_bs_del(read->bs);
+		read->bs = NULL;
+		return;
+	}
 	memset(dst, 0, sizeof(char)*8);
 	gf_bs_read_data(read->bs, (u8 *) src, size);
 	dst_size -= 8;
@@ -140,6 +147,18 @@ static void swf_init_decompress(SWFReader *read)
 	}
 }
 
+static void swf_free_shape_rec(SWFShapeRec *ptr)
+{
+	if (ptr->grad_col) gf_free(ptr->grad_col);
+	if (ptr->grad_ratio) gf_free(ptr->grad_ratio);
+	if (ptr->path) {
+		if (ptr->path->pts) gf_free(ptr->path->pts);
+		if (ptr->path->types) gf_free(ptr->path->types);
+		if (ptr->path->idx) gf_free(ptr->path->idx);
+		gf_free(ptr->path);
+	}
+	gf_free(ptr);
+}
 
 static GF_Err swf_seek_file_to(SWFReader *read, u32 size)
 {
@@ -374,14 +393,30 @@ static SWFShapeRec *swf_new_shape_rec()
 static SWFShapeRec *swf_clone_shape_rec(SWFShapeRec *old_sr)
 {
 	SWFShapeRec *new_sr = (SWFShapeRec *)gf_malloc(sizeof(SWFShapeRec));
+	if (!new_sr) return NULL;
 	memcpy(new_sr, old_sr, sizeof(SWFShapeRec));
 	new_sr->path = (SWFPath*)gf_malloc(sizeof(SWFPath));
+	if (!new_sr->path) {
+		gf_free(new_sr);
+		return NULL;
+	}
 	memset(new_sr->path, 0, sizeof(SWFPath));
 
 	if (old_sr->nbGrad) {
 		new_sr->grad_col = (u32*)gf_malloc(sizeof(u32) * old_sr->nbGrad);
+		if (!new_sr->grad_col) {
+			gf_free(new_sr->path);
+			gf_free(new_sr);
+			return NULL;
+		}
 		memcpy(new_sr->grad_col, old_sr->grad_col, sizeof(u32) * old_sr->nbGrad);
 		new_sr->grad_ratio = (u8*)gf_malloc(old_sr->nbGrad);
+		if (!new_sr->grad_ratio) {
+			gf_free(new_sr->path);
+			gf_free(new_sr->grad_col);
+			gf_free(new_sr);
+			return NULL;
+		}
 		memcpy(new_sr->grad_ratio, old_sr->grad_ratio, sizeof(u8) * old_sr->nbGrad);
 	}
 	return new_sr;
@@ -413,6 +448,10 @@ static void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32
 				if (style->nbGrad) {
 					style->grad_col = (u32 *) gf_malloc(sizeof(u32) * style->nbGrad);
 					style->grad_ratio = (u8 *) gf_malloc(style->nbGrad);
+					if (!style->grad_col || !style->grad_ratio) {
+						swf_free_shape_rec(style);
+						break;
+					}
 					for (j=0; j<style->nbGrad; j++) {
 						style->grad_ratio[j] = swf_read_int(read, 8);
 						if (revision==2) style->grad_col[j] = swf_get_argb(read);
@@ -426,6 +465,12 @@ static void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32
 						u8 *grad_ratio;
 						grad_ratio = (u8 *) gf_malloc(style->nbGrad+1);
 						grad_col = (u32 *) gf_malloc(sizeof(u32) * (style->nbGrad+1));
+						if (!grad_ratio || !grad_col) {
+							if (grad_ratio) gf_free(grad_ratio);
+							if (grad_col) gf_free(grad_col);
+							swf_free_shape_rec(style);
+							break;
+						}
 						grad_col[0] = style->grad_col[0];
 						grad_ratio[0] = 0;
 						for (j=0; j<style->nbGrad; j++) {
@@ -441,6 +486,12 @@ static void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32
 					if (style->grad_ratio[style->nbGrad-1] != 255) {
 						u32 *grad_col = (u32*)gf_malloc(sizeof(u32) * (style->nbGrad+1));
 						u8 *grad_ratio = (u8*)gf_malloc(style->nbGrad+1);
+						if (!grad_col || !grad_ratio) {
+							if (grad_ratio) gf_free(grad_ratio);
+							if (grad_col) gf_free(grad_col);
+							swf_free_shape_rec(style);
+							break;
+						}
 						memcpy(grad_col, style->grad_col, sizeof(u32) * style->nbGrad);
 						memcpy(grad_ratio, style->grad_ratio, sizeof(u8) * style->nbGrad);
 						grad_col[style->nbGrad] = style->grad_col[style->nbGrad-1];
@@ -498,8 +549,9 @@ static void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32
 
 static void swf_path_realloc_pts(SWFPath *path, u32 nbPts)
 {
-	if (path)
-		path->pts = (SFVec2f*)gf_realloc(path->pts, sizeof(SFVec2f) * (path->nbPts + nbPts));
+	if (!path) return;
+	path->pts = (SFVec2f*)gf_realloc(path->pts, sizeof(SFVec2f) * (path->nbPts + nbPts));
+	if (!path->pts) path->nbPts = 0;
 }
 
 static void swf_path_add_com(SWFShapeRec *sr, SFVec2f pt, SFVec2f ctr, u32 type)
@@ -508,6 +560,10 @@ static void swf_path_add_com(SWFShapeRec *sr, SFVec2f pt, SFVec2f ctr, u32 type)
 	if (!sr) return;
 
 	sr->path->types = (u32*)gf_realloc(sr->path->types, sizeof(u32) * (sr->path->nbType+1));
+	if (!sr->path->types) {
+		sr->path->nbType = 0;
+		return;
+	}
 
 	sr->path->types[sr->path->nbType] = type;
 	switch (type) {
@@ -536,9 +592,12 @@ static void swf_referse_path(SWFPath *path)
 	if (path->nbType<=1) return;
 
 	types = (u32 *) gf_malloc(sizeof(u32) * path->nbType);
+	if (!types) return;
 	pts = (SFVec2f *) gf_malloc(sizeof(SFVec2f) * path->nbPts);
-
-
+	if (!pts) {
+		gf_free(types);
+		return;
+	}
 	/*need first moveTo*/
 	types[0] = 0;
 	pts[0] = path->pts[path->nbPts - 1];
@@ -586,18 +645,6 @@ static void swf_referse_path(SWFPath *path)
 	path->types = types;
 }
 
-static void swf_free_shape_rec(SWFShapeRec *ptr)
-{
-	if (ptr->grad_col) gf_free(ptr->grad_col);
-	if (ptr->grad_ratio) gf_free(ptr->grad_ratio);
-	if (ptr->path) {
-		if (ptr->path->pts) gf_free(ptr->path->pts);
-		if (ptr->path->types) gf_free(ptr->path->types);
-		if (ptr->path->idx) gf_free(ptr->path->idx);
-		gf_free(ptr->path);
-	}
-	gf_free(ptr);
-}
 
 static void swf_reset_rec_list(GF_List *recs)
 {
@@ -613,10 +660,18 @@ static void swf_append_path(SWFPath *a, SWFPath *b)
 	if (b->nbType<=1) return;
 
 	a->pts = (SFVec2f*)gf_realloc(a->pts, sizeof(SFVec2f) * (a->nbPts + b->nbPts));
+	if (!a->pts) {
+		a->nbPts = 0;
+		return;
+	}
 	memcpy(&a->pts[a->nbPts], b->pts, sizeof(SFVec2f)*b->nbPts);
 	a->nbPts += b->nbPts;
 
 	a->types = (u32*)gf_realloc(a->types, sizeof(u32)*(a->nbType+ b->nbType));
+	if (!a->types) {
+		a->nbType = 0;
+		return;
+	}
 	memcpy(&a->types[a->nbType], b->types, sizeof(u32)*b->nbType);
 	a->nbType += b->nbType;
 }
@@ -624,6 +679,10 @@ static void swf_append_path(SWFPath *a, SWFPath *b)
 static void swf_path_add_type(SWFPath *path, u32 val)
 {
 	path->types = (u32*)gf_realloc(path->types, sizeof(u32) * (path->nbType + 1));
+	if (!path->types) {
+		path->nbType = 0;
+		return;
+	}
 	path->types[path->nbType] = val;
 	path->nbType++;
 }
@@ -835,6 +894,7 @@ restart:
 	}
 	gf_list_del(paths);
 }
+
 
 /*
 	Notes on SWF->BIFS conversion - some ideas taken from libswfdec
@@ -1461,6 +1521,9 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 		count = swf_get_16(read);
 		ft->nbGlyphs = count / 2;
 		offset_table = (u32*)gf_malloc(sizeof(u32) * ft->nbGlyphs);
+		if (!offset_table) {
+			return GF_OUT_OF_MEM;
+		}
 		if (ft->nbGlyphs) offset_table[0] = 0;
 		for (i=1; i<ft->nbGlyphs; i++) offset_table[i] = swf_get_16(read);
 
@@ -1487,6 +1550,8 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 		swf_read_int(read, 8);
 		count = swf_read_int(read, 8);
 		ft->fontName = (char*)gf_malloc(count+1);
+		if (!ft->fontName) return GF_OUT_OF_MEM;
+
 		ft->fontName[count] = 0;
 		for (i=0; i<count; i++) ft->fontName[i] = swf_read_int(read, 8);
 
@@ -1495,6 +1560,7 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 
 		if (ft->nbGlyphs) {
 			offset_table = (u32*)gf_malloc(sizeof(u32) * ft->nbGlyphs);
+			if (!offset_table) return GF_OUT_OF_MEM;
 			for (i=0; i<ft->nbGlyphs; i++) {
 				if (wide_offset) offset_table[i] = swf_get_32(read);
 				else offset_table[i] = swf_get_16(read);
@@ -1525,6 +1591,7 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 			}
 
 			ft->glyph_codes = (u16*)gf_malloc(sizeof(u16) * ft->nbGlyphs);
+			if (!ft->glyph_codes) return GF_OUT_OF_MEM;
 			for (i=0; i<ft->nbGlyphs; i++) {
 				if (wide_codes) ft->glyph_codes[i] = swf_get_16(read);
 				else ft->glyph_codes[i] = swf_read_int(read, 8);
@@ -1536,6 +1603,7 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 			ft->leading = swf_get_s16(read);
 			if (ft->nbGlyphs) {
 				ft->glyph_adv = (s16*)gf_malloc(sizeof(s16) * ft->nbGlyphs);
+				if (!ft->glyph_adv) return GF_OUT_OF_MEM;
 				for (i=0; i<ft->nbGlyphs; i++) ft->glyph_adv[i] = swf_get_s16(read);
 				for (i=0; i<ft->nbGlyphs; i++) swf_get_rec(read, &rc);
 			}
@@ -1572,6 +1640,8 @@ static GF_Err swf_def_font_info(SWFReader *read)
 	if (ft->fontName) gf_free(ft->fontName);
 	count = swf_read_int(read, 8);
 	ft->fontName = (char*)gf_malloc(count+1);
+	if (!ft->fontName) return GF_OUT_OF_MEM;
+
 	ft->fontName[count] = 0;
 	for (i=0; i<count; i++) ft->fontName[i] = swf_read_int(read, 8);
 	swf_read_int(read, 2);
@@ -1585,6 +1655,7 @@ static GF_Err swf_def_font_info(SWFReader *read)
 	wide_chars = swf_read_bool(read);
 	if (ft->glyph_codes) gf_free(ft->glyph_codes);
 	ft->glyph_codes = (u16*)gf_malloc(sizeof(u16) * ft->nbGlyphs);
+	if (!ft->glyph_codes) return GF_OUT_OF_MEM;
 
 	for (i=0; i<ft->nbGlyphs; i++) {
 		if (wide_chars) ft->glyph_codes[i] = swf_get_16(read);
@@ -1641,7 +1712,9 @@ static GF_Err swf_def_text(SWFReader *read, u32 revision)
 			gr->orig_y = offY;
 			gr->nbGlyphs = count;
 			gr->indexes = (u32*)gf_malloc(sizeof(u32) * gr->nbGlyphs);
+			if (!gr->indexes) return GF_OUT_OF_MEM;
 			gr->dx = (Fixed*)gf_malloc(sizeof(Fixed) * gr->nbGlyphs);
+			if (!gr->dx) return GF_OUT_OF_MEM;
 			for (i=0; i<gr->nbGlyphs; i++) {
 				gr->indexes[i] = swf_read_int(read, nbits_glyph);
 				gr->dx[i] = FLT2FIX( swf_read_int(read, nbits_adv) * SWF_TWIP_SCALE );
@@ -1851,12 +1924,13 @@ static GF_Err swf_def_sound(SWFReader *read)
 
 		alloc_size = 4096;
 		frame = (u8*)gf_malloc(4096);
+		if (!frame) e = GF_OUT_OF_MEM;
 		/*snd->frame_delay_ms =*/ swf_get_16(read);
 		snd->frame_delay_ms = read->current_frame*1000;
 		snd->frame_delay_ms /= read->frame_rate;
 		tot_size = 9;
 		/*parse all frames*/
-		while (tot_size<read->size) {
+		while (tot_size<read->size && !e) {
 			u32 toread = read->size - tot_size;
 			if (toread>alloc_size) toread = alloc_size;
 			if (swf_read_data(read, frame, toread) != toread) {
@@ -1868,7 +1942,7 @@ static GF_Err swf_def_sound(SWFReader *read)
 			tot_size += toread;
 		}
 
-		gf_free(frame);
+		if (frame) gf_free(frame);
 		if (e) {
 			if (snd->szFileName) gf_free(snd->szFileName);
 			gf_free(snd);
@@ -2041,6 +2115,7 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 
 	alloc_size = 1;
 	frame = (u8*)gf_malloc(1);
+	if (!frame) return GF_OUT_OF_MEM;
 	tot_size = 4;
 	/*parse all frames*/
 	while (1) {
@@ -2056,6 +2131,7 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 		}
 		if (alloc_size<size-4) {
 			frame = (u8*)gf_realloc(frame, (size-4));
+			if (!frame) return GF_OUT_OF_MEM;
 			alloc_size = size-4;
 		}
 		/*watchout for truncated framesif */
@@ -2203,12 +2279,20 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		}
 
 		/*read alpha map and decompress it*/
-		if (size<AlphaPlaneSize) buf = (u8 *)gf_realloc(buf, AlphaPlaneSize);
+		if (size<AlphaPlaneSize) {
+			buf = (u8 *)gf_realloc(buf, AlphaPlaneSize);
+			if (!buf) return GF_OUT_OF_MEM;
+		}
 
 		if (swf_read_data(read, buf, AlphaPlaneSize) == AlphaPlaneSize) {
 
 			osize = w*h;
 			dst = (u8 *)gf_malloc(osize);
+			if (!dst) {
+				gf_free(buf);
+				gf_free(raw);
+				return GF_OUT_OF_MEM;
+			}
 			destLen = (uLongf)osize;
 			uncompress((Bytef *) dst, &destLen, buf, AlphaPlaneSize);
 			/*write alpha channel*/
@@ -2226,6 +2310,10 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 			osize = w*h*4;
 			buf = (u8 *)gf_realloc(buf, osize);
+			if (!buf) {
+				gf_free(raw);
+				return GF_OUT_OF_MEM;
+			}
 			gf_img_png_enc(raw, w, h, w*4, GF_PIXEL_RGBA, (u8 *)buf, &osize);
 
 			file = gf_fopen(szName, "wb");

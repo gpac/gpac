@@ -6381,6 +6381,10 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 				if (ptr->nb_entries>=ptr->alloc_size) {
 					ptr->alloc_size += 1;
 					ptr->entries = (GF_SttsEntry *)gf_realloc(ptr->entries, sizeof(GF_SttsEntry) * ptr->alloc_size);
+					if (!ptr->entries) {
+						ptr->alloc_size = 0;
+						return GF_OUT_OF_MEM;
+					}
 				}
 				memmove(&ptr->entries[k+2], &ptr->entries[k+1], sizeof(GF_SttsEntry) * (ptr->nb_entries - k - 1) );
 				ptr->entries[k].sampleCount -= 1;
@@ -11108,9 +11112,9 @@ GF_Err saiz_box_read(GF_Box *s, GF_BitStream *bs)
 			return GF_ISOM_INVALID_FILE;
 
 		ptr->sample_info_size = (u8*)gf_malloc(ptr->sample_count);
-		ptr->sample_alloc = ptr->sample_count;
 		if (!ptr->sample_info_size)
 			return GF_OUT_OF_MEM;
+		ptr->sample_alloc = ptr->sample_count;
 
 		ISOM_DECREASE_SIZE(ptr, ptr->sample_count);
 		gf_bs_read_data(bs, ptr->sample_info_size, ptr->sample_count);
@@ -11674,6 +11678,7 @@ GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size
 		if (i==len) {
 			len += 10;
 			*out_str = (char *)gf_realloc(*out_str, len);
+			if (! *out_str) return GF_OUT_OF_MEM;
 		}
 		if (gf_bs_available(bs) == 0) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] missing null character in null terminated string\n"));
@@ -13118,6 +13123,7 @@ GF_Err dfla_box_read(GF_Box *s,GF_BitStream *bs)
 	ptr->dataSize = (u32) ptr->size;
 	ptr->size=0;
 	ptr->data = (u8*)gf_malloc(ptr->dataSize);
+	if (!ptr->data) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->data, ptr->dataSize);
 	return GF_OK;
 }
@@ -13478,6 +13484,7 @@ GF_Err vwid_box_read(GF_Box *s,GF_BitStream *bs)
 		return GF_ISOM_INVALID_FILE;
 
 	ptr->views = (ViewIDEntry*)gf_malloc(sizeof(ViewIDEntry)*ptr->num_views);
+	if (!ptr->views) return GF_OUT_OF_MEM;
 	memset(ptr->views, 0, sizeof(ViewIDEntry)*ptr->num_views);
 	for (i=0; i<ptr->num_views; i++) {
 		u32 j;
@@ -13498,6 +13505,10 @@ GF_Err vwid_box_read(GF_Box *s,GF_BitStream *bs)
 			return GF_ISOM_INVALID_FILE;
 
 		ptr->views[i].view_refs = (ViewIDRefViewEntry*)gf_malloc(sizeof(ViewIDRefViewEntry)*ptr->views[i].num_ref_views);
+		if (!ptr->views[i].view_refs) {
+			ptr->views[i].num_ref_views = 0;
+			return GF_OUT_OF_MEM;
+		}
 		for (j=0; j<ptr->views[i].num_ref_views; j++) {
 			ISOM_DECREASE_SIZE(s, 2)
 			gf_bs_read_int(bs, 4);
@@ -14434,6 +14445,7 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 
 		ISOM_DECREASE_SIZE_NO_ERR(ptr, name_size)
 		data = (char *)gf_malloc(name_size+1);
+		if (!data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, (u8 *)data, name_size);
 		data[name_size] = 0;
 		tag_size-=name_size;
@@ -14452,6 +14464,10 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 			ISOM_DECREASE_SIZE_NO_ERR(ptr, prop_size)
 			//add 3 extra bytes for UTF16 case string dump (3 because we need 0-aligned short value)
 			data2 = (u8 *)gf_malloc(prop_size+3);
+			if (!data2) {
+				gf_free(data);
+				return GF_OUT_OF_MEM;
+			}
 			gf_bs_read_data(bs, data2, prop_size);
 			data2[prop_size] = 0;
 			data2[prop_size+1] = 0;
@@ -14461,6 +14477,7 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 			prop_size = 0;
 		}
 		GF_SAFEALLOC(tag, GF_XtraTag)
+		if (!tag) return GF_OUT_OF_MEM;
 		tag->flags = flags;
 		tag->name = data;
 		tag->prop_size = prop_size;
@@ -15088,6 +15105,7 @@ GF_Err sref_box_read(GF_Box *s, GF_BitStream *bs)
 		if (ent->nb_refs) {
 			u32 j;
 			ent->sample_refs = (s32 *)gf_malloc(sizeof(s32) * ent->nb_refs);
+			if (!ent->sample_refs) return GF_OUT_OF_MEM;
 			for (j=0; j<ent->nb_refs; j++) {
 				ent->sample_refs[j] = gf_bs_read_int(bs, bits);
 				ISOM_DECREASE_SIZE(s, bits/8)
@@ -15126,6 +15144,8 @@ static GF_List *cdrf_get_refs(GF_SampleReferences *ptr, s32 *out_max_id, s32 *ou
 		GF_SampleRefEntry *ent = (GF_SampleRefEntry *)gf_list_get(ptr->entries, i);
 		GF_SampleRefDiffEntry *rent;
 		GF_SAFEALLOC(rent, GF_SampleRefDiffEntry);
+		if (!rent) continue;
+
 		rent->diff_sampleID = rent->orig_sampleID = ent->sampleID;
 		if (ent->sampleID==GF_INT_MAX) {
 			rent->is_abs = GF_TRUE;
@@ -15145,6 +15165,7 @@ static GF_List *cdrf_get_refs(GF_SampleReferences *ptr, s32 *out_max_id, s32 *ou
 			rent->nb_refs = ent->nb_refs;
 			rent->orig_sample_refs = ent->sample_refs;
 			rent->sample_refs = (s32 *)gf_malloc(sizeof(s32) * ent->nb_refs);
+			if (!rent->sample_refs) rent->nb_refs = 0;
 			for (j=0; j<rent->nb_refs; j++) {
 				rent->sample_refs[j] = ent->sampleID;
 				rent->sample_refs[j] -= ent->sample_refs[j];

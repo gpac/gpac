@@ -830,6 +830,12 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 			if (sess->nb_ranges >= sess->alloc_ranges) {
 				sess->alloc_ranges = sess->nb_ranges + 1;
 				sess->ranges = (HTTByteRange *)gf_realloc(sess->ranges, sizeof(HTTByteRange)*sess->alloc_ranges);
+				if (!sess->ranges) {
+					sess->alloc_ranges = 0;
+					rst = RANGE_INVALID_FORMAT;
+					range_msg = "not enough memory";
+					goto exit;
+				}
 			}
 			sess->ranges[sess->nb_ranges].start = start;
 			sess->ranges[sess->nb_ranges].end = end;
@@ -2631,6 +2637,9 @@ static void httpout_configure_directories(GF_HTTPOutCtx *ctx)
 				}
 				HTTP_DIRInfo *di;
 				GF_SAFEALLOC(di, HTTP_DIRInfo);
+				if (!di) {
+					continue;
+				}
 				di->path = gf_strdup(dname);
 				gf_list_add(ctx->directories, di);
 				di->name = (char*)gf_cfg_get_key(rules, dname, "name");
@@ -2669,6 +2678,7 @@ static void httpout_configure_directories(GF_HTTPOutCtx *ctx)
 				}
 			}
 			GF_SAFEALLOC(di, HTTP_DIRInfo);
+			if (!di) continue;
 			di->path = gf_strdup(dpath);
 			gf_list_add(ctx->directories, di);
 			ctx->has_read_dir = GF_TRUE;
@@ -2677,10 +2687,12 @@ static void httpout_configure_directories(GF_HTTPOutCtx *ctx)
 	if (ctx->wdir) {
 		HTTP_DIRInfo *di;
 		GF_SAFEALLOC(di, HTTP_DIRInfo);
-		di->path = gf_strdup(ctx->wdir);
-		di->wu = gf_strdup("$ALL");
-		gf_list_add(ctx->directories, di);
-		ctx->has_write_dir = GF_TRUE;
+		if (di) {
+			di->path = gf_strdup(ctx->wdir);
+			di->wu = gf_strdup("$ALL");
+			gf_list_add(ctx->directories, di);
+			ctx->has_write_dir = GF_TRUE;
+		}
 	}
 
 	u32 count = gf_list_count(ctx->directories);
@@ -2805,6 +2817,10 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					// create a fake rdir and propagate the change
 					ctx->rdirs.nb_items = 1;
 					ctx->rdirs.vals = (char **)gf_malloc(sizeof(char*));
+					if (!ctx->rdirs.vals) {
+						gf_free(pctx);
+						return GF_OUT_OF_MEM;
+					}
 					ctx->rdirs.vals[0] = gf_strdup(szFName);
 					gf_filter_make_sticky(filter);
 					httpout_configure_directories(ctx);
@@ -5165,7 +5181,8 @@ next_pck:
 						if (pck_data) {
 							in->tunein_data_size = pck_size;
 							in->tunein_data = (u8 *)gf_realloc(in->tunein_data, pck_size);
-							memcpy(in->tunein_data, pck_data, pck_size);
+							if (in->tunein_data)
+								memcpy(in->tunein_data, pck_data, pck_size);
 						}
 					}
 				}

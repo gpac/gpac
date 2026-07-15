@@ -32,7 +32,7 @@
 
 #if !defined(GPAC_DISABLE_ROUTE)
 
-GF_OPT_ENUM (DVBFluteChecksumMode, 
+GF_OPT_ENUM (DVBFluteChecksumMode,
 	DVB_CSUM_NO=0,
 	DVB_CSUM_META,
 	DVB_CSUM_ALL,
@@ -885,6 +885,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 	}
 
 	ctx->lct_buffer = (u8 *)gf_malloc(ctx->mtu);
+	if (!ctx->lct_buffer) return GF_OUT_OF_MEM;
 	ctx->clock_init = gf_sys_clock_high_res();
 	ctx->clock_stats = ctx->clock_init;
 	ctx->lct_bs = gf_bs_new(ctx->lct_buffer, ctx->mtu, GF_BITSTREAM_WRITE);
@@ -995,14 +996,16 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					if (crc != rpid->init_seg_crc) {
 						if (rpid->init_seg_data) gf_free(rpid->init_seg_data);
 						rpid->init_seg_data = (u8 *)gf_malloc(len);
-						memcpy(rpid->init_seg_data, data, len);
-						rpid->init_seg_size = len;
-						rpid->init_seg_crc = crc;
-						rpid->init_seg_sent = GF_FALSE;
-						//we need a new TOI since init seg changed
-						rpid->init_toi = 0;
-						serv->needs_reconfig = GF_TRUE;
-						rpid->current_toi = 0;
+						if (rpid->init_seg_data) {
+							memcpy(rpid->init_seg_data, data, len);
+							rpid->init_seg_size = len;
+							rpid->init_seg_crc = crc;
+							rpid->init_seg_sent = GF_FALSE;
+							//we need a new TOI since init seg changed
+							rpid->init_toi = 0;
+							serv->needs_reconfig = GF_TRUE;
+							rpid->current_toi = 0;
+						}
 
 						p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 						if (!p) p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_INIT_NAME);
@@ -1082,11 +1085,13 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 				if (crc != media_pid->hld_child_pl_crc) {
 					if (media_pid->hld_child_pl) gf_free(media_pid->hld_child_pl);
 					media_pid->hld_child_pl = (char *)gf_malloc(len+1);
-					memcpy(media_pid->hld_child_pl, data, len);
-					media_pid->hld_child_pl[len] = 0;
-					media_pid->hld_child_pl_crc = crc;
-					//we need a new TOI since manifest changed
-					media_pid->hls_child_toi = 0;
+					if (media_pid->hld_child_pl) {
+						memcpy(media_pid->hld_child_pl, data, len);
+						media_pid->hld_child_pl[len] = 0;
+						media_pid->hld_child_pl_crc = crc;
+						//we need a new TOI since manifest changed
+						media_pid->hls_child_toi = 0;
+					}
 					//for route we alternate MAX_INT-1 and MAX_INT-2 and update S-TSID each time
 					//NOTE: ROUTE spec is not really designed for HLS with variant playlist updates
 					//in particular is silent about what happens when FDT-Instance changes during updates
@@ -1133,9 +1138,11 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					*manifest_crc = man_crc;
 					if (*manifest) gf_free(*manifest);
 					(*manifest) = (char *)gf_malloc(man_size+1);
-					memcpy(*manifest, man_data, man_size);
-					(*manifest) [man_size] = 0;
-					(*manifest_version) ++;
+					if (*manifest) {
+						memcpy(*manifest, man_data, man_size);
+						(*manifest) [man_size] = 0;
+						(*manifest_version) ++;
+					}
 					if (*manifest_name) {
 						if (strcmp(*manifest_name, file_name)) serv->needs_reconfig = GF_TRUE;
 						gf_free(*manifest_name);
@@ -2019,9 +2026,11 @@ retry:
 			rpid->current_toi = 0;
 			if (rpid->init_seg_data) gf_free(rpid->init_seg_data);
 			rpid->init_seg_data = (u8 *)gf_malloc(rpid->pck_size);
-			memcpy(rpid->init_seg_data, rpid->pck_data, rpid->pck_size);
-			rpid->init_seg_size = rpid->pck_size;
-			rpid->init_seg_sent = GF_FALSE;
+			if (rpid->init_seg_data) {
+				memcpy(rpid->init_seg_data, rpid->pck_data, rpid->pck_size);
+				rpid->init_seg_size = rpid->pck_size;
+				rpid->init_seg_sent = GF_FALSE;
+			}
 			p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_FILENAME);
 			if (rpid->init_seg_name) gf_free(rpid->init_seg_name);
 			rpid->init_seg_name = p ? routeout_strip_base(rpid->route, p->value.string) : NULL;
@@ -2335,7 +2344,7 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 		//update current toi with value of next toi available since we sent mani and init
 		if (rpid->current_toi !=1 && rpid->current_toi  < ctx->next_toi_avail)
 		rpid->current_toi = ctx->next_toi_avail;
-	}	
+	}
 
 	//cannot use TOI 0 for anything else than FDT
 	if (!rpid->current_toi)
@@ -2692,18 +2701,20 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 		len = (u32) strlen(payload_text);
 		comp_size = 2*len;
 		payload = (u8 *)gf_malloc(comp_size+4);
-		pay_start = payload + 4;
-		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_TRUE);
+		if (payload) {
+			pay_start = payload + 4;
+			gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_TRUE);
+			comp_size += 4;
+			//format header
+			payload[0] = 3; //tableID
+			payload[1] = 0; //groupid
+			payload[2] = 0; //lls_group_count_minus_one
+			payload[3] = 1; //lls_table_version
+		} else {
+			comp_size = 0;
+		}
 		gf_free(payload_text);
 		payload_text = NULL;
-
-		comp_size += 4;
-		//format header
-		payload[0] = 3; //tableID
-		payload[1] = 0; //groupid
-		payload[2] = 0; //lls_group_count_minus_one
-		payload[3] = 1; //lls_table_version
-
 		ctx->lls_time_table = payload;
 		ctx->lls_time_table_len = comp_size;
 	}
@@ -2788,18 +2799,21 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 		len = (u32) strlen(payload_text);
 		comp_size = 2*len;
 		payload = (u8 *)gf_malloc(comp_size+4);
-		pay_start = payload + 4;
-		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_TRUE);
+		if (payload) {
+			pay_start = payload + 4;
+			gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_TRUE);
+
+			comp_size += 4;
+			//format header
+			payload[0] = 1; //tableID
+			payload[1] = 0; //groupid
+			payload[2] = 0; //lls_group_count_minus_one
+			payload[3] = 1; //lls_table_version
+		} else {
+			comp_size = 0;
+		}
 		gf_free(payload_text);
 		payload_text = NULL;
-
-		comp_size += 4;
-		//format header
-		payload[0] = 1; //tableID
-		payload[1] = 0; //groupid
-		payload[2] = 0; //lls_group_count_minus_one
-		payload[3] = 1; //lls_table_version
-
 		ctx->lls_slt_table = payload;
 		ctx->lls_slt_table_len = comp_size;
 	}

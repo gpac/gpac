@@ -295,6 +295,9 @@ static GF_Err obumx_process_mpeg2au(GF_OBUMxCtx *ctx, GF_FilterPacket *src_pck, 
 		}
 		//TODO - rework code to avoid alloc/free all per obu
 		obu_data = (u8 *)gf_malloc(obu_size);
+		if (!obu_data) {
+			return GF_OUT_OF_MEM;
+		}
 		read_size = gf_bs_read_data(ctx->bs_r, obu_data, obu_size);
 		if (read_size != obu_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OBUWrite] Could not read entire OBU %d vs %d !!\n", read_size, obu_size));

@@ -234,6 +234,7 @@ static void hevcmerge_rewrite_pps(GF_HEVCMergeCtx *ctx, const u8 *in_PPS, u32 in
 
 	*out_PPS_length = pps_size_no_epb + gf_media_nalu_emulation_bytes_add_count(ctx->buffer_nal_no_epb, pps_size_no_epb);
 	*out_PPS = (u8 *)gf_malloc(*out_PPS_length);
+	if (! *out_PPS) { *out_PPS_length = 0; return; }
 	gf_media_nalu_add_emulation_bytes(ctx->buffer_nal_no_epb, *out_PPS, pps_size_no_epb);
 }
 
@@ -260,6 +261,7 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, cons
 	if (ctx->buffer_nal_in_no_epb_alloc<in_slice_length) {
 		ctx->buffer_nal_in_no_epb_alloc = in_slice_length;
 		ctx->buffer_nal_in_no_epb = (u8 *)gf_realloc(ctx->buffer_nal_in_no_epb, in_slice_length);
+		if (!ctx->buffer_nal_in_no_epb) return 0;
 	}
 	in_slice_size_no_epb = gf_media_nalu_remove_emulation_bytes(in_slice, ctx->buffer_nal_in_no_epb, in_slice_length);
 	gf_bs_reassign_buffer(ctx->bs_nal_in, ctx->buffer_nal_in_no_epb, in_slice_size_no_epb);
@@ -275,7 +277,7 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, cons
 	num_entry_point_start = (u32)hevc->s_info.entry_point_start_bits;
 	slice_qp_delta_start = (u32)hevc->s_info.slice_qp_delta_start_bits;
 
-	// nal_unit_header			 
+	// nal_unit_header
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
 	nal_unit_type = gf_bs_read_int(ctx->bs_nal_in, 6);
 	gf_bs_write_int(ctx->bs_nal_out, nal_unit_type, 6);
@@ -381,6 +383,7 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, cons
 	if (ctx->buffer_nal_no_epb_alloc < out_slice_size_no_epb) {
 		ctx->buffer_nal_no_epb_alloc = out_slice_size_no_epb;
 		ctx->buffer_nal_no_epb = (u8 *)gf_realloc(ctx->buffer_nal_no_epb, out_slice_size_no_epb);
+		if (!ctx->buffer_nal_no_epb) return 0;
 	}
 	memcpy(ctx->buffer_nal_no_epb + slice_offset_dst, ctx->buffer_nal_in_no_epb + slice_offset_orig, sizeof(char) * slice_size);
 
@@ -389,6 +392,7 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, cons
 	if (ctx->buffer_nal_alloc < out_slice_length) {
 		ctx->buffer_nal_alloc = out_slice_length;
 		ctx->buffer_nal = (u8 *)gf_realloc(ctx->buffer_nal, out_slice_length);
+		if (!ctx->buffer_nal) return 0;
 	}
 	gf_media_nalu_add_emulation_bytes(ctx->buffer_nal_no_epb, ctx->buffer_nal, out_slice_size_no_epb);
 	return out_slice_length;
@@ -497,7 +501,7 @@ void hevcmerge_build_srdmap(GF_HEVCMergeCtx *ctx, Bool use_abs_pos)
 	//8 integers per PID
 	srdmap.value.uint_list.nb_items = nb_pids*8;
 	srdmap.value.uint_list.vals = (u32 *)gf_malloc(sizeof(u32)*nb_pids*8);
-
+	if (!srdmap.value.uint_list.vals) return;
 	u32 *vals = srdmap.value.uint_list.vals;
 
 	for (i=0; i<nb_pids; i++) {
@@ -652,6 +656,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 
 			if (!max_cols) {
 				ctx->grid = (HEVCGridInfo *)gf_malloc(sizeof(HEVCGridInfo));
+				if (!ctx->grid) return GF_OUT_OF_MEM;
 				memset(&ctx->grid[0], 0, sizeof(HEVCGridInfo));
 
 				ctx->grid[0].width = tile1->width;
@@ -666,6 +671,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 					//append
 					if (ctx->grid[max_cols-1].pos_x <(u32) -tile1->pos_x) {
 						ctx->grid = (HEVCGridInfo *)gf_realloc(ctx->grid, sizeof(HEVCGridInfo) * (max_cols+1) );
+						if (!ctx->grid) return GF_OUT_OF_MEM;
 						memset(&ctx->grid[max_cols], 0, sizeof(HEVCGridInfo));
 						ctx->grid[max_cols].width = tile1->width;
 						ctx->grid[max_cols].pos_x = -tile1->pos_x;
@@ -684,6 +690,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 							for (j=0; j<max_cols; j++) {
 								if (ctx->grid[j].pos_x > (u32) -tile1->pos_x) {
 									ctx->grid = (HEVCGridInfo *)gf_realloc(ctx->grid, sizeof(HEVCGridInfo) * (max_cols+1) );
+									if (!ctx->grid) return GF_OUT_OF_MEM;
 									memmove(&ctx->grid[j+1], &ctx->grid[j], sizeof(HEVCGridInfo) * (max_cols-j));
 									memset(&ctx->grid[j], 0, sizeof(HEVCGridInfo));
 									ctx->grid[j].width = tile1->width;
@@ -698,6 +705,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 					//append
 					if (ctx->grid[max_cols-1].pos_x + ctx->grid[max_cols-1].width <= (u32) tile1->pos_x) {
 						ctx->grid = (HEVCGridInfo *)gf_realloc(ctx->grid, sizeof(HEVCGridInfo) * (max_cols+1) );
+						if (!ctx->grid) return GF_OUT_OF_MEM;
 						memset(&ctx->grid[max_cols], 0, sizeof(HEVCGridInfo));
 						ctx->grid[max_cols].width = tile1->width;
 						ctx->grid[max_cols].pos_x = tile1->pos_x;
@@ -711,6 +719,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 							}
 							if (ctx->grid[j].pos_x > (u32) tile1->pos_x) {
 								ctx->grid = (HEVCGridInfo *)gf_realloc(ctx->grid, sizeof(HEVCGridInfo) * (max_cols+1) );
+								if (!ctx->grid) return GF_OUT_OF_MEM;
 								memmove(&ctx->grid[j+1], &ctx->grid[j], sizeof(HEVCGridInfo) * (max_cols-j));
 								memset(&ctx->grid[j], 0, sizeof(HEVCGridInfo));
 								ctx->grid[j].width = tile1->width;
@@ -736,6 +745,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 					u32 new_x = ctx->grid[j].pos_x + ctx->grid[j].width;
 
 					ctx->grid = (HEVCGridInfo *)gf_realloc(ctx->grid, sizeof(HEVCGridInfo) * (max_cols+1) );
+					if (!ctx->grid) return GF_OUT_OF_MEM;
 					memmove(&ctx->grid[j+2], &ctx->grid[j+1], sizeof(HEVCGridInfo) * (max_cols-j-1));
 
 					memset(&ctx->grid[j+1], 0, sizeof(HEVCGridInfo));
@@ -806,6 +816,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 	} else {
 		//gather tiles per columns
 		ctx->grid = (HEVCGridInfo *)gf_malloc(sizeof(HEVCGridInfo)*nb_pids);
+		if (!ctx->grid) return GF_OUT_OF_MEM;
 		memset(ctx->grid, 0, sizeof(HEVCGridInfo)*nb_pids);
 		u32 target_nb_rows = 1;
 		while (target_nb_rows*target_nb_rows < nb_pids) target_nb_rows++;
@@ -1515,6 +1526,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 					if (ctx->sei_suffix_alloc<nal_length) {
 						ctx->sei_suffix_alloc = nal_length;
 						ctx->sei_suffix_buf = (u8 *)gf_realloc(ctx->sei_suffix_buf, nal_length);
+						if (!ctx->sei_suffix_buf) return GF_OUT_OF_MEM;
 					}
 					ctx->sei_suffix_len = nal_length;
 					memcpy(ctx->sei_suffix_buf, data+pos, nal_length);

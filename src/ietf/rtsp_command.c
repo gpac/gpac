@@ -116,6 +116,7 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 
 	size = RTSP_WRITE_STEPALLOC;
 	buffer = (char *) gf_malloc(size);
+	if (!buffer) return GF_OUT_OF_MEM;
 	cur_pos = 0;
 
 	//request
@@ -549,7 +550,10 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 			goto exit;
 		}
 		com->body = (char *) gf_malloc(com->Content_Length);
-		memcpy(com->body, sess->tcp_buffer+sess->CurrentPos + BodyStart, com->Content_Length);
+		if (com->body)
+			memcpy(com->body, sess->tcp_buffer+sess->CurrentPos + BodyStart, com->Content_Length);
+		else
+			e = GF_OUT_OF_MEM;
 	}
 	//reset TCP buffer
 	if (!com_buf_size) com_buf_size = BodyStart + com->Content_Length;

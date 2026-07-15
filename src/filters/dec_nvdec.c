@@ -1349,6 +1349,10 @@ GF_Err nvframe_get_frame(GF_FilterFrameInterface *frame, u32 plane_idx, const u8
 		if (ctx->out_size > ctx->single_frame_data_alloc) {
 			ctx->single_frame_data_alloc = ctx->out_size;
 			ctx->single_frame_data = (u8 *)gf_realloc(ctx->single_frame_data, ctx->out_size);
+			if (!ctx->single_frame_data) {
+				ctx->out_size = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
 		f->y_mapped = GF_TRUE;
 

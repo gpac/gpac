@@ -108,7 +108,7 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 	}
 	gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, NULL);
 
-	if (ctx->szFileName && !strcmp(szFinalName, ctx->szFileName) 
+	if (ctx->szFileName && !strcmp(szFinalName, ctx->szFileName)
 #ifdef WIN32
 		&& (ctx->pipe != INVALID_HANDLE_VALUE)
 #else

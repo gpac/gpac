@@ -667,6 +667,7 @@ GF_EXPORT
 GF_StatManager *gf_sm_stats_new()
 {
 	GF_StatManager *sm = (GF_StatManager *)gf_malloc(sizeof(GF_StatManager));
+	if (!sm) return NULL;
 	sm->def_nodes = gf_list_new();
 	sm->stats = NewSceneStats();
 	return sm;

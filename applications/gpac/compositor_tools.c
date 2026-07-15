@@ -1523,8 +1523,11 @@ static void mp4c_take_screenshot(Bool for_coverage)
 #ifndef GPAC_DISABLE_AV_PARSERS
 			u32 dst_size = fb.width*fb.height*4;
 			u8 *dst = (u8*)gf_malloc(dst_size);
+			if (!dst)
+				e = GF_OUT_OF_MEM;
+			else
+				e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
 
-			e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
 			if (e) {
 				fprintf(stderr, "Error encoding PNG %s\n", gf_error_to_string(e) );
 				nb_pass = 0;

@@ -590,6 +590,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 			sess->pck_start = Size-4;
 			if (sess->rtsp_pck_size < paySize) {
 				sess->rtsp_pck_buf = (u8 *)gf_realloc(sess->rtsp_pck_buf, paySize);
+				if (!sess->rtsp_pck_buf) return GF_OUT_OF_MEM;
 				sess->rtsp_pck_size = paySize;
 			}
 			memcpy(sess->rtsp_pck_buf, buffer+4, Size-4);
@@ -694,6 +695,7 @@ GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess, gf_rtsp_interleave_
 			sess->pck_start = 0;
 		sess->rtsp_pck_size = RTSP_PCK_SIZE;
 		sess->rtsp_pck_buf = (u8 *)gf_realloc(sess->rtsp_pck_buf, sess->rtsp_pck_size);
+		if (!sess->rtsp_pck_buf) return GF_OUT_OF_MEM;
 	}
 	return GF_OK;
 }
@@ -705,6 +707,7 @@ GF_Err gf_rtsp_set_buffer_size(GF_RTSPSession *sess, u32 BufferSize)
 	if (sess->SockBufferSize >= BufferSize) return GF_OK;
 	sess->SockBufferSize = BufferSize;
 	sess->tcp_buffer = (u8*)gf_realloc(sess->tcp_buffer, (BufferSize+1));
+	if (!sess->tcp_buffer) return GF_OUT_OF_MEM;
 	return GF_OK;
 }
 

@@ -84,6 +84,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	if (InterfaceType != GF_INPUT_DEVICE_INTERFACE) return NULL;
 
 	GF_SAFEALLOC(plug, GF_InputSensorDevice);
+	if (!plug) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_INPUT_DEVICE_INTERFACE, "GPAC Demo InputSensor", "gpac distribution")
 
 	plug->RegisterDevice = DEV_RegisterDevice;

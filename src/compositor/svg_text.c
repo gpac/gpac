@@ -245,6 +245,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 
 	len = (u32) strlen(textContent);
 	dup_text = (char*)gf_malloc(len+1);
+	if (!dup_text) return NULL;
 
 	switch (tr_state->last_char_type) {
 	case 2:
@@ -367,6 +368,7 @@ static void svg_text_area_queue_state(GF_TraverseState *tr_state, GF_TextSpan *s
 		}
 	}
 	st = (textArea_state*)gf_malloc(sizeof(textArea_state));
+	if (!st) return;
 	st->first_glyph = first_glyph;
 	st->last_glyph = last_glyph;
 	st->span = span;

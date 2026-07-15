@@ -76,6 +76,7 @@ static void TraverseSpotLight(GF_Node *n, void *rs, Bool is_destroy)
 void compositor_init_spot_light(GF_Compositor *compositor, GF_Node *node)
 {
 	Bool *vis = (Bool*)gf_malloc(sizeof(Bool));
+	if (!vis) return;
 	*vis = GF_FALSE;
 	gf_node_set_private(node, vis);
 	/*no need for a stck*/
@@ -125,6 +126,7 @@ static void TraversePointLight(GF_Node *n, void *rs, Bool is_destroy)
 void compositor_init_point_light(GF_Compositor *compositor, GF_Node *node)
 {
 	Bool *vis = (Bool*)gf_malloc(sizeof(Bool));
+	if (!vis) return;
 	*vis = GF_FALSE;
 	gf_node_set_private(node, vis);
 	/*no need for a stck*/
@@ -163,6 +165,7 @@ static void TraverseDirectionalLight(GF_Node *n, void *rs, Bool is_destroy)
 void compositor_init_directional_light(GF_Compositor *compositor, GF_Node *node)
 {
 	Bool *stack = (Bool*)gf_malloc(sizeof(Bool));
+	if (!stack) return;
 	*stack = GF_FALSE;
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, TraverseDirectionalLight);

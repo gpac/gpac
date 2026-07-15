@@ -1411,6 +1411,7 @@ void filter_parse_logs(GF_Filter *filter, const char *_logs)
 				if (!found) {
 					lf->tools = (GF_LOG_Tool *)gf_realloc(lf->tools, sizeof(GF_LOG_Tool) * (lf->nb_tools+1));
 					lf->levels = (GF_LOG_Level *)gf_realloc(lf->levels, sizeof(GF_LOG_Level) * (lf->nb_tools+1));
+					if (!lf->tools || !lf->levels) { lf->nb_tools = 0; break; }
 					lf->tools[lf->nb_tools] = tool;
 					lf->levels[lf->nb_tools] = level;
 					lf->nb_tools++;
@@ -2004,6 +2005,7 @@ skip_date:
 		if (len>=alloc_len) {
 			alloc_len = len+1;
 			szArg = (char *)gf_realloc(szArg, alloc_len);
+			if (!szArg) goto skip_arg;
 		}
 		memcpy(szArg, args, len);
 		szArg[len]=0;
@@ -2222,7 +2224,11 @@ skip_date:
 					} else {
 						filter->skip_cids.nb_items = 1;
 						filter->skip_cids.vals = (char **)gf_malloc(sizeof(char*));
-						filter->skip_cids.vals[0] = gf_strdup("AUTO");
+						if (!filter->skip_cids.vals) {
+							filter->skip_cids.nb_items = 0;
+						} else {
+							filter->skip_cids.vals[0] = gf_strdup("AUTO");
+						}
 					}
 				}
 			}
@@ -3694,6 +3700,7 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 	if (!filter->on_setup_error_filter && !force_disconnect) return;
 
 	stack = (struct _gf_filter_setup_failure *)gf_malloc(sizeof(struct _gf_filter_setup_failure));
+	if (!stack) return;
 	stack->e = reason;
 	stack->notify_filter = filter->on_setup_error_filter;
 	stack->filter = filter;
@@ -6075,9 +6082,11 @@ void gf_filter_add_status_metric(GF_Filter *filter, const char *metric)
 	}
 	GF_FSCustomMetric *met;
 	GF_SAFEALLOC(met, GF_FSCustomMetric);
-	met->reg_name = gf_strdup(filter->freg->name);
-	met->metric = gf_strdup(metric);
-	gf_list_add(filter->session->additionnal_metrics, met);
+	if (met) {
+		met->reg_name = gf_strdup(filter->freg->name);
+		met->metric = gf_strdup(metric);
+		gf_list_add(filter->session->additionnal_metrics, met);
+	}
 }
 
 static void gf_filter_cleanup_status_metrics(GF_FilterSession *fs, const GF_FilterRegister *freg)

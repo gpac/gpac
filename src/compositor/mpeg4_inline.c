@@ -458,6 +458,8 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 		if (pl->url->vals[0].url && lib_url->vals[0].url && !stricmp(pl->url->vals[0].url, lib_url->vals[0].url) ) return NULL;
 	}
 	pl = (GF_ProtoLink*)gf_malloc(sizeof(GF_ProtoLink));
+	if (!pl) return NULL;
+
 	pl->url = lib_url;
 	gf_list_add(scene->extern_protos, pl);
 	pl->mo = gf_scene_get_media_object(scene, lib_url, GF_MEDIA_OBJECT_SCENE, GF_FALSE);

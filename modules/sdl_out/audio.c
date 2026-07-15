@@ -40,6 +40,10 @@ void sdl_fill_audio(void *udata, Uint8 *stream, int len)
 		u32 written;
 		if (ctx->alloc_size < (u32) len) {
 			ctx->audioBuff = (Uint8*)gf_realloc( ctx->audioBuff, sizeof(Uint8) * len);
+			if (!ctx->audioBuff) {
+				ctx->alloc_size = 0;
+				return;
+			}
 			ctx->alloc_size = len;
 		}
 		memset(stream, 0, len);
@@ -251,9 +255,14 @@ void *SDL_NewAudio()
 
 
 	ctx = (SDLAudCtx*)gf_malloc(sizeof(SDLAudCtx));
+	if (!ctx) return NULL;
 	memset(ctx, 0, sizeof(SDLAudCtx));
 
 	dr = (GF_AudioOutput*)gf_malloc(sizeof(GF_AudioOutput));
+	if (!dr) {
+		gf_free(ctx);
+		return NULL;
+	}
 	memset(dr, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_AUDIO_OUTPUT_INTERFACE, "sdla", "gpac distribution");
 

@@ -1374,8 +1374,12 @@ static GFINLINE GF_JSField *SFImage_Create(JSContext *c, JSValue obj, u32 w, u32
 	v->height = h;
 	v->numComponents = nbComp;
 	v->pixels = (u8 *) gf_malloc(nbComp * w * h);
-	len = MIN(nbComp * w * h, pixels->count);
-	for (i=0; i<len; i++) v->pixels[i] = (u8) pixels->vals[i];
+	if (v->pixels) {
+		len = MIN(nbComp * w * h, pixels->count);
+		for (i=0; i<len; i++) v->pixels[i] = (u8) pixels->vals[i];
+	} else {
+		v->width = v->height = 0;
+	}
 	JS_SetOpaque(obj, field);
 	return field;
 }
@@ -1477,9 +1481,13 @@ static JSValue image_setProperty(JSContext *c, JSValueConst obj, JSValueConst va
 		if (sfi->pixels) gf_free(sfi->pixels);
 		len = sfi->width*sfi->height*sfi->numComponents;
 		sfi->pixels = (u8 *) gf_malloc(len);
-		len = MAX(len, pixels->count);
-		for (i=0; i<len; i++) sfi->pixels[i] = (u8) pixels->vals[i];
-		changed = GF_TRUE;
+		if (sfi->pixels) {
+			len = MAX(len, pixels->count);
+			for (i=0; i<len; i++) sfi->pixels[i] = (u8) pixels->vals[i];
+			changed = GF_TRUE;
+		} else {
+			sfi->width = sfi->height = 0;
+		}
 		break;
 	}
 	default:
@@ -2223,6 +2231,10 @@ static JSValue genmf_Constructor(JSContext *c, JSValueConst new_target, int argc
 
 	if (!argc || (fieldType==GF_SG_VRML_MFNODE))  return obj;
 	ptr->mfvals = (JSValue *)gf_realloc(ptr->mfvals, sizeof(JSValue)*argc);
+	if (!ptr->mfvals) {
+		ptr->mfvals_count = 0;
+		return GF_JS_EXCEPTION(c);
+	}
 	ptr->mfvals_count = argc;
 	for (i=0; i<(u32) argc; i++) {
 		if (sf_class_id) {
@@ -2403,6 +2415,10 @@ static int array_setLength(JSContext *c, GF_JSField *ptr, JSValueConst value)
 	}
 
 	ptr->mfvals = (JSValue *)gf_realloc(ptr->mfvals, sizeof(JSValue)*ptr->mfvals_count);
+	if (!ptr->mfvals) {
+		ptr->mfvals_count = 0;
+		return -1;
+	}
 	sftype = gf_sg_vrml_get_sf_type(ptr->field.fieldType);
 	for (i=old_len; i<len; i++) {
 		JSValue a_val;
@@ -2492,6 +2508,10 @@ static int array_setElement(JSContext *c, JSValueConst obj, JSAtom atom, JSValue
 	if (is_append && (ptr->field.fieldType!=GF_SG_VRML_MFNODE)) {
 
 		ptr->mfvals = (JSValue *)gf_realloc(ptr->mfvals, sizeof(JSValue)*(ind+1));
+		if (!ptr->mfvals) {
+			ptr->mfvals_count = 0;
+			return -1;
+		}
 		ptr->mfvals_count = ind+1;
 
 		while (len<ind) {
@@ -3487,6 +3507,10 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		SETUP_MF_FIELD(MFBoolClass)
 		jsf->mfvals_count = f->count;
 		jsf->mfvals = (JSValue *)gf_realloc(jsf->mfvals, sizeof(JSValue)*f->count);
+		if (!jsf->mfvals) {
+			jsf->mfvals_count = 0;
+			return GF_JS_EXCEPTION(priv->js_ctx);
+		}
 		for (i = 0; i<f->count; i++) {
 			jsf->mfvals[i] = JS_NewBool(priv->js_ctx, f->vals[i]);
 		}
@@ -3498,6 +3522,10 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		SETUP_MF_FIELD(MFInt32Class)
 		jsf->mfvals_count = f->count;
 		jsf->mfvals = (JSValue *)gf_realloc(jsf->mfvals, sizeof(JSValue)*f->count);
+		if (!jsf->mfvals) {
+			jsf->mfvals_count = 0;
+			return GF_JS_EXCEPTION(priv->js_ctx);
+		}
 		for (i=0; i<f->count; i++) {
 			jsf->mfvals[i] = JS_NewInt32(priv->js_ctx, f->vals[i]);
 		}
@@ -3509,6 +3537,10 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		SETUP_MF_FIELD(MFFloatClass)
 		jsf->mfvals_count = f->count;
 		jsf->mfvals = (JSValue *)gf_realloc(jsf->mfvals, sizeof(JSValue)*f->count);
+		if (!jsf->mfvals) {
+			jsf->mfvals_count = 0;
+			return GF_JS_EXCEPTION(priv->js_ctx);
+		}
 		for (i=0; i<f->count; i++) {
 			jsf->mfvals[i] = JS_NewFloat64(priv->js_ctx, FIX2FLT(f->vals[i]) );
 		}
@@ -3520,6 +3552,10 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		SETUP_MF_FIELD(MFTimeClass)
 		jsf->mfvals_count = f->count;
 		jsf->mfvals = (JSValue *)gf_realloc(jsf->mfvals, sizeof(JSValue)*f->count);
+		if (!jsf->mfvals) {
+			jsf->mfvals_count = 0;
+			return GF_JS_EXCEPTION(priv->js_ctx);
+		}
 		for (i=0; i<f->count; i++) {
 			jsf->mfvals[i] = JS_NewFloat64(priv->js_ctx, f->vals[i] );
 		}
@@ -3531,6 +3567,10 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		SETUP_MF_FIELD(MFStringClass)
 		jsf->mfvals_count = f->count;
 		jsf->mfvals = (JSValue *)gf_realloc(jsf->mfvals, sizeof(JSValue)*f->count);
+		if (!jsf->mfvals) {
+			jsf->mfvals_count = 0;
+			return GF_JS_EXCEPTION(priv->js_ctx);
+		}
 		for (i=0; i<f->count; i++) {
 			const char *str = f->vals[i];
 			if (!str) str= "";
@@ -3544,6 +3584,10 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		SETUP_MF_FIELD(MFUrlClass)
 		jsf->mfvals_count = f->count;
 		jsf->mfvals = (JSValue *)gf_realloc(jsf->mfvals, sizeof(JSValue)*f->count);
+		if (!jsf->mfvals) {
+			jsf->mfvals_count = 0;
+			return GF_JS_EXCEPTION(priv->js_ctx);
+		}
 		for (i=0; i<f->count; i++) {
 			if (f->vals[i].OD_ID > 0) {
 				char msg[30];
@@ -3564,6 +3608,10 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		}
 		jsf->mfvals_count = f->count;
 		jsf->mfvals = (JSValue *)gf_realloc(jsf->mfvals, sizeof(JSValue)*f->count);
+		if (!jsf->mfvals) {
+			jsf->mfvals_count = 0;
+			return GF_JS_EXCEPTION(priv->js_ctx);
+		}
 		for (i=0; i<f->count; i++) {
 			JSValue pf = JS_NewObjectClass(priv->js_ctx, SFVec2fClass.class_id);
 			slot = SFVec2f_Create(priv->js_ctx, pf, f->vals[i].x, f->vals[i].y);
@@ -3580,6 +3628,10 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		}
 		jsf->mfvals_count = f->count;
 		jsf->mfvals = (JSValue *)gf_realloc(jsf->mfvals, sizeof(JSValue)*f->count);
+		if (!jsf->mfvals) {
+			jsf->mfvals_count = 0;
+			return GF_JS_EXCEPTION(priv->js_ctx);
+		}
 		for (i=0; i<f->count; i++) {
 			JSValue pf = JS_NewObjectClass(priv->js_ctx, SFVec3fClass.class_id);
 			slot = SFVec3f_Create(priv->js_ctx, pf, f->vals[i].x, f->vals[i].y, f->vals[i].z);
@@ -3596,6 +3648,10 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		}
 		jsf->mfvals_count = f->count;
 		jsf->mfvals = (JSValue *)gf_realloc(jsf->mfvals, sizeof(JSValue)*f->count);
+		if (!jsf->mfvals) {
+			jsf->mfvals_count = 0;
+			return GF_JS_EXCEPTION(priv->js_ctx);
+		}
 		for (i=0; i<f->count; i++) {
 			JSValue pf = JS_NewObjectClass(priv->js_ctx, SFRotationClass.class_id);
 			slot = SFRotation_Create(priv->js_ctx, pf, f->vals[i].x, f->vals[i].y, f->vals[i].z, f->vals[i].q);
@@ -3612,6 +3668,10 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		}
 		jsf->mfvals_count = f->count;
 		jsf->mfvals = (JSValue *)gf_realloc(jsf->mfvals, sizeof(JSValue)*f->count);
+		if (!jsf->mfvals) {
+			jsf->mfvals_count = 0;
+			return GF_JS_EXCEPTION(priv->js_ctx);
+		}
 		for (i=0; i<f->count; i++) {
 			JSValue pf = JS_NewObjectClass(priv->js_ctx, SFColorClass.class_id);
 			slot = SFColor_Create(priv->js_ctx, pf, f->vals[i].red, f->vals[i].green, f->vals[i].blue);

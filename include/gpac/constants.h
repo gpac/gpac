@@ -863,7 +863,7 @@ enum
 /*!left back surround Channel*/
 #define GF_AUDIO_CH_BACK_SURROUND_LEFT	0x20000000000ULL
 /*!right back surround Channel*/
-#define GF_AUDIO_CH_BACK_SURROUND_RIGHT	0x40000000000ULL 
+#define GF_AUDIO_CH_BACK_SURROUND_RIGHT	0x40000000000ULL
 
 
 /*!
@@ -1009,7 +1009,7 @@ const char *gf_audio_fmt_get_layout_name(u64 chan_layout);
 */
 u64 gf_audio_fmt_get_layout_from_name(const char *name);
 
-/*! get CICP layout value from channel layout mask 
+/*! get CICP layout value from channel layout mask
 \param chan_layout channel layout mask
 \return CICP code point or 255 if unknown
 */

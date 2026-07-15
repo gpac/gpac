@@ -158,6 +158,10 @@ static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (NHNTIdx *)gf_realloc(ctx->indexes, sizeof(NHNTIdx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = pos;
 			ctx->indexes[ctx->index_size].duration = (Double) dur.num;
 			ctx->indexes[ctx->index_size].duration /= ctx->timescale;

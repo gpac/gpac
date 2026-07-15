@@ -189,6 +189,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	if (nb_tiles>ctx->nb_alloc_tiles) {
 		ctx->opids = (TileSplitPid *)gf_realloc(ctx->opids, sizeof(TileSplitPid) * nb_tiles);
+		if (!ctx->opids) return GF_OUT_OF_MEM;
 		memset(&ctx->opids[ctx->nb_alloc_tiles], 0, sizeof(TileSplitPid) * (nb_tiles-ctx->nb_alloc_tiles) );
 		ctx->nb_alloc_tiles = nb_tiles;
 	}
@@ -328,6 +329,10 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	pval.type = GF_PROP_4CC_LIST;
 	pval.value.uint_list.nb_items = active_tiles;
 	pval.value.uint_list.vals = (u32 *)gf_malloc(sizeof(u32) * active_tiles);
+	if (!pval.value.uint_list.vals) {
+		gf_odf_hevc_cfg_del(hvcc);
+		return GF_OUT_OF_MEM;
+	}
 	active_tiles = 0;
 	for (i=0; i<nb_tiles; i++) {
 		if (!ctx->opids[i].opid)

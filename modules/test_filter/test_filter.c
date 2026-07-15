@@ -39,7 +39,7 @@ typedef struct
 static GF_Err testfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	TestContext *ctx = (TestContext *)gf_filter_get_udta(filter);
-	//if first time we see the pid, send a play event 
+	//if first time we see the pid, send a play event
 	TestContext *pctx = (TestContext *)gf_filter_pid_get_udta(pid);
 	if (!pctx && !is_remove) {
 		GF_FilterEvent evt;

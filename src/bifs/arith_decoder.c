@@ -104,7 +104,10 @@ void gp_bifs_aa_model_init(GF_AAModel *model, u32 nbBits)
 	if (model->freq) gf_free(model->freq);
 	model->freq = (s32*)gf_malloc(sizeof(s32) * model->nb_symb);
 	model->cumul_freq = (s32*)gf_malloc(sizeof(s32) * (model->nb_symb+1));
-
+	if (!model->freq || !model->cumul_freq) {
+		model->nb_symb = 0;
+		return;
+	}
 	for(i=0; i<model->nb_symb; i++) {
 		model->freq[i]=1;
 		model->cumul_freq[i] = model->nb_symb - i;

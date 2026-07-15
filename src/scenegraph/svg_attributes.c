@@ -2907,6 +2907,7 @@ static void svg_string_list_add(GF_List *values, const char *string, u32 string_
 	switch (string_type) {
 	case 1:
 		iri = (XMLRI*)gf_malloc(sizeof(XMLRI));
+		if (!iri) return;
 		iri->type = XMLRI_STRING;
 		iri->string = gf_strdup(string);
 		gf_list_add(values, iri);
@@ -2975,6 +2976,11 @@ static void svg_parse_strokedasharray(SVG_StrokeDashArray *value, const char *va
 		vals->count = gf_list_count(values);
 		vals->units = (u8 *) gf_malloc(vals->count);
 		vals->vals = (Fixed *) gf_malloc(sizeof(Fixed)*vals->count);
+		if (!vals->units || !vals->vals) {
+			gf_list_del(values);
+			value->type = SVG_STROKEDASHARRAY_INHERIT;
+			return;
+		}
 		for (i = 0; i < vals->count; i++) {
 			SVG_Length *f = (SVG_Length *)gf_list_get(values, i);
 			vals->vals[i] = f->value;
@@ -4009,6 +4015,7 @@ static char *svg_dump_color(SVG_Color *col)
 		if (name) return gf_strdup(name);
 
 		res = (char *)gf_malloc(8);
+		if (!res) return NULL;
 		sprintf(res, "#%02X%02X%02X", r, g, b);
 		/*compress it...*/
 		if ( (res[1]==res[2]) && (res[3]==res[4]) && (res[5]==res[6]) )
@@ -4049,9 +4056,11 @@ static char *svg_dump_iri(XMLRI*iri)
 
 		if (name) {
 			res = (char *)gf_malloc((strlen(name)+2));
+			if (!res) return NULL;
 			sprintf(res, "#%s", name);
 		} else if (iri->target) {
 			res = (char *)gf_malloc(32);
+			if (!res) return NULL;
 			sprintf(res, "#N%d", gf_node_get_id((GF_Node *)iri->target) - 1);
 		} else {
 			res = gf_strdup("");
@@ -4086,6 +4095,7 @@ static char *svg_dump_path(SVG_PathData *path)
 	GF_Point2D *pt, last_pt, *ct1, *ct2, *end;
 	u32 i, *contour;
 	char *res = (char *)gf_malloc(1);
+	if (!res) return NULL;
 	res[0] = 0;
 
 	contour = path->contours;
@@ -4336,7 +4346,8 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 		else if (paint->type == SVG_PAINT_URI) {
 			char *iritmp = svg_dump_iri(&paint->iri);
 			char *res = (char *)gf_malloc((strlen(iritmp)+6));
-			sprintf(res, "url(%s)", iritmp);
+			if (res)
+				sprintf(res, "url(%s)", iritmp);
 			gf_free(iritmp);
 			return res;
 		} else {
@@ -5799,6 +5810,7 @@ static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
 	count = gf_list_count(b->commands);
 	for (i = 0; i < count; i ++) {
 		u8 *nc = (u8 *)gf_malloc(1);
+		if (!nc) break;
 		*nc = *(u8*)gf_list_get(b->commands, i);
 		gf_list_add(a->commands, nc);
 	}
@@ -5862,6 +5874,7 @@ static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_Path
 
 	for (i = 0; i < ccount; i++) {
 		u8 *nc = (u8 *)gf_malloc(1);
+		if (!nc) break;
 		*nc = *(u8*)gf_list_get(a->commands, i);
 		gf_list_add(c->commands, nc);
 	}
@@ -5891,7 +5904,10 @@ static GF_Err svg_dasharray_muladd(Fixed alpha, SVG_StrokeDashArray *a, Fixed be
 		c->array.vals = (Fixed *) gf_realloc(c->array.vals, sizeof(Fixed)*c->array.count);
 		c->array.units = (u8 *) gf_realloc(c->array.units, c->array.count);
 	}
-	if (!c->array.vals || !c->array.units) return GF_OUT_OF_MEM;
+	if (!c->array.vals || !c->array.units) {
+		c->array.count = 0;
+		return GF_OUT_OF_MEM;
+	}
 	for (i = 0; i < c->array.count; i++) {
 		/* TODO: convert units if needed */
 		c->array.units[i] = a->array.units[i];
@@ -5908,7 +5924,10 @@ static GF_Err svg_dasharray_copy(SVG_StrokeDashArray *a, SVG_StrokeDashArray *b)
 		a->array.units = (u8*)gf_realloc(a->array.units, a->array.count);
 		a->array.vals = (Fixed*)gf_realloc(a->array.vals, sizeof(Fixed)*a->array.count);
 	}
-	if (!a->array.vals || !a->array.units) return GF_OUT_OF_MEM;
+	if (!a->array.vals || !a->array.units) {
+		a->array.count = 0;
+		return GF_OUT_OF_MEM;
+	}
 	memcpy(a->array.units, b->array.units, sizeof(u8)*a->array.count);
 	memcpy(a->array.vals, b->array.vals, sizeof(Fixed)*a->array.count);
 	return GF_OK;
@@ -6122,6 +6141,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		len_b = FIX2INT(beta * len_b);
 		len = len_a + len_b + 1;
 		res = (char*)gf_malloc(len);
+		if (!res) break;
 		if (len_a)
 			memcpy(res, *s_a, len_a);
 		if (len_b)
@@ -6404,6 +6424,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 			SMIL_Time *t2;
 			SMIL_Time *t = (SMIL_Time *)gf_list_get(src, i);
 			t2 = (SMIL_Time*)gf_malloc(sizeof(SMIL_Time));
+			if (!t2) break;
 			memcpy(t2, t, sizeof(SMIL_Time));
 			gf_list_add(dst, t2);
 		}

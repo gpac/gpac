@@ -5436,6 +5436,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 			stbl->TimeToSample->alloc_size = 1;
 			stbl->TimeToSample->nb_entries = 1;
 			stbl->TimeToSample->entries = (GF_SttsEntry *)gf_malloc(sizeof(GF_SttsEntry));
+			if (!stbl->TimeToSample->entries) return GF_OUT_OF_MEM;
 			stbl->TimeToSample->entries[0].sampleDelta = new_tsinc;
 			stbl->TimeToSample->entries[0].sampleCount = stbl->SampleSize->sampleCount;
 		}
@@ -5538,6 +5539,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 	//repack DTS
 	if (stbl->SampleSize->sampleCount) {
 		stbl->TimeToSample->entries = (GF_SttsEntry *)gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
+		if (!stbl->TimeToSample->entries) return GF_OUT_OF_MEM;
 		memset(stbl->TimeToSample->entries, 0, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
 		stbl->TimeToSample->entries[0].sampleDelta = (u32) DTSs[0];
 		stbl->TimeToSample->entries[0].sampleCount = 1;
@@ -5563,12 +5565,14 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 
 			stbl->TimeToSample->nb_entries = idx+1;
 			stbl->TimeToSample->entries = (GF_SttsEntry *)gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->TimeToSample->nb_entries);
+			if (!stbl->TimeToSample->entries) return GF_OUT_OF_MEM;
 		}
 	}
 
 	if (CTSs && stbl->SampleSize->sampleCount>0) {
 		//repack CTS
 		stbl->CompositionOffset->entries = (GF_DttsEntry *)gf_realloc(stbl->CompositionOffset->entries, sizeof(GF_DttsEntry)*stbl->SampleSize->sampleCount);
+		if (!stbl->CompositionOffset->entries) return GF_OUT_OF_MEM;
 		memset(stbl->CompositionOffset->entries, 0, sizeof(GF_DttsEntry)*stbl->SampleSize->sampleCount);
 		stbl->CompositionOffset->entries[0].decodingOffset = (s32) (CTSs[0] - DTSs[0]);
 		stbl->CompositionOffset->entries[0].sampleCount = 1;
@@ -5585,8 +5589,12 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 		}
 		stbl->CompositionOffset->nb_entries = idx+1;
 		stbl->CompositionOffset->entries = (GF_DttsEntry *)gf_realloc(stbl->CompositionOffset->entries, sizeof(GF_DttsEntry)*stbl->CompositionOffset->nb_entries);
-
 		gf_free(CTSs);
+
+		if (!stbl->CompositionOffset->entries) {
+			gf_free(DTSs);
+			return GF_OUT_OF_MEM;
+		}
 	}
 	gf_free(DTSs);
 
@@ -6755,6 +6763,7 @@ GF_Err gf_isom_wma_set_tag(GF_ISOFile *mov, char *name, char *value)
 		if (!name) return GF_OK;
 
 		GF_SAFEALLOC(tag, GF_XtraTag);
+		if (!tag) return GF_OUT_OF_MEM;
 		tag->name = gf_strdup(name);
 		tag->prop_type = 0;
 		tag->flags = 1;
@@ -6763,6 +6772,7 @@ GF_Err gf_isom_wma_set_tag(GF_ISOFile *mov, char *name, char *value)
 
 	u32 len = (u32) strlen(value);
 	tag->prop_value = (u8 *)gf_malloc(sizeof(u16) * ((len/2)*2+2) );
+	if (!tag->prop_value) return GF_OUT_OF_MEM;
 	memset(tag->prop_value, 0, sizeof(u16) * ((len/2)*2+2) );
 	if (len) {
 		u32 _len = gf_utf8_mbstowcs((u16 *) tag->prop_value, len+1, (const char **) &value);
@@ -6840,6 +6850,7 @@ GF_Err gf_isom_set_qt_key(GF_ISOFile *movie, GF_QT_UDTAKey *key)
 	if (!o_key) {
 		if (key->type==GF_QT_KEY_REMOVE) return GF_OK;
 		GF_SAFEALLOC(o_key, GF_MetaKey);
+		if (!o_key) return GF_OUT_OF_MEM;
 		o_key->ns = key->ns;
 		o_key->data = (u8 *) gf_strdup(key->name);
 		o_key->size = ksize;
@@ -7316,6 +7327,7 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 	if (! sgroup->sample_entries[sgroup->entry_count-1].group_description_index) {
 		sgroup->sample_entries[sgroup->entry_count-1].sample_count += sample_number - 1 - last_sample_in_entry;
 		sgroup->sample_entries = (GF_SampleGroupEntry*)gf_realloc(sgroup->sample_entries, sizeof(GF_SampleGroupEntry) * (sgroup->entry_count + 1) );
+		if (!sgroup->sample_entries) return GF_OUT_OF_MEM;
 		sgroup->sample_entries[sgroup->entry_count].sample_count = 1;
 		sgroup->sample_entries[sgroup->entry_count].group_description_index = sampleGroupDescriptionIndex;
 		sgroup->entry_count++;
@@ -7324,6 +7336,7 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 	/*we are adding a sample with no desc, add entry at the end*/
 	if (!sampleGroupDescriptionIndex || (sample_number - 1 - last_sample_in_entry==0) ) {
 		sgroup->sample_entries = (GF_SampleGroupEntry*)gf_realloc(sgroup->sample_entries, sizeof(GF_SampleGroupEntry) * (sgroup->entry_count + 1) );
+		if (!sgroup->sample_entries) return GF_OUT_OF_MEM;
 		sgroup->sample_entries[sgroup->entry_count].sample_count = 1;
 		sgroup->sample_entries[sgroup->entry_count].group_description_index = sampleGroupDescriptionIndex;
 		sgroup->entry_count++;
@@ -7331,7 +7344,7 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 	}
 	/*need to insert two entries ...*/
 	sgroup->sample_entries = (GF_SampleGroupEntry*)gf_realloc(sgroup->sample_entries, sizeof(GF_SampleGroupEntry) * (sgroup->entry_count + 2) );
-
+	if (!sgroup->sample_entries) return GF_OUT_OF_MEM;
 	sgroup->sample_entries[sgroup->entry_count].sample_count = sample_number - 1 - last_sample_in_entry;
 	sgroup->sample_entries[sgroup->entry_count].group_description_index = def_insert_value;
 
@@ -7985,6 +7998,8 @@ GF_Err gf_isom_force_ctts(GF_ISOFile *file, u32 track)
 	if (!trak->Media->information->sampleTable->CompositionOffset) return GF_OUT_OF_MEM;
 	trak->Media->information->sampleTable->CompositionOffset->nb_entries = 1;
 	trak->Media->information->sampleTable->CompositionOffset->entries = (GF_DttsEntry *)gf_malloc(sizeof(GF_DttsEntry));
+	if (!trak->Media->information->sampleTable->CompositionOffset->entries)
+		return GF_OUT_OF_MEM;
 	trak->Media->information->sampleTable->CompositionOffset->entries[0].decodingOffset = 0;
 	trak->Media->information->sampleTable->CompositionOffset->entries[0].sampleCount = 	trak->Media->information->sampleTable->SampleSize->sampleCount;
 	return GF_OK;
@@ -8991,6 +9006,11 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 					new_box->original_4cc = size;
 					new_box->dataSize = (u32) gf_bs_available(bs);
 					new_box->data = (u8 *)gf_malloc(new_box->dataSize);
+					if (!new_box->data) {
+						gf_isom_box_del((GF_Box*)new_box);
+						e = GF_OUT_OF_MEM;
+						goto err_exit;
+					}
 					gf_bs_read_data(bs, new_box->data, new_box->dataSize);
 					if (insert_pos<0) {
 						gf_list_add(box->child_boxes, new_box);
@@ -9022,6 +9042,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 								entry->item_id = item_id;
 							}
 							entry->associations = (GF_ItemPropertyAssociationSlot *)gf_realloc(entry->associations, sizeof(GF_ItemPropertyAssociationSlot) * (entry->nb_associations+1));
+							if (!entry->associations) return GF_OUT_OF_MEM;
 							entry->associations[entry->nb_associations].essential = essential_prop;
 							entry->associations[entry->nb_associations].index = 1+insert_pos;
 							entry->nb_associations++;
@@ -9340,6 +9361,10 @@ GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 
 		if (sampleNumber > saiz->sample_alloc) {
 			saiz->sample_alloc = sampleNumber+10;
 			saiz->sample_info_size = (u8*)gf_realloc(saiz->sample_info_size, (saiz->sample_alloc));
+			if (!saiz->sample_info_size) {
+				saiz->sample_alloc = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
 
 		if (saiz->default_sample_info_size) {
@@ -9591,6 +9616,10 @@ GF_Err isom_sample_refs_push(GF_SampleReferences *sref, s32 refID, u32 nb_refs, 
 		u32 j;
 		ent->nb_refs = nb_refs;
 		ent->sample_refs = (s32 *)gf_malloc(sizeof(s32)*nb_refs);
+		if (!ent->sample_refs) {
+			gf_free(ent);
+			return GF_OUT_OF_MEM;
+		}
 		memcpy(ent->sample_refs, refs, sizeof(s32)*nb_refs);
 		if (sref->id_shift) {
 			for (j=0; j<ent->nb_refs; j++)

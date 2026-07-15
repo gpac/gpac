@@ -180,7 +180,7 @@ static int h2_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags, 
 	if (sess->hmux_buf.size + len > sess->hmux_buf.alloc) {
 		sess->hmux_buf.alloc = sess->hmux_buf.size + (u32) len;
 		sess->hmux_buf.data = (u8 *)gf_realloc(sess->hmux_buf.data, sess->hmux_buf.alloc);
-		if (!sess->hmux_buf.data)	return NGHTTP2_ERR_NOMEM;
+		if (!sess->hmux_buf.data) return NGHTTP2_ERR_NOMEM;
 	}
 	memcpy(sess->hmux_buf.data + sess->hmux_buf.size, data, len);
 	sess->hmux_buf.size += (u32) len;
@@ -437,6 +437,7 @@ GF_Err h2_submit_request(GF_DownloadSession *sess, char *req_name, const char *u
 
 	nb_hdrs = gf_list_count(sess->headers);
 	hdrs = (nghttp2_nv *)gf_malloc(sizeof(nghttp2_nv) * (nb_hdrs + 4));
+	if (!hdrs) return GF_OUT_OF_MEM;
 
 	NV_HDR(hdrs[0], ":method", req_name);
 	NV_HDR(hdrs[1], ":scheme", "https");
@@ -527,6 +528,7 @@ GF_Err h2_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *respo
 	}
 
 	hdrs = (nghttp2_nv *)gf_malloc(sizeof(nghttp2_nv) * (count + 1) );
+	if (!hdrs) return GF_OUT_OF_MEM;
 
 	sprintf(szFmt, "%d", reply_code);
 	NV_HDR(hdrs[0], ":status", szFmt);
@@ -731,6 +733,8 @@ void h2_initialize_session(GF_DownloadSession *sess)
 	nghttp2_session_callbacks_set_error_callback(callbacks, h2_error_callback);
 
 	GF_SAFEALLOC(sess->hmux_sess, GF_HMUX_Session)
+	if (!sess->hmux_sess) return;
+
 	sess->hmux_sess->sessions = gf_list_new();
 	sess->hmux_sess->copy = gf_opts_get_bool("core", "h2-copy");
 	if (!sess->hmux_sess->copy)

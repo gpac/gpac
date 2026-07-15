@@ -177,6 +177,10 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 		if (!idx_size) idx_size = 10;
 		else if (idx_size == ctx->nb_frames) idx_size += 10;
 		ctx->frame_sizes = (u32 *)gf_realloc(ctx->frame_sizes, sizeof(u32)*idx_size);
+		if (!ctx->frame_sizes) {
+			ctx->nb_frames = 0;
+			break;
+		}
 		ctx->frame_sizes[ctx->nb_frames] = fsize;
 		ctx->nb_frames++;
 		frame_start += fsize;
@@ -571,6 +575,10 @@ GF_Err proresdmx_process(GF_Filter *filter)
 			if (ctx->alloc_size < ctx->buf_size + pck_size) {
 				ctx->alloc_size = ctx->buf_size + pck_size;
 				ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
+				if (!ctx->buffer) {
+					ctx->alloc_size = 0;
+					return GF_BAD_PARAM;
+				}
 			}
 			memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 			ctx->buf_size += pck_size;
@@ -603,6 +611,10 @@ GF_Err proresdmx_process(GF_Filter *filter)
 			if (ctx->alloc_size < ctx->buf_size + pck_size) {
 				ctx->alloc_size = ctx->buf_size + pck_size;
 				ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
+				if (!ctx->buffer) {
+					ctx->alloc_size = 0;
+					return GF_BAD_PARAM;
+				}
 			}
 			memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 			ctx->buf_size += pck_size;
@@ -621,6 +633,10 @@ GF_Err proresdmx_process(GF_Filter *filter)
 	if (ctx->alloc_size < ctx->buf_size + pck_size) {
 		ctx->alloc_size = ctx->buf_size + pck_size;
 		ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
+		if (!ctx->buffer) {
+			ctx->alloc_size = 0;
+			return GF_BAD_PARAM;
+		}
 	}
 	memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 	ctx->buf_size += pck_size;

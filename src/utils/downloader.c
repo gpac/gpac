@@ -1046,6 +1046,10 @@ GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char 
 	sess->log_name = gf_strdup("HTTP");
 	sess->http_buf_size = dm ? dm->read_buf_size : GF_DOWNLOAD_BUFFER_SIZE;
 	sess->http_buf = (char *)gf_malloc(sess->http_buf_size + 1);
+	if (!sess->http_buf || !sess->headers) {
+		gf_dm_sess_del(sess);
+		return NULL;
+	}
 
 	sess->conn_timeout = gf_opts_get_int("core", "tcp-timeout");
 	if (!sess->conn_timeout) sess->conn_timeout = 5000;
@@ -1082,7 +1086,7 @@ GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char 
 	) {
 		sess->mx = gf_mx_new(url);
 		if (!sess->mx) {
-			gf_free(sess);
+			gf_dm_sess_del(sess);
 			return NULL;
 		}
 	}
@@ -2291,6 +2295,11 @@ void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size
 			/* keep the data and wait for the rest */
 			sess->remaining_data_size = nbBytes;
 			sess->remaining_data = (char *)gf_realloc(sess->remaining_data, nbBytes);
+			if (!sess->remaining_data) {
+				sess->last_error = GF_OUT_OF_MEM;
+				sess->status = GF_NETIO_STATE_ERROR;
+				return;
+			}
 			memcpy(sess->remaining_data, payload, nbBytes);
 			payload_size = 0;
 			payload = NULL;
@@ -2320,6 +2329,12 @@ void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size
 
 	if (data && nbBytes && store_in_init) {
 		sess->init_data = (u8 *) gf_realloc(sess->init_data , (sess->init_data_size + nbBytes) );
+		if (!sess->init_data) {
+			sess->last_error = GF_OUT_OF_MEM;
+			sess->status = GF_NETIO_STATE_ERROR;
+			sess->init_data_size = 0;
+			return;
+		}
 		memcpy(sess->init_data+sess->init_data_size, data, nbBytes);
 		sess->init_data_size += nbBytes;
 	}
@@ -3185,39 +3200,41 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 	if (send_profile || par.data) {
 		u32 len = (u32) strlen(sHTTP);
 		u8 *tmp_buf = (u8 *)gf_malloc(len+par.size+1);
-		memcpy(tmp_buf, sHTTP, len+1);
-		if (par.data) {
-			memcpy(tmp_buf+len, par.data, par.size);
-			tmp_buf[len+par.size] = 0;
+		if (tmp_buf) {
+			memcpy(tmp_buf, sHTTP, len+1);
+			if (par.data) {
+				memcpy(tmp_buf+len, par.data, par.size);
+				tmp_buf[len+par.size] = 0;
 
-			sess->put_state = 2;
-		} else {
-			FILE *profile;
-			user_profile = gf_opts_get_key("core", "user-profile");
-			assert (user_profile);
-			profile = gf_fopen(user_profile, "rt");
-			if (profile) {
-				s32 read = (s32) gf_fread(tmp_buf+len, par.size, profile);
-				if ((read<0) || (read< (s32) par.size)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP,
-					       ("[%s] Error while loading UserProfile, size=%d, should be %d\n", sess->log_name, read, par.size));
-					for (; read < (s32) par.size; read++) {
-						tmp_buf[len + read] = 0;
-					}
-				}
-				gf_fclose(profile);
+				sess->put_state = 2;
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[%s] Error while loading Profile file %s\n", sess->log_name, user_profile));
+				FILE *profile;
+				user_profile = gf_opts_get_key("core", "user-profile");
+				assert (user_profile);
+				profile = gf_fopen(user_profile, "rt");
+				if (profile) {
+					s32 read = (s32) gf_fread(tmp_buf+len, par.size, profile);
+					if ((read<0) || (read< (s32) par.size)) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP,
+							   ("[%s] Error while loading UserProfile, size=%d, should be %d\n", sess->log_name, read, par.size));
+						for (; read < (s32) par.size; read++) {
+							tmp_buf[len + read] = 0;
+						}
+					}
+					gf_fclose(profile);
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[%s] Error while loading Profile file %s\n", sess->log_name, user_profile));
+				}
 			}
+
+			sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
+			sess->req_hdr_size = len+par.size;
+
+			e = dm_sess_write(sess, tmp_buf, len+par.size);
+
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[%s] Sending request to %s %s\n\n", sess->log_name, sess->server_name, tmp_buf));
+			gf_free(tmp_buf);
 		}
-
-		sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
-		sess->req_hdr_size = len+par.size;
-
-		e = dm_sess_write(sess, tmp_buf, len+par.size);
-
-		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[%s] Sending request to %s %s\n\n", sess->log_name, sess->server_name, tmp_buf));
-		gf_free(tmp_buf);
 	} else {
 		u32 len = (u32) strlen(sHTTP);
 
@@ -4094,7 +4111,11 @@ process_reply:
 		if (is_upgradeable && h2_settings) {
 			u32 len = (u32) strlen(h2_settings);
 			sess->h2_upgrade_settings = (u8 *)gf_malloc(len * 2);
-			sess->h2_upgrade_settings_len = gf_base64_decode((u8 *)h2_settings, len, sess->h2_upgrade_settings, len*2);
+
+			if (!sess->h2_upgrade_settings)
+				sess->h2_upgrade_settings_len = 0;
+			else
+				sess->h2_upgrade_settings_len = gf_base64_decode((u8 *)h2_settings, len, sess->h2_upgrade_settings, len*2);
 		}
 	}
 #endif

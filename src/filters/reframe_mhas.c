@@ -231,6 +231,10 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (MHASIdx *)gf_realloc(ctx->indexes, sizeof(MHASIdx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = ctx->index_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = mhas_last_cfg;
 			ctx->indexes[ctx->index_size].duration = ((Double) duration.num) / duration.den;
 			ctx->index_size ++;
@@ -510,6 +514,10 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		if (ctx->mhas_buffer_size + pck_size > ctx->mhas_buffer_alloc) {
 			ctx->mhas_buffer_alloc = ctx->mhas_buffer_size + pck_size;
 			ctx->mhas_buffer = (u8 *)gf_realloc(ctx->mhas_buffer, ctx->mhas_buffer_alloc);
+			if (!ctx->mhas_buffer) {
+				ctx->mhas_buffer_alloc = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
 		memcpy(ctx->mhas_buffer + ctx->mhas_buffer_size, data, pck_size);
 		ctx->mhas_buffer_size += pck_size;

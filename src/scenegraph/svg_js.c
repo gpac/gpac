@@ -368,6 +368,7 @@ static JSValue svg_element_getProperty(JSContext *c, JSValueConst obj, int magic
 		if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_TRANSLATE, (GF_Node *)n, &par)) {
 			JSValue r = JS_NewObjectClass(c, pointClass.class_id);
 			pointCI *rc = (pointCI *)gf_malloc(sizeof(pointCI));
+			if (!rc) return GF_JS_EXCEPTION(c);
 			rc->x = FIX2FLT(par.pt.x);
 			rc->y = FIX2FLT(par.pt.y);
 			rc->sg = n->sgprivate->scenegraph;
@@ -380,6 +381,7 @@ static JSValue svg_element_getProperty(JSContext *c, JSValueConst obj, int magic
 		if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_VIEWPORT, (GF_Node *)n, &par)) {
 			JSValue r = JS_NewObjectClass(c, rectClass.class_id);
 			rectCI *rc = (rectCI *)gf_malloc(sizeof(rectCI));
+			if (!rc) return GF_JS_EXCEPTION(c);
 			rc->x = FIX2FLT(par.rc.x);
 			rc->y = FIX2FLT(par.rc.y);
 			rc->w = FIX2FLT(par.rc.width);
@@ -1158,6 +1160,7 @@ static JSValue svg_udom_set_path_trait(JSContext *c, JSValueConst obj, int argc,
 		nb_pts = 0;
 		for (i=0; i<path->nb_coms; i++) {
 			u8 *t = (u8 *)gf_malloc(1);
+			if (!t) break;
 			*t = path->tags[i];
 			gf_list_add(d->commands, t);
 			switch (*t) {
@@ -1175,6 +1178,7 @@ static JSValue svg_udom_set_path_trait(JSContext *c, JSValueConst obj, int argc,
 		}
 		for (i=0; i<nb_pts; i++) {
 			SVG_Point *t = (SVG_Point *)gf_malloc(sizeof(SVG_Point));
+			if (!t) break;
 			t->x = FLT2FIX(path->pts[i].x);
 			t->y = FLT2FIX(path->pts[i].y);
 			gf_list_add(d->points, t);
@@ -1596,9 +1600,11 @@ static JSValue svg_new_path_object(JSContext *c, SVG_PathData *d)
 		u32 i, count;
 		p->nb_coms = gf_list_count(d->commands);
 		p->tags = (u8 *)gf_malloc(p->nb_coms);
+		if (!p->tags) return GF_JS_EXCEPTION(c);
 		for (i=0; i<p->nb_coms; i++) p->tags[i] = * (u8 *) gf_list_get(d->commands, i);
 		count = gf_list_count(d->points);
 		p->pts = (ptCI *)gf_malloc(sizeof(ptCI) * count);
+		if (!p->pts) return GF_JS_EXCEPTION(c);
 		for (i=0; i<count; i++) {
 			GF_Point2D *pt = (GF_Point2D *)gf_list_get(d->commands, i);
 			p->pts[i].x = FIX2FLT(pt->x);
@@ -1758,6 +1764,7 @@ static u32 svg_path_realloc_pts(pathCI *p, u32 nb_pts)
 		}
 	}
 	p->pts = (ptCI *)gf_realloc(p->pts, sizeof(ptCI)*(nb_pts+orig_pts));
+	if (!p->pts) return 0;
 	return orig_pts;
 }
 
@@ -1773,9 +1780,14 @@ static JSValue svg_path_move_to(JSContext *c, JSValueConst obj, int argc, JSValu
 	if (JS_ToFloat64(c, &x, argv[0])) return GF_JS_EXCEPTION(c);
 	if (JS_ToFloat64(c, &y, argv[1])) return GF_JS_EXCEPTION(c);
 	nb_pts = svg_path_realloc_pts(p, 1);
+	if (!p->pts) return GF_JS_EXCEPTION(c);
 	p->pts[nb_pts].x = (Float) x;
 	p->pts[nb_pts].y = (Float) y;
 	p->tags = (u8 *)gf_realloc(p->tags, (p->nb_coms+1) );
+	if (!p->tags) {
+		p->nb_coms = 0;
+		return GF_JS_EXCEPTION(c);
+	}
 	p->tags[p->nb_coms] = 0;
 	p->nb_coms++;
 	return JS_TRUE;
@@ -1793,9 +1805,14 @@ static JSValue svg_path_line_to(JSContext *c, JSValueConst obj, int argc, JSValu
 	if (JS_ToFloat64(c, &y, argv[1])) return GF_JS_EXCEPTION(c);
 
 	nb_pts = svg_path_realloc_pts(p, 1);
+	if (!p->pts) return GF_JS_EXCEPTION(c);
 	p->pts[nb_pts].x = (Float) x;
 	p->pts[nb_pts].y = (Float) y;
 	p->tags = (u8 *)gf_realloc(p->tags, (p->nb_coms+1) );
+	if (!p->tags) {
+		p->nb_coms = 0;
+		return GF_JS_EXCEPTION(c);
+	}
 	p->tags[p->nb_coms] = 1;
 	p->nb_coms++;
 	return JS_TRUE;
@@ -1815,11 +1832,16 @@ static JSValue svg_path_quad_to(JSContext *c, JSValueConst obj, int argc, JSValu
 	if (JS_ToFloat64(c, &x2, argv[2])) return GF_JS_EXCEPTION(c);
 	if (JS_ToFloat64(c, &y2, argv[3])) return GF_JS_EXCEPTION(c);
 	nb_pts = svg_path_realloc_pts(p, 2);
+	if (!p->pts) return GF_JS_EXCEPTION(c);
 	p->pts[nb_pts].x = (Float) x1;
 	p->pts[nb_pts].y = (Float) y1;
 	p->pts[nb_pts+1].x = (Float) x2;
 	p->pts[nb_pts+1].y = (Float) y2;
 	p->tags = (u8 *)gf_realloc(p->tags, (p->nb_coms+1) );
+	if (!p->tags) {
+		p->nb_coms = 0;
+		return GF_JS_EXCEPTION(c);
+	}
 	p->tags[p->nb_coms] = 4;
 	p->nb_coms++;
 	return JS_TRUE;
@@ -1841,6 +1863,7 @@ static JSValue svg_path_curve_to(JSContext *c, JSValueConst obj, int argc, JSVal
 	if (JS_ToFloat64(c, &x, argv[4])) return GF_JS_EXCEPTION(c);
 	if (JS_ToFloat64(c, &y, argv[5])) return GF_JS_EXCEPTION(c);
 	nb_pts = svg_path_realloc_pts(p, 3);
+	if (!p->pts) return GF_JS_EXCEPTION(c);
 	p->pts[nb_pts].x = (Float) x1;
 	p->pts[nb_pts].y = (Float) y1;
 	p->pts[nb_pts+1].x = (Float) x2;
@@ -1848,6 +1871,10 @@ static JSValue svg_path_curve_to(JSContext *c, JSValueConst obj, int argc, JSVal
 	p->pts[nb_pts+2].x = (Float) x;
 	p->pts[nb_pts+2].y = (Float) y;
 	p->tags = (u8 *)gf_realloc(p->tags, (p->nb_coms+1) );
+	if (!p->tags) {
+		p->nb_coms = 0;
+		return GF_JS_EXCEPTION(c);
+	}
 	p->tags[p->nb_coms] = 2;
 	p->nb_coms++;
 	return JS_TRUE;
@@ -1859,6 +1886,10 @@ static JSValue svg_path_close(JSContext *c, JSValueConst obj, int argc, JSValueC
 	if (!p) return GF_JS_EXCEPTION(c);
 
 	p->tags = (u8 *)gf_realloc(p->tags, (p->nb_coms+1) );
+	if (!p->tags) {
+		p->nb_coms = 0;
+		return GF_JS_EXCEPTION(c);
+	}
 	p->tags[p->nb_coms] = 6;
 	p->nb_coms++;
 	return JS_TRUE;

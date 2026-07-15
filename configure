@@ -1746,7 +1746,7 @@ config_package faad "faad2" "" "-lfaad -lm" "" '#include <faad.h>
 int main( void ) { NeAACDecOpen(); return 0; }'
 
 
-ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lpostproc"
+ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale"
 ffmpeg_pck_names="libavcodec libavformat libswscale libavutil"
 
 if test "$is_em" = "yes" ; then
@@ -1765,7 +1765,13 @@ fi
 
 ffmpeg_lflags="$ffmpeg_lflags $ffmpeg_extra_ldflags"
 
-config_package ffmpeg "$ffmpeg_pck_names" "" "$ffmpeg_lflags" "" '#include <libavformat/avformat.h>
+config_package ffmpeg "$ffmpeg_pck_names" "" "$ffmpeg_lflags" "" '#ifdef __cplusplus
+extern "C" {
+#include <libavformat/avformat.h>
+}
+#else
+#include <libavformat/avformat.h>
+#endif
 int main(void) { avformat_alloc_context(); return 0; }'
 
 if test "$has_ffmpeg" != "no" ; then

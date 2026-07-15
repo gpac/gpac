@@ -37,6 +37,7 @@ GF_Err gf_isom_xml_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char
 	if (!samp) return GF_BAD_PARAM;
 	if (!text_len) return GF_OK;
 	samp->text = (char*)gf_realloc(samp->text, (samp->len + text_len) );
+	if (!samp->text) return GF_OUT_OF_MEM;
 	memcpy(samp->text + samp->len, text_data, sizeof(char) * text_len);
 	samp->len += text_len;
 	return GF_OK;

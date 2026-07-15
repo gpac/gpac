@@ -1751,6 +1751,12 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 			gf_strcat(szHeader, "\n");
 			u32 hlen = (u32) strlen(szHeader);
 			u8 *data = (u8 *)gf_malloc(stream->curr_pck.data_len+hlen+1);
+			if (!data) {
+				stream->curr_pck.data_len =  0;
+				gf_free(stream->curr_pck.data);
+				stream->curr_pck.data = NULL;
+				break;
+			}
 			memcpy(data, szHeader, hlen);
 			if (stream->curr_pck.data_len)
 				memcpy(data+hlen, stream->curr_pck.data, stream->curr_pck.data_len);
@@ -2536,6 +2542,9 @@ GF_Err gf_m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 			stream->pck_reassembler->duration = esi_pck->duration;
 			if (esi_pck->mpeg2_af_descriptors) {
 				stream->pck_reassembler->mpeg2_af_descriptors = (u8 *)gf_realloc(stream->pck_reassembler->mpeg2_af_descriptors, (stream->pck_reassembler->mpeg2_af_descriptors_size + esi_pck->mpeg2_af_descriptors_size) );
+				if (!stream->pck_reassembler->mpeg2_af_descriptors) {
+					return GF_OUT_OF_MEM;
+				}
 				memcpy(stream->pck_reassembler->mpeg2_af_descriptors + stream->pck_reassembler->mpeg2_af_descriptors_size, esi_pck->mpeg2_af_descriptors, sizeof(u8)* esi_pck->mpeg2_af_descriptors_size );
 				stream->pck_reassembler->mpeg2_af_descriptors_size += esi_pck->mpeg2_af_descriptors_size;
 			}
@@ -2544,6 +2553,7 @@ GF_Err gf_m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 		stream->force_new = (esi_pck->flags & GF_ESI_DATA_AU_END) ? GF_TRUE : GF_FALSE;
 
 		stream->pck_reassembler->data = (u8 *)gf_realloc(stream->pck_reassembler->data , (stream->pck_reassembler->data_len+esi_pck->data_len) );
+		if (!stream->pck_reassembler->data) return GF_OUT_OF_MEM;
 		if (esi_pck->data_len)
 			memcpy(stream->pck_reassembler->data + stream->pck_reassembler->data_len, esi_pck->data, esi_pck->data_len);
 		stream->pck_reassembler->data_len += esi_pck->data_len;

@@ -490,6 +490,11 @@ static JSValue canvas_constructor_internal(JSContext *c, JSValueConst new_target
 		canvas->owns_data = GF_FALSE;
 	} else {
 		canvas->data = (u8 *)gf_malloc(osize);
+		if (!canvas->data) {
+			if (the_canvas)
+				gf_free(the_canvas);
+			return GF_JS_EXCEPTION(c);
+		}
 		canvas->owns_data = GF_TRUE;
 	}
 
@@ -2661,6 +2666,9 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 		if (shader->alloc_ops <= 2) {
 			shader->alloc_ops = 2;
 			shader->ops = (ShaderOp *)gf_realloc(shader->ops, sizeof(ShaderOp)*shader->alloc_ops);
+			if (!shader->ops) {
+				return js_throw_err(ctx, GF_OUT_OF_MEM);
+			}
 			shader->ops[shader->nb_ops].uni_name = NULL;
 		}
 		shader->ops[0].op_type = 0;
@@ -2775,6 +2783,9 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 			if (shader->alloc_vars <= shader->nb_vars) {
 				shader->alloc_vars = shader->nb_vars+1;
 				shader->vars = (ShaderVar *)gf_realloc(shader->vars, sizeof(ShaderVar)*shader->alloc_vars);
+				if (!shader->vars) {
+					return js_throw_err(ctx, GF_OUT_OF_MEM);
+				}
 				shader_reset_vars_stack(shader);
 			}
 			shader->vars[shader->nb_vars].name = gf_strdup(val_name);
@@ -3044,6 +3055,9 @@ op_parsed:
 	if (shader->alloc_ops <= shader->nb_ops+1) {
 		shader->alloc_ops = shader->nb_ops+2;
 		shader->ops = (ShaderOp *)gf_realloc(shader->ops, sizeof(ShaderOp)*shader->alloc_ops);
+		if (!shader->ops) {
+			return js_throw_err(ctx, GF_OUT_OF_MEM);
+		}
 		shader->ops[shader->nb_ops].uni_name = NULL;
 	}
 	if (shader->ops[shader->nb_ops].uni_name) {
@@ -3448,7 +3462,7 @@ static JSValue vertex_getProperty(JSContext *c, JSValueConst obj, int magic)
 	GF_EVGVertexParam *vert= (GF_EVGVertexParam *)JS_GetOpaque(obj, vertex_class_id);
 	if (!vert) return GF_JS_EXCEPTION(c);
 	switch (magic) {
-	case EVG_VERTEX_IN: 
+	case EVG_VERTEX_IN:
 		res = JS_NewObject(c);
 		JS_SetPropertyStr(c, res, "x", JS_NewFloat64(c, vert->in_vertex.x));
 		JS_SetPropertyStr(c, res, "y", JS_NewFloat64(c, vert->in_vertex.y));
@@ -4610,6 +4624,8 @@ static JSValue path_bezier(JSContext *c, JSValueConst obj, int argc, JSValueCons
 	GF_Path *gp = (GF_Path *)JS_GetOpaque(obj, path_class_id);
 	if (!gp || (argc<3)) return GF_JS_EXCEPTION(c);
 	pts = (GF_Point2D *)gf_malloc(sizeof(GF_Point2D)* argc);
+	if (!pts) return GF_JS_EXCEPTION(c);
+
 	memset(pts, 0, sizeof(GF_Point2D)* argc);
 	for (i=0; i<argc; i++) {
 		JSValue v;
@@ -4800,6 +4816,7 @@ static JSValue path_outline(JSContext *c, JSValueConst obj, int argc, JSValueCon
 #undef GETTIT_F
 #undef GETTIT_I
 
+	GF_Err e = GF_OK;
 	dash.num_dash = 0;
 	dash.dashes = NULL;
 	dashes = JS_GetPropertyStr(c, argv[0], "dashes");
@@ -4810,6 +4827,7 @@ static JSValue path_outline(JSContext *c, JSValueConst obj, int argc, JSValueCon
 		if (dash.num_dash) {
 			pen.dash_set = &dash;
 			dash.dashes = (Fixed *)gf_malloc(sizeof(Fixed)*dash.num_dash);
+			if (!dash.dashes) { e = GF_OUT_OF_MEM; dash.num_dash = 0; }
 			for (i=0; i<(int) dash.num_dash; i++) {
 				v = JS_GetPropertyUint32(c, dashes, i);
 				JS_ToFloat64(c, &d, v);
@@ -4821,6 +4839,8 @@ static JSValue path_outline(JSContext *c, JSValueConst obj, int argc, JSValueCon
 		}
 	}
 	JS_FreeValue(c, dashes);
+	if (e) return js_throw_err(c, e);
+
 
 	outline = gf_path_get_outline(gp, pen);
 	if (dash.dashes) gf_free(dash.dashes);
@@ -5700,6 +5720,10 @@ static JSValue texture_convert(JSContext *c, JSValueConst obj, int argc, JSValue
 	tx_conv->nb_comp = nb_comp;
 	gf_pixel_get_size_info(tx_conv->pf, tx_conv->width, tx_conv->height, &tx_conv->data_size, &tx_conv->stride, &tx_conv->stride_uv, NULL, NULL);
 	tx_conv->data = (u8 *)gf_malloc(tx_conv->data_size);
+	if (!tx_conv->data) {
+		gf_free(tx_conv);
+		return js_throw_err(c, GF_OUT_OF_MEM);
+	}
 	tx_conv->owns_data = GF_TRUE;
 
 	for (j=0; j<tx_conv->height; j++) {
@@ -5822,6 +5846,10 @@ static JSValue texture_split(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	tx_split->stride = tx_split->width;
 	tx_split->data_size = tx_split->width * tx_split->height;
 	tx_split->data = (u8 *)gf_malloc(tx_split->data_size);
+	if (!tx_split->data) {
+		gf_free(tx_split);
+		return js_throw_err(c, GF_OUT_OF_MEM);
+	}
 	tx_split->owns_data = GF_TRUE;
 
 	pix_shift = 0;
@@ -5888,6 +5916,10 @@ static JSValue texture_convolution(JSContext *c, JSValueConst obj, int argc, JSV
 	}
 	kl = kw*kh;
 	kdata = (s32 *)gf_malloc(sizeof(s32)*kl);
+	if (!kdata) {
+		JS_FreeValue(c, kernv);
+		return GF_JS_EXCEPTION(c);
+	}
 	for (j=0; j<kh; j++) {
 		for (i=0; i<kw; i++) {
 			u32 idx = j*kw + i;
@@ -5907,6 +5939,10 @@ static JSValue texture_convolution(JSContext *c, JSValueConst obj, int argc, JSV
 	tx_conv->nb_comp = 3;
 	gf_pixel_get_size_info(tx_conv->pf, tx_conv->width, tx_conv->height, &tx_conv->data_size, &tx_conv->stride, &tx_conv->stride_uv, NULL, NULL);
 	tx_conv->data = (u8 *)gf_malloc(tx_conv->data_size);
+	if (!tx_conv->data) {
+		gf_free(tx_conv);
+		return js_throw_err(c, GF_OUT_OF_MEM);
+	}
 	tx_conv->owns_data = GF_TRUE;
 
 	hkh = kh/2;
@@ -6113,7 +6149,11 @@ static GF_Err texture_load_data(JSContext *c, GF_JSTexture *tx, u8 *data, u32 si
 			tx->owns_data = GF_TRUE;
 			tx->data_size = osize;
 			tx->data = (u8 *)gf_malloc(osize);
-			e = gf_img_png_dec(data, size, &width, &height, &pf, tx->data, &osize);
+			if (!tx->data)
+				e = GF_OUT_OF_MEM;
+			else
+				e = gf_img_png_dec(data, size, &width, &height, &pf, tx->data, &osize);
+
 			if (e==GF_OK) {
 				tx->width = width;
 				tx->height = height;
@@ -6127,7 +6167,11 @@ static GF_Err texture_load_data(JSContext *c, GF_JSTexture *tx, u8 *data, u32 si
 			tx->owns_data = GF_TRUE;
 			tx->data_size = osize;
 			tx->data = (u8 *)gf_malloc(osize);
-			e = gf_img_jpeg_dec(data, size, &width, &height, &pf, tx->data, &osize, 0);
+			if (!tx->data)
+				e = GF_OUT_OF_MEM;
+			else
+				e = gf_img_jpeg_dec(data, size, &width, &height, &pf, tx->data, &osize, 0);
+
 			if (e==GF_OK) {
 				tx->width = width;
 				tx->height = height;
@@ -7037,6 +7081,9 @@ static JSValue text_setProperty(JSContext *c, JSValueConst obj, JSValueConst val
 			JS_FreeValue(c, res);
 			txt->nb_fonts = nb_fonts;
 			txt->fontnames = (char **)gf_malloc(sizeof(char *) * nb_fonts);
+			if (!txt->fontnames)
+				return js_throw_err(c, GF_OUT_OF_MEM);
+
 			for (i=0; i<nb_fonts; i++) {
 				res = JS_GetPropertyUint32(c, value, i);
 				str = JS_ToCString(c, res);
@@ -7047,6 +7094,8 @@ static JSValue text_setProperty(JSContext *c, JSValueConst obj, JSValueConst val
 		} else {
 			txt->nb_fonts = 1;
 			txt->fontnames = (char **)gf_malloc(sizeof(char *));
+			if (!txt->fontnames)
+				return js_throw_err(c, GF_OUT_OF_MEM);
 			str = JS_ToCString(c, value);
 			txt->fontnames[0] = gf_strdup(str ? str : "SANS");
 			JS_FreeCString(c, str);

@@ -139,6 +139,7 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (!pctx) {
 		GF_SAFEALLOC(pctx, GF_TileAggInput);
+		if (!pctx) return GF_OUT_OF_MEM;
 		pctx->pid = pid;
 		gf_filter_pid_set_udta(pid, pctx);
 		gf_list_add(ctx->ipids, pctx);

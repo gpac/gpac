@@ -903,6 +903,8 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 		if (state == RESET_STATE_PPS) {
 			//PS modified, copy
 			sl->data = (u8 *)gf_realloc(sl->data, size);
+			if (!sl->data) return;
+
 			memcpy(sl->data, data, size);
 			sl->size = size;
 			*needs_reset = GF_TRUE;
@@ -926,12 +928,17 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 			GF_SAFEALLOC(sl, GF_NALUFFParam);
 			if (!sl) return;
 			sl->data = (u8 *)gf_malloc(size);
+			if (!sl->data) {
+				gf_free(sl);
+				return;
+			}
 			memcpy(sl->data, data, size);
 			sl->size = size;
 			sl->id = ps_id;
 			gf_list_add(list, sl);
 		} else {
 			last_sl->data = (u8 *)gf_realloc(last_sl->data, size);
+			if (!last_sl->data) return;
 			memcpy(last_sl->data, data, size);
 			last_sl->size = size;
 		}

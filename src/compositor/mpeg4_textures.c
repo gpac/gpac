@@ -318,6 +318,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				if (e==GF_BUFFER_TOO_SMALL) {
 					u32 BPP;
 					txh->data = (u8 *)gf_malloc(out_size);
+					if (!txh->data) return;
 					if (txh->pixelformat==GF_PIXEL_GREYSCALE) BPP = 1;
 					else BPP = 3;
 
@@ -335,6 +336,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
 				if (e==GF_BUFFER_TOO_SMALL) {
 					txh->data = (u8 *)gf_malloc(out_size);
+					if (!txh->data) return;
 					e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size);
 					if (e==GF_OK) {
 						gf_sc_texture_allocate(txh);
@@ -549,6 +551,8 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 
 	if (st->pixels) gf_free(st->pixels);
 	st->pixels = (char*)gf_malloc(stride * pt->image.height);
+	if (!st->pixels) return;
+
 	/*FIXME FOR OPENGL !!*/
 #if 0
 	for (i=0; i<pt->image.height; i++) {

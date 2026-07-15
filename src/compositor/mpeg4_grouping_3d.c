@@ -397,6 +397,7 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 void compositor_init_lod(GF_Compositor *compositor, GF_Node *node)
 {
 	s32 *stack = (s32*)gf_malloc(sizeof(s32));
+	if (!stack) return;
 	*stack = -1;
 	gf_node_set_callback_function(node, TraverseLOD);
 	gf_node_set_private(node, stack);

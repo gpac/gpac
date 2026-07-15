@@ -245,8 +245,10 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 		}
 		name = gf_url_concatenate(the_path, pathName);
 		outPath = (char*)gf_malloc(strlen(parentName) + strlen(name) + 2);
-		sprintf(outPath, "%s=%s", parentName, name);
-		rad[0] = '=';
+		if (outPath) {
+			sprintf(outPath, "%s=%s", parentName, name);
+			rad[0] = '=';
+		}
 		gf_free(name);
 		gf_free(the_path);
 		return outPath;
@@ -404,6 +406,10 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 
 	i = (u32) strlen(tmp);
 	outPath = (char *) gf_malloc(i + strlen(name) + 1);
+	if (!outPath) {
+		if (tmp) gf_free(tmp);
+		return NULL;
+	}
 	sprintf(outPath, "%s%s", tmp, name);
 
 	/*cleanup paths sep for win32*/
@@ -485,6 +491,7 @@ char *gf_url_percent_encode(const char *path)
 	}
 	if (!count) return gf_strdup(path);
 	outpath = (char*)gf_malloc(len + count + 1);
+	if (!outpath) return NULL;
 	memcpy(outpath, path, len+1);
 
 	count = 0;
@@ -534,6 +541,7 @@ char *gf_url_percent_decode(const char *path)
 	}
 	if (count==len) return gf_strdup(path);
 	outpath = (char*)gf_malloc(count + 1);
+	if (!outpath) return NULL;
 
 	u32 d_idx=0;
 	for (i=0; i<len; i++) {

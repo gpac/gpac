@@ -2818,7 +2818,7 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 	}
 }
 
-static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_idx)
+static GF_Err dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_idx)
 {
 	const GF_PropertyValue *p;
 
@@ -2990,6 +2990,7 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 					obuf_size = p->value.data.size*3;
 					if (obuf_size>obuf_alloc) {
 						obuf = (char *)gf_realloc(obuf, obuf_size);
+						if (!obuf) return GF_OUT_OF_MEM;
 						obuf_alloc = obuf_size;
 					}
 					res = gf_base64_encode(p->value.data.ptr, p->value.data.size, (u8*)obuf, obuf_size);
@@ -3005,6 +3006,7 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 					obuf_size = j*3;
 					if (obuf_size>obuf_alloc) {
 						obuf = (char *)gf_realloc(obuf, obuf_size);
+						if (!obuf) return GF_OUT_OF_MEM;
 						obuf_alloc = obuf_size;
 					}
 					res = gf_base64_encode((u8*)cdata, j, (u8*)obuf, obuf_size);
@@ -3022,6 +3024,7 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 			if (obuf) gf_free(obuf);
 		}
 	}
+	return GF_OK;
 }
 
 static Bool dasher_same_roles(GF_DashStream *ds1, GF_DashStream *ds2)
@@ -4127,6 +4130,7 @@ static u32 dasher_check_template_reuse(GF_DasherCtx *ctx, GF_DashStream *ds, con
 		}
 	}
 	GF_SAFEALLOC(tr, DashTemplateRecord)
+	if (!tr) return 0;
 	tr->tpl = dasher_cat_mpd_url(ctx, ds, tpl);
 	gf_list_add(ctx->tpl_records, tr);
 	return 0;
@@ -7476,7 +7480,8 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 			if (ds->xlink) remote_xlink = ds->xlink;
 		} else if (!ctx->is_period_restore) {
 			//setup representation - the representation is created independently from the period
-			dasher_setup_rep(ctx, ds, &srd_rep_idx);
+			GF_Err e = dasher_setup_rep(ctx, ds, &srd_rep_idx);
+			if (e) return e;
 		}
 	}
 
@@ -7921,36 +7926,38 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 				if (!strncmp(url, "xsd@", 4)) url += 4;
 
 				GF_SAFEALLOC(utc_t, GF_MPD_Descriptor);
-				utc_t->value = gf_strdup(url);
-				switch (ctx->utc_timing_type) {
-				case DASHER_UTCREF_HTTP_HEAD:
-					utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-head:2014");
-					break;
-				case DASHER_UTCREF_XSDATE:
-					utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-xsdate:2014");
-					dashif_ok = GF_TRUE;
-					break;
-				case DASHER_UTCREF_ISO:
-					utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-iso:2014");
-					dashif_ok = GF_TRUE;
-					break;
-				case DASHER_UTCREF_NTP:
-					utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-ntp:2014");
-					dashif_ok = GF_TRUE;
-					break;
-				case DASHER_UTCREF_INBAND:
-					utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:direct:2014");
-					break;
-				default:
-					break;
+				if (utc_t) {
+					utc_t->value = gf_strdup(url);
+					switch (ctx->utc_timing_type) {
+					case DASHER_UTCREF_HTTP_HEAD:
+						utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-head:2014");
+						break;
+					case DASHER_UTCREF_XSDATE:
+						utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-xsdate:2014");
+						dashif_ok = GF_TRUE;
+						break;
+					case DASHER_UTCREF_ISO:
+						utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-iso:2014");
+						dashif_ok = GF_TRUE;
+						break;
+					case DASHER_UTCREF_NTP:
+						utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-ntp:2014");
+						dashif_ok = GF_TRUE;
+						break;
+					case DASHER_UTCREF_INBAND:
+						utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:direct:2014");
+						break;
+					default:
+						break;
+					}
+					if (!dashif_ok && (ctx->profile==GF_DASH_PROFILE_DASHIF_LL)) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] UTC reference %s allowed in DASH-IF Low Latency profile\n\tswitching to regular live profile\n", utc_t->scheme_id_uri));
+						ctx->profile = GF_DASH_PROFILE_LIVE;
+					}
+					if (!ctx->mpd->utc_timings)
+						ctx->mpd->utc_timings = gf_list_new();
+					gf_list_add(ctx->mpd->utc_timings, utc_t);
 				}
-				if (!dashif_ok && (ctx->profile==GF_DASH_PROFILE_DASHIF_LL)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] UTC reference %s allowed in DASH-IF Low Latency profile\n\tswitching to regular live profile\n", utc_t->scheme_id_uri));
-					ctx->profile = GF_DASH_PROFILE_LIVE;
-				}
-				if (!ctx->mpd->utc_timings)
-					ctx->mpd->utc_timings = gf_list_new();
-				gf_list_add(ctx->mpd->utc_timings, utc_t);
 			}
 		}
 
@@ -8444,6 +8451,7 @@ static void dasher_set_timeline_parts(GF_DasherCtx *ctx, GF_DashStream *ds, GF_D
 
 	GF_MPD_SegmentTimelineEntry *new_ent;
 	GF_SAFEALLOC(new_ent, GF_MPD_SegmentTimelineEntry);
+	if (!new_ent) return;
 	new_ent->start_time = ent->start_time + ent->duration * (1+ent->repeat_count);
 	new_ent->duration = ent->duration;
 	ent->repeat_count--;
@@ -9777,6 +9785,7 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 
 		if (!es) {
 			GF_SAFEALLOC(es, GF_MPD_EventStream);
+			if (!es) goto fail;
 			es->scheme_id_uri = gf_strdup(GF_SCTE35_SCHEME_URI_OUTBAND);
 			if (!es->scheme_id_uri) goto fail;
 			es->entries = gf_list_new();

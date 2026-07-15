@@ -429,6 +429,8 @@ static void scene_dump_utf_string(GF_SceneDumper *sdump, Bool escape_xml, char *
 	len = 1 + (u32) strlen(str);
 	if (!len) return;
 	uniLine = (u16*)gf_malloc(sizeof(u16) * len*4);
+	if (!uniLine) return;
+
 	len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
 	if (len != GF_UTF8_FAIL) {
 		for (i=0; i<len; i++) {
@@ -597,6 +599,10 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 		}
 		else {
 			u16 *uniLine = (u16*)gf_malloc(sizeof(u16) * ((len/2)*2 + 2));
+			if (!uniLine) {
+				gf_fprintf(sdump->trace, "\"OutOfMem\"", str);
+				return;
+			}
 			len = gf_utf8_mbstowcs(uniLine, len+1, (const char **)&str);
 
 			if (len != GF_UTF8_FAIL) {
@@ -1427,6 +1433,7 @@ static void gf_dump_vrml_node(GF_SceneDumper *sdump, GF_Node *node, Bool in_list
 	/*get all fields*/
 	count = gf_node_get_field_count(node);
 	def_fields = (u32*)gf_malloc(sizeof(u32) * count);
+	if (!def_fields) return;
 
 	base = NULL;
 	switch (gf_node_get_tag(node)) {

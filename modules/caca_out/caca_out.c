@@ -358,6 +358,7 @@ static GF_Err cacao_blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Wind
 		}
 		if (!d) {
 			GF_SAFEALLOC(d, CacaDither);
+			if (!d) return GF_OUT_OF_MEM;
 			d->pfmt = video_src->pixel_format;
 			gf_list_add(ctx->dithers, d);
 		}
@@ -485,10 +486,14 @@ static void *cacao_new()
 	GF_VideoOutput *driv;
 
 	GF_SAFEALLOC(driv, GF_VideoOutput);
+	if (!driv) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "caca", "gpac distribution");
 
 	GF_SAFEALLOC(ctx, CacaOutCtx);
-
+	if (!ctx) {
+		gf_free(driv);
+		return NULL;
+	}
 	driv->opaque = ctx;
 	driv->Setup = cacao_setup;
 	driv->Shutdown = cacao_shutdown;

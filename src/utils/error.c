@@ -557,6 +557,7 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 			}
 			size = cbck_console.dwSize.X * cbck_console.dwSize.Y;
 			cbck_buffer = (PCHAR_INFO) gf_malloc(size * sizeof(CHAR_INFO));
+			if (!cbck_buffer) return;
 			pos.X = 0;
 			region.Left = 0;
 			region.Right = cbck_console.dwSize.X - 1;
@@ -940,6 +941,7 @@ static void gf_logs_set_thread_tag_internal(void *tag_val, u32 tag_type, Bool is
 
 	if (!tag) {
 		GF_SAFEALLOC(tag, GF_LogThreadTag)
+		if (!tag) return;
 		tag->udta = tag_val;
 		gf_list_add(logs_thread_tags, tag);
 	}

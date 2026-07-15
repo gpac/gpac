@@ -202,6 +202,7 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 				gf_evg_stencil_set_vertex_path(grad, path);
 
 				colors = (u32*)gf_malloc(sizeof(u32) * num_col);
+				if (!colors) num_col = 0;
 				for (j=0; j<num_col; j++) {
 					if (ils2D->colorIndex.count>0) {
 						col = color->color.vals[ils2D->colorIndex.vals[col_ind+j]];
@@ -212,8 +213,10 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 					}
 					colors[j] = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 				}
-				gf_evg_stencil_set_vertex_colors(grad, colors, num_col);
-				gf_free(colors);
+				if (colors) {
+					gf_evg_stencil_set_vertex_colors(grad, colors, num_col);
+					gf_free(colors);
+				}
 			}
 #endif
 

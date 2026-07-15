@@ -387,6 +387,8 @@ static JSBool SMJS_FUNCTION(html_media_load)
 		GF_HTML_MediaElement *me = html_media_element_get_from_node(c, n);
 		mfurl.count = 1;
 		mfurl.vals = (SFURL *)gf_malloc(sizeof(SFURL));
+		if (!mfurl.vals)
+			return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
 		mfurl.vals[0].url = me->currentSrc;
 		mfurl.vals[0].OD_ID = GF_MEDIA_EXTERNAL_ID;
 		gf_mo_register(n, &mfurl, GF_FALSE, GF_FALSE);
@@ -1463,6 +1465,7 @@ void html_media_init_js_api(GF_SceneGraph *scene) {
 	/* HTML Media Element */
 	if (!html_media_rt) {
 		GF_SAFEALLOC(html_media_rt, GF_HTML_MediaRuntime);
+		if (!html_media_rt) return;
 
 		/* Setting up MediaError class (no constructor, no finalizer) */
 		JS_SETUP_CLASS(html_media_rt->mediaErrorClass, "MediaError", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);

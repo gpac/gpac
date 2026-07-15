@@ -142,6 +142,10 @@ void OD_ParseBinData(u8 *val, u8 **out_data, u32 *out_data_size)
 	if (*out_data) gf_free(*out_data);
 	*out_data_size = len;
 	*out_data = (u8*)gf_malloc(len);
+	if (! *out_data) {
+		*out_data_size = 0;
+		return;
+	}
 	s[2] = 0;
 	for (i=0; i<len; i++) {
 		s[0] = val[3*i+1];
@@ -581,6 +585,10 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				if (realloc_fonts) {
 					sd->font_count += 1;
 					sd->fonts = (GF_FontRecord*)gf_realloc(sd->fonts, sizeof(GF_FontRecord)*sd->font_count);
+					if (!sd->fonts) {
+						sd->font_count = 0;
+						return GF_OUT_OF_MEM;
+					}
 					sd->fonts[sd->font_count-1].fontID = 0;
 					sd->fonts[sd->font_count-1].fontName = NULL;
 				}

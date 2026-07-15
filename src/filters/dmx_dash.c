@@ -214,12 +214,14 @@ static void dashdmx_set_string_list_prop(GF_FilterPacket *ref, u32 prop_name, GF
 	v.type = GF_PROP_STRING_LIST;
 	v.value.string_list.nb_items = count = gf_list_count(list);
 	v.value.string_list.vals = (char **)gf_malloc(sizeof(char *) * count);
-	for (i=0; i<count;i++) {
-		v.value.string_list.vals[i] = (char *)gf_list_pop_front(list);
+	if (v.value.string_list.vals) {
+		for (i=0; i<count;i++) {
+			v.value.string_list.vals[i] = (char *)gf_list_pop_front(list);
+		}
+		gf_filter_pck_set_property(ref, prop_name, &v);
 	}
 	gf_list_del(list);
 	*str_list = NULL;
-	gf_filter_pck_set_property(ref, prop_name, &v);
 }
 
 
@@ -1738,7 +1740,10 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		dashdm_format_qinfo(&qdesc, &qinfo);
 
 		qualities.value.string_list.vals = (char **)gf_realloc(qualities.value.string_list.vals, sizeof(char *) * (qualities.value.string_list.nb_items+1));
-
+		if (!qualities.value.string_list.vals) {
+			qualities.value.string_list.nb_items = 0;
+			break;
+		}
 		qualities.value.string_list.vals[qualities.value.string_list.nb_items] = qdesc;
 		qualities.value.string_list.nb_items++;
 		qdesc = NULL;
@@ -1746,14 +1751,16 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	gf_filter_pid_set_info_str(opid, "has:qualities", &qualities);
 
 	if (group->nb_group_deps) {
+		GF_Err e = GF_OK;
 		GF_PropertyValue srd_deps;
 		gf_filter_pid_set_info_str(opid, "has:group_deps", &PROP_UINT(group->nb_group_deps) );
 		memset(&srd_deps, 0, sizeof(GF_PropertyValue));
 		srd_deps.type = GF_PROP_STRING_LIST;
 		srd_deps.value.string_list.nb_items = group->nb_group_deps;
 		srd_deps.value.string_list.vals = (char **)gf_malloc(sizeof(char *) * group->nb_group_deps);
+		if (!srd_deps.value.string_list.vals) e = GF_OUT_OF_MEM;
 
-		for (i=0; i<group->nb_group_deps; i++) {
+		for (i=0; i<group->nb_group_deps && !e; i++) {
 			char szSRDInf[1024];
 			GF_PropertyValue deps_q;
 			u32 k, nb_q;
@@ -1776,6 +1783,11 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			nb_q = gf_dash_group_get_num_qualities(ctx->dash, g_idx);
 			deps_q.value.string_list.nb_items = nb_q;
 			deps_q.value.string_list.vals = (char **)gf_malloc(sizeof(char *) * nb_q);
+			if (!deps_q.value.string_list.vals) {
+				e = GF_OUT_OF_MEM;
+				srd_deps.value.string_list.nb_items = i;
+				break;
+			}
 
 			for (k=0; k<nb_q; k++) {
 				char *qdesc = NULL;
@@ -2868,20 +2880,22 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 
 		if (group->nb_group_deps) {
 			u32 k;
+			GF_Err e = GF_OK;
 			GF_PropertyValue deps_sel;
 
 			memset(&deps_sel, 0, sizeof(GF_PropertyValue));
 			deps_sel.type = GF_PROP_SINT_LIST;
 			deps_sel.value.sint_list.nb_items = group->nb_group_deps;
 			deps_sel.value.sint_list.vals = (s32 *)gf_malloc(sizeof(s32) * group->nb_group_deps);
+			if (!deps_sel.value.sint_list.vals) e = GF_OUT_OF_MEM;
 
-			for (k=0; k<group->nb_group_deps; k++) {
+			for (k=0; k<group->nb_group_deps && !e; k++) {
 				u32 g_idx = gf_dash_get_dependent_group_index(ctx->dash, group->idx, k);
 				sel = gf_dash_group_get_active_quality(ctx->dash, g_idx);
 				deps_sel.value.sint_list.vals[k] = sel;
 			}
 			gf_filter_pid_set_property_str(opid, "has:deps_selected", &deps_sel);
-			gf_free(deps_sel.value.sint_list.vals);
+			if (deps_sel.value.sint_list.vals) gf_free(deps_sel.value.sint_list.vals);
 		}
 
 		//setup some info for consuming filters

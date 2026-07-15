@@ -1613,7 +1613,7 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 static s32 gf_get_DQId(GF_ISOFile *file, u32 track)
 {
-	GF_AVCConfig *svccfg;
+	GF_AVCConfig *svccfg = NULL;;
 	GF_ISOSample *samp;
 	u32 di = 0;
 	GF_ISONaluExtractMode cur_extract_mode;
@@ -1629,6 +1629,10 @@ static s32 gf_get_DQId(GF_ISOFile *file, u32 track)
 	cur_extract_mode = gf_isom_get_nalu_extract_mode(file, track);
 	gf_isom_set_nalu_extract_mode(file, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	buffer = (u8*)gf_malloc(max_size);
+	if (!buffer) {
+		DQId = 0;
+		goto exit;
+	}
 	svccfg = gf_isom_svc_config_get(file, track, 1);
 	if (!svccfg)
 	{
@@ -1648,6 +1652,7 @@ static s32 gf_get_DQId(GF_ISOFile *file, u32 track)
 		size = gf_bs_read_int(bs, nalu_size_length);
 		if (size>max_size) {
 			buffer = (u8*)gf_realloc(buffer, size);
+			if (!buffer) { DQId = -1; break; }
 			max_size = size;
 		}
 		gf_bs_read_data(bs, (u8 *) buffer, size);
@@ -1806,6 +1811,10 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	/*read all sps, but we need only the subset sequence parameter sets*/
 	sps =  (s32 *) gf_malloc(num_subseq * sizeof(s32));
 	sps_track = (s32 *) gf_malloc(num_subseq * sizeof(s32));
+	if (!sps || !sps_track) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	count = 0;
 	for (i = 0; i < num_sps; i++)
 	{
@@ -1827,6 +1836,10 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	gf_assert(count == num_subseq);
 	/*read all pps*/
 	pps =  (s32 *) gf_malloc(num_pps * sizeof(s32));
+	if (!pps) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	for (j = 0; j < num_pps; j++)
 	{
 		slc = (GF_NALUFFParam *)gf_list_get(svccfg->pictureParameterSets, j);
@@ -1846,6 +1859,10 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	}
 
 	buffer = (u8*)gf_malloc(max_size);
+	if (!buffer) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	/*read first sample for determinating the order of SVC tracks*/
 	count = 0;
 	samp = gf_isom_get_sample(file, track, 1, &di);
@@ -1857,6 +1874,10 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
 	offset = 0;
 	is_subseq_pps = (Bool *) gf_malloc(num_pps*sizeof(Bool));
+	if (!is_subseq_pps) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	for (i = 0; i < num_pps; i++)
 		is_subseq_pps[i] = GF_FALSE;
 	while (gf_bs_available(bs))
@@ -1865,6 +1886,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		size = gf_bs_read_int(bs, nalu_size_length);
 		if (size>max_size) {
 			buffer = (u8*)gf_realloc(buffer, size);
+			if (!buffer) { e = GF_OUT_OF_MEM; goto exit; }
 			max_size = size;
 		}
 
@@ -1958,9 +1980,14 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			cfg->nal_unit_size = svccfg->nal_unit_size;
 			slc = (GF_NALUFFParam *)gf_list_get(svccfg->sequenceParameterSets, sps_track[t]);
 			sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
+			if (sl) sl->data = (u8 *)gf_malloc(slc->size);
+			if (!sl || !sl->data) {
+				if (sl) gf_free(sl);
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
 			sl->id = slc->id;
 			sl->size = slc->size;
-			sl->data = (u8 *)gf_malloc(sl->size);
 			memcpy(sl->data, slc->data, sizeof(char)*sl->size);
 			gf_list_add(cfg->sequenceParameterSets, sl);
 			for (j = 0; j < num_pps; j++)
@@ -1970,9 +1997,14 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 				{
 					slc = (GF_NALUFFParam *)gf_list_get(svccfg->pictureParameterSets, j);
 					sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
+					if (sl) sl->data = (u8 *)gf_malloc(slc->size);
+					if (!sl || !sl->data) {
+						if (sl) gf_free(sl);
+						e = GF_OUT_OF_MEM;
+						goto exit;
+					}
 					sl->id = slc->id;
 					sl->size = slc->size;
-					sl->data = (u8 *)gf_malloc(sl->size);
 					memcpy(sl->data, slc->data, sizeof(char)*sl->size);
 					gf_list_add(cfg->pictureParameterSets, sl);
 				}
@@ -1996,9 +2028,14 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 				cfg->nal_unit_size = svccfg->nal_unit_size;
 				slc = (GF_NALUFFParam *)gf_list_get(svccfg->sequenceParameterSets, sps_track[i]);
 				sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
+				if (sl) sl->data = (u8 *)gf_malloc(slc->size);
+				if (!sl || !sl->data) {
+					if (sl) gf_free(sl);
+					e = GF_OUT_OF_MEM;
+					goto exit;
+				}
 				sl->id = slc->id;
 				sl->size = slc->size;
-				sl->data = (u8 *)gf_malloc(sl->size);
 				memcpy(sl->data, slc->data, sizeof(char)*sl->size);
 				gf_list_add(cfg->sequenceParameterSets, sl);
 				for (j = 0; j < num_pps; j++)
@@ -2008,9 +2045,14 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 					{
 						slc = (GF_NALUFFParam *)gf_list_get(svccfg->pictureParameterSets, j);
 						sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
+						if (sl) sl->data = (u8 *)gf_malloc(slc->size);
+						if (!sl || !sl->data) {
+							if (sl) gf_free(sl);
+							e = GF_OUT_OF_MEM;
+							goto exit;
+						}
 						sl->id = slc->id;
 						sl->size = slc->size;
-						sl->data = (u8 *)gf_malloc(sl->size);
 						memcpy(sl->data, slc->data, sizeof(char)*sl->size);
 						gf_list_add(cfg->pictureParameterSets, sl);
 					}
@@ -2026,9 +2068,17 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 
 	num_sample = gf_isom_get_sample_count(file, track);
 	first_sample_track = (Bool *) gf_malloc((num_svc_track+1) * sizeof(Bool));
+	if (!first_sample_track) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	for (t = 0; t <= num_svc_track; t++)
 		first_sample_track[t] = GF_TRUE;
 	first_DTS_track = (u64 *) gf_malloc((num_svc_track+1) * sizeof(u64));
+	if (!first_DTS_track) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	for (t = 0; t <= num_svc_track; t++)
 		first_DTS_track[t] = 0;
 	for (i = 1; i <= num_sample; i++)
@@ -2045,6 +2095,10 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 
 		/* Create (num_svc_track) SVC bitstreams + 1 AVC bitstream*/
 		sample_bs = (GF_BitStream **) gf_malloc(sizeof(GF_BitStream *) * (num_svc_track+1));
+		if (!sample_bs) {
+			e = GF_OUT_OF_MEM;
+			goto exit;
+		}
 		for (j = 0; j <= num_svc_track; j++)
 			sample_bs[j] = (GF_BitStream *) gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
@@ -2100,6 +2154,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			size = gf_bs_read_int(bs, nalu_size_length);
 			if (size>max_size) {
 				buffer = (u8*)gf_realloc(buffer, size);
+				if (!buffer) { e = GF_OUT_OF_MEM; goto exit; }
 				max_size = size;
 			}
 
@@ -2365,8 +2420,16 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	}
 
 	list_track_sorted = (u32 *) gf_malloc(num_track * sizeof(u32));
+	if (!list_track_sorted) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	memset(list_track_sorted, 0, num_track * sizeof(u32));
 	DQId = (s32 *) gf_malloc(num_track * sizeof(s32));
+	if (!DQId) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	memset(DQId, 0, num_track * sizeof(s32));
 	count = 0;
 	for (t = 1; t <= num_track; t++) {
@@ -2425,9 +2488,14 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 		{
 			slc = (GF_NALUFFParam *)gf_list_get(cfg->sequenceParameterSets, i);
 			sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
+			if (sl) sl->data = (u8 *)gf_malloc(slc->size);
+			if (!sl || !sl->data) {
+				if (sl) gf_free(sl);
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
 			sl->id = slc->id;
 			sl->size = slc->size;
-			sl->data = (u8 *)gf_malloc(sl->size);
 			memcpy(sl->data, slc->data, sizeof(char)*sl->size);
 			gf_list_add(svccfg->sequenceParameterSets, sl);
 		}
@@ -2435,9 +2503,14 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 		{
 			slc = (GF_NALUFFParam *)gf_list_get(cfg->pictureParameterSets, i);
 			sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
+			if (sl) sl->data = (u8 *)gf_malloc(slc->size);
+			if (!sl || !sl->data) {
+				if (sl) gf_free(sl);
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
 			sl->id = slc->id;
 			sl->size = slc->size;
-			sl->data = (u8 *)gf_malloc(sl->size);
 			memcpy(sl->data, slc->data, sizeof(char)*sl->size);
 			gf_list_add(svccfg->pictureParameterSets, sl);
 		}
@@ -2452,7 +2525,15 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	}
 
 	cur_sample = (u32 *) gf_malloc(count * sizeof(u32));
+	if (!cur_sample) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	max_sample = (u32 *) gf_malloc(count * sizeof(u32));
+	if (!max_sample) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	for (t = 0; t < count; t++)
 	{
 		cur_sample[t] = 1;
@@ -2460,6 +2541,10 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	}
 
 	DTS_offset = (u64 *) gf_malloc(count * sizeof(u64));
+	if (!DTS_offset) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	for (t = 0; t < count; t++) {
 		DTS_offset[t] = 0;
 		nb_EditList = gf_isom_get_edits_count(file, list_track_sorted[t]);
@@ -2482,6 +2567,10 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	first_sample = GF_TRUE;
 	first_DTS = 0;
 	buffer = (u8*)gf_malloc(max_size);
+	if (!buffer) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	for (t = 1; t <= num_track; t++)
 		gf_isom_set_nalu_extract_mode(file, t, GF_ISOM_NALU_EXTRACT_INSPECT);
 	for (i = 1; i <= num_sample; i++)
@@ -2543,6 +2632,7 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 				size = gf_bs_read_int(bs, nalu_size_length);
 				if (size>max_size) {
 					buffer = (u8*)gf_realloc(buffer, size);
+					if (!buffer) { e = GF_OUT_OF_MEM; goto exit; }
 					max_size = size;
 				}
 				gf_bs_read_data(bs, buffer, size);
@@ -2695,6 +2785,10 @@ GF_Err gf_media_filter_hevc(GF_ISOFile *file, u32 track, u8 max_temporal_id_plus
 
 	nal_alloc_size = 10000;
 	nal_data = (char *)gf_malloc(nal_alloc_size);
+	if (!nal_data) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 
 	if (hevccfg) {
 		count = gf_list_count(hevccfg->param_array);
@@ -2771,6 +2865,7 @@ GF_Err gf_media_filter_hevc(GF_ISOFile *file, u32 track, u8 max_temporal_id_plus
 			if (size>nal_alloc_size) {
 				nal_alloc_size = size;
 				nal_data = (char *)gf_realloc(nal_data, nal_alloc_size);
+				if (!nal_data) { e = GF_OUT_OF_MEM; goto exit; }
 			}
 			gf_bs_read_data(bs, (u8 *) nal_data, size);
 
@@ -2990,6 +3085,10 @@ reparse:
 
 	nal_alloc_size = 10000;
 	nal_data = (u8 *)gf_malloc(nal_alloc_size);
+	if (!nal_data) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	//parse all samples
 	count = gf_isom_get_sample_count(file, track);
 	for (sample_num=0; sample_num<count; sample_num++) {
@@ -3081,6 +3180,7 @@ reparse:
 			if (size>nal_alloc_size) {
 				nal_alloc_size = size;
 				nal_data = (u8 *)gf_realloc(nal_data, nal_alloc_size);
+				if (!nal_data) { e = GF_OUT_OF_MEM; goto exit; }
 			}
 
 			gf_bs_read_data(bs, nal_data, size);

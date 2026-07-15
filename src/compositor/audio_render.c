@@ -155,6 +155,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_Compositor *compositor, u32 init_flags)
 {
 	GF_AudioRenderer *ar;
 	ar = (GF_AudioRenderer *) gf_malloc(sizeof(GF_AudioRenderer));
+	if (!ar) return NULL;
 	memset(ar, 0, sizeof(GF_AudioRenderer));
 
 	ar->compositor = compositor;

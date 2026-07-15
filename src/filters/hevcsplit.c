@@ -355,9 +355,12 @@ void hevc_rewrite_sps(const u8 *in_SPS, u32 in_SPS_length, u32 width, u32 height
 
 	*out_SPS_length = data_without_emulation_bytes_size + gf_media_nalu_emulation_bytes_add_count(data_without_emulation_bytes, data_without_emulation_bytes_size);
 	*out_SPS = (u8 *)gf_malloc(*out_SPS_length);
-	*out_SPS_length = gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_SPS, data_without_emulation_bytes_size);
+	if (*out_SPS)
+		*out_SPS_length = gf_media_nalu_add_emulation_bytes(data_without_emulation_bytes, *out_SPS, data_without_emulation_bytes_size);
+	else
+		*out_SPS_length = 0;
 
-	exit:
+exit:
 	gf_bs_del(bs_in);
 	gf_bs_del(bs_out);
 	gf_free(data_without_emulation_bytes);
@@ -433,6 +436,7 @@ static void hevcsplit_rewrite_pps_no_grid(GF_HEVCSplitCtx *ctx, const u8 *in_PPS
 
 	*out_PPS_length = out_size_no_epb + gf_media_nalu_emulation_bytes_add_count(ctx->output_no_epb, out_size_no_epb);
 	*out_PPS = (u8 *)gf_malloc(*out_PPS_length);
+	if (! *out_PPS) { *out_PPS_length = 0; return; }
 	gf_media_nalu_add_emulation_bytes(ctx->output_no_epb, *out_PPS, out_size_no_epb);
 }
 
@@ -454,6 +458,10 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, const u8 *in_sli
 
 	if (ctx->input_no_epb_alloc < in_slice_length) {
 		ctx->input_no_epb = (u8 *)gf_realloc(ctx->input_no_epb, in_slice_length);
+		if (!ctx->input_no_epb) {
+			ctx->input_no_epb_alloc = 0;
+			return 0;
+		}
 		ctx->input_no_epb_alloc = in_slice_length;
 	}
 	inslice_size_no_epb = gf_media_nalu_remove_emulation_bytes(in_slice, ctx->input_no_epb, in_slice_length);
@@ -557,6 +565,10 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, const u8 *in_sli
 	outslice_size_no_epb += slice_size;
 	if (ctx->output_no_epb_alloc < outslice_size_no_epb) {
 		ctx->output_no_epb = (u8 *)gf_realloc(ctx->output_no_epb, outslice_size_no_epb);
+		if (!ctx->output_no_epb) {
+			ctx->output_no_epb_alloc = 0;
+			return 0;
+		}
 		ctx->output_no_epb_alloc = outslice_size_no_epb;
 	}
 	memcpy(ctx->output_no_epb + slice_offset_dst, ctx->input_no_epb + slice_offset_orig, sizeof(char) * slice_size);
@@ -565,6 +577,10 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, const u8 *in_sli
 
 	if (ctx->buffer_nal_alloc < outslice_size_epb) {
 		ctx->buffer_nal = (u8 *)gf_realloc(ctx->buffer_nal, outslice_size_epb);
+		if (!ctx->buffer_nal) {
+			ctx->buffer_nal_alloc = 0;
+			return 0;
+		}
 		ctx->buffer_nal_alloc = outslice_size_epb;
 	}
 	gf_media_nalu_add_emulation_bytes(ctx->output_no_epb, ctx->buffer_nal, outslice_size_no_epb);

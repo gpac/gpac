@@ -643,6 +643,8 @@ static void gf_glQueryUniforms(GF_SHADERID progObj)
 	glGetProgramiv(progObj, GL_ACTIVE_UNIFORMS, &numUniforms);
 	glGetProgramiv(progObj, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniformLen);
 	uniformName = (char *)gf_malloc(maxUniformLen);
+	if (!uniformName) return;
+
 	for(index = 0; index < numUniforms; index++) {
 		GLint size;
 		GLenum type;
@@ -703,6 +705,7 @@ static void gf_glQueryAttributes(GF_SHADERID progObj)
 	glGetProgramiv(progObj, GL_ACTIVE_ATTRIBUTES, &numAttributes);
 	glGetProgramiv(progObj, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttributeLen);
 	attributeName = (char *)gf_malloc(maxAttributeLen);
+	if (!attributeName) return;
 	for(index = 0; index < numAttributes; index++) {
 		GLint size;
 		GLenum type;
@@ -958,6 +961,8 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 	if (visual->gl_textures) return GF_OK;
 
 	visual->gl_textures = (u32 *)gf_malloc(sizeof(GLuint) * visual->nb_views);
+	if (!visual->gl_textures) return GF_OUT_OF_MEM;
+
 	glGenTextures(visual->nb_views, visual->gl_textures);
 
 	bw = visual->width;
@@ -2815,23 +2820,27 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			u32 i;
 			color_array = (Float *)gf_malloc(sizeof(Float)*4*mesh->v_count);
-			for (i=0; i<mesh->v_count; i++) {
-				color_array[4*i] = FIX2FLT(mesh->vertices[i].color.red);
-				color_array[4*i+1] = FIX2FLT(mesh->vertices[i].color.green);
-				color_array[4*i+2] = FIX2FLT(mesh->vertices[i].color.blue);
-				color_array[4*i+3] = FIX2FLT(mesh->vertices[i].color.alpha);
+			if (color_array) {
+				for (i=0; i<mesh->v_count; i++) {
+					color_array[4*i] = FIX2FLT(mesh->vertices[i].color.red);
+					color_array[4*i+1] = FIX2FLT(mesh->vertices[i].color.green);
+					color_array[4*i+2] = FIX2FLT(mesh->vertices[i].color.blue);
+					color_array[4*i+3] = FIX2FLT(mesh->vertices[i].color.alpha);
+				}
+				glEnable(GL_BLEND);
+				glColorPointer(4, GL_FLOAT, 4*sizeof(Float), color_array);
+				tr_state->mesh_is_transparent = GF_TRUE;
 			}
-			glEnable(GL_BLEND);
-			glColorPointer(4, GL_FLOAT, 4*sizeof(Float), color_array);
-			tr_state->mesh_is_transparent = GF_TRUE;
 		} else {
 			color_array = (Float *)gf_malloc(sizeof(Float)*3*mesh->v_count);
-			for (i=0; i<mesh->v_count; i++) {
-				color_array[3*i] = FIX2FLT(mesh->vertices[i].color.red);
-				color_array[3*i+1] = FIX2FLT(mesh->vertices[i].color.green);
-				color_array[3*i+2] = FIX2FLT(mesh->vertices[i].color.blue);
+			if (color_array) {
+				for (i=0; i<mesh->v_count; i++) {
+					color_array[3*i] = FIX2FLT(mesh->vertices[i].color.red);
+					color_array[3*i+1] = FIX2FLT(mesh->vertices[i].color.green);
+					color_array[3*i+2] = FIX2FLT(mesh->vertices[i].color.blue);
+				}
+				glColorPointer(3, GL_FLOAT, 3*sizeof(Float), color_array);
 			}
-			glColorPointer(3, GL_FLOAT, 3*sizeof(Float), color_array);
 		}
 #else
 		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
@@ -3496,12 +3505,17 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		if (compositor->screen_buffer_alloc_size < fb->pitch_y * fb->height) {
 			compositor->screen_buffer_alloc_size = fb->pitch_y * fb->height;
 			compositor->screen_buffer = (u8 *)gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+			if (!compositor->screen_buffer) {
+				compositor->screen_buffer_alloc_size = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
 
 		fb->video_buffer = compositor->screen_buffer;
 
 		//read as float
 		depthp = (Float*)gf_malloc(sizeof(Float)* fb->pitch_y * fb->height);
+		if (!depthp) return GF_OUT_OF_MEM;
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
 
 #ifndef GPAC_USE_TINYGL
@@ -3543,6 +3557,10 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		if (compositor->screen_buffer_alloc_size < size) {
 			compositor->screen_buffer_alloc_size = size;
 			compositor->screen_buffer = (u8 *)gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+			if (!compositor->screen_buffer) {
+				compositor->screen_buffer_alloc_size = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
 		fb->video_buffer = compositor->screen_buffer;
 
@@ -3556,6 +3574,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		*/
 
 		depth_data = (char*) gf_malloc(fb->width*fb->height);
+		if (!depth_data) return GF_OUT_OF_MEM;
 		glReadPixels(0, 0, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, depth_data);
 
 		if (depth_dump_mode==2) {
@@ -3599,7 +3618,10 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 			compositor->screen_buffer_alloc_size = size;
 			compositor->screen_buffer = (u8 *)gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
 			compositor->line_buffer = (u8 *)gf_realloc(compositor->line_buffer, fb->pitch_y);
-
+			if (!compositor->screen_buffer || !compositor->line_buffer) {
+				compositor->screen_buffer_alloc_size = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
 
 		fb->video_buffer = compositor->screen_buffer;
@@ -3664,13 +3686,15 @@ GF_Err compositor_3d_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSur
 
 	/*flip image (OpenGL always handle image data bottom to top) */
 	tmp = (char*)gf_malloc(fb->pitch_y);
-	hy = fb->height/2;
-	for (i=0; i<hy; i++) {
-		memcpy(tmp, fb->video_buffer+ i*fb->pitch_y, fb->pitch_y);
-		memcpy(fb->video_buffer + i*fb->pitch_y, fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, fb->pitch_y);
-		memcpy(fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, tmp, fb->pitch_y);
+	if (tmp) {
+		hy = fb->height/2;
+		for (i=0; i<hy; i++) {
+			memcpy(tmp, fb->video_buffer+ i*fb->pitch_y, fb->pitch_y);
+			memcpy(fb->video_buffer + i*fb->pitch_y, fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, fb->pitch_y);
+			memcpy(fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, tmp, fb->pitch_y);
+		}
+		gf_free(tmp);
 	}
-	gf_free(tmp);
 	return GF_OK;
 #else
 	return GF_NOT_SUPPORTED;

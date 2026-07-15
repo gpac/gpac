@@ -517,6 +517,7 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, GF_ISOTra
 			//we adding some stuff in the current sample ...
 			dte->byteOffset += entry->hint_sample->dataLength;
 			entry->hint_sample->AdditionalData = (u8*)gf_realloc(entry->hint_sample->AdditionalData, (entry->hint_sample->dataLength + DataLength));
+			if (!entry->hint_sample->AdditionalData) return GF_OUT_OF_MEM;
 			if (AtBegin) {
 				if (entry->hint_sample->dataLength)
 					memmove(entry->hint_sample->AdditionalData + DataLength, entry->hint_sample->AdditionalData, entry->hint_sample->dataLength);

@@ -1432,7 +1432,7 @@ redo_pass:
 static void gpac_suggest_filter_arg(GF_Config *opts, const char *argname, u32 atype)
 {
 	char *keyname;
-	const char *keyval;
+	const char *keyval = NULL;
 	u32 i, count, len, nb_filters, j;
 	Bool f_found = GF_FALSE;
 	char szSep[2];
@@ -1445,9 +1445,11 @@ static void gpac_suggest_filter_arg(GF_Config *opts, const char *argname, u32 at
 
 	len = (u32) strlen(argname);
 	keyname = (char *)gf_malloc(len+3);
-	sprintf(keyname, "-%c%s", (atype==2) ? '+' : '-', argname);
-	keyval = gf_cfg_get_key(opts, "allopts", keyname);
-	gf_free(keyname);
+	if (keyname) {
+		sprintf(keyname, "-%c%s", (atype==2) ? '+' : '-', argname);
+		keyval = gf_cfg_get_key(opts, "allopts", keyname);
+		gf_free(keyname);
+	}
 	if (keyval) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Argument \"%s%s\" was set but not used by any filter\n",
 		(atype==2) ? "-+" : (atype ? "--" : szSep), argname));
@@ -1724,6 +1726,7 @@ static FilterCategory *get_filter_class(GF_ClassTypeHint hint)
 		if (c->type == hint) return c;
 	}
 	GF_SAFEALLOC(c, FilterCategory);
+	if (!c) return NULL;
 	c->type = hint;
 	c->filter_names = gf_list_new();
 	c->filter_descs = gf_list_new();
@@ -3025,6 +3028,10 @@ static void push_ext_mime(GF_List *all_fmts, const char *exts, Bool is_output, c
 		}
 		if (!found || !hdl) {
 			GF_SAFEALLOC(hdl, FMTHandler);
+			if (!hdl) {
+				gf_free(names);
+				return;
+			}
 			while (name[0]==' ')
 				name = name+1;
 			hdl->ext = gf_strdup(name);
@@ -3291,6 +3298,7 @@ void dump_all_proto_schemes(GF_SysArgMode argmode)
 				}
 				if (!pe) {
 					GF_SAFEALLOC(pe, PROTOHandler);
+					if (!pe) break;
 					pe->proto = gf_strdup(proto);
 					pe->in = gf_list_new();
 					pe->out = gf_list_new();
@@ -3562,15 +3570,18 @@ int gpac_make_lang(char *filename)
 			Alias functions
 *********************************************************/
 
-static GFINLINE void push_arg(char *_arg, Bool _dup)
+static GFINLINE GF_Err push_arg(char *_arg, Bool _dup)
 {
-	alias_argv = (char **)gf_realloc(alias_argv, sizeof(char *) * (alias_argc+1)); \
-	alias_argv[alias_argc] = _dup ? gf_strdup(_arg) : _arg; \
+	alias_argv = (char **)gf_realloc(alias_argv, sizeof(char *) * (alias_argc+1));
+	if (!alias_argv) return GF_OUT_OF_MEM;
+	alias_argv[alias_argc] = _dup ? gf_strdup(_arg) : _arg;
 	if (_dup) {
+		if (!alias_argv[alias_argc]) return GF_OUT_OF_MEM;
 		if (!args_alloc) args_alloc = gf_list_new();
 		gf_list_add(args_alloc, alias_argv[alias_argc]);
 	}
 	alias_argc++;
+	return GF_OK;
 }
 
 static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int arg_idx, int argc, char **argv, char *alias_name);

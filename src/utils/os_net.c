@@ -1448,6 +1448,11 @@ GF_Err gf_netcap_setup(const char *rules)
 
 		NetFilterRule *rule;
 		GF_SAFEALLOC(rule, NetFilterRule);
+		if (!rule) {
+			sep[0] = ']';
+			rules = sep+1;
+			continue;
+		}
 		rule->send_recv = send_recv;
 		rule->port = port;
 		rule->patch_offset = patch_offset;
@@ -3749,29 +3754,31 @@ void gf_sk_group_del(GF_SockGroup *sg)
 	gf_free(sg);
 }
 
-void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk)
+GF_Err gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk)
 {
-	if (!sg || !sk) return;
+	if (!sg || !sk) return GF_BAD_PARAM;
 	if (!sg->sockets) sg->sockets = gf_list_new();
-	if (gf_list_find(sg->sockets, sk)>=0) return;
-	gf_list_add(sg->sockets, sk);
+	if (gf_list_find(sg->sockets, sk)>=0) return GF_OK;
+	GF_Err e = gf_list_add(sg->sockets, sk);
+	if (e) return e;
 
 #ifndef GPAC_DISABLE_NETCAP
 	if (sk->cap_info) {
 		sg->nb_nfs++;
 		sg->nb_socks = gf_list_count(sg->sockets);
 		if (sk->cap_info->nf && (gf_list_find(sk->cap_info->nf->read_socks, sk)<0))
-			gf_list_add(sk->cap_info->nf->read_socks, sk);
-		return;
+			return gf_list_add(sk->cap_info->nf->read_socks, sk);
+		return GF_OK;
 	}
 #endif
 
 #ifdef GPAC_HAS_POLL
 	if (!sg->fds && !gpac_use_poll)
-		return;
+		return GF_OK;
 
 	if (sg->nb_fds + 1 > sg->alloc_fds) {
 		sg->fds = (GF_POLLFD*) gf_realloc(sg->fds, (sg->nb_fds+1) * sizeof(GF_POLLFD));
+		if (!sg->fds) return GF_OUT_OF_MEM;
 		sg->alloc_fds = sg->nb_fds+1;
 	}
 	sg->fds[sg->nb_fds].fd = sk->socket;
@@ -3781,6 +3788,8 @@ void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk)
 	gf_assert(! SOCKET_INVALID(sg->fds[sg->nb_fds].fd) );
 	sg->nb_fds++;
 #endif
+
+	return GF_OK;
 }
 
 void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
@@ -4195,7 +4204,9 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 		}
 	}
 
-	GF_SAFEALLOC((*newConnection), GF_Socket);
+	GF_SAFEALLOC(*newConnection, GF_Socket);
+	if (!*newConnection) return GF_OUT_OF_MEM;
+
 	(*newConnection)->socket = sk;
 	(*newConnection)->flags = sock->flags & ~GF_SOCK_IS_LISTENING;
 	(*newConnection)->usec_wait = sock->usec_wait;

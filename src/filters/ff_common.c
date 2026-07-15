@@ -924,6 +924,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		{
 		u32 i, all_len=1, def_size=1000;
 		char *enum_val = (char *)gf_malloc(def_size);
+		if (!enum_val) break;
 		enum_val[0] = 0;
 		for (i=0; i<AV_PIX_FMT_NB; i++) {
 			u32 len;
@@ -934,6 +935,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 			if (len+all_len>def_size) {
 				def_size+=1000;
 				enum_val = (char *)gf_realloc(enum_val, def_size);
+				if (!enum_val) break;
 			}
 			if (i) gf_strlcat(enum_val, "|", def_size);
 			gf_strlcat(enum_val, n, def_size);
@@ -1249,6 +1251,7 @@ second_pass:
 		 	freg->nb_caps = 3;
 
 			caps = (GF_FilterCapability *)gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+			if (!caps) return;
 			memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
 			caps[0].code = GF_PROP_PID_STREAM_TYPE;
 			caps[0].val.type = GF_PROP_UINT;
@@ -1297,6 +1300,7 @@ second_pass:
 			freg->nb_caps = 2;
 #endif
 		 	caps = (GF_FilterCapability *)gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+		 	if (!caps) return;
 		 	memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
 		 	caps[0].code = GF_PROP_PID_STREAM_TYPE;
 		 	caps[0].val.type = GF_PROP_UINT;
@@ -1338,6 +1342,7 @@ second_pass:
 			freg->nb_caps = 2;
 #endif
 			caps = (GF_FilterCapability *)gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+		 	if (!caps) return;
 			memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
 			caps[0].code = GF_PROP_PID_STREAM_TYPE;
 			caps[0].val.type = GF_PROP_UINT;
@@ -1378,6 +1383,7 @@ second_pass:
 			if (!nb_codecs) {
 				freg->nb_caps = 5;
 				caps = (GF_FilterCapability *)gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+				if (!caps) return;
 				memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
 				caps[0].code = GF_PROP_PID_STREAM_TYPE;
 				caps[0].val.type = GF_PROP_UINT;
@@ -1396,6 +1402,7 @@ second_pass:
 			} else {
 				freg->nb_caps = 3*nb_codecs - 1;
 				caps = (GF_FilterCapability *)gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+				if (!caps) return;
 				memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
 
 				i=0;
@@ -1457,12 +1464,12 @@ second_pass:
 		}
 		if (i) {
 			GF_FilterArgs *args = (GF_FilterArgs *)gf_malloc(sizeof(GF_FilterArgs)*(i+1));
-			memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
+			if (args) memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
 			freg->args = args;
 
 			i=0;
 			idx=0;
-			while (av_class) {
+			while (av_class && args) {
 				opt = &av_class->option[idx];
 				if (!opt || !opt->name) break;
 				if (flags && !(opt->flags & flags) ) {
@@ -1554,6 +1561,7 @@ GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterReg
 	}
 
 	GF_SAFEALLOC(new_reg, GF_FilterRegister);
+	if (!new_reg) return NULL;
 	memcpy(new_reg, orig_reg, sizeof(GF_FilterRegister));
 	orig_reg = new_reg;
 
@@ -1619,16 +1627,16 @@ GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterReg
 
 	nb_args = i+1;
 	args = (GF_FilterArgs *)gf_malloc(sizeof(GF_FilterArgs)*nb_args);
-	memset(args, 0, sizeof(GF_FilterArgs)*nb_args);
+	if (args) memset(args, 0, sizeof(GF_FilterArgs)*nb_args);
 	orig_reg->args = args;
 
-	for (i=0; i<nb_def_args-1; i++) {
+	for (i=0; i<nb_def_args-1 && args; i++) {
 		memcpy(&args[i], &default_args[i], sizeof(GF_FilterArgs));
 	}
 	//do not reset i
 
 	idx=0;
-	while (av_class && av_class->option) {
+	while (av_class && av_class->option && args) {
 		opt = &av_class->option[idx];
 		if (!opt || !opt->name) break;
 
@@ -1688,7 +1696,8 @@ GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterReg
 		}
 		idx++;
 	}
-	memcpy(&args[i], &default_args[nb_def_args-1], sizeof(GF_FilterArgs));
+	if (args)
+		memcpy(&args[i], &default_args[nb_def_args-1], sizeof(GF_FilterArgs));
 
 	if (codec_ctx) {
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
@@ -2062,7 +2071,8 @@ void ffmpeg_generate_gpac_dsi(GF_FilterPid *out_pid, u32 gpac_codec_id, u32 colo
 		if (gf_m4v_parse_config(mvp, &vcfg) == GF_OK) {
 			dsi_size = (u32) gf_m4v_get_object_start(mvp);
 			dsi = (u8 *)gf_malloc(dsi_size);
-			memcpy(dsi, data, dsi_size);
+			if (dsi)
+				memcpy(dsi, data, dsi_size);
 		}
 		gf_m4v_parser_del(mvp);
 	}

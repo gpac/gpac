@@ -2233,6 +2233,7 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 	if (help_buf_size < len+2) {
 		help_buf_size = len+2;
 		help_buf = (char*)gf_realloc(help_buf, help_buf_size);
+		if (!help_buf) return;
 	}
 	va_start(vlist, fmt);
 	vsprintf(help_buf, fmt, vlist);
@@ -2787,6 +2788,7 @@ Bool gf_sys_word_match(const char *orig, const char *dst)
 		return GF_TRUE;
 
 	run = (u32*)gf_malloc(sizeof(u32) * olen);
+	if (!run) return GF_FALSE;
 	memset(run, 0, sizeof(u32) * olen);
 
 	for (i=0; i<dlen; i++) {

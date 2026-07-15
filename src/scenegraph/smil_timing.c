@@ -326,6 +326,7 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 
 	gf_svg_flatten_attributes((SVG_Element *)e, &all_atts);
 	e->timingp = (SMILTimingAttributesPointers *)gf_malloc(sizeof(SMILTimingAttributesPointers));
+	if (!e->timingp) return;
 	e->timingp->begin		= all_atts.begin;
 	e->timingp->clipBegin	= all_atts.clipBegin;
 	e->timingp->clipEnd		= all_atts.clipEnd;

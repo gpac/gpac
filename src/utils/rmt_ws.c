@@ -454,7 +454,7 @@ GF_Err rmt_server_handle_new_client(RMT_ServerCtx* ctx) {
 
     RMT_ClientCtx* new_client;
     GF_SAFEALLOC(new_client, RMT_ClientCtx);
-
+	if (!new_client) return GF_OUT_OF_MEM;
     new_client->ctx = ctx;
 
     e = gf_sk_accept(ctx->server_sock, &new_client->client_sock);
@@ -574,6 +574,7 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
         u64 extra_size = payload_size + gf_bs_get_position(bs) - gf_bs_get_size(bs) ;
         GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("buffer too small for payload_size %llu bs_pos %u bs_size %u => extra_size %llu\n", payload_size, gf_bs_get_position(bs), gf_bs_get_size(bs), extra_size));
         extra_payload = (u8*)gf_malloc( extra_size );
+        if (!extra_payload) return GF_OUT_OF_MEM;
 
         e = GF_OK;
         while (!e && extra_read < extra_size) {
@@ -586,6 +587,10 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
     }
 
     u8* unmasked_payload = (u8*)gf_malloc( payload_size + 1);
+	if (!unmasked_payload) {
+        if (extra_payload) gf_free(extra_payload);
+        return GF_OUT_OF_MEM;
+	}
     int i=0;
     for (i=0; i<payload_size && gf_bs_available(bs); i++) {
         unmasked_payload[i] = (u8) ( gf_bs_read_u8(bs) ^ masking_key[i%4] );
@@ -819,6 +824,7 @@ static u32 rmt_ws_thread_main(void* par) {
 
     RMT_ServerCtx* ctx;
     GF_SAFEALLOC(ctx, RMT_ServerCtx);
+    if (!ctx) return 1;
     ctx->rmt = rmt;
 
     GF_Err e;
@@ -849,7 +855,7 @@ static u32 rmt_ws_thread_main(void* par) {
     rmt_serverctx_reset(ctx);
     gf_free(ctx);
     ctx = NULL;
-    return GF_OK;
+    return 0;
 
 }
 

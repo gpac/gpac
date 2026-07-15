@@ -338,6 +338,7 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		p->value.string = (char *)gf_malloc(len+1);
+		if (!p->value.string) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, (u8*)p->value.string, len);
 		p->value.string[len]=0;
 		break;
@@ -354,6 +355,7 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		p->value.data.ptr = (u8 *)gf_malloc(p->value.data.size);
+		if (!p->value.data.ptr) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, p->value.data.ptr, p->value.data.size);
 		break;
 
@@ -366,6 +368,7 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		p->value.string_list.vals = (char **)gf_malloc(sizeof(char*) * len2);
+		if (!p->value.string_list.vals) return GF_OUT_OF_MEM;
 		for (i=0; i<len2; i++) {
 			len = gsfdmx_read_vlen(bs);
 			if (len >= 0x1000000) {
@@ -379,6 +382,7 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			char *str = (char *)gf_malloc(len+1);
+			if (!str) return GF_OUT_OF_MEM;
 			gf_bs_read_data(bs, (u8 *) str, len);
 			str[len] = 0;
 			p->value.string_list.vals[i] = str;
@@ -394,6 +398,7 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		p->value.uint_list.vals = (u32 *)gf_malloc(sizeof(u32)*len);
+		if (!p->value.uint_list.vals) return GF_OUT_OF_MEM;
 		for (i=0; i<len; i++) {
 			p->value.uint_list.vals[i] = gsfdmx_read_vlen(bs);
 		}
@@ -406,6 +411,7 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		p->value.uint_list.vals = (u32 *)gf_malloc(sizeof(u32)*len);
+		if (!p->value.uint_list.vals) return GF_OUT_OF_MEM;
 		for (i=0; i<len; i++) {
 			p->value.uint_list.vals[i] = gf_bs_read_u32(bs);
 		}
@@ -418,6 +424,7 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		p->value.v2i_list.vals = (GF_PropVec2i *)gf_malloc(sizeof(GF_PropVec2i)*len);
+		if (!p->value.v2i_list.vals) return GF_OUT_OF_MEM;
 		for (i=0; i<len; i++) {
 			p->value.v2i_list.vals[i].x = gsfdmx_read_vlen(bs);
 			p->value.v2i_list.vals[i].y = gsfdmx_read_vlen(bs);
@@ -547,6 +554,7 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 			return GF_BAD_PARAM;
 
 		char *pname = (char *)gf_malloc(len+1);
+		if (!pname) return GF_OUT_OF_MEM;
 		u32 read = gf_bs_read_data(bs, (u8 *) pname, len);
 		pname[read]=0;
 
@@ -637,6 +645,7 @@ static GF_Err gsfdmx_tune(GF_Filter *filter, GSF_DemuxCtx *ctx, u8 *pck_data, u3
 			return GF_NOT_SUPPORTED;
 		}
 		char *magic = (char *)gf_malloc(len+1);
+		if (!magic) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, (u8 *) magic, len);
 		magic[len]=0;
 
@@ -700,6 +709,10 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
  			if (!gpck) return NULL;
  			gpck->nb_alloc_frags = 10;
  			gpck->frags = (GSF_PacketFragment *)gf_malloc(sizeof(GSF_PacketFragment) * gpck->nb_alloc_frags);
+ 			if (!gpck->frags) {
+				gf_free(gpck);
+				return NULL;
+			}
 		}
 		gpck->frame_sn = frame_sn;
 		gpck->pck_type = pkt_type;
@@ -729,7 +742,7 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 	return gpck;
 }
 
-static void gsfdmx_packet_append_frag(GSF_Packet *pck, u32 size, u32 offset)
+static GF_Err gsfdmx_packet_append_frag(GSF_Packet *pck, u32 size, u32 offset)
 {
 	u32 i;
 	Bool inserted = GF_FALSE;
@@ -740,7 +753,7 @@ static void gsfdmx_packet_append_frag(GSF_Packet *pck, u32 size, u32 offset)
 
 	for (i=0; i<pck->nb_frags; i++) {
 		if ((pck->frags[i].offset <= offset) && (pck->frags[i].offset + pck->frags[i].size >= offset + size) ) {
-			return;
+			return GF_OK;
 		}
 
 		//insert fragment
@@ -748,6 +761,7 @@ static void gsfdmx_packet_append_frag(GSF_Packet *pck, u32 size, u32 offset)
 			if (pck->nb_frags==pck->nb_alloc_frags) {
 				pck->nb_alloc_frags *= 2;
 				pck->frags = (GSF_PacketFragment *)gf_realloc(pck->frags, sizeof(GSF_PacketFragment)*pck->nb_alloc_frags);
+				if (!pck->frags) { pck->nb_alloc_frags = 0; return GF_OUT_OF_MEM; }
 			}
 			memmove(&pck->frags[i+1], &pck->frags[i], sizeof(GSF_PacketFragment) * (pck->nb_frags - i)  );
 			pck->frags[i].offset = offset;
@@ -770,6 +784,7 @@ static void gsfdmx_packet_append_frag(GSF_Packet *pck, u32 size, u32 offset)
 		if (pck->nb_frags==pck->nb_alloc_frags) {
 			pck->nb_alloc_frags *= 2;
 			pck->frags = (GSF_PacketFragment *)gf_realloc(pck->frags, sizeof(GSF_PacketFragment)*pck->nb_alloc_frags);
+			if (!pck->frags) { pck->nb_alloc_frags = 0; return GF_OUT_OF_MEM; }
 		}
 		pck->frags[pck->nb_frags].offset = offset;
 		pck->frags[pck->nb_frags].size = size;
@@ -780,10 +795,12 @@ static void gsfdmx_packet_append_frag(GSF_Packet *pck, u32 size, u32 offset)
 		if (pck->nb_bytes>pck->full_block_size) pck->corrupted=GF_TRUE;
 		pck->complete = GF_TRUE;
 	}
+	return GF_OK;
 }
 
 GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck, u32 pck_len, Bool full_pck, GF_BitStream *bs)
 {
+	GF_Err e;
 	u64 dts=GF_FILTER_NO_TS, cts=GF_FILTER_NO_TS, bo=GF_FILTER_NO_BO;
 	u32 copy_size, consumed, dur, dep_flags=0, tsmodebits, durmodebits, spos;
 	s16 roll=0;
@@ -975,7 +992,8 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	if (copy_size > pck_len)
 		copy_size = pck_len;
 	gf_bs_read_data(bs, gpck->output, copy_size);
-	gsfdmx_packet_append_frag(gpck, copy_size, 0);
+	e = gsfdmx_packet_append_frag(gpck, copy_size, 0);
+	if (e) return e;
 
 	gf_filter_pck_set_framing(gpck->pck, is_start ? GF_TRUE : GF_FALSE, is_end ? GF_TRUE : GF_FALSE);
 	if (has_dts) gf_filter_pck_set_dts(gpck->pck, dts);
@@ -1143,6 +1161,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 	if (data && data_size) {
 		if (ctx->alloc_size < ctx->buf_size + data_size) {
 			ctx->buffer = (u8*)gf_realloc(ctx->buffer, (ctx->buf_size + data_size) );
+			if (!ctx->buffer) { ctx->buf_size = 0; return GF_OUT_OF_MEM; }
 			ctx->alloc_size = ctx->buf_size + data_size;
 		}
 
@@ -1270,7 +1289,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 							//append fragment
 							memcpy(gpck->output + block_offset, ctx->buffer + cur_pos, pck_len);
 
-							gsfdmx_packet_append_frag(gpck, pck_len, block_offset);
+							e = gsfdmx_packet_append_frag(gpck, pck_len, block_offset);
 						}
 					}
 					if (!e)

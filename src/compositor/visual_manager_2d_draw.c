@@ -432,7 +432,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	gf_mx_copy(bck_mx, tr_state->model_matrix);
 
 	tr_state->traversing_mode=TRAVERSE_DRAW_3D;
-	//in hybridGL the 2D camera is always setup as centered-coords, we have to insert flip+translation in case of top-left origin 
+	//in hybridGL the 2D camera is always setup as centered-coords, we have to insert flip+translation in case of top-left origin
 	if (tr_state->visual->center_coords) {
 		gf_mx_from_mx2d(&tr_state->model_matrix, &ctx->transform);
 	} else {

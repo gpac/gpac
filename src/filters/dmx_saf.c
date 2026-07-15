@@ -76,7 +76,7 @@ static GFINLINE GF_SAFStream *saf_get_channel(GF_SAFDmxCtx *saf, u32 stream_id)
 	return NULL;
 }
 
-static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 data_size)
+static GF_Err safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, const u8 *data, u32 data_size)
 {
 	Bool is_rap, go;
 	u32 cts, au_size, type, i, stream_id;
@@ -85,6 +85,10 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 
 	if (ctx->alloc_size < ctx->saf_size + data_size) {
 		ctx->saf_data = (u8*)gf_realloc(ctx->saf_data, (ctx->saf_size + data_size) );
+		if (!ctx->saf_data) {
+			ctx->alloc_size = 0;
+			return GF_OUT_OF_MEM;
+		}
 		ctx->alloc_size = ctx->saf_size + data_size;
 	}
 	//we could avoid a full copy of the buffer, but given how much SAF is used that's not very urgent ...
@@ -92,7 +96,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 	ctx->saf_size += data_size;
 
 	/*first AU not complete yet*/
-	if (ctx->saf_size<10) return;
+	if (ctx->saf_size<10) return GF_OK;
 
 	bs = gf_bs_new(ctx->saf_data, ctx->saf_size, GF_BITSTREAM_READ);
 	bs_pos = 0;
@@ -131,9 +135,8 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 				GF_SAFStream *first = (GF_SAFStream *)gf_list_get(ctx->streams, 0);
 				GF_SAFEALLOC(st, GF_SAFStream);
 				if (!st) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SAF] Failed to allocate SAF channel"));
 					gf_bs_del(bs);
-					return;
+					return GF_OUT_OF_MEM;
 				}
 				st->stream_id = stream_id;
 				st->opid = gf_filter_pid_new(filter);
@@ -164,15 +167,19 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 				if (type==7) {
 					u16 urlLen = gf_bs_read_u16(bs);
 					char *url_string = (char*)gf_malloc(urlLen+1);
-					gf_bs_read_data(bs, (u8 *) url_string, urlLen);
-					url_string[urlLen] = 0;
+					if (url_string) {
+						gf_bs_read_data(bs, (u8 *) url_string, urlLen);
+						url_string[urlLen] = 0;
+						gf_filter_pid_set_property(st->opid, GF_PROP_PID_REMOTE_URL, &PROP_NAME(url_string));
+					}
 					au_size -= urlLen+2;
-					gf_filter_pid_set_property(st->opid, GF_PROP_PID_REMOTE_URL, &PROP_NAME(url_string));
 				}
 				if (au_size) {
 					u8 *dsi = (u8*)gf_malloc(au_size);
-					gf_bs_read_data(bs, (u8 *) dsi, au_size);
-					gf_filter_pid_set_property(st->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, au_size) );
+					if (dsi) {
+						gf_bs_read_data(bs, (u8 *) dsi, au_size);
+						gf_filter_pid_set_property(st->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, au_size) );
+					}
 				}
 				gf_list_add(ctx->streams, st);
 			}
@@ -218,6 +225,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 		if (remain) memmove(ctx->saf_data, ctx->saf_data+bs_pos, sizeof(char)*remain);
 		ctx->saf_size = remain;
 	}
+	return GF_OK;
 }
 
 
@@ -415,9 +423,9 @@ GF_Err safdmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	data = gf_filter_pck_get_data(pck, &pkt_size);
-	safdmx_demux(filter, ctx, (char *) data, pkt_size);
+	GF_Err e = safdmx_demux(filter, ctx, data, pkt_size);
 	gf_filter_pid_drop_packet(ctx->ipid);
-	return GF_OK;
+	return e;
 }
 
 GF_Err safdmx_initialize(GF_Filter *filter)

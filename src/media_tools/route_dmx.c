@@ -1212,6 +1212,10 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 				if (obj->ll_maps_alloc<=obj->ll_maps_count) {
 					obj->ll_maps_alloc ++;
 					obj->ll_map = (GF_FLUTELLMapEntry *)gf_realloc(obj->ll_map, sizeof(GF_FLUTELLMapEntry)*obj->ll_maps_alloc);
+					if (!obj->ll_map) {
+						obj->ll_maps_alloc = obj->ll_maps_count = 0;
+						return GF_OUT_OF_MEM;
+					}
 				}
 				GF_FLUTELLMapEntry *ll_map = &obj->ll_map[obj->ll_maps_count];
 				obj->ll_maps_count++;
@@ -1229,6 +1233,11 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 					obj->blob.size = obj->total_length;
 					if (obj->total_length > obj->alloc_size) {
 						obj->payload = (u8 *)gf_realloc(obj->payload, obj->total_length+1);
+						if (!obj->payload) {
+							obj->total_length = obj->alloc_size = 0;
+							gf_mx_v(routedmx->blob_mx);
+							return GF_OUT_OF_MEM;
+						}
 						obj->alloc_size = obj->total_length;
 						obj->blob.data = (u8 *)obj->payload;
 					}
@@ -1260,14 +1269,17 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 
 		if (!obj) {
 			GF_SAFEALLOC(obj, GF_LCTObject);
-			if (!obj) {
+			if (obj) {
+				obj->nb_alloc_frags = 10;
+				obj->frags = (GF_LCTFragInfo *)gf_malloc(sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
+			}
+			if (!obj || !obj->frags) {
+				if (obj) gf_free(obj);
 				if (query_sep) query_sep[0] = 0;
 				else if (frag_sep) frag_sep[0] = 0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to allocate LCT object TSI %u TOI %u\n", s->log_name, toi, tsi ));
 				return GF_OUT_OF_MEM;
 			}
-			obj->nb_alloc_frags = 10;
-			obj->frags = (GF_LCTFragInfo *)gf_malloc(sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
 			obj->blob.mx = routedmx->blob_mx;
 		}
 		obj->toi = toi;
@@ -1317,6 +1329,11 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 			if (obj->alloc_size < content_length) {
 				gf_mx_p(routedmx->blob_mx);
 				obj->payload = (u8 *)gf_realloc(obj->payload, obj->total_length+1);
+				if (!obj->payload) {
+					obj->alloc_size = obj->total_length = 0;
+					gf_mx_v(routedmx->blob_mx);
+					return GF_OUT_OF_MEM;
+				}
 				obj->alloc_size = obj->total_length;
 				obj->blob.size = obj->total_length;
 				obj->blob.data = (u8 *)obj->payload;
@@ -1326,6 +1343,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		}
 		if (!obj->rlct_file) {
 			GF_SAFEALLOC(obj->rlct_file, GF_ROUTELCTFile);
+			if (!obj->rlct_file) return GF_OUT_OF_MEM;
 			obj->rlct_file->filename = gf_strdup(content_location);
 			obj->rlct_file->toi = toi;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Added object %s TSI %u TOI %u size %u (is update %d)\n", s->log_name, content_location, tsi, toi, obj->total_length, is_obj_update));
@@ -1337,6 +1355,13 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 				if (!obj->ll_maps_alloc) {
 					obj->ll_maps_alloc = 10;
 					obj->ll_map = (GF_FLUTELLMapEntry *)gf_malloc(sizeof(GF_FLUTELLMapEntry)*obj->ll_maps_alloc);
+					if (!obj->ll_map) {
+						obj->ll_maps_alloc = 0;
+						obj->ll_maps_count = 0;
+						if (query_sep) query_sep[0] = 0;
+						else if (frag_sep) frag_sep[0] = 0;
+						return GF_OUT_OF_MEM;
+					}
 				}
 				obj->ll_maps_count = 1;
 				GF_FLUTELLMapEntry *ll_map = &obj->ll_map[0];
@@ -2000,6 +2025,9 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 				if (obj->total_length>obj->alloc_size) {
 					gf_mx_p(routedmx->blob_mx);
 					obj->payload = (u8 *)gf_realloc(obj->payload, obj->total_length+1);
+					if (!obj->payload) {
+						obj->alloc_size = obj->total_length = 0;
+					}
 					obj->alloc_size = obj->total_length;
 					obj->blob.size = obj->total_length;
 					obj->blob.data = (u8 *)obj->payload;
@@ -2048,12 +2076,15 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		obj = (GF_LCTObject *)gf_list_pop_back(routedmx->object_reservoir);
 		if (!obj) {
 			GF_SAFEALLOC(obj, GF_LCTObject);
-			if (!obj) {
+			if (obj) {
+				obj->nb_alloc_frags = 10;
+				obj->frags = (GF_LCTFragInfo *)gf_malloc(sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
+			}
+			if (!obj || !obj->frags) {
+				if (obj) gf_free(obj);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to allocate LCT object TSI %u TOI %u\n", s->log_name, toi, tsi ));
 				return GF_OUT_OF_MEM;
 			}
-			obj->nb_alloc_frags = 10;
-			obj->frags = (GF_LCTFragInfo *)gf_malloc(sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
 			obj->blob.mx = routedmx->blob_mx;
 		}
 		obj->toi = toi;
@@ -2068,6 +2099,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		if (obj->alloc_size < total_len) {
 			gf_mx_p(routedmx->blob_mx);
 			obj->payload = (u8 *)gf_realloc(obj->payload, total_len+1);
+			if (!obj->payload) obj->alloc_size = total_len = 0;
 			obj->alloc_size = total_len;
 			obj->blob.size = total_len;
 			obj->blob.data = (u8 *)obj->payload;
@@ -2110,6 +2142,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		if (obj->alloc_size < total_len) {
 			gf_mx_p(routedmx->blob_mx);
 			obj->payload = (u8 *)gf_realloc(obj->payload, total_len+1);
+			if (!obj->payload) obj->alloc_size = total_len = 0;
 			obj->alloc_size = total_len;
 			obj->blob.size = total_len;
 			obj->blob.data = (u8*) obj->payload;
@@ -2127,6 +2160,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		if (obj->alloc_size < total_len) {
 			gf_mx_p(routedmx->blob_mx);
 			obj->payload = (u8 *)gf_realloc(obj->payload, obj->total_length+1);
+			if (!obj->payload) obj->alloc_size = total_len = 0;
 			obj->alloc_size = obj->total_length;
 			obj->blob.size = obj->total_length;
 			obj->blob.data = (u8 *)obj->payload;
@@ -2236,6 +2270,10 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		if (obj->nb_frags==obj->nb_alloc_frags) {
 			obj->nb_alloc_frags *= 2;
 			obj->frags = (GF_LCTFragInfo *)gf_realloc(obj->frags, sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
+			if (!obj->frags) {
+				obj->nb_frags = obj->nb_alloc_frags = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
 		memmove(&obj->frags[start_frag+1], &obj->frags[start_frag], sizeof(GF_LCTFragInfo) * (obj->nb_frags - start_frag));
 		obj->frags[start_frag].offset = start_offset;
@@ -2243,9 +2281,9 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		obj->nb_bytes += size;
 		obj->nb_frags++;
 	} else {
-		int old_size = obj->frags[start_frag].size;
+		u32 old_size = obj->frags[start_frag].size;
 
-		int end = MAX(start_offset+size, obj->frags[end_frag-1].offset+obj->frags[end_frag-1].size);
+		u32 end = MAX(start_offset+size, obj->frags[end_frag-1].offset+obj->frags[end_frag-1].size);
 		obj->frags[start_frag].offset = MIN(obj->frags[start_frag].offset, start_offset);
 		obj->frags[start_frag].size = end - obj->frags[start_frag].offset;
 
@@ -2287,6 +2325,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			obj->alloc_size++;
 		gf_mx_p(routedmx->blob_mx);
 		obj->payload = (u8 *)gf_realloc(obj->payload, obj->alloc_size+1);
+		if (!obj->payload) obj->alloc_size = 0;
 		obj->payload[obj->alloc_size] = 0;
 		obj->blob.data = (u8 *)obj->payload;
 		obj->blob.size = obj->alloc_size;
@@ -2765,8 +2804,10 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				//force an init at -1, some streams still have the init not declared but send on TOI -1
 				// interpreting it as a regular segment would break clock setup
 				GF_SAFEALLOC(rf, GF_ROUTELCTFile)
-				rf->toi = (u32) -1;
-				gf_list_add(rlct->static_files, rf);
+				if (rf) {
+					rf->toi = (u32) -1;
+					gf_list_add(rlct->static_files, rf);
+				}
 			}
 
 
@@ -4155,6 +4196,12 @@ GF_Err gf_route_dmx_add_frag_hole(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUT
 		if (obj->nb_frags+1 >= obj->nb_alloc_frags) {
 			obj->nb_alloc_frags+=1;
 			obj->frags = (GF_LCTFragInfo *)gf_realloc(obj->frags, sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
+			if (!obj->frags) {
+				finfo->nb_frags = obj->nb_frags = obj->nb_alloc_frags = 0;
+				finfo->frags = obj->frags;
+				gf_mx_v(obj->blob.mx);
+				return GF_OUT_OF_MEM;
+			}
 		}
 		memmove(&obj->frags[i+2], &obj->frags[i+1], sizeof(GF_LCTFragInfo)*(obj->nb_frags-i-1));
 
@@ -4204,6 +4251,7 @@ GF_Err gf_route_dmx_patch_blob_size(GF_ROUTEDmx *routedmx, u32 service_id, GF_RO
 	if (obj->alloc_size<new_size) {
 		obj->alloc_size = new_size;
 		obj->payload = (u8 *)gf_realloc(obj->payload, new_size);
+		if (!obj->payload) obj->alloc_size = 0;
 		obj->blob.data = (u8 *)obj->payload;
 	}
 	//if blob size set to total length, adjust otherwise this was set to bytes done, do NOT adjust

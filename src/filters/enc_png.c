@@ -127,6 +127,7 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (ctx->height > ctx->nb_alloc_rows) {
 		ctx->nb_alloc_rows = ctx->height;
 		ctx->row_pointers = (png_bytep *)gf_realloc(ctx->row_pointers, sizeof(png_bytep) * ctx->height);
+		if (!ctx->row_pointers) return GF_OUT_OF_MEM;
 	}
 	return GF_OK;
 }

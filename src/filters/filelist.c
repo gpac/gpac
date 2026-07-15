@@ -818,11 +818,19 @@ static void push_chapter(GF_FileListCtx *ctx, char *chap_name)
 	u64 start = gf_timestamp_rescale(ctx->dts_offset.num, ctx->dts_offset.den, 1000);
 
 	ctx->chap_times.vals = (u32 *)gf_realloc(ctx->chap_times.vals, sizeof(u32)*(ctx->chap_times.nb_items+1));
+	if (ctx->chap_times.vals) {
+		ctx->chap_times.vals[ctx->chap_times.nb_items] = (u32) start;
+		ctx->chap_times.nb_items++;
+	} else {
+		ctx->chap_times.nb_items = 0;
+	}
 	ctx->chap_names.vals = (char **)gf_realloc(ctx->chap_names.vals, sizeof(char*)*(ctx->chap_names.nb_items+1));
-	ctx->chap_times.vals[ctx->chap_times.nb_items] = (u32) start;
-	ctx->chap_names.vals[ctx->chap_names.nb_items] = gf_strdup(chap_name);
-	ctx->chap_times.nb_items++;
-	ctx->chap_names.nb_items++;
+	if (ctx->chap_names.vals) {
+		ctx->chap_names.vals[ctx->chap_names.nb_items] = gf_strdup(chap_name);
+		ctx->chap_names.nb_items++;
+	} else {
+		ctx->chap_names.nb_items = 0;
+	}
 }
 
 
@@ -2078,6 +2086,8 @@ restart:
 				//concatenate playlists
 				len = ctx->dyn_pl_data ? (u32) strlen(ctx->dyn_pl_data) : 0;
 				ctx->dyn_pl_data = (char *)gf_realloc(ctx->dyn_pl_data, size+len+1);
+				if (!ctx->dyn_pl_data) return GF_OUT_OF_MEM;
+
 				memcpy(ctx->dyn_pl_data+len, data, size);
 				size += len;
 				ctx->dyn_pl_data[size] = 0;

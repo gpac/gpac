@@ -200,6 +200,9 @@ static GF_Err svgin_process(GF_Filter *filter)
 		data = gf_filter_pck_get_data(pck, &pck_size);
 
 		buf2 = (u8 *)gf_malloc(pck_size+1);
+		if (!buf2) {
+			return GF_OUT_OF_MEM;
+		}
 		bs = gf_bs_new((u8 *)data, pck_size, GF_BITSTREAM_READ);
 		memcpy(buf2, data, pck_size);
 		buf2[pck_size] = 0;

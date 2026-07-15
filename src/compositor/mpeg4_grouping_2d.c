@@ -119,6 +119,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 void compositor_init_switch(GF_Compositor *compositor, GF_Node *node)
 {
 	SwitchStack *st = (SwitchStack *)gf_malloc(sizeof(SwitchStack));
+	if (!st) return;
 	st->last_switch = -1;
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, TraverseSwitch);
@@ -410,8 +411,11 @@ static void TraverseOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 	/*check whether the OrderedGroup node has changed*/
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		if (stack->positions) gf_free(stack->positions);
+		stack->positions = NULL;
 		count = gf_node_list_get_count(og->children);
 		priorities = (struct og_pos*)gf_malloc(sizeof(struct og_pos)*count);
+		if (!priorities) return;
+
 		for (i=0; i<count; i++) {
 			priorities[i].position = i;
 			priorities[i].priority = (i<og->order.count) ? og->order.vals[i] : 0;
@@ -419,6 +423,7 @@ static void TraverseOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 		qsort(priorities, count, sizeof(struct og_pos), compare_priority);
 
 		stack->positions = (u32*)gf_malloc(sizeof(u32) * count);
+		if (!stack->positions) count = 0;
 		for (i=0; i<count; i++) stack->positions[i] = priorities[i].position;
 		gf_free(priorities);
 

@@ -519,6 +519,7 @@ static int createTexture(AndroidContext *rc)
 	glGenTextures( 1, &(rc->texID) );
 
 	rc->texData = (GLubyte*)gf_malloc( 4 * rc->tex_width * rc->tex_height );
+	if (!rc->texData) return 0;
 	memset(rc->texData, 255, 4 * rc->tex_width * rc->tex_height );
 	//memset(data, 0, 4 * width * height/2 );
 
@@ -728,11 +729,16 @@ GF_VideoOutput *NewAndroidVideoOutput()
 {
 	AndroidContext *pCtx;
 	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
+	if (!driv) return NULL;
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DroidVOUT] Loading module"));
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "android", "gpac distribution")
 
 	pCtx = (AndroidContext *)gf_malloc(sizeof(AndroidContext));
+	if (!pCtx) {
+		gf_free(driv);
+		return NULL;
+	}
 	memset(pCtx, 0, sizeof(AndroidContext));
 
 	pCtx->texID = -1;

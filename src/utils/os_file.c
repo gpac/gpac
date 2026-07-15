@@ -279,6 +279,7 @@ GF_Err gf_file_delete(const char *fileName)
 static char* gf_sanetize_single_quoted_string(const char *src) {
 	int i, j;
 	char *out = (char*)gf_malloc(4*strlen(src)+3);
+	if (!out) return NULL;
 	out[0] = '\'';
 	for (i=0, j=1; (out[j]=src[i]); ++i, ++j) {
 		if (src[i]=='\'') {
@@ -747,6 +748,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		char *drives, *volume;
 		len = GetLogicalDriveStrings(0, NULL);
 		drives = (char*)gf_malloc(len+1);
+		if (!drives) return GF_OUT_OF_MEM;
 		drives[0]=0;
 		GetLogicalDriveStrings(len, drives);
 		len = (u32) strlen(drives);
@@ -1361,6 +1363,7 @@ int gf_fileio_printf(GF_FileIO *gfio, const char *format, va_list args)
 	if (len>=gfio->printf_alloc) {
 		gfio->printf_alloc = len+1;
 		gfio->printf_buf = (u8 *)gf_realloc(gfio->printf_buf, gfio->printf_alloc);
+		if (!gfio->printf_buf) return GF_OUT_OF_MEM;
 	}
 	vsnprintf((char *)gfio->printf_buf, len, format, args);
 	gfio->printf_buf[len] = 0;

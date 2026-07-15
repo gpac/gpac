@@ -268,6 +268,8 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 		size_b64 = gf_base64_encode(data, 24, (u8*)d64, 100);
 		d64[size_b64] = 0;
 		cstr->tci->KMS_URI = (char *)gf_realloc(cstr->tci->KMS_URI, size_b64+6);
+		if (!cstr->tci->KMS_URI) return GF_OUT_OF_MEM;
+
 		gf_strlcpy(cstr->tci->KMS_URI, "(key)", size_b64+6);
 		gf_strlcat(cstr->tci->KMS_URI, d64, size_b64+6);
 		kms_uri = cstr->tci->KMS_URI;
@@ -284,14 +286,11 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	} else {
 		if ((cstr->tci->sel_enc_type==GF_CRYPT_SELENC_PREVIEW) && cstr->tci->sel_enc_range) {
 			char szSTR[100];
-			u32 len;
-			char *szPreview;
+			char *szPreview = NULL;
 
 			sprintf(szSTR, "PreviewRange:%d", cstr->tci->sel_enc_range);
-			len = (u32) strlen(szSTR) + ( cstr->tci->TextualHeaders ? (u32) strlen(cstr->tci->TextualHeaders) : 0 ) + 1;
-			szPreview = (char *)gf_malloc(len);
-			gf_strlcpy(szPreview, cstr->tci->TextualHeaders ? cstr->tci->TextualHeaders : "", len);
-			gf_strlcat(szPreview, szSTR, len);
+			gf_dynstrcat(&szPreview, cstr->tci->TextualHeaders ? cstr->tci->TextualHeaders : "", NULL);
+			gf_dynstrcat(&szPreview, szSTR, NULL);
 
 			gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_OMA_TXT_HDR, &PROP_STRING_NO_COPY(szPreview));
 		} else {
@@ -1322,6 +1321,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (tci && tci->rand_keys) {
 		if (!tci->nb_keys) {
 			tci->keys = (GF_CryptKeyInfo *)gf_realloc(tci->keys, sizeof(GF_CryptKeyInfo));
+			if (!tci->keys) return GF_OUT_OF_MEM;
 			memset(&tci->keys[0], 0, sizeof(GF_CryptKeyInfo));
 		}
 		tci->nb_keys = 1;
@@ -2383,6 +2383,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			u32 w_pos = 0;
 			u8 *dst_nal;
 			u8 *old_output = (u8 *)gf_malloc(pck_size);
+			if (!old_output) {
+				gf_filter_pck_send(dst_pck);
+				return GF_OUT_OF_MEM;
+			}
 			memcpy(old_output, output, sizeof(u8) * pck_size);
 			gf_filter_pck_expand(dst_pck, epb_add_count, &output, NULL, NULL);
 			gf_bs_reassign_buffer(ctx->bs_r, old_output, pck_size);

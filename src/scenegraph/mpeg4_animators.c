@@ -144,6 +144,10 @@ static void anurbs_basis(anim_nurbs *nurbs, s32 span, Fixed t)
 		nurbs->n = (Fixed*)gf_malloc(sizeof(Fixed) * (nurbs->p+1));
 		nurbs->left = (Fixed*)gf_malloc(sizeof(Fixed) * (nurbs->p+1));
 		nurbs->right = (Fixed*)gf_malloc(sizeof(Fixed) * (nurbs->p+1));
+		if (!nurbs->n || !nurbs->left || !nurbs->right) {
+			 nurbs->p = 0;
+			 return;
+		}
 	}
 	nurbs->n[0] = FIX_ONE;
 

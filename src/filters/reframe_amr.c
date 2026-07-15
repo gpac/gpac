@@ -212,6 +212,10 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (AMRIdx *)gf_realloc(ctx->indexes, sizeof(AMRIdx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = pos - 1;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->sample_rate;

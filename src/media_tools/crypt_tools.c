@@ -286,8 +286,10 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			else if (!stricmp(att->name, "metadata")) {
 				u32 l = 2 * (u32) strlen(att->value) + 3;
 				tkc->metadata = (char *)gf_malloc(l);
-				l = gf_base64_encode((u8*)att->value, (u32) strlen(att->value), (u8*)tkc->metadata, l);
-				tkc->metadata[l] = 0;
+				if (tkc->metadata) {
+					l = gf_base64_encode((u8*)att->value, (u32) strlen(att->value), (u8*)tkc->metadata, l);
+					tkc->metadata[l] = 0;
+				}
 			}
 			else if (!stricmp(att->name, "crypt_byte_block")) {
 				tkc->crypt_byte_block = atoi(att->value);
@@ -439,6 +441,10 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 		//only realloc for 2nd and more
 		if (tkc->nb_keys) {
 			tkc->keys = (GF_CryptKeyInfo *)gf_realloc(tkc->keys, sizeof(GF_CryptKeyInfo)*(tkc->nb_keys+1));
+			if (!tkc->keys) {
+				info->last_parse_error = GF_OUT_OF_MEM;
+				return;
+			}
 			memset(&tkc->keys[tkc->nb_keys], 0, sizeof(GF_CryptKeyInfo));
 		}
 		IV_size = tkc->keys[0].IV_size;
@@ -542,6 +548,11 @@ static void cryptinfo_text(void *sax_cbck, const char *text, Bool is_cdata)
 	len2 = tkc->TextualHeaders ? (u32) strlen(tkc->TextualHeaders) : 0;
 
 	tkc->TextualHeaders = (char *)gf_realloc(tkc->TextualHeaders, (len+len2+1));
+	if (!tkc->TextualHeaders)  {
+		info->last_parse_error = GF_OUT_OF_MEM;
+		return;
+	}
+
 	if (!len2) gf_strlcpy(tkc->TextualHeaders, "", len+len2+1);
 	gf_strlcat(tkc->TextualHeaders, text, len+len2+1);
 }

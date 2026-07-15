@@ -765,6 +765,7 @@ GF_Err dvblin_initialize(GF_Filter *filter)
 	if (e) return e;
 
 	ctx->block = (char *)gf_malloc(ctx->block_size +1);
+	if (!ctx->block) return GF_OUT_OF_MEM;
 	//auto play
 	ctx->playing = GF_TRUE;
 	return GF_OK;
@@ -902,7 +903,9 @@ static GF_Err dvbin_list_channels(GF_FilterRegister *for_reg, void *_for_ctx)
 
 #if defined(GPAC_HAS_LINUX_DVB)
 		for_ctx->chans.vals = (char **)gf_realloc(for_ctx->chans.vals, sizeof(char *)*(for_ctx->chans.nb_items+1));
+		if (!for_ctx->chans.vals) return GF_OUT_OF_MEM;
 		for_ctx->chans.vals[for_ctx->chans.nb_items] = gf_strdup(line);
+		if (!for_ctx->chans.vals[for_ctx->chans.nb_items]) return GF_OUT_OF_MEM;
 		for_ctx->chans.nb_items++;
 #endif
 	}

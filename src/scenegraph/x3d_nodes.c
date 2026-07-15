@@ -696,6 +696,7 @@ static GF_Node *Background_Create()
 
 	/*default field values*/
 	p->skyColor.vals = (SFColor*)gf_malloc(sizeof(SFColor)*1);
+	if (!p->skyColor.vals) return NULL;
 	p->skyColor.count = 1;
 	p->skyColor.vals[0].red = FLT2FIX(0);
 	p->skyColor.vals[0].green = FLT2FIX(0);
@@ -3579,6 +3580,7 @@ static GF_Node *Extrusion_Create()
 	p->convex = GF_TRUE;
 	p->creaseAngle = FLT2FIX(0.0);
 	p->crossSection.vals = (SFVec2f*) gf_malloc(sizeof(SFVec2f)*5);
+	if (!p->crossSection.vals) return NULL;
 	p->crossSection.count = 5;
 	p->crossSection.vals[0].x = FLT2FIX(1);
 	p->crossSection.vals[0].y = FLT2FIX(1);
@@ -3592,17 +3594,20 @@ static GF_Node *Extrusion_Create()
 	p->crossSection.vals[4].y = FLT2FIX(1);
 	p->endCap = GF_TRUE;
 	p->orientation.vals = (GF_Vec4*)gf_malloc(sizeof(GF_Vec4)*1);
+	if (!p->orientation.vals) return NULL;
 	p->orientation.count = 1;
 	p->orientation.vals[0].x = FLT2FIX(0);
 	p->orientation.vals[0].y = FLT2FIX(0);
 	p->orientation.vals[0].z = FLT2FIX(1);
 	p->orientation.vals[0].q = FLT2FIX(0);
 	p->scale.vals = (SFVec2f*) gf_malloc(sizeof(SFVec2f)*1);
+	if (!p->scale.vals) return NULL;
 	p->scale.count = 1;
 	p->scale.vals[0].x = FLT2FIX(1);
 	p->scale.vals[0].y = FLT2FIX(1);
 	p->solid = GF_TRUE;
 	p->spine.vals = (SFVec3f*)gf_malloc(sizeof(SFVec3f)*2);
+	if (!p->spine.vals) return NULL;
 	p->spine.count = 2;
 	p->spine.vals[0].x = FLT2FIX(0);
 	p->spine.vals[0].y = FLT2FIX(0);
@@ -3908,10 +3913,12 @@ static GF_Node *FontStyle_Create()
 
 	/*default field values*/
 	p->family.vals = (char**)gf_malloc(sizeof(char *)*1);
+	if (!p->family.vals) return NULL;
 	p->family.count = 1;
 	p->family.vals[0] = gf_strdup("SERIF");
 	p->horizontal = GF_TRUE;
 	p->justify.vals = (char**)gf_malloc(sizeof(char *)*1);
+	if (!p->justify.vals) return NULL;
 	p->justify.count = 1;
 	p->justify.vals[0] = gf_strdup("BEGIN");
 	p->leftToRight = GF_TRUE;
@@ -3997,6 +4004,7 @@ static GF_Node *GeoCoordinate_Create()
 
 	/*default field values*/
 	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->geoSystem.vals) return NULL;
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -4197,6 +4205,7 @@ static GF_Node *GeoElevationGrid_Create()
 	p->creaseAngle = FLT2FIX(0.0);
 	p->geoGridOrigin.buffer = gf_strdup("0 0 0");
 	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->geoSystem.vals) return NULL;
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -4314,6 +4323,7 @@ static GF_Node *GeoLocation_Create()
 	p->geoCoords.y = (SFDouble) 0;
 	p->geoCoords.z = (SFDouble) 0;
 	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->geoSystem.vals) return NULL;
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -4462,6 +4472,7 @@ static GF_Node *GeoLOD_Create()
 	p->center.y = (SFDouble) 0;
 	p->center.z = (SFDouble) 0;
 	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->geoSystem.vals) return NULL;
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -4621,6 +4632,7 @@ static GF_Node *GeoOrigin_Create()
 	p->geoCoords.y = (SFDouble) 0;
 	p->geoCoords.z = (SFDouble) 0;
 	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->geoSystem.vals) return NULL;
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -4732,6 +4744,7 @@ static GF_Node *GeoPositionInterpolator_Create()
 
 	/*default field values*/
 	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->geoSystem.vals) return NULL;
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -4862,6 +4875,7 @@ static GF_Node *GeoTouchSensor_Create()
 	/*default field values*/
 	p->enabled = GF_TRUE;
 	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->geoSystem.vals) return NULL;
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -5036,10 +5050,12 @@ static GF_Node *GeoViewpoint_Create()
 	p->headlight = GF_TRUE;
 	p->jump = GF_TRUE;
 	p->navType.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->navType.vals) return NULL;
 	p->navType.count = 2;
 	p->navType.vals[0] = gf_strdup("EXAMINE");
 	p->navType.vals[1] = gf_strdup("ANY");
 	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->geoSystem.vals) return NULL;
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -5613,6 +5629,7 @@ static GF_Node *HAnimJoint_Create()
 	p->scaleOrientation.z = FLT2FIX(1);
 	p->scaleOrientation.q = FLT2FIX(0);
 	p->stiffness.vals = (SFFloat *)gf_malloc(sizeof(SFFloat)*3);
+	if (!p->stiffness.vals) return NULL;
 	p->stiffness.count = 3;
 	p->stiffness.vals[0] = FLT2FIX(0);
 	p->stiffness.vals[1] = FLT2FIX(0);
@@ -5753,6 +5770,7 @@ static GF_Node *HAnimSegment_Create()
 	p->centerOfMass.z = FLT2FIX(0);
 	p->mass = FLT2FIX(0);
 	p->momentsOfInertia.vals = (SFFloat *)gf_malloc(sizeof(SFFloat)*9);
+	if (!p->momentsOfInertia.vals) return NULL;
 	p->momentsOfInertia.count = 9;
 	p->momentsOfInertia.vals[0] = FLT2FIX(0);
 	p->momentsOfInertia.vals[1] = FLT2FIX(0);
@@ -8406,6 +8424,7 @@ static GF_Node *NavigationInfo_Create()
 
 	/*default field values*/
 	p->avatarSize.vals = (SFFloat *)gf_malloc(sizeof(SFFloat)*3);
+	if (!p->avatarSize.vals) return NULL;
 	p->avatarSize.count = 3;
 	p->avatarSize.vals[0] = FLT2FIX(0.25);
 	p->avatarSize.vals[1] = FLT2FIX(1.6);
@@ -8413,11 +8432,13 @@ static GF_Node *NavigationInfo_Create()
 	p->headlight = GF_TRUE;
 	p->speed = FLT2FIX(1.0);
 	p->type.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->type.vals) return NULL;
 	p->type.count = 2;
 	p->type.vals[0] = gf_strdup("WALK");
 	p->type.vals[1] = gf_strdup("ANY");
 	p->visibilityLimit = FLT2FIX(0.0);
 	p->transitionType.vals = (char**)gf_malloc(sizeof(char *)*2);
+	if (!p->transitionType.vals) return NULL;
 	p->transitionType.count = 2;
 	p->transitionType.vals[0] = gf_strdup("WALK");
 	p->transitionType.vals[1] = gf_strdup("ANY");
@@ -12453,11 +12474,13 @@ static GF_Node *TextureBackground_Create()
 
 	/*default field values*/
 	p->skyColor.vals = (SFColor*)gf_malloc(sizeof(SFColor)*1);
+	if (!p->skyColor.vals) return NULL;
 	p->skyColor.count = 1;
 	p->skyColor.vals[0].red = FLT2FIX(0);
 	p->skyColor.vals[0].green = FLT2FIX(0);
 	p->skyColor.vals[0].blue = FLT2FIX(0);
 	p->transparency.vals = (SFFloat *)gf_malloc(sizeof(SFFloat)*1);
+	if (!p->transparency.vals) return NULL;
 	p->transparency.count = 1;
 	p->transparency.vals[0] = FLT2FIX(0);
 	return (GF_Node *)p;

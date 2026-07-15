@@ -280,6 +280,10 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (LATMIdx *)gf_realloc(ctx->indexes, sizeof(LATMIdx)*ctx->index_alloc_size);
+			if (!ctx->indexes) {
+				ctx->index_alloc_size = ctx->index_size = 0;
+				break;
+			}
 			ctx->indexes[ctx->index_size].pos = cur_pos;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= GF_M4ASampleRates[sr_idx];
@@ -513,6 +517,10 @@ restart:
 		if (ctx->latm_buffer_size + pck_size > ctx->latm_buffer_alloc) {
 			ctx->latm_buffer_alloc = ctx->latm_buffer_size + pck_size;
 			ctx->latm_buffer = (u8 *)gf_realloc(ctx->latm_buffer, ctx->latm_buffer_alloc);
+			if (!ctx->latm_buffer) {
+				ctx->latm_buffer_alloc = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
 		memcpy(ctx->latm_buffer + ctx->latm_buffer_size, data, pck_size);
 		ctx->latm_buffer_size += pck_size;

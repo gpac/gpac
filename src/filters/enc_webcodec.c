@@ -553,6 +553,7 @@ GF_EXPORT
 void wcenc_on_config(GF_WCEncCtx *ctx, int size)
 {
 	u8 *buf = (u8 *)gf_malloc(size);
+	if (!buf) return;
 	memset(buf, 0, size);
 	wcenc_get_config(EM_CAST_PTR ctx, EM_CAST_PTR buf, size);
 	u32 dsi_crc = gf_crc_32(buf, size);

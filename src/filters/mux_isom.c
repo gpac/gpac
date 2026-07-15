@@ -4330,7 +4330,7 @@ enum
 	CENC_ADD_FRAG,
 };
 
-static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const GF_PropertyValue *pssh, u32 dyn_pssh_mode)
+static GF_Err mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const GF_PropertyValue *pssh, u32 dyn_pssh_mode)
 {
 	bin128 *keyIDs=NULL;
 	u32 max_keys = 0;
@@ -4344,12 +4344,12 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 	if (dyn_pssh_mode==2) {
 		GF_FilterPacket *pck;
 		//nothing to inject
-		if (!tkw->dyn_pssh) return;
+		if (!tkw->dyn_pssh) return GF_OK;
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		if (pck) {
 			pssh = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_PSSH);
 			//change of dynamic pssh is pending, don't inject the old one
-			if (pssh) return;
+			if (pssh) return GF_OK;
 		}
 		_the_prop.type = GF_PROP_DATA;
 		_the_prop.value.data.ptr = tkw->dyn_pssh;
@@ -4369,7 +4369,7 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 			if (!p)
 				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_PSSH);
 		}
-		if (!p) return;
+		if (!p) return GF_OK;
 	}
 
 	if (!ctx->bs_r) ctx->bs_r = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
@@ -4395,6 +4395,7 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 			}
 
 			keyIDs = (bin128 *)gf_realloc(keyIDs, sizeof(bin128)*max_keys);
+			if (!keyIDs) return GF_OUT_OF_MEM;
 		}
 		for (j=0; j<kid_count; j++) {
 			gf_bs_read_data(ctx->bs_r, keyIDs[j], 16);
@@ -4412,20 +4413,21 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 
 		gf_isom_cenc_set_pssh(ctx->file, sysID, version, kid_count, keyIDs, data, len, mode);
 		gf_bs_skip_bytes(ctx->bs_r, len);
-		if (gf_bs_is_overflow(ctx->bs_r))
-			break;
+		if (gf_bs_is_overflow(ctx->bs_r)) {
+			if (keyIDs) gf_free(keyIDs);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 	}
 	if (keyIDs) gf_free(keyIDs);
-
 
 	if (pssh) {
 		if (tkw->dyn_pssh) gf_free(tkw->dyn_pssh);
 		tkw->dyn_pssh = (u8 *)gf_malloc(pssh->value.data.size);
-		if (!tkw->dyn_pssh) return;
+		if (!tkw->dyn_pssh) return GF_OUT_OF_MEM;
 		memcpy(tkw->dyn_pssh, pssh->value.data.ptr, sizeof(u8) * pssh->value.data.size);
 		tkw->dyn_pssh_len = pssh->value.data.size;
 	}
-
+	return GF_OK;
 }
 
 static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPacket *pck, u32 act_type, u32 pck_size, u32 injected_hdr_size)
@@ -4531,8 +4533,9 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			}
 		}
 
-		if ((ctx->psshs == MP4MX_PSSH_MOOV) || (ctx->psshs == MP4MX_PSSH_BOTH))
-			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 0);
+		if ((ctx->psshs == MP4MX_PSSH_MOOV) || (ctx->psshs == MP4MX_PSSH_BOTH)) {
+			e = mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 0);
+		}
 
 		if (!tkw->has_brands && (scheme_type==GF_ISOM_OMADRM_SCHEME))
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_OPF2, GF_TRUE);
@@ -4621,7 +4624,8 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_PSSH);
 	if (p && (p->type == GF_PROP_DATA) && p->value.data.ptr) {
 		if (ctx->store>=MP4MX_MODE_FRAG) {
-			mp4_mux_cenc_insert_pssh(ctx, tkw, p, 0);
+			e = mp4_mux_cenc_insert_pssh(ctx, tkw, p, 0);
+			if (e) return e;
 		} else {
 			gf_isom_set_sample_group_description(ctx->file, tkw->track_num, sample_num, GF_4CC('P','S','S','H'), 0, p->value.data.ptr, p->value.data.size, 0);
 		}
@@ -5815,7 +5819,7 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 
 
 		if (tkw->insert_pssh) {
-			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 0);
+			e = mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 0);
 			tkw->insert_pssh = GF_FALSE;
 		}
 	}
@@ -5957,8 +5961,10 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 			const u8 *init_data = gf_filter_pck_get_data(ctx->dst_pck, &init_size);
 			size_b64 = 2*init_size + 3;
 			base64_init = (u8 *)gf_malloc(size_b64);
-			size_b64 = gf_base64_encode(init_data, init_size, (u8 *)base64_init, size_b64);
-			base64_init[size_b64] = 0;
+			if (base64_init) {
+				size_b64 = gf_base64_encode(init_data, init_size, (u8 *)base64_init, size_b64);
+				base64_init[size_b64] = 0;
+			}
 		}
 		mp4mux_send_output(ctx);
 		if (signal_flush)
@@ -6510,10 +6516,10 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_USE_LARGE_TFDT, ctx->tfdt64);
 
 		if (tkw->dyn_pssh) {
-			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 2);
+			e = mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 2);
 		}
 		else if (ctx->insert_pssh)
-			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 1);
+			e = mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 1);
 	}
 	ctx->fragment_started = GF_TRUE;
 	ctx->insert_tfdt = GF_FALSE;
@@ -6670,6 +6676,11 @@ static GF_Err mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue 
 		emsg->value = gf_strdup(id3_tag.value_uri);
 		emsg->message_data_size = id3_tag.data_length;
 		emsg->message_data = (u8 *)gf_malloc(id3_tag.data_length);
+		if (!emsg->message_data) {
+			gf_id3_tag_free(&id3_tag);
+			gf_bs_del(bs);
+			return GF_OUT_OF_MEM;
+		}
 		memcpy(emsg->message_data, id3_tag.data, id3_tag.data_length);
 
 		// insert only if its presentation time is not already present
@@ -6724,6 +6735,10 @@ static GF_Err mp4_process_scte35(const GF_PropertyValue *emsg_prop, u64 dts, u32
 	emsg->event_duration = gf_timestamp_rescale(dur, 90000, timescale);
 	emsg->message_data_size = emsg_prop->value.data.size;
 	emsg->message_data = (u8 *)gf_malloc(emsg_prop->value.data.size);
+	if (!emsg->message_data) {
+		gf_isom_box_del((GF_Box*)emsg);
+		return GF_OUT_OF_MEM;
+	}
 	memcpy(emsg->message_data, emsg_prop->value.data.ptr, emsg_prop->value.data.size);
 
 	u32 i;
@@ -7276,6 +7291,10 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 					 ctx->alloc_seg_sizes *= 2;
 					 if (!ctx->alloc_seg_sizes) ctx->alloc_seg_sizes = 10;
 					 ctx->seg_sizes = (u32 *)gf_realloc(ctx->seg_sizes, sizeof(u32) * ctx->alloc_seg_sizes);
+					 if (!ctx->seg_sizes) {
+						ctx->alloc_seg_sizes = 0;
+						return GF_OUT_OF_MEM;
+					}
 				}
 				gf_assert(segment_size_in_bytes);
 				ctx->seg_sizes[ctx->nb_seg_sizes] = (u32) segment_size_in_bytes;
@@ -7418,6 +7437,7 @@ static struct _service_info *get_service_info(GF_List *services, TrackWriter *tk
 		if (si->service_id == ID) return si;
 	}
 	GF_SAFEALLOC(si, struct _service_info)
+	if (!si) return NULL;
 	si->service_id = ID;
 	si->first_ts_min = (u64) -1;
 	gf_list_add(services, si);
@@ -7486,6 +7506,7 @@ retry_all:
 		if (tkw->fake_track) continue;
 		//get associated service
 		struct _service_info *si = get_service_info(services, tkw);
+		if (!si) continue;
 
 		//already setup (happens when new PIDs are declared after a packet has already been written on other PIDs)
 		if (tkw->nb_samples) {

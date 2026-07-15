@@ -136,12 +136,17 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 	/* load the file */
 	p = NULL;
 	line = (char*)gf_malloc(line_alloc);
+	if (!line) {
+		gf_fclose(file);
+		return GF_OUT_OF_MEM;
+	}
 	memset(line, 0, sizeof(char)*line_alloc);
 
 #define FLUSH_EMPTY_LINES \
 			if (k&& nb_empty_lines) {\
 				u32 klen = (u32) strlen(k->value)+1+nb_empty_lines;\
 				k->value = (char *)gf_realloc(k->value, klen); \
+				if (!k->value) { gf_fclose(file); gf_free(line); return GF_OUT_OF_MEM; }\
 				while (nb_empty_lines) {\
 					nb_empty_lines--;\
 					gf_strlcat(k->value, "\n", klen);\
@@ -161,6 +166,10 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		while (read + nb_pass == line_alloc) {
 			line_alloc += MAX_INI_LINE;
 			line = (char*)gf_realloc(line, line_alloc);
+			if (!line) {
+				gf_fclose(file);
+				return GF_OUT_OF_MEM;
+			}
 			ret = gf_fgets(line+read, MAX_INI_LINE, file);
 			read = (u32) strlen(line);
 			nb_pass++;
@@ -194,6 +203,11 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			FLUSH_EMPTY_LINES
 
 			p = (IniSection *) gf_malloc(sizeof(IniSection));
+			if (!p) {
+				gf_fclose(file);
+				gf_free(line);
+				return GF_OUT_OF_MEM;
+			}
 			p->keys = gf_list_new();
 			p->section_name = gf_strdup(line + 1);
 			p->section_name[strlen(line) - 2] = 0;
@@ -210,6 +224,11 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			FLUSH_EMPTY_LINES
 
 			k = (IniKey *) gf_malloc(sizeof(IniKey));
+			if (!k) {
+				gf_fclose(file);
+				gf_free(line);
+				return GF_OUT_OF_MEM;
+			}
 			memset((void *)k, 0, sizeof(IniKey));
 			ret = strchr(line, '=');
 			if (ret) {
@@ -247,6 +266,11 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			u32 l2 = (u32) strlen(line);
 			u32 asize = (l1 + l2 + 1 + nb_empty_lines) ;
 			k->value = (char*)gf_realloc(k->value, asize);
+			if (!k->value) {
+				if (line) gf_free(line);
+				gf_fclose(file);
+				return GF_OUT_OF_MEM;
+			}
 			l2 += l1 + nb_empty_lines;
 			while (nb_empty_lines) {
 				gf_strlcat(k->value, "\n", asize);
@@ -263,7 +287,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			k = NULL;
 		}
 	}
-	gf_free(line);
+	if (line) gf_free(line);
 	gf_fclose(file);
 	return GF_OK;
 }
@@ -271,6 +295,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 GF_EXPORT
 GF_Config *gf_cfg_force_new(const char *filePath, const char* file_name) {
 	GF_Config *tmp = (GF_Config *)gf_malloc(sizeof(GF_Config));
+	if (!tmp) return NULL;
 	memset((void *)tmp, 0, sizeof(GF_Config));
 	gf_cfg_parse_config_file(tmp, filePath, file_name);
 	return tmp;
@@ -281,6 +306,7 @@ GF_EXPORT
 GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 {
 	GF_Config *tmp = (GF_Config *)gf_malloc(sizeof(GF_Config));
+	if (!tmp) return NULL;
 	memset((void *)tmp, 0, sizeof(GF_Config));
 	if (!filePath && !file_name) {
 		tmp->sections = gf_list_new();
@@ -435,6 +461,7 @@ GF_Err gf_cfg_set_key_internal(GF_Config *iniFile, const char *secName, const ch
 	}
 	/* need a new key */
 	sec = (IniSection *) gf_malloc(sizeof(IniSection));
+	if (!sec) return GF_OUT_OF_MEM;
 	sec->section_name = gf_strdup(secName);
 	sec->keys = gf_list_new();
 	if (has_changed)
@@ -449,6 +476,7 @@ get_key:
 	if (!keyValue) return GF_OK;
 	/* need a new key */
 	key = (IniKey *) gf_malloc(sizeof(IniKey));
+	if (!key) return GF_OUT_OF_MEM;
 	key->name = gf_strdup(keyName);
 	key->value = gf_strdup(keyValue);
 	if (has_changed)
@@ -563,6 +591,7 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 	}
 
 	key = (IniKey *) gf_malloc(sizeof(IniKey));
+	if (!key) return GF_OUT_OF_MEM;
 	key->name = gf_strdup(keyName);
 	key->value = gf_strdup(keyValue);
 	gf_list_insert(sec->keys, key, index);

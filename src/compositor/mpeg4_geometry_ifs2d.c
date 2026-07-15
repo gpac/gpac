@@ -199,6 +199,7 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		alpha = INT2FIX(GF_COL_A(ctx->aspect.fill_color) ) / 255;
 
 		colors = (u32*)gf_malloc(sizeof(u32) * num_col);
+		if (!colors) break;
 		col_cen.blue = col_cen.red = col_cen.green = 0;
 		for (j=0; j<num_col-1; j++) {
 			if (ifs2D->colorIndex.count > ind_col + j) {

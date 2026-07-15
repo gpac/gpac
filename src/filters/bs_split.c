@@ -132,10 +132,12 @@ static void bs_split_check_svc_config(BSSplitIn *pctx, BSSplitOut *c_opid)
 
 	if (!c_opid->svcc) {
 		GF_SAFEALLOC(c_opid->svcc, GF_AVCConfig);
-		memcpy(c_opid->svcc, pctx->svcc, sizeof(GF_AVCConfig));
-		c_opid->svcc->sequenceParameterSets = gf_list_new();
-		c_opid->svcc->pictureParameterSets = gf_list_new();
-		c_opid->svcc->complete_representation = 0;
+		if (c_opid->svcc) {
+			memcpy(c_opid->svcc, pctx->svcc, sizeof(GF_AVCConfig));
+			c_opid->svcc->sequenceParameterSets = gf_list_new();
+			c_opid->svcc->pictureParameterSets = gf_list_new();
+			c_opid->svcc->complete_representation = 0;
+		}
 	}
 
 	if (pctx->avc_state->sps[avc_sps_id].width > c_opid->width) {
@@ -797,8 +799,20 @@ restart:
 			}
 			GF_NALUFFParam *nal_out;
 			GF_SAFEALLOC(nal_out, GF_NALUFFParam);
+			if (nal_out)
+				nal_out->data = (u8 *)gf_malloc(nal->size);
+
+			if (!nal_out || !nal_out->data) {
+				if (nal_out) gf_free(nal_out);
+				if (vvcc) gf_odf_vvc_cfg_del(vvcc);
+				if (vvcc_out) gf_odf_vvc_cfg_del(vvcc_out);
+				if (hvcc) gf_odf_hevc_cfg_del(hvcc);
+				if (hvcc_out) gf_odf_hevc_cfg_del(hvcc_out);
+				if (pa_out) gf_free(pa_out);
+				return GF_OUT_OF_MEM;
+			}
+
 			nal_out->size = nal->size;
-			nal_out->data = (u8 *)gf_malloc(nal->size);
 			memcpy(nal_out->data, nal->data, sizeof(u8) * nal->size);
 			gf_list_add(pa_out->nalus, nal_out);
 		}
@@ -829,8 +843,20 @@ restart:
 	hvcc = hvcc_out;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (hvcc) GF_SAFEALLOC(hvcc_state, HEVCState);
-	if (vvcc) GF_SAFEALLOC(vvcc_state, VVCState);
+	if (hvcc) {
+		GF_SAFEALLOC(hvcc_state, HEVCState);
+		if (!hvcc_state) {
+			gf_odf_hevc_cfg_del(hvcc);
+			return GF_OUT_OF_MEM;
+		}
+	}
+	if (vvcc) {
+		GF_SAFEALLOC(vvcc_state, VVCState);
+		if (!vvcc_state) {
+			gf_odf_vvc_cfg_del(vvcc);
+			return GF_OUT_OF_MEM;
+		}
+	}
 #endif
 
 

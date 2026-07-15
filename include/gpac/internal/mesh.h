@@ -184,49 +184,49 @@ void mesh_reset(GF_Mesh *mesh);
 /*recompute mesh bounds*/
 void mesh_update_bounds(GF_Mesh *mesh);
 /*adds new vertex*/
-void mesh_set_vertex_vx(GF_Mesh *mesh, GF_Vertex *vx);
+GF_Err mesh_set_vertex_vx(GF_Mesh *mesh, GF_Vertex *vx);
 /*adds new vertex (exported for tesselator only)*/
-void mesh_set_vertex(GF_Mesh *mesh, Fixed x, Fixed y, Fixed z, Fixed nx, Fixed ny, Fixed nz, Fixed u, Fixed v);
+GF_Err mesh_set_vertex(GF_Mesh *mesh, Fixed x, Fixed y, Fixed z, Fixed nx, Fixed ny, Fixed nz, Fixed u, Fixed v);
 /*adds an index (exported for tesselator only)*/
-void mesh_set_index(GF_Mesh *mesh, u32 idx);
+GF_Err mesh_set_index(GF_Mesh *mesh, u32 idx);
 /*adds an point & associated color, normal set to NULL*/
-void mesh_set_point(GF_Mesh *mesh, Fixed x, Fixed y, Fixed z, SFColorRGBA col);
+GF_Err mesh_set_point(GF_Mesh *mesh, Fixed x, Fixed y, Fixed z, SFColorRGBA col);
 /*adds an index (exported for tesselator only)*/
-void mesh_set_triangle(GF_Mesh *mesh, u32 id1, u32 id2, u32 id3);
+GF_Err mesh_set_triangle(GF_Mesh *mesh, u32 id1, u32 id2, u32 id3);
 /*make dest mesh the clone of orig*/
-void mesh_clone(GF_Mesh *dest, GF_Mesh *orig);
+GF_Err mesh_clone(GF_Mesh *dest, GF_Mesh *orig);
 /*recompute all normals*/
 void mesh_recompute_normals(GF_Mesh *mesh);
 /*generate texture coordinate - ONLY LOCAL MODES SUPPORTED FOR NOW*/
 void mesh_generate_tex_coords(GF_Mesh *mesh, GF_Node *__texCoords);
 
 /*inserts a box (lines only) of size 1.0 1.0 1.0*/
-void mesh_new_unit_bbox(GF_Mesh *mesh);
+GF_Err mesh_new_unit_bbox(GF_Mesh *mesh);
 
 /*insert base primitives - low res indicates less subdivision steps for circles (cone, cylinder, ellipse, sphere)*/
-void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, Bool flip);
-void mesh_new_rectangle_ex(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, u32 flip, u32 rotate);
-void mesh_new_ellipse(GF_Mesh *mesh, Fixed a_dia, Fixed b_dia, Bool low_res);
-void mesh_new_box(GF_Mesh *mesh, SFVec3f size);
-void mesh_new_cylinder(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool side, Bool top, Bool low_res);
-void mesh_new_cone(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool side, Bool low_res);
+GF_Err mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, Bool flip);
+GF_Err mesh_new_rectangle_ex(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, u32 flip, u32 rotate);
+GF_Err mesh_new_ellipse(GF_Mesh *mesh, Fixed a_dia, Fixed b_dia, Bool low_res);
+GF_Err mesh_new_box(GF_Mesh *mesh, SFVec3f size);
+GF_Err mesh_new_cylinder(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool side, Bool top, Bool low_res);
+GF_Err mesh_new_cone(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool side, Bool low_res);
 
 
 typedef struct
 {
 	Fixed min_phi;
 	Fixed max_phi;
-	Fixed min_theta;	
+	Fixed min_theta;
 	Fixed max_theta;
 } GF_MeshSphereAngles;
 /*create a new sphere of the given radius. If angles is set, mesh is a partial sphere but tx coords still range from 0,0 to 1,1*/
-void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereAngles *angles);
+GF_Err mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereAngles *angles);
 /*inserts ILS/ILS2D and IFS2D outline when not filled*/
 void mesh_new_ils(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex, GF_Node *__color, MFInt32 *colorIndex, Bool colorPerVertex, Bool do_close);
 /*inserts IFS2D*/
-void mesh_new_ifs2d(GF_Mesh *mesh, GF_Node *ifs2d);
+GF_Err mesh_new_ifs2d(GF_Mesh *mesh, GF_Node *ifs2d);
 /*inserts IFS*/
-void mesh_new_ifs(GF_Mesh *mesh, GF_Node *ifs);
+GF_Err mesh_new_ifs(GF_Mesh *mesh, GF_Node *ifs);
 /*inserts PS/PS2D*/
 void mesh_new_ps(GF_Mesh *mesh, GF_Node *__coord, GF_Node *__color);
 /*inserts ElevationGrid*/
@@ -246,9 +246,9 @@ begin_cap, end_cap: indicates whether start/end faces shall be added
 @tx_along_spine: if set, texture coords are generated so that the texture is mapped on the side,
 otherwise the same txcoords are used all along the extrusion spine
 */
-void mesh_extrude_path(GF_Mesh *mesh, GF_Path *path, MFVec3f *thespine, Fixed creaseAngle, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool tx_along_spine);
+GF_Err mesh_extrude_path(GF_Mesh *mesh, GF_Path *path, MFVec3f *thespine, Fixed creaseAngle, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool tx_along_spine);
 /*special extension of the above: APPENDS an extrusion from given path - mesh is NOT reseted, txcoords are computed based on min_cx, min_cy, width_cx, width_cy*/
-void mesh_extrude_path_ext(GF_Mesh *mesh, GF_Path *path, MFVec3f *thespine, Fixed creaseAngle, Fixed min_cx, Fixed min_cy, Fixed width_cx, Fixed width_cy, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool tx_along_spine);
+GF_Err mesh_extrude_path_ext(GF_Mesh *mesh, GF_Path *path, MFVec3f *thespine, Fixed creaseAngle, Fixed min_cx, Fixed min_cy, Fixed width_cx, Fixed width_cy, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool tx_along_spine);
 
 /*returns 1 if intersection and set outPoint to closest intersection, 0 otherwise*/
 Bool gf_mesh_intersect_ray(GF_Mesh *mesh, GF_Ray *r, SFVec3f *outPoint, SFVec3f *outNormal, SFVec2f *outTexCoords);

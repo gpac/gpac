@@ -420,12 +420,14 @@ void rtpin_rtsp_describe_send(GF_RTPInRTSP *sess, char *esd_url, GF_FilterPid *o
 				break;
 			}
 			ch_desc = (RTPIn_StreamDescribe *)gf_malloc(sizeof(RTPIn_StreamDescribe));
-			ch_desc->esd_url = esd_url ? gf_strdup(esd_url) : NULL;
-			ch_desc->opid = opid;
-			rtpin_stream_setup(stream, ch_desc);
+			if (ch_desc) {
+				ch_desc->esd_url = esd_url ? gf_strdup(esd_url) : NULL;
+				ch_desc->opid = opid;
+				rtpin_stream_setup(stream, ch_desc);
 
-			if (esd_url) gf_free(ch_desc->esd_url);
-			gf_free(ch_desc);
+				if (esd_url) gf_free(ch_desc->esd_url);
+				gf_free(ch_desc);
+			}
 			return;
 		}
 		/*channel not found, send describe on service*/
@@ -471,9 +473,10 @@ void rtpin_rtsp_describe_send(GF_RTPInRTSP *sess, char *esd_url, GF_FilterPid *o
 		com->ControlString = esd_url ? gf_strdup(esd_url) : NULL;
 
 		ch_desc = (RTPIn_StreamDescribe *)gf_malloc(sizeof(RTPIn_StreamDescribe));
-		ch_desc->esd_url = esd_url ? gf_strdup(esd_url) : NULL;
-		ch_desc->opid = opid;
-
+		if (ch_desc) {
+			ch_desc->esd_url = esd_url ? gf_strdup(esd_url) : NULL;
+			ch_desc->opid = opid;
+		}
 		com->user_data = ch_desc;
 	} else {
 		//always accept both SDP and IOD
@@ -925,6 +928,10 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 	}
 
 	ch_ctrl = (RTPIn_StreamControl *)gf_malloc(sizeof(RTPIn_StreamControl));
+	if (!ch_ctrl) {
+		gf_rtsp_command_del(com);
+		return;
+	}
 	ch_ctrl->stream = stream;
 	memcpy(&ch_ctrl->evt, evt, sizeof(GF_FilterEvent));
 	com->user_data = ch_ctrl;

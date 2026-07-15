@@ -385,6 +385,10 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node)
 	} else {
 		st->glyph.utf_name = (u32) (PTR_TO_U_CAST st);
 		st->unicode = (u16 *)gf_malloc(sizeof(u16)*len);
+		if (!st->unicode) {
+			gf_free(st);
+			return;
+		}
 		st->uni_len = (u16) len;
 		memcpy(st->unicode, utf_name, sizeof(u16)*len);
 	}

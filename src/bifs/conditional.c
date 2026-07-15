@@ -183,6 +183,7 @@ void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig)
 
 #ifndef GPAC_DISABLE_BIFS
 	priv = (ConditionalStack*)gf_malloc(sizeof(ConditionalStack));
+	if (!priv) return;
 	priv->codec = priv_orig->codec;
 	priv->info = priv_orig->info;
 	gf_node_set_callback_function(node, Conditional_PreDestroy);

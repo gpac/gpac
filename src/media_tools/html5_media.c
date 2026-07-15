@@ -46,6 +46,7 @@ static GF_Err gf_html_timeranges_add_time(GF_HTML_MediaTimeRanges *timeranges, u
 	u64 *t;
 	if (!timeranges) return GF_BAD_PARAM;
 	t = (u64 *)gf_malloc(sizeof(u64));
+	if (!t) return GF_OUT_OF_MEM;
 	*t = time;
 	gf_list_add(timeranges->times, t);
 	return GF_OK;

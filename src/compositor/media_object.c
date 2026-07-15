@@ -200,6 +200,7 @@ GF_MediaObject *gf_mo_new()
 {
 	GF_MediaObject *mo;
 	mo = (GF_MediaObject *) gf_malloc(sizeof(GF_MediaObject));
+	if (!mo) return NULL;
 	memset(mo, 0, sizeof(GF_MediaObject));
 	mo->speed = FIX_ONE;
 	mo->URLs.count = 0;

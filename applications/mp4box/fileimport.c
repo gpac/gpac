@@ -79,6 +79,7 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 		src += 7;
 		size = (u32) strlen(src);
 		data = (u8 *)gf_malloc(size);
+		if (!data) return GF_OUT_OF_MEM;
 		size = gf_base64_decode((u8 *)src, size, data, size);
 	} else if (is_string) {
 		data = (u8 *) src;
@@ -1297,6 +1298,10 @@ reparse_opts:
 						gf_fseek(f, 0, SEEK_END);
 						icc_size = (u32) gf_ftell(f);
 						icc_data = (u8 *)gf_malloc(icc_size);
+						if (!icc_data) {
+							e = GF_OUT_OF_MEM;
+							goto exit;
+						}
 						gf_fseek(f, 0, SEEK_SET);
 						icc_size = (u32) gf_fread(icc_data, icc_size, f);
 						gf_fclose(f);
@@ -2064,6 +2069,10 @@ reparse_opts:
 		//and would break this loop
 		if (set_tk_idx) {
 			reorder_tk_ids = (u32 *)gf_realloc(reorder_tk_ids, sizeof(u32)*(reorder_tk_ids_count+1));
+			if (!reorder_tk_ids) {
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
 			reorder_tk_ids[reorder_tk_ids_count] = gf_isom_get_track_id(dest, track);
 			reorder_tk_ids_count++;
 		}

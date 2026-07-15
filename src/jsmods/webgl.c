@@ -507,6 +507,7 @@ static JSValue wgl_getParameter(JSContext *ctx, JSValueConst this_val, int argc,
 	{
 		glGetIntegerv(GL_NUM_COMPRESSED_TEXTURE_FORMATS, ints);
 		s32 *tx_ints = (s32 *)gf_malloc(sizeof(s32)*ints[0]);
+		if (!tx_ints) return js_throw_err(ctx, GF_OUT_OF_MEM);
 		glGetIntegerv(pname, tx_ints);
 		ret = JS_NewArray(ctx);
 		for (i=0; (s32)i<ints[0]; i++) {

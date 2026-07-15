@@ -1091,6 +1091,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 		gpac_argc = (u32) argc;
 		gpac_argv = argv;
 		gpac_argv_state = (Bool *) gf_realloc(gpac_argv_state, sizeof(Bool) * argc);
+		if (!gpac_argv_state) return GF_OUT_OF_MEM;
 		for (i=0; i<argc; i++) {
 			gpac_argv_state[i] = GF_FALSE;
 			if (!strncmp(argv[i], "-p", 2)) gpac_argv_state[i] = GF_TRUE;
@@ -2472,6 +2473,7 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
 	int flags;
 	int status;
 	pidfile = (char *)gf_malloc(strlen(dir)+strlen(prefix)+strlen(resourceName)+1);
+	if (!pidfile) return NULL;
 	gf_strcpy(pidfile, dir);
 	gf_strcat(pidfile, prefix);
 	/* Use only valid names for file */
@@ -2523,6 +2525,7 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
 	{
 		int sz = 100;
 		char * buf = (char *)gf_malloc( sz );
+		if (!buf) goto exit;
 		sz = snprintf(buf, sz, "%ld\n", (long) getpid());
 		if (write(fd, buf, sz) != sz) {
 			gf_free(buf);
@@ -2532,6 +2535,7 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
 	sync();
 	{
 		GF_GlobalLock * lock = (GF_GlobalLock *)gf_malloc( sizeof(GF_GlobalLock));
+		if (!lock) goto exit;
 		lock->resourceName = gf_strdup(resourceName);
 		lock->pidFile = pidfile;
 		lock->fd = fd;
@@ -2557,6 +2561,7 @@ GF_GlobalLock * gf_global_resource_lock(const char * resourceName) {
 #endif
 	DWORD lastErr;
 	GF_GlobalLock *lock = (GF_GlobalLock *)gf_malloc(sizeof(GF_GlobalLock));
+	if (!lock) return NULL;
 	lock->resourceName = gf_strdup(resourceName);
 
 	/*first ensure mutex is created*/
@@ -2567,11 +2572,14 @@ GF_GlobalLock * gf_global_resource_lock(const char * resourceName) {
 	lock->hMutex = CreateMutex(NULL, TRUE, resourceName);
 #endif
 	lastErr = GetLastError();
-	if (lastErr && lastErr == ERROR_ALREADY_EXISTS)
+	if (lastErr && lastErr == ERROR_ALREADY_EXISTS) {
+		gf_free(lock);
 		return NULL;
+	}
 	if (!lock->hMutex)
 	{
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't create mutex for global lock: %d\n", lastErr));
+		gf_free(lock);
 		return NULL;
 	}
 

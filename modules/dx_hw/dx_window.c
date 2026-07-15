@@ -346,6 +346,10 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		evt.type = GF_EVENT_DROPFILE;
 		evt.open_file.nb_files = DragQueryFile(hDrop, 0xFFFFFFFF, NULL, 0);
 		evt.open_file.files = (char**)gf_malloc(sizeof(char *)*evt.open_file.nb_files);
+		if (!evt.open_file.files) {
+			DragFinish(hDrop);
+			break;
+		}
 		for (i=0; i<evt.open_file.nb_files; i++) {
 #ifdef UNICODE
 			/* TODO: Fix by converting to WC */
@@ -818,6 +822,7 @@ u32 DD_WindowThread(void *par)
 				size_t len_res;
 				len = ((strlen(str_src)/2)*2 + 2) * sizeof(wchar_t);
 				wcaption = (wchar_t *)gf_malloc(len);
+				if (!wcaption) continue;
 				len_res = gf_utf8_mbstowcs(wcaption, len+1, &str_src);
 				if (len_res != -1) {
 					SetWindowTextW(ctx->os_hwnd, wcaption);

@@ -599,6 +599,10 @@ void gf_sc_setup_passthrough(GF_Compositor *compositor)
 			if (out_size > compositor->framebuffer_alloc) {
 				compositor->framebuffer_alloc = out_size;
 				compositor->framebuffer = (u8 *)gf_realloc(compositor->framebuffer, out_size);
+				if (!compositor->framebuffer) {
+					compositor->framebuffer_alloc =0;
+					return;
+				}
 			}
 		}
 	}
@@ -4014,6 +4018,7 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 
 	if (compositor->selected_text) gf_free(compositor->selected_text);
 	compositor->selected_text = (u8 *)gf_malloc(2*compositor->sel_buffer_len);
+	if (!compositor->selected_text) return NULL;
 	len = gf_utf8_wcstombs((char *) compositor->selected_text, 2*compositor->sel_buffer_len, &srcp);
 	if (len == GF_UTF8_FAIL) len = 0;
 	compositor->selected_text[len] = 0;

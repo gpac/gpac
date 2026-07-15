@@ -262,17 +262,20 @@ static void svg_process_media_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *i
 			u32 size64 = size*2 + 3;
 			char *ext;
 			buf64 = (u8 *)gf_malloc(size64);
-			size64 = gf_base64_encode((u8*)buffer, (u32)size, buf64, size64);
-			buf64[size64] = 0;
-			mtype = "application/data";
-			ext = strchr(iri->string, '.');
-			if (ext) {
-				if (!stricmp(ext, ".png")) mtype = "image/png";
-				if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) mtype = "image/jpg";
+			if (buf64) {
+				size64 = gf_base64_encode((u8*)buffer, (u32)size, buf64, size64);
+				buf64[size64] = 0;
+				mtype = "application/data";
+				ext = strchr(iri->string, '.');
+				if (ext) {
+					if (!stricmp(ext, ".png")) mtype = "image/png";
+					if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) mtype = "image/jpg";
+				}
+				gf_free(iri->string);
+				iri->string = (char *)gf_malloc((40+(size_t)size64));
+				if (iri->string)
+					sprintf(iri->string, "data:%s;base64,%s", mtype, buf64);
 			}
-			gf_free(iri->string);
-			iri->string = (char *)gf_malloc((40+(size_t)size64));
-			sprintf(iri->string, "data:%s;base64,%s", mtype, buf64);
 			gf_free(buf64);
 			gf_free(buffer);
 		}

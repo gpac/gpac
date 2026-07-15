@@ -129,6 +129,7 @@ static void isor_export_ref(ISOMReader *read, ISOMChannel *ch, u32 rtype, const 
 		prop.type = GF_PROP_UINT_LIST;
 		prop.value.uint_list.nb_items = nb_refs;
 		prop.value.uint_list.vals = (u32 *)gf_malloc(sizeof(u32)*nb_refs);
+		if (!prop.value.uint_list.vals) return;
 		for (j=0; j<nb_refs; j++) {
 			u32 ref_tk;
 			gf_isom_get_reference(read->mov, ch->track, rtype, j+1, &ref_tk );
@@ -575,9 +576,11 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 				l1 = tx3g_config_sdp ? (u32) strlen(tx3g_config_sdp) : 0;
 				u32 blen = len+3+l1;
 				tx3g_config_sdp = (char *)gf_realloc(tx3g_config_sdp, blen);
-				tx3g_config_sdp[l1] = 0;
-				if (i) gf_strlcat(tx3g_config_sdp, ", ", blen);
-				gf_strlcat(tx3g_config_sdp, buffer, blen);
+				if (tx3g_config_sdp) {
+					tx3g_config_sdp[l1] = 0;
+					if (i) gf_strlcat(tx3g_config_sdp, ", ", blen);
+					gf_strlcat(tx3g_config_sdp, buffer, blen);
+				}
 			}
 		}
 		if (tx3g_config_sdp) {
@@ -753,9 +756,11 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 						gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_STRING_NO_COPY(udta));
 					} else {
 						char *data = (char *)gf_malloc(udta_size+1);
-						memcpy(data, udta, udta_size);
-						data[udta_size]=0;
-						gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_STRING_NO_COPY(data));
+						if (data) {
+							memcpy(data, udta, udta_size);
+							data[udta_size]=0;
+							gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_STRING_NO_COPY(data));
+						}
 						gf_free(udta);
 					}
 				} else {
@@ -1567,10 +1572,12 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				prop.type = GF_PROP_UINT_LIST;
 				prop.value.uint_list.nb_items = nb_profiles;
 				prop.value.uint_list.vals = (u32 *)gf_malloc(sizeof(u32)*nb_profiles);
-				for (j=0; j<nb_profiles; j++)
-					prop.value.uint_list.vals[j] = prof_compat[j];
-				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES, &prop);
-				gf_free(prop.value.uint_list.vals);
+				if (prop.value.uint_list.vals) {
+					for (j=0; j<nb_profiles; j++)
+						prop.value.uint_list.vals[j] = prof_compat[j];
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES, &prop);
+					gf_free(prop.value.uint_list.vals);
+				}
 			}
 		}
 	}

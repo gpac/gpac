@@ -153,10 +153,15 @@ GF_VideoOutput *NewRawVideoOutput()
 {
 	AndroidContext *pCtx;
 	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
+	if (!driv) return NULL;
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "androidbmp", "gpac distribution")
 
 	pCtx = (AndroidContext *)gf_malloc(sizeof(AndroidContext));
+	if (!pCtx) {
+		gf_free(driv);
+		return NULL;
+	}
 	memset(pCtx, 0, sizeof(AndroidContext));
 
 	driv->opaque = pCtx;

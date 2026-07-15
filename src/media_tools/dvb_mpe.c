@@ -137,6 +137,7 @@ GF_M2TS_ES *gf_dvb_mpe_section_new()
 
 	GF_M2TS_SECTION_MPE *ses;
 	GF_SAFEALLOC(ses, GF_M2TS_SECTION_MPE);
+	if (!ses) return NULL;
 	ses->mff = NULL;
 	es = (GF_M2TS_ES *)ses;
 	es->flags = GF_M2TS_ES_IS_SECTION | GF_M2TS_ES_IS_MPE;
@@ -220,6 +221,8 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 		if (!ip_platform || !ip_platform->ip_streams) return;
 
 		GF_SAFEALLOC(mpe->mff,MPE_FEC_FRAME);
+		if (!mpe->mff) return;
+
 		i_streams = gf_list_count(ip_platform->ip_streams);
 		for(j=0; j<i_streams; j++) {
 			ip_stream_buff = (GF_M2TS_IP_Stream *)gf_list_get(ip_platform->ip_streams, j);
@@ -318,7 +321,7 @@ void gf_m2ts_process_ipdatagram(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *ts)
 	ip_datagram = mff->p_adt;
 
 	GF_SAFEALLOC(ip_packet,GF_M2TS_IP_Packet);
-
+	if (!ip_packet) return;
 
 	while(offset<mff->current_offset_adt)
 	{
@@ -462,6 +465,7 @@ u32 gf_m2ts_ipdatagram_reader(u8 *datagram,GF_M2TS_IP_Packet *ip_packet, u32 off
 
 
 	ip_packet->data = (u8 *)gf_malloc(ip_packet->u32_udp_data_size-8);
+	if (!ip_packet->data) return 0;
 	memcpy(ip_packet->data,datagram+offset+(ip_packet->u32_hdr_length*4)+8,(ip_packet->u32_udp_data_size-8)*sizeof(u8));
 	/*ip_packet->data = (char *)gf_malloc((ip_packet->u32_total_length-ip_packet->u32_hdr_length)*sizeof(char));
 	memcpy(ip_packet->data,datagram+offset+20,(ip_packet->u32_total_length-ip_packet->u32_hdr_length)*sizeof(char));*/
@@ -505,6 +509,7 @@ void gf_m2ts_process_int(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ip_table, unsi
 	if ( ip_platform == NULL )
 	{
 		GF_SAFEALLOC(ip_platform,GF_M2TS_IP_PLATFORM );
+		if (!ip_platform) return;
 		ip_platform->ip_streams= gf_list_new();
 		section_DSMCC_INT (ip_platform, data, data_size);
 		ts->ip_platform = ip_platform;
@@ -537,6 +542,7 @@ void section_DSMCC_INT(GF_M2TS_IP_PLATFORM* ip_platform,u8 *data, u32 data_size)
 
 		GF_M2TS_IP_Stream *ip_str;
 		GF_SAFEALLOC(ip_str,GF_M2TS_IP_Stream );
+		if (!ip_str) return;
 
 		i = dsmcc_pto_descriptor_loop(ip_str,data);
 		data   += i;
@@ -618,6 +624,7 @@ void gf_ip_platform_descriptor(GF_M2TS_IP_PLATFORM* ip_platform,u8 * data)
 	gf_assert( ip_platform );
 	/* allocation ofr the name of the platform */
 	ip_platform->name = (u8 *)gf_malloc(length-3+1);
+	if (!ip_platform->name) return;
 	memcpy(ip_platform->name, data+5, length-3);
 	ip_platform->name[length-3] = 0;
 	return ;
@@ -630,6 +637,7 @@ void gf_ip_platform_provider_descriptor(GF_M2TS_IP_PLATFORM* ip_platform, u8 * d
 	/* allocation of the name of the platform */
 	gf_assert( ip_platform );
 	ip_platform->provider_name = (u8 *)gf_malloc(length-3+1);
+	if (!ip_platform->provider_name) return;
 	memcpy(ip_platform->provider_name, data+5, length-3);
 	ip_platform->provider_name[length-3] = 0;
 	return ;
@@ -730,6 +738,7 @@ void gf_m2ts_target_ip(GF_M2TS_IP_Stream* ip_str, u8 * data)
 	{
 		GF_M2TS_IP_Target* ip_data;
 		GF_SAFEALLOC(ip_data,GF_M2TS_IP_Target);
+		if (!ip_data) return;
 		//ip_data= (GF_M2TS_IP_Target *)gf_malloc(sizeof(GF_M2TS_IP_Target));
 		ip_data->type = 0;
 		ip_data->address_mask = 0;
@@ -777,6 +786,7 @@ void decode_fec(MPE_FEC_FRAME * mff)
 
 	size = (mff->rows*191)*sizeof(char);
 	data = (u8 *)gf_malloc(size);
+	if (!data) return;
 	memset(data,0, size);
 
 	initialize_ecc ();
@@ -830,7 +840,12 @@ void gf_m2ts_gather_ipdatagram_information(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *t
 	offset =0;
 	ip_datagram = mff->p_adt;
 	GF_SAFEALLOC(ip_packet,GF_M2TS_IP_Packet);
+	if (!ip_packet) return;
 	GF_SAFEALLOC(mff_holes,MPE_Error_Holes);
+	if (!mff_holes) {
+		gf_free(ip_packet);
+		return;
+	}
 	gf_assert( ip_platform && ip_platform->ip_streams );
 	while(offset<mff->current_offset_adt)
 	{
@@ -1017,6 +1032,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 	if (!ts) return;
 	if(!ts->ip_platform) {
 		GF_SAFEALLOC(ts->ip_platform,GF_M2TS_IP_PLATFORM );
+		if (!ts->ip_platform) return;
 	}
 	if(ts->ip_platform->socket_struct == NULL) ts->ip_platform->socket_struct= gf_list_new();
 
@@ -1033,6 +1049,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 	if (Sock_Struct == NULL) {
 		char name[100];
 		GF_SAFEALLOC(Sock_Struct, GF_SOCK_ENTRY);
+		if (!Sock_Struct) return;
 
 		Sock_Struct->ipv4_addr = ipv4_addr;
 		Sock_Struct->port = ip_packet->u32_rx_udp_port;
@@ -1090,14 +1107,18 @@ Bool init_frame(MPE_FEC_FRAME * mff, u32 rows)
 	mff->col_adt = MPE_ADT_COLS;
 	mff->col_rs = MPE_RS_COLS;
 	mff->p_adt = (u8 *)gf_calloc(MPE_ADT_COLS*rows,1);
+	if (!mff->p_adt) return GF_FALSE;
 	mff->p_rs = (u8 *)gf_calloc(MPE_RS_COLS*rows,1);
+	if (!mff->p_rs) return GF_FALSE;
 
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("MPE_RS_COLS*rows :%d \n",MPE_RS_COLS*rows));
 
 	mff->capacity_total = mff->col_adt*rows;
 	mff->p_error_adt = (u32 *)gf_calloc(mff->col_adt*rows,sizeof(u32));
+	if (!mff->p_error_adt) return GF_FALSE;
 	mff->p_error_rs = (u32 *)gf_calloc(mff->col_rs*rows,sizeof(u32));
+	if (!mff->p_error_rs) return GF_FALSE;
 	mff->current_offset_adt = 0;
 	mff->current_offset_rs = 0;
 	mff->ADT_done = 0;
@@ -1196,7 +1217,7 @@ void setIpDatagram(MPE_FEC_FRAME * mff, u32 offset, u8* dgram, u32 length )
 	MPE_Error_Holes *mpe_error_holes;
 
 	GF_SAFEALLOC(mpe_error_holes,MPE_Error_Holes);
-
+	if (!mpe_error_holes) return;
 
 	if (offset >= mff->capacity_total) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Offset %d bigger than capacity %d \n", offset, mff->capacity_total ));

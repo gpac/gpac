@@ -762,10 +762,12 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			gf_assert(tspid->ctx->scte35_stream);
 			gf_assert(!tspid->ctx->scte35_payload);
 			tspid->ctx->scte35_payload = (u8 *)gf_malloc(p->value.data.size);
-			memcpy(tspid->ctx->scte35_payload, p->value.data.ptr, p->value.data.size);
-			tspid->ctx->scte35_size = p->value.data.size;
-			tspid->ctx->scte35_stream->table_needs_update = GF_TRUE;
-			tspid->ctx->scte35_stream->table_needs_send = GF_TRUE;
+			if (tspid->ctx->scte35_payload) {
+				memcpy(tspid->ctx->scte35_payload, p->value.data.ptr, p->value.data.size);
+				tspid->ctx->scte35_size = p->value.data.size;
+				tspid->ctx->scte35_stream->table_needs_update = GF_TRUE;
+				tspid->ctx->scte35_stream->table_needs_send = GF_TRUE;
+			}
 		}
 
 		if (tspid->nb_repeat_last) {
@@ -1183,12 +1185,13 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 			temi_cfg = sep;
 		}
 		if (!temi_cfg || !strlen(temi_cfg)) {
+			if (sep) sep[0] = ',';
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSMux] Invalid temi syntax, no ID or URL specified\n"));
 			return;
 		}
 
 		sep = strchr(temi_cfg, ',');
-		if (sep) sep[0] = 0;	
+		if (sep) sep[0] = 0;
 
 		done = GF_TRUE;
 		if (temi_index && (temi_index!=st_idx)) done = GF_FALSE;
@@ -1200,6 +1203,10 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 			TEMIDesc *temi;
 			if (!tspid->temi_descs) tspid->temi_descs = gf_list_new();
 			GF_SAFEALLOC(temi, TEMIDesc);
+			if (!temi) {
+				if (sep) sep[0] = ',';
+				return;
+			}
 			temi->id = atoi(temi_cfg);
 			if (!temi->id) {
 				temi->url = gf_strdup(temi_cfg);
@@ -1310,6 +1317,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			if (ctx->nb_pack==4) {
 				ctx->nb_pack = 200;
 				ctx->pack_buffer = (u8 *)gf_realloc(ctx->pack_buffer, 188*ctx->nb_pack);
+				if (!ctx->pack_buffer) return GF_OUT_OF_MEM;
 			}
 			//in dash, force singel PES per AU, some demuxers have issues with PES packets with no ADTS headers (middle of a frame)
 			gf_m2ts_mux_use_single_au_pes_mode(ctx->mux, GF_M2TS_PACK_NONE);
@@ -1742,12 +1750,12 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 	ctx->nb_sidx_entries = 0;
 }
 
-static void tsmux_insert_sidx(GF_TSMuxCtx *ctx, Bool final_flush)
+static GF_Err tsmux_insert_sidx(GF_TSMuxCtx *ctx, Bool final_flush)
 {
 	TS_SIDX *tsidx = NULL;
-	if (ctx->subs_sidx<0) return;
+	if (ctx->subs_sidx<0) return GF_OK;
 
-	if (!ctx->mux->ref_pid) return;
+	if (!ctx->mux->ref_pid) return GF_OK;
 
 	if (ctx->nb_sidx_entries) {
 		tsidx = &ctx->sidx_entries[ctx->nb_sidx_entries-1];
@@ -1757,20 +1765,21 @@ static void tsmux_insert_sidx(GF_TSMuxCtx *ctx, Bool final_flush)
 
 		if (tsidx->max_pts < ctx->mux->last_pts) tsidx->max_pts = ctx->mux->last_pts;
 
-		if (!final_flush && !ctx->mux->sap_inserted) return;
+		if (!final_flush && !ctx->mux->sap_inserted) return GF_OK;
 
 		tsidx->nb_pck = ctx->nb_pck_in_seg - tsidx->nb_pck;
 		if (tsidx->nb_pck)
 			tsidx = NULL;
 	}
 
-	if (final_flush) return;
-	if (!ctx->mux->sap_inserted) return;
+	if (final_flush) return GF_OK;
+	if (!ctx->mux->sap_inserted) return GF_OK;
 
 	if (!tsidx) {
 		if (ctx->nb_sidx_entries == ctx->nb_sidx_alloc) {
 			ctx->nb_sidx_alloc += 10;
 			ctx->sidx_entries = (TS_SIDX *)gf_realloc(ctx->sidx_entries, sizeof(TS_SIDX)*ctx->nb_sidx_alloc);
+			if (!ctx->sidx_entries) return GF_OUT_OF_MEM;
 		}
 		tsidx = &ctx->sidx_entries[ctx->nb_sidx_entries];
 		ctx->nb_sidx_entries ++;
@@ -1781,6 +1790,7 @@ static void tsmux_insert_sidx(GF_TSMuxCtx *ctx, Bool final_flush)
 	tsidx->max_pts = ctx->mux->sap_time;
 	tsidx->nb_pck = (ctx->nb_sidx_entries>1) ? ctx->nb_pck_in_seg : 0;
 	tsidx->offset = (ctx->nb_sidx_entries>1) ? 0 : ctx->nb_pck_first_sidx;
+	return GF_OK;
 }
 
 static void tsmux_flush_frag_llhas(GF_TSMuxCtx *ctx, Bool is_last)
@@ -1818,6 +1828,7 @@ static void ts_mux_on_packet_del(GF_Filter *filter, GF_FilterPid *pid, GF_Filter
 
 static GF_Err tsmux_process(GF_Filter *filter)
 {
+	GF_Err e;
 	u32 nb_pck_in_pack, nb_pck_in_call;
 	GF_M2TSMuxState status;
 	u32 usec_till_next;
@@ -1919,7 +1930,8 @@ static GF_Err tsmux_process(GF_Filter *filter)
 				}
 
 				if (ctx->nb_pck_in_seg) {
-					tsmux_insert_sidx(ctx, GF_TRUE);
+					e = tsmux_insert_sidx(ctx, GF_TRUE);
+					if (e) return e;
 					tsmux_send_seg_event(filter, ctx);
 				}
 
@@ -1954,7 +1966,8 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			is_pack_flush = GF_TRUE;
 		} else {
 
-			tsmux_insert_sidx(ctx, GF_FALSE);
+			e = tsmux_insert_sidx(ctx, GF_FALSE);
+			if (e) return e;
 
 			if (ctx->nb_pack>1) {
 				memcpy(ctx->pack_buffer + 188 * nb_pck_in_pack, ts_pck, 188);

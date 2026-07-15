@@ -105,6 +105,7 @@ static GF_Err m4v_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	dsi_size = prop->value.data.size;
 	dsi = (u8 *)gf_malloc(dsi_size);
+	if (!dsi) return GF_OUT_OF_MEM;
 	memcpy(dsi, prop->value.data.ptr, sizeof(u8) * dsi_size);
 
 	if (ctx->sar.num && ctx->sar.den) {
@@ -514,8 +515,8 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 
 		//allocate the temporary storage
 		rw_sei_size = nal_size;
-		if (rw_sei_payload) rw_sei_payload = (u8 *)gf_realloc(rw_sei_payload, rw_sei_size);
-		else rw_sei_payload = (u8 *)gf_malloc(rw_sei_size);
+		rw_sei_payload = (u8 *)gf_realloc(rw_sei_payload, rw_sei_size);
+		if (!rw_sei_payload) return GF_OUT_OF_MEM;
 
 		//copy the NAL payload
 		gf_bs_seek(bs, payload_pos);
@@ -588,6 +589,10 @@ static GF_Err avc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 		if (!avcc) return GF_NOT_SUPPORTED;
 
 		GF_SAFEALLOC(pctx->avc, AVCState);
+		if (!pctx->avc) {
+			gf_odf_avc_cfg_del(avcc);
+			return GF_OUT_OF_MEM;
+		}
 		for (u32 i=0; i<gf_list_count(avcc->sequenceParameterSets); ++i) {
 			GF_NALUFFParam *slc = (GF_NALUFFParam *)gf_list_get(avcc->sequenceParameterSets, i);
 			s32 idx = gf_avc_read_sps(slc->data, slc->size, pctx->avc, 0, NULL);
@@ -853,7 +858,7 @@ static GF_Err reconfigure_alternative_transfer_characteristic(GF_BSRWCtx *ctx, B
 				rm_alt_trc_sei = ctx->rmsei;
 				break;
 			}
-		}	
+		}
 	} else {
 		// explicit removal
 		rm_alt_trc_sei = ctx->rmsei;

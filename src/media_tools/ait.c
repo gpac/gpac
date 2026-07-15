@@ -41,6 +41,7 @@ GF_M2TS_ES *gf_ait_section_new(u32 service_id)
 	GF_M2TS_ES *es;
 	GF_M2TS_AIT_CARRY *ses;
 	GF_SAFEALLOC(ses, GF_M2TS_AIT_CARRY);
+	if (!ses) return NULL;
 	es = (GF_M2TS_ES *)ses;
 	if (es) {
 		es->flags = GF_M2TS_ES_IS_SECTION;
@@ -215,6 +216,10 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				name_descriptor->ISO_639_language_code = gf_bs_read_int(bs,24);
 				name_descriptor->application_name_length = gf_bs_read_int(bs,8);
 				name_descriptor->application_name_char = (char*) gf_calloc(name_descriptor->application_name_length+1,1);
+				if (!name_descriptor->application_name_char) {
+					gf_free(name_descriptor);
+					return GF_OUT_OF_MEM;
+				}
 				gf_bs_read_data(bs, (u8 *)name_descriptor->application_name_char,name_descriptor->application_name_length);
 				name_descriptor->application_name_char[name_descriptor->application_name_length] = 0 ;
 				if (pre_processing_pos+name_descriptor->descriptor_length != gf_bs_get_position(bs)) {
@@ -270,6 +275,10 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 					Transport_http_selector_byte->URL_base_length = gf_bs_read_int(bs,8);
 
 					Transport_http_selector_byte->URL_base_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_base_length+1,1);
+					if (!Transport_http_selector_byte->URL_base_byte) {
+						gf_free(Transport_http_selector_byte);
+						return GF_OUT_OF_MEM;
+					}
 					gf_bs_read_data(bs, (u8 *)Transport_http_selector_byte->URL_base_byte ,(u32)(Transport_http_selector_byte->URL_base_length));
 					Transport_http_selector_byte->URL_base_byte[Transport_http_selector_byte->URL_base_length] = 0;
 					Transport_http_selector_byte->URL_extension_count = gf_bs_read_int(bs,8);
@@ -278,6 +287,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 						for (i=0; i < Transport_http_selector_byte->URL_extension_count; i++) {
 							Transport_http_selector_byte->URL_extentions[i].URL_extension_length = gf_bs_read_int(bs,8);
 							Transport_http_selector_byte->URL_extentions[i].URL_extension_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_extentions[i].URL_extension_length+1,1);
+							if (!Transport_http_selector_byte->URL_extentions[i].URL_extension_byte) break;
+
 							gf_bs_read_data(bs,Transport_http_selector_byte->URL_extentions[i].URL_extension_byte,(u32)(Transport_http_selector_byte->URL_extentions[i].URL_extension_length));
 							Transport_http_selector_byte->URL_extentions[i].URL_extension_byte[Transport_http_selector_byte->URL_extentions[i].URL_extension_length] = 0;
 						}
@@ -324,6 +335,10 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				Simple_application_location->descriptor_length = gf_bs_read_int(bs,8);
 				pre_processing_pos = gf_bs_get_position(bs);
 				Simple_application_location->initial_path_bytes = (char*)gf_calloc(Simple_application_location->descriptor_length+1,1);
+				if (!Simple_application_location->initial_path_bytes) {
+					gf_free(Simple_application_location);
+					return GF_OUT_OF_MEM;
+				}
 				gf_bs_read_data(bs, (u8 *)Simple_application_location->initial_path_bytes ,(u32)(Simple_application_location->descriptor_length));
 				Simple_application_location->initial_path_bytes[Simple_application_location->descriptor_length] = 0;
 				if (pre_processing_pos+Simple_application_location->descriptor_length != gf_bs_get_position(bs)) {
@@ -515,6 +530,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 							dsmcc_overlord->application_id = Application->application_id;
 							sprintf(char_service_id,"%d",dsmcc_overlord->service_id);
 							dsmcc_overlord->root_dir = (char*)gf_calloc(strlen(ts->dsmcc_root_dir)+2+strlen(char_service_id),1);
+							if (!dsmcc_overlord->root_dir) return GF_OUT_OF_MEM;
 							sprintf(dsmcc_overlord->root_dir,"%s%c%s",ts->dsmcc_root_dir,GF_PATH_SEPARATOR,char_service_id);
 							e = gf_mkdir(dsmcc_overlord->root_dir);
 							if(e) {
@@ -566,6 +582,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 			if((url_base != NULL) && ( url_appli_path != NULL)) {
 				u32 url_length = (strlen(url_base)+strlen(url_appli_path));
 				Application->http_url = (char*)gf_calloc(url_length + 1,1);
+				if (!Application->http_url) return;
 				sprintf(Application->http_url,"%s%s",url_base,url_appli_path);
 				Application->http_url[url_length]=0;
 				Application->url_received = GF_TRUE;

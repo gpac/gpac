@@ -871,6 +871,7 @@ static GF_Err h3_send_reply(GF_DownloadSession *sess, u32 reply_code, const char
 	}
 
 	hdrs = (nghttp3_nv *)gf_malloc(sizeof(nghttp3_nv) * (count + 1) );
+	if (!hdrs) return GF_OUT_OF_MEM;
 
 	sprintf(szFmt, "%d", reply_code);
 	NGH3_HDR(hdrs[0], ":status", szFmt);
@@ -1367,7 +1368,7 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	GF_SAFEALLOC(sess->hmux_sess, GF_HMUX_Session);
 	if (!sess->hmux_sess) return GF_OUT_OF_MEM;
 	GF_SAFEALLOC(ng_quic, GF_QuicConnection);
-	if (!sess->hmux_sess) {
+	if (!ng_quic) {
 		gf_free(sess->hmux_sess);
 		sess->hmux_sess = NULL;
 		return GF_OUT_OF_MEM;
@@ -1386,11 +1387,19 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	if (sess->server_mode) {
 		u8 *buf;
 		buf = (u8 *)gf_malloc(srv_path->local.addrlen);
+		if (!buf) {
+			e = GF_OUT_OF_MEM;
+			goto err;
+		}
 		memcpy(buf, srv_path->local.addr, srv_path->local.addrlen);
 		ng_quic->path.local.addr = (ngtcp2_sockaddr *) buf;
 		ng_quic->path.local.addrlen = srv_path->local.addrlen;
 
 		buf = (u8 *)gf_malloc(srv_path->remote.addrlen);
+		if (!buf) {
+			e = GF_OUT_OF_MEM;
+			goto err;
+		}
 		memcpy(buf, srv_path->remote.addr, srv_path->remote.addrlen);
 		ng_quic->path.remote.addr = (ngtcp2_sockaddr *) buf;
 		ng_quic->path.remote.addrlen = srv_path->remote.addrlen;

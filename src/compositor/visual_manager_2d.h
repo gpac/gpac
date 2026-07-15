@@ -71,8 +71,9 @@ typedef struct
 	if ((ra)->count==(ra)->alloc) { \
 		(ra)->alloc += RA_DEFAULT_STEP; \
 		(ra)->list = (GF_RectArrayEntry*)gf_realloc((ra)->list, sizeof(GF_RectArrayEntry) * (ra)->alloc); \
+		if (! (ra)->list) (ra)->count = (ra)->alloc = 0; \
 	}	\
-	(ra)->list[(ra)->count].rect = *rc; (ra)->count++;	}
+	if ( (ra)->list) (ra)->list[(ra)->count].rect = *rc; (ra)->count++;	}
 
 
 /*adds rectangle to the list performing union test*/

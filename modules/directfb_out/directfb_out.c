@@ -249,10 +249,15 @@ void *DirectFBNewVideo()
 	GF_VideoOutput *driv;
 
 	driv = (GF_VideoOutput *)gf_malloc(sizeof(GF_VideoOutput));
+	if (!driv) return NULL;
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "directfb", "gpac distribution");
 
 	ctx = (DirectFBVidCtx *)gf_malloc(DirectFBVid_GetCtxSizeOf());
+	if (!ctx) {
+		gf_free(driv);
+		return NULL;
+	}
 	memset(ctx, 0, DirectFBVid_GetCtxSizeOf());
 
 	/* GF_VideoOutput */

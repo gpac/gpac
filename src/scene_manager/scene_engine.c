@@ -133,6 +133,7 @@ static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF
 	esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
 
 	sc->dec_cfg = (u8 *)gf_malloc(data_len);
+	if (!sc->dec_cfg) return GF_OUT_OF_MEM;
 	memcpy(sc->dec_cfg, data, data_len);
 	sc->dec_cfg_len = data_len;
 
@@ -176,6 +177,7 @@ static GF_Err gf_sm_setup_lsrenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF_
 	esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
 
 	sc->dec_cfg = (u8 *)gf_malloc(data_len);
+	if (!sc->dec_cfg) return GF_OUT_OF_MEM;
 	memcpy(sc->dec_cfg, data, data_len);
 	sc->dec_cfg_len = data_len;
 	return GF_OK;
@@ -1136,8 +1138,10 @@ char *gf_seng_get_base64_iod(GF_SceneEngine *seng)
 	gf_odf_desc_write((GF_Descriptor *) seng->ctx->root_od, &buffer, &size);
 	size64 = size*2 + 3;
 	buf64 = (u8 *)gf_malloc(size64);
-	size64 = gf_base64_encode( buffer, size, buf64, size64);
-	buf64[size64] = 0;
+	if (buf64) {
+		size64 = gf_base64_encode( buffer, size, buf64, size64);
+		buf64[size64] = 0;
+	}
 	gf_free(buffer);
 	return (char *) buf64;
 }

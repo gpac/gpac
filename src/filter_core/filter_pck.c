@@ -1613,9 +1613,11 @@ static GFINLINE const GF_PropertyValue *pck_check_prop(GF_FilterPacket *pck, u32
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s PID %s input packet property %s not found\n", pck->pid->filter->name, pidname, prop_name));
 		}
 		GF_SAFEALLOC(p, GF_PropCheck);
-		p->name = prop_name;
-		p->p4cc = prop_4cc;
-		gf_list_add(pcki->pid->prop_dump, p);
+		if (p) {
+			p->name = prop_name;
+			p->p4cc = prop_4cc;
+			gf_list_add(pcki->pid->prop_dump, p);
+		}
 	}
 	return ret;
 }
@@ -1978,6 +1980,10 @@ GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, u8 **data
 	if (pck->data_length + nb_bytes_to_add > pck->alloc_size) {
 		pck->alloc_size = pck->data_length + nb_bytes_to_add;
 		pck->data = (u8 *)gf_realloc(pck->data, pck->alloc_size);
+		if (!pck->data) {
+			pck->alloc_size = pck->data_length = 0;
+			return GF_OUT_OF_MEM;
+		}
 #ifdef GPAC_MEMORY_TRACKING
 		if (!pck->is_dangling)
 			pck->pid->filter->session->nb_realloc_pck++;

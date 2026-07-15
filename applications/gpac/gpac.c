@@ -1411,6 +1411,10 @@ restart:
 					char *updated_args;
 					u32 len = (u32) (need_gfio - arg);
 					updated_args = (char *)gf_malloc(len+1);
+					if (!updated_args) {
+						e = GF_OUT_OF_MEM;
+						ERR_EXIT
+					}
 					memcpy(updated_args, arg, len);
 					updated_args[len]=0;
 
@@ -2284,6 +2288,7 @@ static void gpac_on_logs(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_too
 	if (log_buf_size < len+2) {
 		log_buf_size = len+2;
 		log_buf = (char *)gf_realloc(log_buf, log_buf_size);
+		if (!log_buf) return;
 	}
 	vsprintf(log_buf, fmt, vlist);
 
@@ -2356,7 +2361,8 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 		if (!logs_to_file && (enable_reports==2) ) {
 			if (!nb_log_entries) nb_log_entries = 1;
 			static_logs = (struct _logentry *)gf_malloc(sizeof(struct _logentry) * nb_log_entries);
-			memset(static_logs, 0, sizeof(struct _logentry) * nb_log_entries);
+			if (static_logs)
+				memset(static_logs, 0, sizeof(struct _logentry) * nb_log_entries);
 			gf_log_set_callback(fsess, gpac_on_logs);
 		}
 		last_report_clock_us = gf_sys_clock_high_res();
@@ -2653,6 +2659,11 @@ static Bool cache_file_op(void *cbck, char *item_name, char *item_path, GF_FileE
 		url+=3;
 		len = (u32) strlen(url);
 		dst_name = (char *)gf_malloc(len+dir_len+1);
+		if (!dst_name) {
+			gf_cfg_del(cached);
+			gf_file_delete(item_path);
+			return GF_FALSE;
+		}
 		memcpy(dst_name, item_path, dir_len);
 		dst_name[dir_len] = 0;
 		k=dir_len;
@@ -3787,6 +3798,10 @@ static u64 creds_set_pass(GF_Config *creds, const char *user, const char *passwd
 
 	u32 len = (u32) strlen(passwd);
 	pass = (u8 *)gf_malloc(len+GF_SHA256_DIGEST_SIZE+1);
+	if (!pass) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Warning: failed to store password hash for user %s\n", user ));
+		return 0;
+	}
 	memcpy(pass, passwd, len);
 	pass[len] = '@';
 	memcpy(pass + len + 1, salt, GF_SHA256_DIGEST_SIZE);

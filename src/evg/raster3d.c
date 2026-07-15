@@ -155,6 +155,7 @@ GF_Err evg_raster_render_path_3d(GF_EVGSurface *surf)
 	size_y = (u32) (surf->max_ey - surf->min_ey);
 	if ((u32) surf->max_lines < size_y) {
 		surf->scanlines = (AAScanline*)gf_realloc(surf->scanlines, sizeof(AAScanline)*size_y);
+		if (!surf->scanlines) return GF_OUT_OF_MEM;
 		memset(&surf->scanlines[surf->max_lines], 0, sizeof(AAScanline)*(size_y - surf->max_lines) );
 		surf->max_lines = size_y;
 	}
@@ -354,6 +355,10 @@ static void push_patch_pixel(AAScanline *sl, s32 x, u32 col, u8 coverage, Float 
 	if (sl->pnum == sl->palloc) {
 		sl->palloc += AA_CELL_STEP_ALLOC;
 		sl->pixels = (PatchPixel *)gf_realloc(sl->pixels, sizeof(PatchPixel) * sl->palloc);
+		if (!sl->pixels) {
+			sl->palloc = sl->pnum = 0;
+			return;
+		}
 	}
 	if (i==sl->pnum) {
 		pp = &sl->pixels[sl->pnum];
@@ -684,6 +689,7 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 	size_y = (u32) (surf->max_ey - surf->min_ey);
 	if (surf->max_lines < size_y) {
 		surf->scanlines = (AAScanline*)gf_realloc(surf->scanlines, sizeof(AAScanline)*size_y);
+		if (!surf->scanlines) return GF_OUT_OF_MEM;
 		memset(&surf->scanlines[surf->max_lines], 0, sizeof(AAScanline)*(size_y - surf->max_lines) );
 		surf->max_lines = size_y;
 	}

@@ -162,11 +162,12 @@ void *gf_realloc(void *ptr, size_t size)
 GF_EXPORT
 void gf_free(void *ptr)
 {
-	FREE(ptr);
+	if (ptr) FREE(ptr);
 }
 GF_EXPORT
 char *gf_strdup(const char *str)
 {
+	if (!str) return NULL;
 	STRDUP(str);
 }
 
@@ -322,10 +323,11 @@ static void *gf_mem_realloc_basic(void *ptr, size_t size, const char *filename, 
 }
 static void gf_mem_free_basic(void *ptr, const char *filename, int line)
 {
-	FREE(ptr);
+	if (ptr) FREE(ptr);
 }
 static char *gf_mem_strdup_basic(const char *str, const char *filename, int line)
 {
+	if (!str) return NULL;
 	STRDUP(str);
 }
 

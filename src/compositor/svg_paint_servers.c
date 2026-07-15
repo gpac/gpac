@@ -154,10 +154,11 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 		children = ((SVG_Element *)href_node)->children;
 	}
 
-	if (!st->cols) {
+	if (!st->cols || !st->keys) {
 		count = gf_node_list_get_count(children);
 		st->cols = (u32*)gf_malloc(sizeof(u32)*count);
 		st->keys = (Fixed*)gf_malloc(sizeof(Fixed)*count);
+		if (!st->keys || !st->cols) return;
 	}
 	nb_col = 0;
 	max_offset = 0;
@@ -348,7 +349,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	GF_EVGSurface *surface;
 	GF_EVGStencil * texture2D;
 	GF_Path *path;
-	GF_Err e;
+	GF_Err e = GF_OK;
 	Bool transparent;
 	SVGAllAttributes all_atts;
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
@@ -383,6 +384,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	if (transparent) {
 		if (!txh->data) {
 			txh->data = (u8 *)gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			if (!txh->data) goto exit;
 		} else {
 			memset(txh->data, 0, sizeof(char)*txh->stride*txh->height);
 		}
@@ -390,6 +392,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	} else {
 		if (!txh->data) {
 			txh->data = (u8 *)gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
+			if (!txh->data) goto exit;
 		}
 		e = gf_evg_stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
@@ -399,12 +402,14 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 			transparent = GF_TRUE;
 			gf_free(txh->data);
 			txh->data = (u8 *)gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			if (!txh->data) goto exit;
 			e = gf_evg_stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB);
 		}
 	}
 
-	if (e) {
-		gf_free(txh->data);
+exit:
+	if (e || !txh->data) {
+		if (txh->data) gf_free(txh->data);
 		txh->data = NULL;
 		gf_evg_stencil_delete(texture2D);
 		gf_evg_surface_delete(surface);

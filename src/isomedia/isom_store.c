@@ -621,6 +621,7 @@ GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStr
 
 	if (size>mw->alloc_size) {
 		mw->buffer = (u8*)gf_realloc(mw->buffer, size);
+		if (!mw->buffer) return GF_OUT_OF_MEM;
 		mw->alloc_size = size;
 	}
 
@@ -1734,6 +1735,7 @@ static GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, 
 		u32 count, i;
 		i = count = 0;
 		blank = (char *)gf_malloc(1024*1024);
+		if (!blank) return GF_OUT_OF_MEM;
 		memset(blank, 0, sizeof(char)*1024*1024);
 		count = 4096;
 		memset(blank, 0, sizeof(char)*1024*1024);
@@ -2543,6 +2545,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			movie->brand->majorBrand = brand;
 			movie->brand->altCount = 1;
 			movie->brand->altBrand = (u32 *)gf_malloc(sizeof(u32));
+			if (!movie->brand->altBrand) return GF_OUT_OF_MEM;
 			movie->brand->altBrand[0] = brand;
 		}
 	}
