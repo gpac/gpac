@@ -1440,6 +1440,9 @@ reparse_opts:
 		else if (!strnicmp(ext+1, "tkidx=", 6)) {
 			set_tk_idx = atoi(ext+7);
 		}
+		else if (!strnicmp(ext+1, "preselection=", 13)) {
+			import->preselection = ext+14;
+		}
 		/*unrecognized, assume name has colon in it*/
 		else {
 			M4_LOG(GF_LOG_ERROR, ("Unrecognized import option %s, ignoring\n", ext+1));

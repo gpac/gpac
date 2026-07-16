@@ -2006,7 +2006,8 @@ GF_Err gf_odf_ac4_cfg_substream_dsi(GF_AC4SubStream *s, GF_BitStream *bs, u8 b_c
 		GF_AC4_SSS(bs, s->substream_bitrate_indicator, 5, size, desc_mode);
 	}
 	if (b_channel_coded == 1) {
-		GF_AC4_SSS(bs, s->dsi_substream_channel_mask, 24, size, desc_mode);
+		GF_AC4_SSS(bs, zero_val, 6, size, desc_mode); //reserved zero
+		GF_AC4_SSS(bs, s->dsi_substream_channel_groups, 18, size, desc_mode);
 	} else {
 		GF_AC4_SSS(bs, s->b_ajoc, 1, size, desc_mode);
 		if (s->b_ajoc == 1) {
@@ -2090,7 +2091,7 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 	if (p->presentation_config == 0x06) {
 		p->b_add_emdf_substreams = 1;
 	} else {
-		GF_AC4_SSS(bs, p->mdcompat, 3, size, desc_mode);
+		GF_AC4_SSS(bs, p->md_compat, 3, size, desc_mode);
 		GF_AC4_SSS(bs, p->b_presentation_id, 1, size, desc_mode);
 		if (p->b_presentation_id) {
 			GF_AC4_SSS(bs, p->presentation_id, 5, size, desc_mode);
@@ -2107,7 +2108,8 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 				GF_AC4_SSS(bs, p->pres_b_4_back_channels_present, 1, size, desc_mode);
 				GF_AC4_SSS(bs, p->pres_top_channel_pairs, 2, size, desc_mode);
 			}
-			GF_AC4_SSS(bs, p->presentation_channel_mask_v1, 24, size, desc_mode);
+			GF_AC4_SSS(bs, zero_val, 6, size, desc_mode);  // reserved zero
+			GF_AC4_SSS(bs, p->presentation_v1_channel_groups, 18, size, desc_mode);
 		}
 
 		GF_AC4_SSS(bs, p->b_presentation_core_differs, 1, size, desc_mode);
@@ -2201,9 +2203,8 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 	 * TODO: Not implement, need the information from ac4_substream.
 	 * Currently just set the value to 1 according to Dolby's internal discussion.
 	 */
-	p->de_indicator = 1;
 	GF_AC4_SSS(bs, p->de_indicator, 1, size, desc_mode);
-	GF_AC4_SSS(bs, p->dolby_atmos_indicator, 1, size, desc_mode);
+	GF_AC4_SSS(bs, p->immersive_audio_indicator, 1, size, desc_mode);
 	GF_AC4_SSS(bs, zero_val, 4, size, desc_mode);
 
 	if (p->presentation_id > 31) {
@@ -2266,7 +2267,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 
 					imsp->presentation_version = 1;
 					imsp->b_pre_virtualized = 0;
-					imsp->dolby_atmos_indicator = 0;
+					imsp->immersive_audio_indicator = 0;
 					gf_list_add(dsi->presentations, imsp);
 				}
 			}
@@ -2485,6 +2486,9 @@ static void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF
 	pres_dst->substream_groups = gf_list_new();
 	for (j = 0; j < gf_list_count(pres_src->substream_groups); j++) {
 		group_src = gf_list_get(pres_src->substream_groups, j);
+		if (!group_src) {
+			continue;
+		}
 
 		GF_SAFEALLOC(group_dst, GF_AC4SubStreamGroupV1);
 		memcpy(group_dst, group_src, sizeof(GF_AC4SubStreamGroupV1));
@@ -2497,67 +2501,87 @@ static void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF
 		group_dst->substreams = gf_list_new();
 		for (s = 0; s < gf_list_count(group_src->substreams); s++) {
 			subs_src = gf_list_get(group_src->substreams, s);
+			if (!subs_src) {
+				continue;
+			}
 
 			GF_SAFEALLOC(subs_dst, GF_AC4SubStream);
 			memcpy(subs_dst, subs_src, sizeof(GF_AC4SubStream));
 			gf_list_add(group_dst->substreams, subs_dst);
 		}
 	}
+
+	if (!pres_src->substreams) {
+		return;
+	}
+
+	pres_dst->substreams = gf_list_new();
+	for (j = 0; j < gf_list_count(pres_src->substreams); j++) {
+		subs_src = gf_list_get(pres_src->substreams, j);
+		if (!subs_src) {
+			continue;
+		}
+
+		GF_SAFEALLOC(subs_dst, GF_AC4SubStream);
+		memcpy(subs_dst, subs_src, sizeof(GF_AC4SubStream));
+		gf_list_add(pres_dst->substreams, subs_dst);
+	}
 }
 
 GF_EXPORT
 void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
 {
-	u32 s;
 	GF_AC4PresentationV1 *pres;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *subs;
 
-	if (!cfg)
+	if (!cfg) {
 		return;
-
+	}
 
 	if (cfg->stream.presentations) {
-
 		GF_List* groups_to_del = gf_list_new();
+		GF_List* substreams_to_del = gf_list_new();
 
 		while ( (pres = gf_list_pop_back(cfg->stream.presentations)) ) {
-
 			if (pres->substream_groups) {
-
 				while ( (group = gf_list_pop_back(pres->substream_groups)) ) {
-
-					if (group && gf_list_find(groups_to_del, group) < 0)
+					if (group && gf_list_find(groups_to_del, group) < 0) {
 						gf_list_add(groups_to_del, group);
-
+					}
 				}
 				gf_list_del(pres->substream_groups);
-
+			}
+			if (pres->substreams) {
+				while ( (subs = gf_list_pop_back(pres->substreams)) ) {
+					if (subs && gf_list_find(substreams_to_del, subs) < 0) {
+						gf_list_add(substreams_to_del, subs);
+					}
+				}
+				gf_list_del(pres->substreams);
 			}
 			gf_free(pres);
 		}
+		gf_list_del(cfg->stream.presentations);
+		cfg->stream.presentations = NULL;
 
 		while ( (group = gf_list_pop_back(groups_to_del)) ) {
 			if (group->substreams) {
-
-				for (s = 0; s < gf_list_count(group->substreams); s++) {
-					subs = gf_list_get(group->substreams, s);
-					if (!subs) {
-						continue;
+				while ( (subs = gf_list_pop_back(group->substreams)) ) {
+					if (subs && gf_list_find(substreams_to_del, subs) < 0) {
+						gf_list_add(substreams_to_del, subs);
 					}
-
-					gf_free(subs);
 				}
 				gf_list_del(group->substreams);
-
 			}
 			gf_free(group);
-
 		}
 		gf_list_del(groups_to_del);
 
-		gf_list_del(cfg->stream.presentations);
-		cfg->stream.presentations = NULL;
+		while ( (subs = gf_list_pop_back(substreams_to_del)) ) {
+			gf_free(subs);
+		}
+		gf_list_del(substreams_to_del);
 	}
 }
 
@@ -2800,4 +2824,289 @@ u32 gf_odf_iamf_cfg_size(GF_IAConfig *cfg)
 	#else
 		return 0;
 	#endif
+}
+
+char* gf_odf_preselection_obtain_str(GF_BitStream *bs, u32 size)
+{
+	char *data, *ptr;
+    u32 i = 0;
+    GF_SAFE_ALLOC_N(data, (size) + 1, char);
+    
+	while (gf_bs_available(bs) && i < (size)) {
+    	data[i] = (char) gf_bs_read_u8(bs);
+        if (data[i] == '\0') break;
+        i++;
+    }
+    data[(size)] = '\0';
+    ptr = gf_strdup(data);
+    gf_free(data);
+    return ptr;
+}
+
+GF_EXPORT
+GF_Err gf_odf_preselection_cfg_parse_bs(GF_BitStream *bs, GF_List *cfg_list)
+{
+	GF_Err e = GF_OK;
+	GF_PreselectionConfig *cfg;
+	GF_Box *child;
+	GF_PreselectionGroupBox *prsl;
+	GF_AudioRenderingIndicationBox *ardi;
+	GF_ExtendedLanguageBox *elng;
+	GF_UserDataBox *udta;
+	GF_DialogueProcessingBox *diap;
+	GF_LabelBox *labl;
+	GF_KindBox *kind;
+	u32 size = 0, type = 0;
+
+	if (!cfg_list) return GF_BAD_PARAM;
+
+	while(gf_bs_available(bs)) {
+		size = gf_bs_read_u32(bs);
+		type = gf_bs_read_u32(bs);
+
+		// printf("Preselection cfg Type: %c%c%c%c Size: %u\n",
+		// 	(type >> 24) & 0xFF, (type >> 16) & 0xFF,
+		// 	(type >> 8) & 0xFF, type & 0xFF, size);
+
+		if (type == GF_4CC('p', 'r', 's', 'l') && size >= 8) {
+			prsl = (GF_PreselectionGroupBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PRSL);
+			prsl->size = size - 8;
+			prsl->type = type;
+
+			e = gf_isom_box_read((GF_Box *)prsl, bs);
+			if (e) return e;
+
+			GF_SAFEALLOC(cfg, GF_PreselectionConfig);
+			if (!cfg) return GF_OUT_OF_MEM;
+
+			cfg->flags = prsl->flags;
+			cfg->group_id = prsl->group_id;
+			if ((prsl->flags & GF_ISOM_PRESELECTION_TAG_PRESENT) && prsl->preselection_tag) {
+				cfg->preselection_tag = gf_strdup(prsl->preselection_tag);
+			}
+			if (prsl->flags & GF_ISOM_SELECTION_PRIORITY_PRESENT) {
+				cfg->selection_priority = prsl->selection_priority;
+			}
+			if ((prsl->flags & GF_ISOM_INTERLEAVING_TAG_PRESENT) && prsl->interleaving_tag) {
+				cfg->interleaving_tag = gf_strdup(prsl->interleaving_tag);
+			}
+
+			for (u32 i = 0 ; i < gf_list_count(prsl->child_boxes); i++) {
+				child = (GF_Box*)gf_list_get(prsl->child_boxes, i);
+				if (!child) continue;
+
+				if (child->type == GF_ISOM_BOX_TYPE_ARDI) {
+					ardi = (GF_AudioRenderingIndicationBox *) child;
+					cfg->audio_rendering_indication = ardi->audio_rendering_indication;
+				}
+				else if (child->type == GF_ISOM_BOX_TYPE_ELNG) {
+					elng = (GF_ExtendedLanguageBox *) child;
+					cfg->extended_language = gf_strdup(elng->extended_language);
+				}
+				else if (child->type == GF_ISOM_BOX_TYPE_UDTA) {
+					GF_UserDataMap *map;
+					u32 i = 0;
+					udta = (GF_UserDataBox *) child;
+					while ((map = (GF_UserDataMap *)gf_list_enum(udta->recordList, &i))) {
+						if (map->boxType == GF_ISOM_BOX_TYPE_DIAP) {
+							diap = (GF_DialogueProcessingBox *) gf_list_get(map->boxes, 0);
+							if (diap) {
+								cfg->dialog_gain_present = GF_TRUE;
+								cfg->dialog_gain = diap->dialog_gain;
+							}
+						}
+					}
+				}
+				else if (child->type == GF_ISOM_BOX_TYPE_LABL) {
+					labl = (GF_LabelBox *) child;
+					GF_Label *label;
+					GF_SAFEALLOC(label, GF_Label);
+					if (!label) return GF_OUT_OF_MEM;
+
+					label->is_group_label = labl->flags & GF_ISOM_IS_GROUP_LABEL ? GF_TRUE : GF_FALSE;
+					label->label_id = labl->label_id;
+					label->language = gf_strdup(labl->language);
+					label->label = gf_strdup(labl->label);
+					if (!cfg->labels) {
+						cfg->labels = gf_list_new();
+						if (!cfg->labels) return GF_OUT_OF_MEM;
+					}
+					gf_list_add(cfg->labels, label);
+				}
+				else if (child->type == GF_ISOM_BOX_TYPE_KIND) {
+					kind = (GF_KindBox *) child;
+					GF_Kind *k;
+					GF_SAFEALLOC(k, GF_Kind);
+					if (!k) return GF_OUT_OF_MEM;
+
+					k->value = kind->value ? gf_strdup(kind->value) : NULL;
+					k->schemeURI = gf_strdup(kind->schemeURI);
+					if (!cfg->kinds) {
+						cfg->kinds = gf_list_new();
+						if (!cfg->kinds) return GF_OUT_OF_MEM;
+					}
+					gf_list_add(cfg->kinds, k);
+				}
+			}
+
+			gf_list_add(cfg_list, cfg);
+		}
+		else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[Preselection] Failed to parse the preselection.\n"));
+			return GF_NOT_SUPPORTED;
+		}
+	}
+	return e;
+}
+
+GF_EXPORT
+GF_Err gf_odf_preselection_cfg_parse(u8 *data, u32 data_len, GF_List *cfg_list)
+{
+	GF_BitStream *bs;
+	GF_Err e;
+	if (!cfg_list || !data) return GF_BAD_PARAM;
+	bs = gf_bs_new(data, data_len, GF_BITSTREAM_READ);
+	e = gf_odf_preselection_cfg_parse_bs(bs, cfg_list);
+	gf_bs_del(bs);
+	return e;
+}
+
+GF_EXPORT
+GF_Err gf_odf_preselection_cfg_write(GF_List *cfg_list, GF_BitStream *bs)
+{
+	GF_Err e = GF_OK;
+	GF_PreselectionConfig *cfg;
+	GF_PreselectionGroupBox *prsl;
+	GF_AudioRenderingIndicationBox *ardi;
+	GF_ExtendedLanguageBox *elng;
+	GF_UserDataBox *udta;
+	GF_DialogueProcessingBox *diap;
+	GF_LabelBox *labl;
+	GF_KindBox *kind;
+
+	if (!cfg_list || !bs) return GF_BAD_PARAM;
+
+	for (u32 i=0; i<gf_list_count(cfg_list); i++) {
+		cfg = (GF_PreselectionConfig*)gf_list_get(cfg_list, i);
+		if (!cfg) return GF_BAD_PARAM;
+
+		prsl = (GF_PreselectionGroupBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_PRSL);
+
+		if (!prsl) return GF_OUT_OF_MEM;
+
+		prsl->flags = cfg->flags;
+		prsl->group_id = cfg->group_id;
+
+		// use 0 as entity ID
+		prsl->entity_id_count = 1;
+		prsl->entity_ids = gf_malloc(prsl->entity_id_count * sizeof(u32));
+		if (!prsl->entity_ids) return GF_OUT_OF_MEM;
+		prsl->entity_ids[0] = 0;
+
+		if ((cfg->flags & GF_ISOM_PRESELECTION_TAG_PRESENT) && cfg->preselection_tag) {
+			prsl->preselection_tag = gf_strdup(cfg->preselection_tag);
+		}
+		if (cfg->flags & GF_ISOM_SELECTION_PRIORITY_PRESENT) {
+			prsl->selection_priority = cfg->selection_priority;
+		}
+		if ((cfg->flags & GF_ISOM_INTERLEAVING_TAG_PRESENT) && cfg->interleaving_tag) {
+			prsl->interleaving_tag = gf_strdup(cfg->interleaving_tag);
+		}
+
+		ardi = (GF_AudioRenderingIndicationBox *) gf_isom_box_new_parent(&prsl->child_boxes, GF_ISOM_BOX_TYPE_ARDI);
+		if (!ardi) return GF_OUT_OF_MEM;
+		ardi->audio_rendering_indication = cfg->audio_rendering_indication;
+
+		if (cfg->extended_language) {
+			elng = (GF_ExtendedLanguageBox *) gf_isom_box_new_parent(&prsl->child_boxes, GF_ISOM_BOX_TYPE_ELNG);
+			if (!elng) return GF_OUT_OF_MEM;
+			elng->extended_language = gf_strdup(cfg->extended_language);
+		}
+
+		if (cfg->dialog_gain_present) {
+			udta = (GF_UserDataBox *) gf_isom_box_new_parent(&prsl->child_boxes, GF_ISOM_BOX_TYPE_UDTA);
+			if (!udta) return GF_OUT_OF_MEM;
+
+			diap = (GF_DialogueProcessingBox *) gf_isom_box_new_parent(&udta->child_boxes, GF_ISOM_BOX_TYPE_DIAP);
+			if (!diap) return GF_OUT_OF_MEM;
+			diap->dialog_gain = cfg->dialog_gain;
+		}
+
+		if (cfg->labels) {
+			for (u32 j = 0; j < gf_list_count(cfg->labels); j++) {
+				GF_Label *label = (GF_Label*)gf_list_get(cfg->labels, j);
+				if (!label) continue;
+
+				labl = (GF_LabelBox *) gf_isom_box_new_parent(&prsl->child_boxes, GF_ISOM_BOX_TYPE_LABL);
+				if (!labl) return GF_OUT_OF_MEM;
+				labl->label_id = label->label_id;
+				labl->language = gf_strdup(label->language);
+				labl->label = gf_strdup(label->label);
+			}
+		}
+
+		if (cfg->kinds) {
+			for (u32 j = 0; j < gf_list_count(cfg->kinds); j++) {
+				GF_Kind *k = (GF_Kind*)gf_list_get(cfg->kinds, j);
+				if (!k) continue;
+
+				kind = (GF_KindBox *) gf_isom_box_new_parent(&prsl->child_boxes, GF_ISOM_BOX_TYPE_KIND);
+				if (!kind) return GF_OUT_OF_MEM;
+				kind->value = k->value ? gf_strdup(k->value) : NULL;
+				kind->schemeURI = gf_strdup(k->schemeURI);
+			}
+		}
+
+		e = gf_isom_box_size((GF_Box *)prsl);
+		if (e) return e;
+
+		e = gf_isom_box_write((GF_Box *)prsl, bs);
+		if (e) return e;		
+	}
+
+	return e;
+}
+
+GF_EXPORT
+GF_Err gf_odf_preselection_cfg_del(GF_List *cfg_list)
+{
+	GF_PreselectionConfig *p;
+	GF_Label *l;
+	GF_Kind *k;
+
+	if (!cfg_list)
+		return GF_BAD_PARAM;
+
+	for (u32 i = 0; i < gf_list_count(cfg_list); i++) {
+		p = (GF_PreselectionConfig*)gf_list_get(cfg_list, i);
+		if (!p) continue;
+		if (p->labels) {
+			for (u32 j = 0; j < gf_list_count(p->labels); j++) {
+				l = gf_list_get(p->labels, j);
+				if (!l) continue;
+				if (l->label) gf_free(l->label);
+				if (l->language) gf_free(l->language);
+				gf_free(l);
+			}
+			gf_list_del(p->labels);
+		}
+		if (p->kinds) {
+			for (u32 j = 0; j < gf_list_count(p->kinds); j++) {
+				k = gf_list_get(p->kinds, j);
+				if (!k) continue;
+				if (k->schemeURI) gf_free(k->schemeURI);
+				if (k->value) gf_free(k->value);
+				gf_free(k);
+			}
+			gf_list_del(p->kinds);
+		}
+		if (p->preselection_tag) gf_free(p->preselection_tag);
+		if (p->interleaving_tag) gf_free(p->interleaving_tag);
+		if (p->extended_language) gf_free(p->extended_language);
+		gf_free(p);
+	}
+
+	gf_list_del(cfg_list);
+
+	return GF_OK;
 }

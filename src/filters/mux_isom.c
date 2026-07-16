@@ -329,6 +329,7 @@ typedef struct
 	GF_MP4MuxChapterMode chapm;
 	u32 sfrag_tolerance;
 	Scte35Mode scte35;
+	char *preselection;
 
 	//internal
 	GF_Filter *filter;
@@ -921,6 +922,220 @@ static void update_chap_refs(GF_MP4MuxCtx *ctx)
 	}
 }
 
+static char *mp4_mux_dup_range(const char *start, const char *end)
+{
+    size_t n;
+    char *out;
+    if (!start || !end || end < start) return NULL;
+    n = (size_t)(end - start);
+    out = gf_malloc(n + 1);
+    if (!out) return NULL;
+    memcpy(out, start, n);
+    out[n] = 0;
+    return out;
+}
+
+static GF_Err mp4_mux_parse_usercfg_label(GF_List *list, const char *label_str, Bool is_group_label)
+{
+    const char *p, *entry_end;
+    if (!label_str || !list) return GF_BAD_PARAM;
+
+    p = label_str;
+    while (*p) {
+        const char *separator, *separator2;
+        GF_Label *lbl = NULL;
+
+        // find one entry: language|label[|id] separated by comma
+		// id is optional and defaulted to 0
+        entry_end = strchr(p, ',');
+        if (!entry_end) entry_end = p + strlen(p);
+
+        separator = memchr(p, '|', (size_t)(entry_end - p));
+		if (!separator) return GF_BAD_PARAM;
+
+		separator2 = memchr(separator + 1, '|', (size_t)(entry_end - separator - 1));
+
+        GF_SAFEALLOC(lbl, GF_Label);
+        if (!lbl) return GF_OUT_OF_MEM;
+
+        lbl->is_group_label = is_group_label;
+        lbl->language = mp4_mux_dup_range(p, separator);
+		if (separator2) {
+        	lbl->label = mp4_mux_dup_range(separator + 1, separator2);
+			lbl->label_id = atoi(separator2 + 1);
+        } else {
+			lbl->label = mp4_mux_dup_range(separator + 1, entry_end);
+			lbl->label_id = 0;
+		}
+        gf_list_add(list, lbl);
+
+        p = *entry_end ? entry_end + 1 : entry_end; // skip comma
+    }
+    return GF_OK;
+}
+
+GF_Err mp4_mux_parse_usercfg_kind(GF_List *list, const char *kind_str)
+{
+	const char *p, *entry_end;
+    if (!kind_str || !list) return GF_BAD_PARAM;
+
+    p = kind_str;
+    while (*p) {
+        const char *separator;
+        GF_Kind *kind = NULL;
+
+        // find one entry: value[|scheme_uri] separated by comma
+		// scheme_uri is optional and defaulted to PRESELECTION_KIND_SCHEME_URI_DASH_URN
+        entry_end = strchr(p, ',');
+        if (!entry_end) entry_end = p + strlen(p);
+
+        separator = memchr(p, '|', (size_t)(entry_end - p));
+        GF_SAFEALLOC(kind, GF_Kind);
+        if (!kind) return GF_OUT_OF_MEM;
+
+        if (separator) {
+            kind->value = mp4_mux_dup_range(p, separator);
+            kind->schemeURI = mp4_mux_dup_range(separator + 1, entry_end);
+			if (!strncmp(kind->value, "NULL", strlen(kind->value))) {
+				gf_free(kind->value);
+				kind->value = NULL;
+			}
+        } else {
+            // no '|', only value is provided, schemeURI is defaulted
+            kind->value = mp4_mux_dup_range(p, entry_end);
+			kind->schemeURI = gf_strdup(PRESELECTION_KIND_SCHEME_URI_DASH_URN);
+        }
+        gf_list_add(list, kind);
+
+        p = *entry_end ? entry_end + 1 : entry_end; // skip comma
+    }
+    return GF_OK;
+}
+
+static GF_Err mp4_mux_set_preselection(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPid *pid)
+{
+	u32 i;
+	GF_Err e = GF_OK;
+	const GF_PropertyValue *p;
+	const char* secName, *value;
+	GF_PreselectionConfig* cfg_existed;
+	GF_List *cfg_list;
+
+	cfg_list = gf_list_new();
+	if (!cfg_list) return GF_OUT_OF_MEM;
+	
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PRESELECTION);
+	if (p) {
+		e = gf_odf_preselection_cfg_parse(p->value.data.ptr, p->value.data.size, cfg_list);
+		if (e) return GF_BAD_PARAM;
+	}
+
+	// get preselection from user input and rewrite the preselection info from stream
+	GF_Config* config =  gf_cfg_new(NULL, ctx->preselection);
+	if (!config) {
+		gf_list_del(cfg_list);
+		return GF_OUT_OF_MEM;
+	}
+
+	if (gf_list_count(cfg_list) == 0) {
+		// there is not preselection info from stream, we need to create preselection entity based on user input
+		// assume the use config will provide all the necessary info for each preselection
+		for (i = 0 ; i < gf_cfg_get_section_count(config) ; i++) {
+			GF_SAFEALLOC(cfg_existed, GF_PreselectionConfig);
+			if (!cfg_existed) return GF_OUT_OF_MEM;
+
+			gf_list_add(cfg_list, cfg_existed);
+		}
+	}
+
+	for(u32 i = 0 ; i < gf_cfg_get_section_count(config) ; i++) {
+		secName = gf_cfg_get_section_name(config, i);
+
+		value = gf_cfg_get_key(config, secName, "presentation_index");
+		if (!value) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] presentation_index is missing in user config file for preselection\n"));
+			return GF_BAD_PARAM;
+		}
+		cfg_existed = gf_list_get(cfg_list, atoi(value));
+		if (!cfg_existed) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] presentation_index %d in user config file for preselection is out of range\n", atoi(value)));
+			return GF_BAD_PARAM;
+		}
+
+		value = gf_cfg_get_key(config, secName, "group_id");
+		if (value) {
+			cfg_existed->group_id = atoi(value);
+		}
+
+		value = gf_cfg_get_key(config, secName, "selection_priority");
+		if (value) {
+			cfg_existed->selection_priority = atoi(value);
+			cfg_existed->flags |= GF_ISOM_SELECTION_PRIORITY_PRESENT;
+		}
+
+		value = gf_cfg_get_key(config, secName, "extended_language");
+		if (value) {
+			if (cfg_existed->extended_language) gf_free(cfg_existed->extended_language);
+			cfg_existed->extended_language = gf_strdup(value);
+		}
+
+		value = gf_cfg_get_key(config, secName, "label");
+		if (value) {
+			if (!cfg_existed->labels) cfg_existed->labels = gf_list_new();
+			if (!cfg_existed->labels) return GF_OUT_OF_MEM;
+
+			e = mp4_mux_parse_usercfg_label(cfg_existed->labels, value, GF_FALSE);
+			if (e) return e;
+		}
+
+		value = gf_cfg_get_key(config, secName, "group_label");
+		if (value) {
+			if (!cfg_existed->labels) cfg_existed->labels = gf_list_new();
+			if (!cfg_existed->labels) return GF_OUT_OF_MEM;
+
+			e = mp4_mux_parse_usercfg_label(cfg_existed->labels, value, GF_TRUE);
+			if (e) return e;
+		}
+
+		value = gf_cfg_get_key(config, secName, "kind");
+		if (value) {
+			// clean the origin kind because it might be conflict
+			if (cfg_existed->kinds) {
+				for (u32 j = 0; j < gf_list_count(cfg_existed->kinds); j++) {
+					GF_Kind *k = gf_list_get(cfg_existed->kinds, j);
+					if (k->schemeURI) gf_free(k->schemeURI);
+					if (k->value) gf_free(k->value);
+					gf_free(k);
+				}
+				gf_list_del(cfg_existed->kinds);
+			}
+
+			cfg_existed->kinds = gf_list_new();
+			if (!cfg_existed->kinds) return GF_OUT_OF_MEM;
+
+			e = mp4_mux_parse_usercfg_kind(cfg_existed->kinds, value);
+			if (e) return e;
+		}
+
+		value = gf_cfg_get_key(config, secName, "dialog_gain");
+		if (value) {
+			if (cfg_existed->dialog_gain_present && cfg_existed->dialog_gain != atoi(value)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Conflicting dialog_gain values for the same presentation index in user config file for preselection\n"));
+				return GF_BAD_PARAM;
+			}
+			cfg_existed->dialog_gain = atoi(value) * PRESELECTION_DIALOG_GAIN_UNIT;
+			cfg_existed->dialog_gain_present = GF_TRUE;
+		}
+	}
+	gf_cfg_del(config);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4MUX] Set preselection info to file ptr = %p count = %d\n", p->value.data.ptr, gf_list_count(cfg_list)));
+	gf_isom_set_preselection_info(ctx->file, tkw->track_num, cfg_list);
+
+	gf_odf_preselection_cfg_del(cfg_list);
+
+	return e;
+}
 
 
 static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_true_pid)
@@ -2996,6 +3211,21 @@ sample_entry_setup:
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
 		tkw->is_ac4 = GF_TRUE;
 
+		// Dolby AC-4 Streams Within the ISO Base Media File Format Guidelines for multiplexers v1.1 section 6.2.2.4
+		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_DBY1, GF_TRUE);
+
+		if (ctx->cmaf) {
+			if (ctx->cmaf == MP4MX_CMAF_CMF2) {
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_UNIF, GF_TRUE);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_CA4S, GF_TRUE);
+				if (tkw->is_encrypted) {
+					gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_CA4E, GF_TRUE);
+				}
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] It is recommend following and signaling cmf2 compliance in the compatible brands for AC-4.\n"));
+			}
+		}
+
 		gf_odf_ac4_cfg_clean_list(&ac4cfg);
 	} else if (use_flac_entry) {
 		e = gf_isom_flac_config_new(ctx->file, tkw->track_num, dsi ? dsi->value.data.ptr : NULL, dsi ? dsi->value.data.size : 0, (char *)src_url, NULL, &tkw->stsd_idx);
@@ -4218,6 +4448,15 @@ sample_entry_done:
 			mp4_mux_set_udta(ctx, tkw);
 		}
 	}
+
+	if (ctx->preselection) {
+		e = mp4_mux_set_preselection(ctx, tkw, pid);
+		if(e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set preselection for track %d\n", tkw->track_num));
+			return e;
+		}
+	}
+
 	return GF_OK;
 }
 
@@ -8879,6 +9118,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(trunv1), "force using version 1 of trun regardless of media type or CMAF brand", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rsot), "inject redundant sample timing information when present", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sfrag_tolerance), "start fragment on SAP if previous fragment is not shorter than the indicated percentage of cdur", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(preselection), "apply preselection entity", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	SCTE35_ARG,
 	{ OFFS(auto_reorder), "reorder tracks in moov (first video, then audio, then text then other)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
