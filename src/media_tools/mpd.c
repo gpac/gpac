@@ -813,6 +813,8 @@ static void gf_mpd_init_common_attributes(GF_MPD_CommonAttributes *com)
 	com->supplemental_properties = gf_list_new();
 	com->frame_packing = gf_list_new();
 	com->max_playout_rate = 1.0;
+	com->group_labels = gf_list_new();
+	com->labels = gf_list_new();
 }
 
 GF_MPD_Representation *gf_mpd_representation_new()
@@ -824,7 +826,44 @@ GF_MPD_Representation *gf_mpd_representation_new()
 	rep->base_URLs = gf_list_new();
 	rep->sub_representations = gf_list_new();
 	rep->hls_max_seg_dur.den = 1;
+	rep->preselections = gf_list_new();
 	return rep;
+}
+
+GF_MPD_Preselection* gf_mpd_preselection_new(u32 id)
+{
+	GF_MPD_Preselection *p;
+	GF_SAFEALLOC(p, GF_MPD_Preselection);
+	if (!p) return NULL;
+	p->id = id;
+	p->x_children = gf_list_new();
+	p->x_attributes = gf_list_new();
+	p->accessibility = gf_list_new();
+	p->role = gf_list_new();
+	gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)p);
+	return p;
+}
+
+GF_MPD_GroupLabel* gf_mpd_grouplabel_new(u32 id, const char *lang, const char *content)
+{
+	GF_MPD_GroupLabel *l = NULL;
+	GF_SAFEALLOC(l, GF_MPD_GroupLabel);
+	if (!l) return NULL;
+	l->id = id;
+	if (lang) l->lang = gf_strdup(lang);
+	if (content) l->content = gf_strdup(content);
+	return l;
+}
+
+GF_MPD_Label* gf_mpd_label_new(u32 id, const char *lang, const char *content)
+{
+	GF_MPD_Label *l = NULL;
+	GF_SAFEALLOC(l, GF_MPD_Label);
+	if (!l) return NULL;
+	l->id = id;
+	if (lang) l->lang = gf_strdup(lang);
+	if (content) l->content = gf_strdup(content);
+	return l;
 }
 
 static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XMLNode *root)
@@ -1097,6 +1136,7 @@ GF_MPD_Period *gf_mpd_period_new() {
 	period->event_streams = gf_list_new();
 	period->base_URLs = gf_list_new();
 	period->subsets = gf_list_new();
+	period->preselections = gf_list_new();
 	return period;
 }
 
@@ -1356,6 +1396,8 @@ void gf_mpd_common_attributes_free(GF_MPD_CommonAttributes *ptr)
 	gf_mpd_del_list(ptr->essential_properties, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->supplemental_properties, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->producer_reference_time, gf_mpd_producer_reftime_free, 0);
+	gf_mpd_del_list(ptr->group_labels, gf_mpd_grouplabel_free, 0);
+	gf_mpd_del_list(ptr->labels, gf_mpd_label_free, 0);	
 }
 
 void gf_mpd_representation_free(void *_item)
@@ -1427,6 +1469,19 @@ void gf_mpd_representation_free(void *_item)
 	if (ptr->m3u8_var_name) gf_free(ptr->m3u8_var_name);
 	if (ptr->m3u8_var_file) gf_fclose(ptr->m3u8_var_file);
 	if (ptr->res_url) gf_free(ptr->res_url);
+	if (ptr->preselections) {
+		while (gf_list_count(ptr->preselections)) {
+			GF_List *attr_list = gf_list_pop_back(ptr->preselections);
+			while (gf_list_count(attr_list)) {
+				GF_XMLAttribute *att = gf_list_pop_back(attr_list);
+				if (att->name) gf_free(att->name);
+				if (att->value) gf_free(att->value);
+				gf_free(att);
+			}
+			gf_list_del(attr_list);
+		}
+		gf_list_del(ptr->preselections);
+	}
 	gf_free(ptr);
 }
 
@@ -1451,6 +1506,33 @@ void gf_mpd_adaptation_set_free(void *_item)
 	gf_mpd_del_list(ptr->representations, gf_mpd_representation_free, 0);
 	MPD_FREE_EXTENSION_NODE(ptr);
 	gf_free(ptr);
+}
+
+void gf_mpd_preselection_free(void *_item)
+{
+	GF_MPD_Preselection *ptr = (GF_MPD_Preselection *)_item;
+	gf_mpd_common_attributes_free((GF_MPD_CommonAttributes *)ptr);
+	if (ptr->lang) gf_free(ptr->lang);
+	gf_mpd_del_list(ptr->accessibility, gf_mpd_descriptor_free, 0);
+	gf_mpd_del_list(ptr->role, gf_mpd_descriptor_free, 0);
+	gf_mpd_del_list(ptr->rating, gf_mpd_descriptor_free, 0);
+	gf_mpd_del_list(ptr->viewpoint, gf_mpd_descriptor_free, 0);
+	MPD_FREE_EXTENSION_NODE(ptr);
+	gf_free(ptr);
+}
+
+void gf_mpd_grouplabel_free(void *_item)
+{
+	GF_MPD_GroupLabel *ptr = (GF_MPD_GroupLabel *)_item;
+	if (ptr->lang) gf_free(ptr->lang);
+	if (ptr->content) gf_free(ptr->content);
+}
+
+void gf_mpd_label_free(void *_item)
+{
+	GF_MPD_Label *ptr = (GF_MPD_Label *)_item;
+	if (ptr->lang) gf_free(ptr->lang);
+	if (ptr->content) gf_free(ptr->content);
 }
 
 static void gf_mpd_event_stream_entry_free(void *_item)
@@ -1485,6 +1567,13 @@ void gf_mpd_period_free(void *_item)
 	gf_mpd_del_list(ptr->event_streams, gf_mpd_event_stream_free, 0);
 	MPD_FREE_EXTENSION_NODE(ptr);
 	gf_mpd_del_list(ptr->subsets, NULL/*TODO*/, 0);
+	if (ptr->preselections) {
+		while (gf_list_count(ptr->preselections)) {
+			GF_MPD_Preselection *p = gf_list_pop_back(ptr->preselections);
+			gf_mpd_preselection_free(p);
+		}
+		gf_list_del(ptr->preselections);
+	}
 	gf_free(ptr);
 }
 
@@ -3344,8 +3433,32 @@ static void gf_mpd_print_common_attributes(FILE *out, GF_MPD_CommonAttributes *c
 	if (ca->scan_type != GF_MPD_SCANTYPE_UNKNOWN) gf_fprintf(out, " scanType=\"%s\"", ca->scan_type == GF_MPD_SCANTYPE_PROGRESSIVE ? "progressive" : "interlaced");
 
 	if (ca->selection_priority) gf_fprintf(out, " selectionPriority=\"%d\"", ca->selection_priority);
-	if (ca->tag) gf_fprintf(out, " selectionPriority=\"%s\"", ca->tag);
+	if (ca->tag) gf_fprintf(out, " tag=\"%s\"", ca->tag);
 
+}
+
+static void gf_mpd_print_label(FILE *out, GF_List *list, s32 indent)
+{
+	u32 i=0;
+	GF_MPD_Label *l;
+	while ((l = gf_list_enum(list, &i))) {
+		gf_mpd_nl(out, indent);
+		gf_fprintf(out, "<Label");
+		if (l->id) gf_fprintf(out, " id=\"%d\"", l->id);
+		gf_fprintf(out, " lang=\"%s\">%s</Label>", l->lang, l->content);
+		gf_mpd_lf(out, indent);
+	}
+}
+
+static void gf_mpd_print_group_label(FILE *out, GF_List *list, s32 indent)
+{
+	u32 i=0;
+	GF_MPD_GroupLabel *l;
+	while ((l = gf_list_enum(list, &i))) {
+		gf_mpd_nl(out, indent);
+		gf_fprintf(out, "<GroupLabel id=\"%d\" lang=\"%s\">%s</GroupLabel>", l->id, l->lang, l->content);
+		gf_mpd_lf(out, indent);
+	}
 }
 
 static u32 gf_mpd_print_common_children(FILE *out, GF_MPD_CommonAttributes *ca, s32 indent, u32 *child_idx)
@@ -3355,6 +3468,8 @@ static u32 gf_mpd_print_common_children(FILE *out, GF_MPD_CommonAttributes *ca, 
 	gf_mpd_print_descriptors(out, ca->content_protection, "ContentProtection", indent, ca->x_children, child_idx);
 	gf_mpd_print_descriptors(out, ca->essential_properties, "EssentialProperty", indent, ca->x_children, child_idx);
 	gf_mpd_print_descriptors(out, ca->supplemental_properties, "SupplementalProperty", indent, ca->x_children, child_idx);
+	gf_mpd_print_group_label(out, ca->group_labels, indent);
+	gf_mpd_print_label(out, ca->labels, indent);
 
 	if (ca->producer_reference_time) {
 		u32 i, count = gf_list_count(ca->producer_reference_time);
@@ -3757,6 +3872,42 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 	}
 }
 
+static void gf_mpd_print_preselection(GF_MPD_Preselection *pre, FILE *out, Bool write_context, s32 indent, u32 alt_mha_profile)
+{
+	u32 i, child_idx=0;
+
+	gf_mpd_nl(out, indent);
+	gf_fprintf(out, "<Preselection");
+
+	if (pre->id>=0) gf_fprintf(out, " id=\"%d\"", pre->id);
+	if (pre->preselection_components) {
+		gf_fprintf(out, " preselectionComponents=\"");
+		for (i = 0; i < gf_list_count(pre->preselection_components); i++) {
+			u32 *comp = gf_list_get(pre->preselection_components, i);
+			gf_fprintf(out, "%d", *comp);
+			if (i < gf_list_count(pre->preselection_components) - 1)
+				gf_fprintf(out, " ");
+		}
+		gf_fprintf(out, "\"");
+	}
+	if (pre->lang) mpd_print_lang(out, pre->lang, NULL);
+	gf_mpd_extensible_print_attr(out, pre->x_attributes);
+	gf_mpd_print_common_attributes(out, (GF_MPD_CommonAttributes*)pre);
+	gf_fprintf(out, ">");
+	gf_mpd_lf(out, indent);
+
+	gf_mpd_print_common_children(out, (GF_MPD_CommonAttributes*)pre, indent+1, &child_idx);
+	gf_mpd_print_descriptors(out, pre->accessibility, "Accessibility", indent+1, pre->x_children, &child_idx);
+	gf_mpd_print_descriptors(out, pre->role, "Role", indent+1, pre->x_children, &child_idx);
+	gf_mpd_print_descriptors(out, pre->rating, "Rating", indent+1, pre->x_children, &child_idx);
+	gf_mpd_print_descriptors(out, pre->viewpoint, "Viewpoint", indent+1, pre->x_children, &child_idx);
+
+	gf_mpd_extensible_print_nodes(out, pre->x_children, indent, &child_idx, GF_TRUE);
+	gf_mpd_nl(out, indent);
+	gf_fprintf(out, "</Preselection>");
+	gf_mpd_lf(out, indent);
+}
+
 static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out, Bool write_context, s32 indent)
 {
 	GF_MPD_AdaptationSet *as;
@@ -3804,6 +3955,11 @@ static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dyna
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
 		gf_mpd_extensible_print_nodes(out, period->x_children, indent, &child_idx, GF_FALSE);
 		gf_mpd_print_adaptation_set(as, out, write_context, indent+1, 0);
+	}
+	i=0;
+	GF_MPD_Preselection *p = NULL;
+	while ((p = (GF_MPD_Preselection *) gf_list_enum(period->preselections, &i))) {
+		gf_mpd_print_preselection(p, out, write_context, indent+1, 0);
 	}
 	gf_mpd_extensible_print_nodes(out, period->x_children, indent, &child_idx, GF_TRUE);
 	gf_mpd_nl(out, indent);

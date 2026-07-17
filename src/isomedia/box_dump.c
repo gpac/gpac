@@ -6664,6 +6664,62 @@ GF_Err grptype_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err prsl_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_PreselectionGroupBox *ptr = (GF_PreselectionGroupBox *) a;
+	gf_isom_box_dump_start(a, "PreselectionGroupBox", trace);
+	gf_fprintf(trace, "group_id=\"%d\" ", ptr->group_id);
+	gf_fprintf(trace, "entity_id_count=\"%d\" ", ptr->entity_id_count);
+	for(u32 i=0; i<ptr->entity_id_count; i++) {
+		gf_fprintf(trace, "entity_id_%d=\"%d\" ", i, ptr->entity_ids[i]);
+	}
+	if ((ptr->flags & GF_ISOM_PRESELECTION_TAG_PRESENT) && ptr->preselection_tag) {
+		gf_fprintf(trace, "preselection_tag=\"%s\" ", ptr->preselection_tag);
+	}
+	if (ptr->flags & GF_ISOM_SELECTION_PRIORITY_PRESENT) {
+		gf_fprintf(trace, "selection_priority=\"%d\" ", ptr->selection_priority);
+	}
+	if ((ptr->flags & GF_ISOM_INTERLEAVING_TAG_PRESENT) && ptr->interleaving_tag) {
+		gf_fprintf(trace, "interleaving_tag=\"%d\" ", ptr->interleaving_tag);
+	}
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("PreselectionGroupBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err ardi_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_AudioRenderingIndicationBox *ptr = (GF_AudioRenderingIndicationBox *) a;
+	gf_isom_box_dump_start(a, "AudioRenderingIndicationBox", trace);
+	gf_fprintf(trace, "audio_rendering_indication=\"%d\" ", ptr->audio_rendering_indication);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("AudioRenderingIndicationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err labl_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_LabelBox *ptr = (GF_LabelBox *) a;
+	gf_isom_box_dump_start(a, "LabelBox", trace);
+	gf_fprintf(trace, "is_group_label=\"%s\" ", ptr->flags & GF_ISOM_IS_GROUP_LABEL ? "yes" : "no");
+	gf_fprintf(trace, "label_id=\"%s\" ", ptr->label_id);
+	gf_fprintf(trace, "language=\"%s\" ", ptr->language);
+	gf_fprintf(trace, "label=\"%s\" ", ptr->label);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("LabelBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err diap_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_DialogueProcessingBox *ptr = (GF_DialogueProcessingBox *) a;
+	gf_isom_box_dump_start(a, "DialogueProcessingBox", trace);
+	gf_fprintf(trace, "dialog_gain=\"%d\" ", ptr->dialog_gain);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("DialogueProcessingBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err stvi_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_StereoVideoBox *ptr = (GF_StereoVideoBox *) a;

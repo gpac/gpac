@@ -463,6 +463,9 @@ typedef struct __track_import
 	u32 track_index;
 	/*! target start time in source*/
 	Double start_time;
+
+	/*preselection entity input by user*/
+	char *preselection;
 } GF_MediaImporter;
 
 /*!

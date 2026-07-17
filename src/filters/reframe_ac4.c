@@ -66,6 +66,233 @@ typedef struct
 	Bool copy_props;
 } GF_AC4DmxCtx;
 
+s8 ac4dmx_get_dialog_gain_from_code(u8 dialog_gain_code)
+{
+    // Dolby AC-4 Streams Within the ISO Base Media File Format Guidelines for multiplexers v1.0 section 7.2.3.4
+    if (dialog_gain_code == 0) {
+    	return -128; // Dialogue is muted
+    } else if (dialog_gain_code == 1) {
+    	return -24; // -12 dB
+   } else if (dialog_gain_code <= 13) {
+    	return (s8)dialog_gain_code - 14; // Dialogue is attenuated vs. background
+   } else if (dialog_gain_code <= 61) {
+        return (s8)dialog_gain_code - 13; // Dialogue is boosted vs. background
+    } else if (dialog_gain_code == 62) {
+        return 60; // +30 dB
+    } else if (dialog_gain_code == 63) {
+        return 127; // Dialogue only presentation
+    }
+    return 0;
+}
+
+GF_Err ac4dmx_ac4_cfg_to_preselection(GF_AC4Config *ac4_cfg, GF_List *cfg_list)
+{
+	GF_PreselectionConfig *cfg = NULL;
+	u32 group_id = 1000; // default group_id
+
+	if (!ac4_cfg || !cfg_list) return GF_BAD_PARAM;
+
+	for (u32 i = 0; i < gf_list_count(ac4_cfg->stream.presentations); i++) {
+		GF_AC4PresentationV1 *pres = gf_list_get(ac4_cfg->stream.presentations, i);
+		if (!pres) continue;
+		
+		GF_SAFEALLOC(cfg, GF_PreselectionConfig);
+		if (!cfg) return GF_OUT_OF_MEM;
+
+		cfg->group_id = group_id++;
+		gf_list_add(cfg_list, cfg);
+
+		// preselection tag
+		char tag[50] = {0};
+		u32 pid = 0;
+		if (pres->b_presentation_id) {
+			if (pres->b_extended_presentation_id) {
+				pid = pres->extended_presentation_id;
+			} else {
+				pid = pres->presentation_id;
+			}
+			if (pid >= 512) {
+				pid = 511;
+			}
+		}
+		sprintf(tag, "%d", pid);
+		cfg->preselection_tag = gf_strdup(tag);
+		cfg->flags |= 0x001000; // GF_ISOM_PRESELECTION_TAG_PRESENT
+
+		// extended language
+		// Second substream for conf 0 or 3, first otherwise
+		unsigned int group_idx = 0;
+		if (pres->n_substream_groups > 1 && (pres->presentation_config == 0 || pres->presentation_config == 3)) {
+			group_idx = 1;
+		}
+		if (group_idx < gf_list_count(pres->substream_groups)) {
+			GF_AC4SubStreamGroupV1 *sg = gf_list_get(pres->substream_groups, group_idx);
+			if (sg && sg->b_language_indicator) {
+				GF_SAFE_ALLOC_N(cfg->extended_language, sg->n_language_tag_bytes + 1, u8);
+				if (!cfg->extended_language) return GF_OUT_OF_MEM;
+
+				memcpy(cfg->extended_language, sg->language_tag_bytes, sg->n_language_tag_bytes);
+			}
+		}
+
+		// audio_rendering_indication
+		cfg->audio_rendering_indication = 0;
+		if (!pres->b_presentation_channel_coded) { // Not channels, i.e., dynamic objects / ambisonics?
+			cfg->audio_rendering_indication = 3; // Spatial objects
+		}
+		else {
+			if (pres->b_pre_virtualized) { // Pre-virtualized Headphone Mix?
+				cfg->audio_rendering_indication = 4; // Headphones
+			}
+			else {
+				if (pres->dsi_presentation_ch_mode <= 2) { // Check channel mode
+					cfg->audio_rendering_indication = 1; // Mono or Stereo
+				}
+				else if (pres->dsi_presentation_ch_mode <= 8) {
+					cfg->audio_rendering_indication = 2; // 3.0 through 7.1
+				}
+				else if (pres->dsi_presentation_ch_mode <= 15) {
+					cfg->audio_rendering_indication = 3; // 5.0.2 through 9.1.4 and 22.2
+				}
+				else {
+					if (pres->presentation_v1_channel_groups & 0x0EEB0) { // Check channel mask
+						cfg->audio_rendering_indication = 3; // Has verticals
+					}
+					else if (pres->presentation_v1_channel_groups & 0x0000C) {
+						cfg->audio_rendering_indication = 2; // Has surrounds
+					}
+					else if (pres->presentation_v1_channel_groups & 0x30003) {
+						cfg->audio_rendering_indication = 1; // Has fronts
+					}
+				}
+			}
+		}
+
+		// role
+		cfg->kinds = gf_list_new();
+		if (!cfg->kinds) return GF_OUT_OF_MEM;
+
+		GF_Kind *kind = NULL;
+		GF_SAFEALLOC(kind, GF_Kind);
+		if (!kind) return GF_OUT_OF_MEM;
+		gf_list_add(cfg->kinds, kind);
+
+		kind->schemeURI = gf_strdup(PRESELECTION_KIND_SCHEME_URI_DASH_URN); // default
+
+		// Select associated audio: 2nd substream for conf 2, 3rd for 3 or 4, search for 5, use first otherwise
+		group_idx = 0;
+		if (pres->n_substream_groups > 1) {
+			switch (pres->presentation_config) {
+			case 2:
+				group_idx = 1;
+				break;
+			case 3:
+			case 4:
+				group_idx = 2;
+				break;
+			case 5:
+				for (u32 i = 0; i < pres->n_substream_groups; i++) {
+					GF_AC4SubStreamGroupV1 *sg = gf_list_get(pres->substream_groups, i);
+					if (sg && sg->b_content_type) {
+						if (sg->content_classifier == 2 || sg->content_classifier == 3 ||
+							sg->content_classifier == 5 || sg->content_classifier == 6 ||
+							sg->content_classifier == 7) {
+								group_idx = i;
+								break;
+							}
+					}
+				}
+				break;
+			}
+		}
+		char lang_tag[64] = {0};
+		GF_AC4SubStreamGroupV1 *sg = gf_list_get(pres->substream_groups, group_idx);
+		if (sg && sg->b_language_indicator){
+			u32 lang_copy_len = sg->n_language_tag_bytes < sizeof(lang_tag) - 1 ? sg->n_language_tag_bytes : sizeof(lang_tag) - 1;
+			memcpy(lang_tag, (const char *)sg->language_tag_bytes, lang_copy_len);
+		}
+		if (sg && sg->b_content_type) {
+			switch (sg->content_classifier)
+			{
+			case 2:																   // visually impaired
+				if ((!strncmp("qas", lang_tag, 3)) || (!strncmp("qtx", lang_tag, 3))) { // Audio Description with Spoken Subtitles
+					kind->value = gf_strdup(PRESELECTION_KIND_VALUE_DASH_DESCRIPTION);
+				}
+				else {
+					if ((!strncmp("qad", lang_tag, 3)) || (!strncmp("qax", lang_tag, 3))) { // Audio Description
+						kind->value = gf_strdup(PRESELECTION_KIND_VALUE_DASH_DESCRIPTION);
+					}
+					else {
+						if ((!strncmp("qei", lang_tag, 3)) || (!strncmp("qex", lang_tag, 3))) { // Audio Emergency Information
+							kind->value = gf_strdup(PRESELECTION_KIND_VALUE_DASH_EMERGENCY);
+						}
+					}
+				}
+				break;
+			case 3: // hearing impaired
+				kind->value = gf_strdup(PRESELECTION_KIND_VALUE_DASH_ENHANCED_AUDIO_INTELLIGIBILITY);
+				break;
+			case 5: // commentary
+				kind->value = gf_strdup(PRESELECTION_KIND_VALUE_DASH_COMMENTARY);
+				break;
+			case 6: // emergency
+				kind->value = gf_strdup(PRESELECTION_KIND_VALUE_DASH_EMERGENCY);
+				break;
+			case 7:																   // voice over
+				if ((!strncmp("qss", lang_tag, 3)) || (!strncmp("qsx", lang_tag, 3))) { // Spoken Subtitles
+					kind->value = gf_strdup(PRESELECTION_KIND_VALUE_DASH_DESCRIPTION);
+				}
+				else {
+					kind->value = gf_strdup(PRESELECTION_KIND_VALUE_DASH_COMMENTARY);
+				}
+				break;
+			}
+		}
+		if (!kind->value) {
+			kind->value = gf_strdup(PRESELECTION_KIND_VALUE_DASH_MAIN);
+		}
+
+		// dialog_gain
+		for (u32 j = 0; j < gf_list_count(pres->substreams); j++) {
+			GF_AC4SubStream *substream = gf_list_get(pres->substreams, j);
+			if (substream && substream->dei_dialog_gain_code_present) {
+				cfg->dialog_gain_present = GF_TRUE;
+				cfg->dialog_gain = ac4dmx_get_dialog_gain_from_code(substream->dei_dialog_gain_code);
+				break;
+			}
+		}
+	}
+
+	return GF_OK;
+}
+
+GF_Err ac4dmx_preselection(GF_AC4Config *ac4_cfg, u8 **data, u32 *size)
+{
+	GF_List *cfg_list = gf_list_new();
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	GF_Err e = GF_OK;
+	*size = 0;
+
+	if (!bs || !cfg_list) return GF_OUT_OF_MEM;
+
+	// switch ac4_cfg to cfg_list
+	e = ac4dmx_ac4_cfg_to_preselection(ac4_cfg, cfg_list);
+	if (e != GF_OK) goto clean_exit;
+
+	// write config to bitstream for setting property
+	e = gf_odf_preselection_cfg_write(cfg_list, bs);
+	if (e != GF_OK) goto clean_exit;
+
+	gf_bs_get_content(bs, data, size);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AC4Dmx] Preselection config bitstream size = %d\n", *size));
+
+clean_exit:
+	gf_odf_preselection_cfg_del(cfg_list);
+	gf_bs_del(bs);
+
+	return e;
+}
+
 GF_Err ac4dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
@@ -240,6 +467,11 @@ static void ac4dmx_check_pid(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 
 	if (ctx->bitrate) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
+
+	ac4dmx_preselection(&ctx->hdr, &data, &size);
+	if (data && size) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PRESELECTION, & PROP_DATA_NO_COPY(data, size) );
 	}
 }
 
@@ -469,6 +701,17 @@ restart:
 			gf_filter_pck_set_sap(dst_pck, ctx->hdr.stream.b_iframe_global ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 
+			// sample dependency information
+			u8 flags = 0;
+			//dependsOn
+			flags = (ctx->hdr.stream.b_iframe_global) ? 2 : 1;
+			flags <<= 2;
+			//dependedOn
+			flags <<= 2;
+			//hasRedundant
+			flags |= 2;
+			gf_filter_pck_set_dependency_flags(dst_pck, flags);
+
 			// send dst_pck
 			gf_filter_pck_send(dst_pck);
 		}
@@ -570,7 +813,7 @@ static const char *ac4dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 	gf_odf_ac4_cfg_clean_list(&ahdr);
 
 	if (nb_frames>=2) {
-		*score = nb_broken_frames ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
+		*score = nb_broken_frames ? GF_FPROBE_NOT_SUPPORTED : GF_FPROBE_MAYBE_SUPPORTED;
 		return "audio/ac4";
 	}	
 

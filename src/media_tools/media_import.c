@@ -1394,6 +1394,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		e = gf_dynstrcat(&args, "mp4mx:importer", ":");
 		sprintf(szSubArg, "file=%p", importer->dest);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
+
+		if (importer->preselection) {
+			e |= gf_dynstrcat(&args, "preselection=", ":");
+			e |= gf_dynstrcat(&args, importer->preselection, NULL);
+		}
 	}
 
 	if (importer->trackID) {

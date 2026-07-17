@@ -360,13 +360,12 @@ typedef enum
 	GF_MPD_SCANTYPE_INTERLACED
 } GF_MPD_ScanType;
 
-/*! Macro for common attributes and elements (representation, AdaptationSet, Preselection, ...)
+/*! Macro for common attributes and elements (representation, AdaptationSet, ...)
 
 not yet implemented;
+	GF_List *inband_event_stream;	\
 	GF_List *switching;	\
 	GF_List *random_access;	\
-	GF_List *group_labels;	\
-	GF_List *labels;	\
 	GF_List *content_popularity;	\
 
 MANDATORY:
@@ -399,6 +398,8 @@ MANDATORY:
 	GF_List *supplemental_properties;	\
 	GF_List *producer_reference_time;	\
 	GF_List *isobmf_tracks;	\
+	GF_List *group_labels;	\
+	GF_List *labels;	\
 
 /*! common attributes*/
 typedef struct {
@@ -723,6 +724,9 @@ typedef struct {
 	char *res_url;
 	u32 trackID;
 
+	/*! list of preselection related attributes for HLS*/
+	GF_List *preselections;
+
 	Bool sub_forced;
 	const char *hls_forced;
 
@@ -821,6 +825,64 @@ typedef struct
 	Double hls_ll_target_frag_dur;
 } GF_MPD_AdaptationSet;
 
+typedef struct
+{
+	u32 id;
+	char *lang;
+	char *content;
+} GF_MPD_GroupLabel;
+
+typedef struct
+{
+	u32 id;
+	char *lang;
+	char *content;
+} GF_MPD_Label;
+
+typedef struct
+{
+	/*! inherits common attributes*/
+	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
+	u32 id;
+	char *lang;
+	/* ids of the contained Adaptation Sets or Content Components */
+	GF_List *preselection_components;
+	/*! accessibility descriptor list if any*/
+	GF_List *accessibility;
+	/*! role descriptor list if any*/
+	GF_List *role;
+	/*! rating descriptor list if any*/
+	GF_List *rating;
+	/*! viewpoint descriptor list if any*/
+	GF_List *viewpoint;
+} GF_MPD_Preselection;
+
+/*! creates a new MPD Preselection
+\return the new GF_MPD_Preselection or NULL if error
+*/
+GF_MPD_Preselection* gf_mpd_preselection_new(u32 id);
+/*! free a Preselection
+*/
+void gf_mpd_preselection_free(void *_item);
+
+/* ! creates a new GroupLabel
+\return the new GF_MPD_GroupLabel or NULL if error
+*/
+GF_MPD_GroupLabel* gf_mpd_grouplabel_new(u32 id, const char *lang, const char *content);
+
+/*! free a GroupLabel
+*/
+void gf_mpd_grouplabel_free(void *_item);
+
+/* ! creates a new Label
+\return the new GF_MPD_Label or NULL if error
+*/
+GF_MPD_Label* gf_mpd_label_new(u32 id, const char *lang, const char *content);
+
+/*! free a Label
+*/
+void gf_mpd_label_free(void *_item);
+
 /*! structure used to signal inband events*/
 typedef struct {
 	/*! Scheme ID Uri of the inband event */
@@ -910,6 +972,9 @@ typedef struct
 	char *broken_xlink;
 	/*! type of the period - GPAC internal*/
 	GF_MPD_Type type;
+
+	/*! list of preselection element in period level for DASH*/
+	GF_List *preselections;
 
 	/*! period is preroll - test only, GPAC internal*/
 	Bool is_preroll;

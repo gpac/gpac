@@ -14289,22 +14289,22 @@ void gf_vvc_parse_ps(GF_VVCConfig* vvccfg, VVCState* vvc, u32 nal_type)
 // speaker group index mask, indexed by ch_mode - TS 103 190-2 A.27
 const s32 AC4_SPEAKER_GROUP_INDEX_MASK_BY_CH_MODE[] =
 {
-    2,        // 0b10 - 1.0
-    1,        // 0b01 - 2.0
-    3,        // 0b11 - 3.0
-    7,        // 0b0000111 - 5.0
-    71,       // 0b1000111 - 5.1
-    15,       // 0b0001111 - 7.0: 3/4/0
-    79,       // 0b1001111 - 7.1: 3/4/0.1
-    131079,   // 0b100000000000000111 - 7.0: 5/2/0
-    131143,   // 0b100000000001000111 - 7.1: 5/2/0.1
-    262151,   // 0b1000000000000000111 - 7.0: 3/2/2
-    262215,   // 0b1000000000001000111 - 7.1: 3/2/2.1
-    63,       // 0b0111111 - 7.0.4
-    127,      // 0b1111111 - 7.1.4
-    65599,    // 0b10000000000111111 - 9.0.4
-    65663,    // 0b10000000001111111 - 9.1.4
-    196479,   // 0b101111111101111111 - 22.2
+	2,        // 0: 0b10 - 1.0
+    1,        // 1: 0b01 - 2.0
+    3,        // 2: 0b11 - 3.0
+    7,        // 3: 0b0000111 - 5.0
+    71,       // 4: 0b1000111 - 5.1
+    15,       // 5: 0b0001111 - 7.0: 3/4/0
+    79,       // 6: 0b1001111 - 7.1: 3/4/0.1
+    131079,   // 7: 0b100000000000000111 - 7.0: 5/2/0
+    131143,   // 8: 0b100000000001000111 - 7.1: 5/2/0.1
+    262151,   // 9: 0b1000000000000000111 - 7.0: 3/2/2
+    262215,   // 10: 0b1000000000001000111 - 7.1: 3/2/2.1
+    63,       // 11: 0b0111111 - 7.0.4
+    127,      // 12: 0b1111111 - 7.1.4
+    65599,    // 13: 0b10000000000111111 - 9.0.4
+    65663,    // 14: 0b10000000001111111 - 9.1.4
+    196479,   // 15: 0b101111111101111111 - 22.2
     0         // reserved
 };
 
@@ -14426,7 +14426,7 @@ static Bool gf_ac4_frame_rate_multiply_info(GF_BitStream *bs, GF_AC4Presentation
 		case 2:
 		case 3:
 		case 4:
-			// The value of dsi_frame_rate_multiply_info is defined by ETSI TS 103 190-1 V1.3.1 (2018-02) E.4
+			// The value of dsi_frame_rate_multiply_info is defined by ETSI TS 103 190-1 V1.4.1 (2025-07) Table E.5b
 			if (gf_bs_read_int_log(bs, 1, "b_multiplier")) {
 				multiplier_bit = gf_bs_read_int_log(bs, 1, "multiplier_bit");
 				pinfo->dsi_frame_rate_multiply_info = (multiplier_bit == 0)? 1: 2;
@@ -14455,59 +14455,48 @@ static Bool gf_ac4_frame_rate_multiply_info(GF_BitStream *bs, GF_AC4Presentation
 static Bool gf_ac4_presentation_version(GF_BitStream *bs, GF_AC4PresentationV1* pinfo, u8 bitstream_version)
 {
 	pinfo->presentation_version = 0;
-	while(gf_bs_read_int(bs, 1) == 1){
+	while(gf_bs_read_int_log(bs, 1, "b_tmp") == 1){
 		pinfo->presentation_version ++;
 	}
 	return GF_TRUE;
 }
 
-static Bool gf_ac4_emdf_payloads_substream_info(GF_BitStream *bs)
+static Bool gf_ac4_emdf_payloads_substream_info(GF_BitStream *bs, GF_AC4SubStream *substream)
 {
-	if (gf_bs_read_int_log(bs, 2, "substream_index") == 3) {
-		gf_ac4_variable_bits(bs, 2);
+	substream->type = GF_AC4_EMDF_PAYLOADS_SUBSTREAM_INFO;
+	substream->substream_index = gf_bs_read_int_log(bs, 2, "substream_index");
+	if (substream->substream_index == 3) {
+		substream->substream_index += gf_ac4_variable_bits(bs, 2);
+	}
+
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_emdf_reserved(GF_BitStream *bs)
+{
+	u8 n_skip_bytes_length_primary, n_skip_bytes_length_secondary;
+	u32 n_skip_bytes = 0, i;
+
+	n_skip_bytes_length_primary = gf_bs_read_int_log(bs, 2, "n_skip_bytes_length_primary");
+	n_skip_bytes_length_secondary = gf_bs_read_int_log(bs, 2, "n_skip_bytes_length_secondary");
+
+	if (n_skip_bytes_length_primary > 0) {
+		n_skip_bytes += 1 << (2*(n_skip_bytes_length_primary - 1));
+	}
+	if (n_skip_bytes_length_secondary > 0) {
+		n_skip_bytes += 1 << (2*(n_skip_bytes_length_secondary - 1));
+	}
+	
+	for (i = 0; i < n_skip_bytes; i++) {
+		gf_bs_read_int_log(bs, 8, "reserved");
 	}
 	return GF_TRUE;
 }
 
-static Bool gf_ac4_emdf_protection(GF_BitStream *bs)
+static Bool gf_ac4_emdf_info(GF_BitStream *bs, GF_List *substreams_list, u32 *emdf_version, u32 *key_id)
 {
-	u8 protection_length_primary, protection_length_secondary;
-	protection_length_primary = gf_bs_read_int_log(bs, 2, "protection_length_primary");
-	protection_length_secondary = gf_bs_read_int_log(bs, 2, "protection_length_secondary");
+	GF_AC4SubStream *substream;
 
-	switch (protection_length_primary) {
-		case 1:
-			gf_bs_read_int_log(bs, 8, "protection_bits_primary");
-			break;
-		case 2:
-			for (unsigned idx = 0; idx < 4; idx ++)  { gf_bs_read_int_log(bs, 8, "protection_bits_primary"); }
-			break;
-		case 3:
-			for (unsigned idx = 0; idx < 16; idx ++) { gf_bs_read_int_log(bs, 8, "protection_bits_primary"); }
-			break;
-		default:
-			break;
-	}
-	switch (protection_length_secondary) {
-		case 0:
-			break;
-		case 1:
-			gf_bs_read_int_log(bs, 8, "protection_bits_secondary");
-			break;
-		case 2:
-			for (unsigned idx = 0; idx < 4; idx ++)  { gf_bs_read_int_log(bs, 8, "protection_bits_secondary"); }
-			break;
-		case 3:
-			for (unsigned idx = 0; idx < 16; idx ++) { gf_bs_read_int_log(bs, 8, "protection_bits_secondary"); }
-			break;
-		default:
-			break;
-	}
-	return GF_TRUE;
-}
-
-static Bool gf_ac4_emdf_info(GF_BitStream *bs, u32 *emdf_version, u32 *key_id)
-{
 	*emdf_version = gf_bs_read_int_log(bs, 2, "emdf_version");
 	if (*emdf_version == 3) {
 		*emdf_version += gf_ac4_variable_bits(bs, 2);
@@ -14518,15 +14507,20 @@ static Bool gf_ac4_emdf_info(GF_BitStream *bs, u32 *emdf_version, u32 *key_id)
 	}
 
 	if (gf_bs_read_int_log(bs, 1, "b_emdf_payloads_substream_info")) {
-		gf_ac4_emdf_payloads_substream_info(bs);
+		GF_SAFEALLOC(substream, GF_AC4SubStream);
+		if (!substream) return GF_FALSE;
+
+		gf_ac4_emdf_payloads_substream_info(bs, substream);
+		gf_list_add(substreams_list, substream);
 	}
-	gf_ac4_emdf_protection(bs);
+	gf_ac4_emdf_reserved(bs);
+
 	return GF_TRUE;
 }
 
 static Bool gf_ac4_frame_rate_fractions_info(GF_BitStream *bs, GF_AC4PresentationV1* pinfo, u32 frame_rate_index)
 {
-	// The dsi_frame_rate_fraction_info is defined by ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.7
+	// The dsi_frame_rate_fraction_info is defined by ETSI TS 103 190-2 V1.3.1 (2025-07) Table E.13
 	pinfo->dsi_frame_rate_fraction_info = 0;
 	switch (frame_rate_index) {
 		case 5:
@@ -14559,21 +14553,22 @@ static Bool gf_ac4_frame_rate_fractions_info(GF_BitStream *bs, GF_AC4Presentatio
 }
 
 static Bool gf_ac4_get_channel_mode(GF_BitStream *bs,
+									GF_AC4SubStream *substream,
 									u32 presentation_version,
-									u8 *dolby_atmos_indicator)
+									u8 *immersive_audio_indicator_ims)
 {
-	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.2.7.2 Table 78
-	u32 channel_mode_code = 0;
-	channel_mode_code = gf_bs_read_int(bs, 1);
-	if (channel_mode_code == 0) {   // Mono 0b0
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) Table 56
+	substream->channel_mode = 0;
+	substream->channel_mode = gf_bs_read_int(bs, 1);
+	if (substream->channel_mode == 0) {   // Mono 0b0
 		return AC4_CH_MODE_MONO;
 	}
-	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
-	if (channel_mode_code == 2) {   // Stereo  0b10
+	substream->channel_mode = (substream->channel_mode << 1) | gf_bs_read_int(bs, 1);
+	if (substream->channel_mode == 2) {   // Stereo  0b10
 		return AC4_CH_MODE_STEREO;
 	}
-	channel_mode_code = (channel_mode_code << 2) | gf_bs_read_int(bs, 2);
-	switch (channel_mode_code) {
+	substream->channel_mode = (substream->channel_mode << 2) | gf_bs_read_int(bs, 2);
+	switch (substream->channel_mode) {
 		case 12:                    // 3.0 0b1100
 			return AC4_CH_MODE_3_0;
 		case 13:                    // 5.0 0b1101
@@ -14581,18 +14576,19 @@ static Bool gf_ac4_get_channel_mode(GF_BitStream *bs,
 		case 14:                    // 5.1 0b1110
 			return AC4_CH_MODE_5_1;
 	}
-	channel_mode_code = (channel_mode_code << 3) | gf_bs_read_int(bs, 3);
-	switch (channel_mode_code) {
+	substream->channel_mode = (substream->channel_mode << 3) | gf_bs_read_int(bs, 3);
+	switch (substream->channel_mode) {
 		case 120:                   // 7.0: 3/4/0   0b1111000
 			// Dolby AC-4 in MPEG-DASH for Broadcast Services Specification 2.5.3
 			if (presentation_version == 2) {
+				*immersive_audio_indicator_ims = 0;
 				return AC4_CH_MODE_STEREO; // signaling Dolby content in IMS
 			} else {
 				return AC4_CH_MODE_70_34;
 			}
 		case 121:                   // 7.1: 3/4/0.1 0b1111001
 			if (presentation_version == 2) {
-				*dolby_atmos_indicator |= 1;
+				*immersive_audio_indicator_ims |= 1;
 				return AC4_CH_MODE_STEREO; // signaling Dolby Atmos content in IMS
 			} else {
 				return AC4_CH_MODE_71_34;
@@ -14606,15 +14602,15 @@ static Bool gf_ac4_get_channel_mode(GF_BitStream *bs,
 		case 125:                   // 7.1: 3/2/2.1 0b1111101
 			return AC4_CH_MODE_71_322;
 	}
-	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
-	switch (channel_mode_code) {
+	substream->channel_mode = (substream->channel_mode << 1) | gf_bs_read_int(bs, 1);
+	switch (substream->channel_mode) {
 		case 252:                   // 7.0.4 0b11111100
 			return AC4_CH_MODE_7_0_4;
 		case 253:                   // 7.1.4 0b11111101
 			return AC4_CH_MODE_7_1_4;
 	}
-	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
-	switch (channel_mode_code) {
+	substream->channel_mode = (substream->channel_mode << 1) | gf_bs_read_int(bs, 1);
+	switch (substream->channel_mode) {
 		case 508:                   // 9.0.4 0b111111100
 			return AC4_CH_MODE_9_0_4;
 		case 509:                   // 9.1.4 0b111111101
@@ -14631,7 +14627,7 @@ static Bool gf_ac4_get_channel_mode(GF_BitStream *bs,
 static Bool gf_ac4_dsi_sf_mutiplier(GF_BitStream *bs, GF_AC4SubStream* substream, u32 fs_index)
 {
 	if (fs_index == 1) {
-		// ETSI TS 103 190-2 V1.2.1 (2018-02) E.9.3
+		// ETSI TS 103 190-1 V1.4.1 (2025-07) Table 89 and table E.5d
 		if (gf_bs_read_int_log(bs, 1, "b_sf_multiplier")) {
 			// 96 kHz or 192 kHz
 			substream->dsi_sf_multiplier = gf_bs_read_int_log(bs, 1, "sf_multiplier") + 1;
@@ -14645,20 +14641,10 @@ static Bool gf_ac4_dsi_sf_mutiplier(GF_BitStream *bs, GF_AC4SubStream* substream
 
 static Bool gf_ac4_bitreate_indicator(GF_BitStream *bs, GF_AC4SubStream* substream)
 {
-	// ETSI TS 103 190-1 V1.3.1 (2018-02) 4.3.3.7.5
+	// ETSI TS 103 190-1 V1.4.1 (2025-07) Table 90
 	substream->substream_bitrate_indicator = gf_bs_read_int_log(bs, 3, "bitrate_indicator");
 	if ((substream->substream_bitrate_indicator & 0x1) == 1) {
 		substream->substream_bitrate_indicator = (substream->substream_bitrate_indicator << 2) +gf_bs_read_int(bs, 2);
-	}
-	return GF_TRUE;
-}
-
-static Bool gf_ac4_substream_index_info(GF_BitStream *bs, u32 b_substreams_present)
-{
-	if (b_substreams_present == 1) {
-		if (gf_bs_read_int_log(bs, 2, "substream_index") == 3) {
-			gf_ac4_variable_bits(bs, 2);
-		}
 	}
 	return GF_TRUE;
 }
@@ -14682,7 +14668,7 @@ static Bool gf_ac4_substream_info_chan(GF_BitStream *bs,
 									   u32 *speaker_index_mask,
 									   u32 frame_rate_factor,
 									   u8 b_substreams_present,
-									   u8 *dolby_atmos_indicator)
+									   u8 *immersive_audio_indicator_ims)
 {
 	u32 i, mask;
 	const u32 ch1[] = {AC4_CH_MODE_7_0_4, AC4_CH_MODE_7_1_4, AC4_CH_MODE_9_0_4, AC4_CH_MODE_9_1_4};
@@ -14690,9 +14676,9 @@ static Bool gf_ac4_substream_info_chan(GF_BitStream *bs,
 	const u32 ch2[] = {AC4_CH_MODE_70_52, AC4_CH_MODE_71_52, AC4_CH_MODE_70_322, AC4_CH_MODE_71_322};
 	const u32 ch2_n = 4;
 
-	substream->ch_mode = gf_ac4_get_channel_mode(bs, presentation_version, dolby_atmos_indicator);
+	substream->ch_mode = gf_ac4_get_channel_mode(bs, substream, presentation_version, immersive_audio_indicator_ims);
 
-	// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.7
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) E.10.3
 	// This bit mask shall indicate the presence of channels in the audio presentation.
 	mask = AC4_SPEAKER_GROUP_INDEX_MASK_BY_CH_MODE[substream->ch_mode];
 
@@ -14718,8 +14704,8 @@ static Bool gf_ac4_substream_info_chan(GF_BitStream *bs,
 				break;
 		}
 	}
-	// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.7
-	substream->dsi_substream_channel_mask = mask;
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) E.11.2
+	substream->dsi_substream_channel_groups = mask;
 
 	// Only combine channel masks of substream groups that are part of the first/default presentation
 	if (default_presentation_flag) {
@@ -14737,147 +14723,155 @@ static Bool gf_ac4_substream_info_chan(GF_BitStream *bs,
 		gf_bs_read_int_log(bs, 1, "add_ch_base");
 	}
 	for (i = 0; i < frame_rate_factor; i++) {
-		gf_bs_read_int_log(bs, 1, "b_audio_ndot");
+		substream->b_audio_ndot = gf_bs_read_int_log(bs, 1, "b_audio_ndot");
 	}
 
-	gf_ac4_substream_index_info(bs, b_substreams_present);
-
-	return GF_TRUE;
-}
-
-static Bool gf_ac4_hsf_ext_substream_info(GF_BitStream *bs, u8 b_substreams_present)
-{
 	if (b_substreams_present == 1) {
-		if (gf_bs_read_int_log(bs, 2, "substream_index") == 3) {
-			gf_ac4_variable_bits(bs, 2);
+		substream->substream_index = gf_bs_read_int_log(bs, 2, "substream_index");
+		if (substream->substream_index == 3) {
+			substream->substream_index += gf_ac4_variable_bits(bs, 2);
 		}
 	}
+	substream->type = GF_AC4_SUBSTREAM_INFO_CHAN;
+
 	return GF_TRUE;
 }
 
-static Bool gf_ac4_oamd_substream_info(GF_BitStream *bs, u8 b_substreams_present)
+static Bool gf_ac4_hsf_ext_substream_info(GF_BitStream *bs, GF_AC4SubStream *substream, u8 b_substreams_present)
 {
-	gf_bs_read_int_log(bs, 1, "b_oamd_ndot");
+	substream->type = GF_AC4_HSF_EXT_SUBSTREAM_INFO;
 	if (b_substreams_present == 1) {
-		if (gf_bs_read_int_log(bs, 2, "substream_index") == 3) {
-			gf_ac4_variable_bits(bs, 2);
+		substream->substream_index = gf_bs_read_int_log(bs, 2, "substream_index");
+		if (substream->substream_index == 3) {
+			substream->substream_index += gf_ac4_variable_bits(bs, 2);
 		}
 	}
 	return GF_TRUE;
 }
 
-static u32 gf_ac4_obj_num_from_is_config(u32 isf_config)
+static Bool gf_ac4_oamd_substream_info(GF_BitStream *bs, GF_AC4SubStream *substream, u8 b_substreams_present)
 {
-	u32 obj_num = 0;
-	switch (isf_config){
-		case 0: obj_num = 4 ; break;
-		case 1: obj_num = 8 ; break;
-		case 2: obj_num = 10; break;
-		case 3: obj_num = 14; break;
-		case 4: obj_num = 15; break;
-		case 5: obj_num = 30; break;
-		default: obj_num = 0;
-	}
-	return obj_num;
-}
-
-static u32 gf_ac4_bed_num_from_assign_code(u32 assign_code)
-{
-	u32 bed_num = 0;
-	switch (assign_code){
-		case 0: bed_num = 2 ; break;
-		case 1: bed_num = 3 ; break;
-		case 2: bed_num = 6 ; break;
-		case 3: bed_num = 8 ; break;
-		case 4: bed_num = 10; break;
-		case 5: bed_num = 8 ; break;
-		case 6: bed_num = 10; break;
-		case 7: bed_num = 12; break;
-		default: bed_num = 0;
-	}
-	return bed_num;
-}
-
-static u32 gf_ac4_bed_num_from_non_std_mask(u32 non_std_mask)
-{
-	u32 bed_num = 0, idx;
-	// Table 85: nonstd_bed_channel_assignment AC-4 part-2 v1.2.1
-	for (idx = 0; idx < 17; idx ++) {
-		if ((non_std_mask >> idx) & 0x1){
-			bed_num ++;
+	substream->type = GF_AC4_OAMD_SUBSTREAM_INFO;
+	substream->b_oamd_ndot = gf_bs_read_int_log(bs, 1, "b_oamd_ndot");
+	if (b_substreams_present == 1) {
+		substream->substream_index = gf_bs_read_int_log(bs, 2, "substream_index");
+		if (substream->substream_index == 3) {
+			substream->substream_index += gf_ac4_variable_bits(bs, 2);
 		}
 	}
-	return bed_num;
+	return GF_TRUE;
 }
 
-static u32 gf_ac4_bed_num_from_std_mask(u32 std_mask)
-{
-	u32 bed_num = 0, idx;
-	// Table 86 std_bed_channel_assignment_flag[] AC-4 part-2 v1.2.1
-	for (idx = 0; idx < 10; idx ++) {
-		if ((std_mask >> idx) & 0x1){
-			if ((idx == 1) || (idx == 2) || (idx == 9)) { bed_num ++;}
-			else { bed_num += 2; }
-		}
+#define GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(n) { \
+		if (substream->n_objs >= n) { \
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Number of objects exceeds maximum supported (%d)\n", n)); \
+			return GF_FALSE; \
+		} \
 	}
-	return bed_num;
-}
 
 static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 										  GF_AC4SubStream* substream,
 										  u32 n_signals, // n_fullband_dmx_signals
 										  Bool is_upmix)
 {
-	u32 bed_ch_bits, n_bed_signals, b, isf_config, bed_chan_assign_code;
-	u32 nonstd_bed_channel_assignment_mask, bed_num, std_bed_channel_assignment_mask;
+	u32 bed_ch_bits, n_bed_signals, b, isf_config, i, j;
+
+	u32 BED_CHAN_ASSIGN_CODE_TO_NUM_OBJECTS[] = {2, 3, 5, 7, 9, 7, 9, 11};
+	u32 STD_BED_FLAG_TO_NUM_OBJECTS[] = {2, 1, 1, 2, 2, 2, 2, 2, 2, 1};
+	u32 ISF_CONFIG_TO_NUM_OBJECTS[] = {4, 8, 10, 14, 15, 30};
+
+	substream->n_objs = 0;
 
 	if (gf_bs_read_int_log(bs, 1, "b_dyn_objects_only") == 0) {
 		if (gf_bs_read_int_log(bs, 1, "b_isf")) {
 			isf_config = gf_bs_read_int_log(bs, 3, "isf_config");
 
-			// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
+			for (i = 0; i < ISF_CONFIG_TO_NUM_OBJECTS[isf_config]; i++) {
+				GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
+				substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_ISF;
+				substream->b_lfes[substream->n_objs] = 0;
+				substream->b_ajoc_codeds[substream->n_objs] = 1;
+				substream->n_objs += 1;
+			}
+
+			// ETSI TS 103 190-2 V1.3.1 (2025-07) E.11.2
 			if (is_upmix) {
 				substream->b_substream_contains_ISF_objects |= 1; // obj_type[n_objs] = ISF;
-				if(n_signals > gf_ac4_obj_num_from_is_config(isf_config)) {
+				if(n_signals > substream->n_objs) {
 					substream->b_substream_contains_dynamic_objects |= 1; // b_ajoc_coded[n_objs] = 1;
 				}
 			}
 		} else {
-			if (gf_bs_read_int_log(bs, 1, "b_ch_assign_code")) {
-				bed_chan_assign_code = gf_bs_read_int_log(bs, 3, "bed_chan_assign_code");
+			substream->b_ch_assign_code = gf_bs_read_int_log(bs, 1, "b_ch_assign_code");
+			if (substream->b_ch_assign_code) {
+				substream->bed_chan_assign_code = gf_bs_read_int_log(bs, 3, "bed_chan_assign_code");
 
-				// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
+				for (i = 0; i < BED_CHAN_ASSIGN_CODE_TO_NUM_OBJECTS[substream->bed_chan_assign_code]; i++) {
+					GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
+					substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_BED;
+					substream->b_lfes[substream->n_objs] = 0;
+					substream->b_ajoc_codeds[substream->n_objs] = 1;
+					substream->n_objs += 1;
+				}
+
+				// ETSI TS 103 190-2 V1.3.1 (2025-07) E.11.2
 				if (is_upmix) {
 					substream->b_substream_contains_bed_objects |= 1; // obj_type[n_objs] = BED;
-					if (n_signals > gf_ac4_bed_num_from_assign_code(bed_chan_assign_code)) {
+					if (n_signals > substream->n_objs) {
 						substream->b_substream_contains_dynamic_objects |= 1; // b_ajoc_coded[n_objs] = 1;
 					}
 				}
 			} else {
-				if (gf_bs_read_int_log(bs, 1, "b_chan_assign_mask")) {
-					if (gf_bs_read_int_log(bs, 1, "b_nonstd_bed_channel_assignment")) {
-						nonstd_bed_channel_assignment_mask = gf_bs_read_int_log(bs, 17, "nonstd_bed_channel_assignment_mask");
+				substream->b_channel_assignment_flags_present = gf_bs_read_int_log(bs, 1, "b_channel_assignment_flags_present");
+				if (substream->b_channel_assignment_flags_present) {
+					substream->b_nonstd_bed_channel_assignment_flags_present = gf_bs_read_int_log(bs, 1, "b_nonstd_bed_channel_assignment_flags_present");
+					if (substream->b_nonstd_bed_channel_assignment_flags_present) {
+						substream->nonstd_bed_channel_assignment_flag = gf_bs_read_int_log(bs, 17, "nonstd_bed_channel_assignment_flag");
 
-						// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
+						for (i = 0; i < 17; i++) {
+							if ((substream->nonstd_bed_channel_assignment_flag >> i) & 0x1) {
+								if (i != 3 && i != 16) {
+									GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
+									substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_BED;
+									substream->b_lfes[substream->n_objs] = 0;
+									substream->b_ajoc_codeds[substream->n_objs] = 1;
+									substream->n_objs += 1;
+								}
+							}
+						}
+
+						// ETSI TS 103 190-2 V1.3.1 (2025-07) E.11.2
 						if (is_upmix) {
-							bed_num = gf_ac4_bed_num_from_non_std_mask(nonstd_bed_channel_assignment_mask);
-							if (bed_num > 0) {
+							if (substream->n_objs > 0) {
 								substream->b_substream_contains_bed_objects |= 1; // obj_type[n_objs] = BED;
 							}
-							if (n_signals > bed_num) {
+							if (n_signals > substream->n_objs) {
 								substream->b_substream_contains_dynamic_objects |= 1; // b_ajoc_coded[n_objs] = 1;
 							}
 						}
 					} else {
-						std_bed_channel_assignment_mask = gf_bs_read_int_log(bs, 10, "std_bed_channel_assignment_mask");
+						substream->std_bed_channel_assignment_flag = gf_bs_read_int_log(bs, 10, "std_bed_channel_assignment_flag");
 
-						// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
+						for (i = 0; i < 10; i++) {
+							if ((substream->std_bed_channel_assignment_flag >> i) & 0x1) {
+								if (i != 2 && i != 9) {
+									for (j = 0; j < STD_BED_FLAG_TO_NUM_OBJECTS[i]; j++) {
+										GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
+										substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_BED;
+										substream->b_lfes[substream->n_objs] = 0;
+										substream->b_ajoc_codeds[substream->n_objs] = 1;
+										substream->n_objs += 1;
+									}
+								}
+							}
+						}
+
+						// ETSI TS 103 190-2 V1.3.1 (2025-07) E.11.2
 						if (is_upmix) {
-							bed_num = gf_ac4_bed_num_from_std_mask(std_bed_channel_assignment_mask);
-							if (bed_num > 0) {
+							if (substream->n_objs > 0) {
 								substream->b_substream_contains_bed_objects |= 1; // obj_type[n_objs] = BED;
 							}
-							if (n_signals > bed_num) {
+							if (n_signals > substream->n_objs) {
 								substream->b_substream_contains_dynamic_objects |= 1; // b_ajoc_coded[n_objs] = 1;
 							}
 						}
@@ -14889,11 +14883,24 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 					} else {
 						n_bed_signals = 1;
 					}
+					substream->nonstd_bed_channel_assignment_flag = 0;
+
 					for (b = 0; b < n_bed_signals; b++) {
-						gf_bs_read_int_log(bs, 4, "nonstd_bed_channel_assignment");
+						u8 tmp = gf_bs_read_int_log(bs, 4, "nonstd_bed_channel_assignment");
+
+						substream->b_channel_assignment_flags_present = 1;
+						substream->nonstd_bed_channel_assignment_flag |= (1 << tmp);
+
+						if (tmp != 3) {
+							GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
+							substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_BED;
+							substream->b_lfes[substream->n_objs] = 0;
+							substream->b_ajoc_codeds[substream->n_objs] = 1;
+							substream->n_objs += 1;
+						}
 					}
 
-					// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
+					// ETSI TS 103 190-2 V1.3.1 (2025-07) E.11.2
 					if (is_upmix) {
 						substream->b_substream_contains_bed_objects |= 1; // obj_type[n_objs] = BED;
 						if (n_signals > n_bed_signals){
@@ -14904,7 +14911,7 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 			}
 		}
 	} else {
-		// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.2.10.3 the substream contains only dynamic objects
+		// ETSI TS 103 190-2 V1.3.1 (2025-07) 6.3.2.10.3 the substream contains only dynamic objects
 		if (is_upmix) {
 			substream->b_substream_contains_dynamic_objects |= 1;
 			substream->b_substream_contains_bed_objects |= 0;
@@ -14920,7 +14927,6 @@ static Bool gf_ac4_trim(GF_BitStream *bs)
 	u32 trim_balance_presence[9] = {0};
 	u32 i;
 
-	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.2.8.9
 	if (gf_bs_read_int_log(bs, 1, "b_trim_present")) {
 		gf_bs_read_int_log(bs, 2, "warp_mode");
 		gf_bs_read_int_log(bs, 2, "reserved");
@@ -15059,7 +15065,7 @@ static Bool gf_ac4_bed_render_info(GF_BitStream *bs)
 {
 	u8 b_tb_ch_present, b_tf_ch_present;
 
-	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.2.8.8
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) 6.2.8.8
 	if (gf_bs_read_int_log(bs, 1, "b_bed_render_info")) {
 		if (gf_bs_read_int_log(bs, 1, "b_stereo_dmx_coeff")) {
 			gf_ac4_stereo_dmx_coeff(bs);
@@ -15107,6 +15113,19 @@ static Bool gf_ac4_bed_render_info(GF_BitStream *bs)
 	return GF_TRUE;
 }
 
+static Bool gf_ac4_headphone(GF_BitStream *bs)
+{
+	u8 hp_operation_mode;
+
+	if (gf_bs_read_int_log(bs, 1, "b_headphone")) {
+		hp_operation_mode = gf_bs_read_int_log(bs, 3, "hp_operation_mode");
+		if ((hp_operation_mode == 0b001) || (hp_operation_mode == 0b010)) {
+			gf_bs_read_int_log(bs, 1, "b_head_track_disable_all");
+		}
+	}
+	return GF_TRUE;
+}
+
 static Bool gf_ac4_oamd_common_data(GF_BitStream *bs)
 {
 	u32 add_data_bytes, bits_used = 0;
@@ -15125,9 +15144,19 @@ static Bool gf_ac4_oamd_common_data(GF_BitStream *bs)
 		pos = gf_bs_get_bit_offset(bs);
 
 		gf_ac4_trim(bs);
-		gf_ac4_bed_render_info(bs);
-
 		bits_used = (u32) (gf_bs_get_bit_offset(bs) - pos);
+
+		if (bits_used < add_data_bytes * 8) {
+			gf_ac4_bed_render_info(bs);
+		}
+		bits_used = (u32) (gf_bs_get_bit_offset(bs) - pos);
+
+
+		if (bits_used < add_data_bytes * 8) {
+			gf_ac4_headphone(bs);
+		}
+		bits_used = (u32) (gf_bs_get_bit_offset(bs) - pos);
+		
 		u32 bits_to_read = MIN( (u32)(8*gf_bs_available(bs)), (u32)(add_data_bytes * 8 - bits_used));
 		gf_bs_read_int(bs, MIN(32, bits_to_read));
 	}
@@ -15153,7 +15182,7 @@ static Bool gf_ac4_substream_info_ajoc(GF_BitStream *bs,
 			*channel_count += 5;
 		}
 	} else {
-		// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.10 n_dmx_objects_minus1 = n_fullband_dmx_signals_minus1
+		// ETSI TS 103 190-2 V1.3.1 (2025-07) E.11.2 n_dmx_objects_minus1 = n_fullband_dmx_signals_minus1
 		substream->n_dmx_objects_minus1 = gf_bs_read_int_log(bs, 4, "n_fullband_dmx_signals_minus1");
 		n_fullband_dmx_signals = substream->n_dmx_objects_minus1 + 1;
 
@@ -15190,12 +15219,19 @@ static Bool gf_ac4_substream_info_ajoc(GF_BitStream *bs,
 	}
 
 	for (i = 0; i < frame_rate_factor; i++) {
-		gf_bs_read_int_log(bs, 1, "b_audio_ndot");
+		substream->b_audio_ndot = gf_bs_read_int_log(bs, 1, "b_audio_ndot");
 	}
 
-	gf_ac4_substream_index_info(bs, b_substreams_present);
+	if (b_substreams_present == 1) {
+		substream->substream_index = gf_bs_read_int_log(bs, 2, "substream_index");
+		if (substream->substream_index == 3) {
+			substream->substream_index += gf_ac4_variable_bits(bs, 2);
+		}
+	}
+	substream->type = GF_AC4_SUBSTREAM_INFO_AJOC;
 
-	// sus_ver = 1;
+	substream->sus_ver = 1;
+
 	return GF_TRUE;
 }
 
@@ -15207,18 +15243,40 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 									  u32 frame_rate_factor,
 									  u8 b_substreams_present)
 {
-	u32 i, n_objects_code, res_bytes;
+	u32 i, res_bytes, j;
+	u32 n_signals, isf_config;
+	u32 N_OBJECTS_CODE_TO_NUM_OBJECTS[] = {0, 1, 2, 3, 5, 7};
+	u32 BED_CHAN_ASSIGN_CODE_TO_NUM_OBJECTS[] = {2, 3, 6, 8, 10, 8, 10, 12};
+	u32 STD_BED_FLAG_TO_NUM_OBJECTS[] = {2, 1, 1, 2, 2, 2, 2, 2, 2, 1};
+	u32 ISF_CONFIG_TO_NUM_OBJECTS[] = {4, 8, 10, 14, 15, 30};
 
-	n_objects_code = gf_bs_read_int_log(bs, 3, "n_objects_code");
+	substream->n_objs = 0;
 
-	// ETSI TS 103 190-2 V1.2.1 (2018-02) Table 82
+	substream->n_objects_code = gf_bs_read_int_log(bs, 3, "n_objects_code");
+
+	if (substream->n_objects_code == 0) {
+		n_signals = 1;
+	} else if (substream->n_objects_code == 1) {
+		n_signals = 2;
+	} else if (substream->n_objects_code == 2) {
+		n_signals = 3;
+	} else if (substream->n_objects_code == 3) {
+		n_signals = 4;
+	} else if (substream->n_objects_code == 4) {
+		n_signals = 6;
+	} else {
+		n_signals = 0;
+	}
+
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) Table 60
+	// use the default presentation as the default for channel count
 	if (default_presentation_flag) {
-		switch(n_objects_code) {
+		switch(substream->n_objects_code) {
 			case 0:
 			case 1:
 			case 2:
 			case 3:
-				*channel_count += n_objects_code;
+				*channel_count += substream->n_objects_code;
 				break;
 			case 4:
 				*channel_count += 5;
@@ -15231,36 +15289,125 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 	if (gf_bs_read_int_log(bs, 1, "b_dynamic_objects")) {
 		substream->b_lfe = gf_bs_read_int_log(bs, 1, "b_lfe");
 
-		// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12
-		substream->b_substream_contains_dynamic_objects = 1;
+		for (i = 0; i < N_OBJECTS_CODE_TO_NUM_OBJECTS[substream->n_objects_code]; i++) {
+			GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
+			if (substream->b_lfe && i == 0) {
+				substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_BED;
+				substream->b_lfes[substream->n_objs] = 1;
+			} else {
+				substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_DYN;
+				substream->b_lfes[substream->n_objs] = 0;
+			}
+			substream->b_ajoc_codeds[substream->n_objs] = 0;
+			substream->n_objs += 1;
+		}
 
-		// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.2.10.4
+		// ETSI TS 103 190-2 V1.3.1 (2025-07) E.11.2
+		substream->b_substream_contains_dynamic_objects |= 1;
+
+		// ETSI TS 103 190-2 V1.3.1 (2025-07) 6.3.2.10.4
 		if (default_presentation_flag && substream->b_lfe) {
 			*channel_count += 1;
 		}
 	} else {
 		if (gf_bs_read_int_log(bs, 1, "b_bed_objects")) {
 			if (gf_bs_read_int_log(bs, 1, "b_bed_start")) {
-				if (gf_bs_read_int_log(bs, 1, "b_ch_assign_code")) {
-					gf_bs_read_int_log(bs, 3, "bed_chan_assign_code");
+				substream->b_ch_assign_code = gf_bs_read_int_log(bs, 1, "b_ch_assign_code");
+				if (substream->b_ch_assign_code) {
+					substream->bed_chan_assign_code = gf_bs_read_int_log(bs, 3, "bed_chan_assign_code");
+					
+					for (i = 0; i < BED_CHAN_ASSIGN_CODE_TO_NUM_OBJECTS[substream->bed_chan_assign_code]; i++) {
+						GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
+						substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_BED;
+						if (i == 3) {
+							substream->b_lfes[substream->n_objs] = 1;
+						} else {
+							substream->b_lfes[substream->n_objs] = 0;
+						}
+						substream->b_ajoc_codeds[substream->n_objs] = 0;
+						substream->n_objs += 1;
+					}
+
+					if (n_signals > BED_CHAN_ASSIGN_CODE_TO_NUM_OBJECTS[substream->bed_chan_assign_code]) {
+                        substream->b_substream_contains_dynamic_objects |= 1;
+                    }
 				} else {
-					if (gf_bs_read_int_log(bs, 1, "b_nonstd_bed_channel_assignment")) {
-						gf_bs_read_int_log(bs, 17, "nonstd_bed_channel_assignment_mask");
+					substream->b_nonstd_bed_channel_assignment_flags_present = gf_bs_read_int_log(bs, 1, "b_nonstd_bed_channel_assignment_flags_present");
+					if (substream->b_nonstd_bed_channel_assignment_flags_present) {
+						substream->nonstd_bed_channel_assignment_flag = gf_bs_read_int_log(bs, 17, "nonstd_bed_channel_assignment_flag");
+
+						// Table 85: nonstd_bed_channel_assignment AC-4 part-2 v1.2.1
+						for (i = 0; i < 17; i ++) {
+							if ((substream->nonstd_bed_channel_assignment_flag >> i) & 0x1) {
+								GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
+								substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_BED;
+								if (i == 3 || i == 16) {
+									substream->b_lfes[substream->n_objs] = 1;
+								} else {
+									substream->b_lfes[substream->n_objs] = 0;
+								}
+								substream->b_ajoc_codeds[substream->n_objs] = 0;
+								substream->n_objs += 1;
+							}
+						}
+
+						if (substream->n_objs > 0) {
+							substream->b_substream_contains_bed_objects |= 1;
+						}
+						if (n_signals > substream->n_objs) {
+							substream->b_substream_contains_dynamic_objects |= 1;
+						}
 					} else {
-						gf_bs_read_int_log(bs, 10, "std_bed_channel_assignment_mask");
+						substream->std_bed_channel_assignment_flag = gf_bs_read_int_log(bs, 10, "std_bed_channel_assignment_flag");
+
+						// Table 86 std_bed_channel_assignment_flag[] AC-4 part-2 v1.2.1
+						for (i = 0; i < 10; i++) {
+							if ((substream->std_bed_channel_assignment_flag >> i) & 0x1){
+								for (j = 0; j < STD_BED_FLAG_TO_NUM_OBJECTS[i]; j++) {
+									GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
+									substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_BED;
+									if (i == 2 || i == 9) {
+										substream->b_lfes[substream->n_objs] = 1;
+									} else {
+										substream->b_lfes[substream->n_objs] = 0;
+									}
+									substream->b_ajoc_codeds[substream->n_objs] = 0;
+									substream->n_objs += 1;
+								}
+							}
+						}
+
+						if (substream->n_objs > 0) {
+							substream->b_substream_contains_bed_objects |= 1;
+						}
+						if (n_signals > substream->n_objs) {
+							substream->b_substream_contains_dynamic_objects |= 1;
+						}
 					}
 				}
 			}
 
-			// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12
+			// ETSI TS 103 190-2 V1.3.1 (2025-07) E.11.2
 			substream->b_substream_contains_bed_objects = 1;
 		} else {
 			if (gf_bs_read_int_log(bs, 1, "b_isf")) {
 				if (gf_bs_read_int_log(bs, 1, "b_isf_start")) {
-					gf_bs_read_int_log(bs, 3, "isf_config");
+					isf_config = gf_bs_read_int_log(bs, 3, "isf_config");
+
+					for (i = 0; i < ISF_CONFIG_TO_NUM_OBJECTS[isf_config]; i++) {
+						GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
+						substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_ISF;
+						substream->b_lfes[substream->n_objs] = 0;
+						substream->b_ajoc_codeds[substream->n_objs] = 0;
+						substream->n_objs += 1;
+					}
+
+					if (n_signals > substream->n_objs) {
+						substream->b_substream_contains_dynamic_objects |= 1;
+					}
 				}
 
-				// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12
+				// ETSI TS 103 190-2 V1.3.1 (2025-07) E.11.2
 				substream->b_substream_contains_ISF_objects = 1;
 			} else {
 				res_bytes = gf_bs_read_int_log(bs, 4, "res_bytes");
@@ -15279,10 +15426,18 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 	}
 
 	for (i = 0; i < frame_rate_factor; i++) {
-		gf_bs_read_int_log(bs, 1, "b_audio_ndot");
+		substream->b_audio_ndot = gf_bs_read_int_log(bs, 1, "b_audio_ndot");
 	}
 
-	gf_ac4_substream_index_info(bs, b_substreams_present);
+	if (b_substreams_present == 1) {
+		substream->substream_index = gf_bs_read_int_log(bs, 2, "substream_index");
+		if (substream->substream_index == 3) {
+			substream->substream_index += gf_ac4_variable_bits(bs, 2);
+		}
+	}
+	substream->type = GF_AC4_SUBSTREAM_INFO_OBJ;
+
+	substream->sus_ver = 1;
 
 	return GF_TRUE;
 }
@@ -15338,13 +15493,16 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 	ginfo->b_channel_coded = gf_bs_read_int_log(bs, 1, "b_channel_coded");
 	if (ginfo->b_channel_coded) {
 		for (i = 0; i < ginfo->n_lf_substreams; i++) {
+			GF_SAFEALLOC(substream, GF_AC4SubStream);
+			if (!substream) return GF_FALSE;
+
 			if (bitstream_version == 1) {
-				// bitstream_version 1 is not supported.
+				// actually bitstream_version <=1 is deprecated
+				substream->sus_ver = gf_bs_read_int_log(bs, 1, "sus_ver");
 			} else {
-				// sus_ver = 1;
+				substream->sus_ver = 1;
 			}
 
-			GF_SAFEALLOC(substream, GF_AC4SubStream);
 			gf_ac4_substream_info_chan(bs,
 									   substream,
 									   presentation_version,
@@ -15353,31 +15511,36 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 									   speaker_index_mask,
 									   frame_rate_factor,
 									   ginfo->b_substreams_present,
-									   &ginfo->dolby_atmos_indicator);
+									   &ginfo->immersive_audio_indicator_ims);
 			gf_list_add(ginfo->substreams, substream);
 
-			if (ginfo->b_hsf_ext) {
-				gf_ac4_hsf_ext_substream_info(bs, ginfo->b_substreams_present);
-			}
+			ginfo->immersive_audio_indicator |= substream->b_ajoc;
 
-			ginfo->dolby_atmos_indicator |= substream->b_ajoc;
+			if (ginfo->b_hsf_ext) {
+				GF_SAFEALLOC(substream, GF_AC4SubStream);
+				if (!substream) return GF_FALSE;
+
+				gf_ac4_hsf_ext_substream_info(bs, substream, ginfo->b_substreams_present);
+				gf_list_add(ginfo->substreams, substream);
+			}
 		}
 	}
 	else {
+		
 		// indicate whether there is a non-channel based substream
 		*b_obj_or_ajoc = 1;
 
 		if (gf_bs_read_int_log(bs, 1, "b_oamd_substream")) {
-			gf_ac4_oamd_substream_info(bs, ginfo->b_substreams_present);
-		}
+			GF_SAFEALLOC(substream, GF_AC4SubStream);
+			if (!substream) return GF_FALSE;
 
-		if (ginfo->substreams) {
-			gf_list_del(ginfo->substreams);
+			gf_ac4_oamd_substream_info(bs, substream, ginfo->b_substreams_present);
+			gf_list_add(ginfo->substreams, substream);
 		}
-		ginfo->substreams = gf_list_new();
 
 		for (i = 0; i < ginfo->n_lf_substreams; i++) {
 			GF_SAFEALLOC(substream, GF_AC4SubStream);
+			if (!substream) return GF_FALSE;
 			local_channel_count = 0;
 
 			substream->b_ajoc = gf_bs_read_int_log(bs, 1, "b_ajoc");
@@ -15389,8 +15552,14 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 										   fs_index,
 										   frame_rate_factor,
 										   ginfo->b_substreams_present);
+				gf_list_add(ginfo->substreams, substream);
+
 				if (ginfo->b_hsf_ext) {
-					gf_ac4_hsf_ext_substream_info(bs, ginfo->b_substreams_present);
+					GF_SAFEALLOC(substream, GF_AC4SubStream);
+					if (!substream) return GF_FALSE;
+
+					gf_ac4_hsf_ext_substream_info(bs, substream, ginfo->b_substreams_present);
+					gf_list_add(ginfo->substreams, substream);
 				}
 			} else {
 				gf_ac4_substream_info_obj(bs,
@@ -15400,17 +15569,22 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 										  fs_index,
 										  frame_rate_factor,
 										  ginfo->b_substreams_present);
+				gf_list_add(ginfo->substreams, substream);
+
 				if (ginfo->b_hsf_ext) {
-					gf_ac4_hsf_ext_substream_info(bs, ginfo->b_substreams_present);
+					GF_SAFEALLOC(substream, GF_AC4SubStream);
+					if (!substream) return GF_FALSE;
+
+					gf_ac4_hsf_ext_substream_info(bs, substream, ginfo->b_substreams_present);
+					gf_list_add(ginfo->substreams, substream);
 				}
 			}
-			gf_list_add(ginfo->substreams, substream);
 
 			if (*channel_count < local_channel_count) {
 				*channel_count = local_channel_count;
 			}
 
-			ginfo->dolby_atmos_indicator |= substream->b_ajoc;
+			ginfo->immersive_audio_indicator |= substream->b_ajoc;
 		}
 	}
 
@@ -15421,19 +15595,6 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 	return GF_TRUE;
 }
 
-static u32 gf_ac4_sgi_specifier(GF_BitStream *bs, u8 bitstream_version)
-{
-	u32 group_index = 0;
-	if (bitstream_version == 1) {
-		// bitstream_version 1 is not supported.
-	} else {
-		group_index = gf_bs_read_int_log(bs, 3, "group_index");
-		if (group_index == 7) {
-			group_index += gf_ac4_variable_bits(bs, 2);
-		}
-	}
-	return group_index;
-}
 
 static Bool gf_ac4_presentation_config_ext_info(GF_BitStream *bs,
 												GF_AC4PresentationV1* pinfo,
@@ -15446,7 +15607,14 @@ static Bool gf_ac4_presentation_config_ext_info(GF_BitStream *bs,
 		pinfo->n_skip_bytes += gf_ac4_variable_bits(bs, 2) << 5;
 	}
 	if (bitstream_version == 1 && pinfo->presentation_config == 7) {
-		// bitstream_version 1 is not supported.
+		// bitstream_version <= 1 is deprecated
+		// u32 n_bits_read = gf_ac4_presentation_v1_info();
+		// if (n_bits_read % 8) {
+		// 	u32 n_skip_bits = 8 - (n_bits_read % 8);
+		// 	gf_bs_read_int_log(bs, n_skip_bits, "reserved");
+		// 	n_bits_read += n_skip_bits;
+		// }
+		// pinfo->n_skip_bytes = n_skip_bytes - (n_bits_read / 8);
 	}
 	for (i = 0; i < pinfo->n_skip_bytes; i++) {
 		gf_bs_read_int_log(bs, 8, "reserved");
@@ -15454,30 +15622,44 @@ static Bool gf_ac4_presentation_config_ext_info(GF_BitStream *bs,
 	return GF_TRUE;
 }
 
-static Bool gf_ac4_presentation_substream_info(GF_BitStream *bs)
+static Bool gf_ac4_presentation_substream_info(GF_BitStream *bs, GF_AC4SubStream* substream)
 {
-	u32 substream_index;
-	gf_bs_read_int_log(bs, 1, "b_alternative");
-	gf_bs_read_int_log(bs, 1, "b_pres_ndot");
-	substream_index = gf_bs_read_int_log(bs, 2, "substream_index");
-	if (substream_index == 3) {
-		substream_index += gf_ac4_variable_bits(bs, 2);
+	substream->b_alternative = gf_bs_read_int_log(bs, 1, "b_alternative");
+	substream->b_pres_ndot = gf_bs_read_int_log(bs, 1, "b_pres_ndot");
+
+	substream->type = GF_AC4_PRESENTATION_SUBSTREAM_INFO;
+	substream->substream_index = gf_bs_read_int_log(bs, 2, "substream_index");
+	if (substream->substream_index == 3) {
+		substream->substream_index += gf_ac4_variable_bits(bs, 2);
 	}
+
 	return GF_TRUE;
 }
 
-static Bool gf_ac4_sgi_specifier_add(GF_BitStream *bs,
+static Bool gf_ac4_sgi_specifier(GF_BitStream *bs,
 									GF_List *idx_list,
 									u8 bitstream_version,
 									u32 *group_index) {
 	u32 *idx = NULL;
+	u32 value = 0;
 
-	GF_SAFEALLOC(idx, u32);
-	*idx = gf_ac4_sgi_specifier(bs, bitstream_version);
-	gf_list_add(idx_list, idx);
+	if (bitstream_version == 1) {
+		// bitstream_version <=1 is deprecated
+		// gf_ac4_substream_group_info();
+	} else {
+		value = gf_bs_read_int_log(bs, 3, "group_index");
+		if (value == 7) {
+			value += gf_ac4_variable_bits(bs, 2);
+		}
 
-	// Mark the max group index
-	*group_index = MAX(*group_index, *idx);
+		GF_SAFEALLOC(idx, u32);
+		*idx = value;
+		gf_list_add(idx_list, idx);
+
+		// Mark the max group index
+		*group_index = MAX(*group_index, *idx);
+	}
+
 	return GF_TRUE;
 }
 
@@ -15490,6 +15672,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 	u32 group_index = 0, b_single_substream_group, i;
 	GF_List *substream_group_indexes = gf_list_new();
 	u32 emdf_version, key_id;
+	GF_AC4SubStream* substream;
 
 	b_single_substream_group = gf_bs_read_int_log(bs, 1, "b_single_substream_group");
 	if (b_single_substream_group != 1) {
@@ -15515,7 +15698,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 	}
 	else {
 		if (bitstream_version != 1) {
-			pinfo->mdcompat = gf_bs_read_int_log(bs, 3, "mdcompat");
+			pinfo->md_compat = gf_bs_read_int_log(bs, 3, "md_compat");
 		}
 		pinfo->b_presentation_id = gf_bs_read_int_log(bs, 1, "b_presentation_id");
 		if (pinfo->b_presentation_id) {
@@ -15524,7 +15707,12 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 
 		gf_ac4_frame_rate_multiply_info(bs, pinfo, frame_rate_index);
 		gf_ac4_frame_rate_fractions_info(bs, pinfo, frame_rate_index);
-		gf_ac4_emdf_info(bs, &emdf_version, &key_id);
+
+		pinfo->substreams = gf_list_new();
+		if (!pinfo->substreams) return GF_FALSE;
+
+		gf_ac4_emdf_info(bs, pinfo->substreams, &emdf_version, &key_id);
+
 		pinfo->presentation_emdf_version = emdf_version;
 		pinfo->presentation_key_id = key_id;
 
@@ -15534,7 +15722,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 		}
 
 		if (b_single_substream_group == 1) {
-			gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
+			gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
 			pinfo->n_substream_groups = 1;
 		}
 		else {
@@ -15542,48 +15730,48 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 			switch (pinfo->presentation_config) {
 				case 0:
 					/* Music and Effects + Dialogue */
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
 					pinfo->n_substream_groups = 2;
 					break;
 				case 1:
 					/* Main + DE */
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
-					// In ETSI TS 103 190-2 V1.2.1 (2018-02), this should be 1
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
+					// In ETSI TS 103 190-2 V1.3.1 (2025-07), this should be 1
 					// Main + DE are considered as one substream group in logic, but there are two substream group configurations spearately in bitstream
 					pinfo->n_substream_groups = 2;
 					break;
 				case 2:
 					/* Main + Associated Audio */
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
 					pinfo->n_substream_groups = 2;
 					break;
 				case 3:
 					/* Music and Effects + Dialogue + Associated Audio */
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
 					pinfo->n_substream_groups = 3;
 					break;
 				case 4:
 				/* Main + DE + Associated Audio */
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
-					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
-					// In ETSI TS 103 190-2 V1.2.1 (2018-02), this should be 2
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
+					gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
+					// In ETSI TS 103 190-2 V1.3.1 (2025-07), this should be 2
 					pinfo->n_substream_groups = 3;
 					break;
 				case 5:
 					/* Arbitrary number of roles and substream groups */
-					pinfo->n_substream_groups = gf_bs_read_int_log(bs, 1, "n_substream_groups_minus2") + 2;
+					pinfo->n_substream_groups = gf_bs_read_int_log(bs, 2, "n_substream_groups_minus2") + 2;
 					if (pinfo->n_substream_groups == 5) {
 						pinfo->n_substream_groups += gf_ac4_variable_bits(bs, 2);
 					}
 
 					for (i = 0; i < pinfo->n_substream_groups; i++) {
-						gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
+						gf_ac4_sgi_specifier(bs, substream_group_indexes, bitstream_version, &group_index);
 					}
 					break;
 				default:
@@ -15599,7 +15787,14 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 			pinfo->b_pre_virtualized  = 1;
 		}
 		pinfo->b_add_emdf_substreams = gf_bs_read_int_log(bs, 1, "b_add_emdf_substreams");
-		gf_ac4_presentation_substream_info(bs);
+
+		GF_SAFEALLOC(substream, GF_AC4SubStream);
+		if (!substream) return GF_FALSE;
+		
+		gf_ac4_presentation_substream_info(bs, substream);
+		gf_list_add(pinfo->substreams, substream);
+
+		pinfo->b_alternative = substream->b_alternative;
 	}
 	if (pinfo->b_add_emdf_substreams) {
 		pinfo->n_add_emdf_substreams = gf_bs_read_int_log(bs, 2, "n_add_emdf_substreams");
@@ -15607,7 +15802,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 			pinfo->n_add_emdf_substreams = gf_ac4_variable_bits(bs, 2) + 4;
 		}
 		for (i = 0; i < pinfo->n_add_emdf_substreams && i < MIN(GF_ARRAY_LENGTH(pinfo->substream_emdf_version), GF_ARRAY_LENGTH(pinfo->substream_key_id)); i++) {
-			gf_ac4_emdf_info(bs, &emdf_version, &key_id);
+			gf_ac4_emdf_info(bs, pinfo->substreams, &emdf_version, &key_id);
 
 			// ETSI TS 103 190-2 V1.2.1 (2018-02) E.8.16 & E.8.17
 			pinfo->substream_emdf_version[i] = emdf_version;
@@ -15628,10 +15823,6 @@ static GF_AC4PresentationV1* gf_ac4_get_presentation_by_substreamgroup(GF_AC4Str
 
 	for(i = 0; i < stream->n_presentations; i++) {
 		p = gf_list_get(stream->presentations, i);
-		if (!p) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] presentation %u/%u is NULL: ignoring\n", i, stream->n_presentations));
-			continue;
-		}
 		for (j = 0; j < p->n_substream_groups; j++) {
 			x = gf_list_get(p->substream_group_indexs, j);
 			if(x && idx == *x) {
@@ -15730,48 +15921,375 @@ s32 gf_ac4_cfg_super_set(s32 lvalue, s32 rvalue)
 	return AC4_SUPER_SET_CH_MODE[lvalue][rvalue];
 }
 
+u32 gf_ac4_convert_speaker_layout_to_channel_mode(u32 channel_mask)
+{
+    // ETSI TS 103 190-1 V1.4.1 (2025-07) Table 88
+    s32 ch_mode = 0;
+    // bit 0-16:  L R C LFE Ls Rs Lb Rb Tfl Tfr Tsl Tsr Tbl Tbr Lw Rw LFE2
+    switch (channel_mask) {
+        // Mono
+        case 0x00001:  // bit 0: L
+            ch_mode = 0;
+            break;
+        // Stereo
+        case 0x00003:  // bit 0,1: L,R
+            ch_mode = 1;
+            break;
+        // 3.0
+        case 0x00007:  // bit 0,1,2: L,R,C
+            ch_mode = 2;
+            break;
+        // 5.0
+        case 0x00037:  // bit 0,1,2,4,5: L,R,C,Ls,Rs
+            ch_mode = 3;
+            break;
+        // 5.1
+        case 0x0003F:  // bit 0,1,2,3,4,5: L,R,C,LFE,Ls,Rs
+            ch_mode = 4;
+            break;
+        // 7.0: 3/4/0 (L, C, R, Ls, Rs, Lb, Rb)
+        case 0x000F7:  // bit 0,1,2,4,5,6,7
+            ch_mode = 5;
+            break;
+        // 7.1: 3/4/0.1 (L, C, R, Ls, Rs, Lb, Rb, LFE) 
+        case 0x000FF:  // bit 0,1,2,3,4,5,6,7
+            ch_mode = 6;
+            break;
+        // 7.0: 5/2/0 (L, C, R, Lw, Rw, Ls, Rs
+        case 0xC037:  // bit 0,1,2,4,5,14,15
+            ch_mode = 7;
+            break;
+        // 7.1: 5/2/0.1 (L, C, R, Lw, Rw, Ls, Rs, LFE)
+        case 0xC03F:  // bit 0,1,2,3,4,5,14,15
+            ch_mode = 8;
+            break;
+        // 7.0: 3/2/2 (L, C, R, Ls, Rs, Tfl, Tfr) 
+        case 0x00337:  // bit 0,1,2,4,5,8,9
+            ch_mode = 9;
+            break;
+        // 7.1: 3/2/2.1 (L, C, R, Ls, Rs, Tfl, Tfr, LFE) 
+        case 0x0033F:  // bit 0,1,2,3,4,5,8,9
+            ch_mode = 10;
+            break;
+        default:
+            ch_mode = -1;
+            break;
+    }
+    return ch_mode;
+}
+
+u32 get_obj_channel_mask(GF_AC4SubStream *substream)
+{
+    u32 channel_mask = 0; // bit 0-16:  L R C LFE Ls Rs Lb Rb Tfl Tfr Tsl Tsr Tbl Tbr Lw Rw LFE2
+	u32 nonstd_mask, std_mask;
+
+    // Convert bed_chan_assign_code to channel mask (AC-4 Table 62)
+    if (substream->b_ch_assign_code) {
+        switch (substream->bed_chan_assign_code) {
+            case 0: // 2.0 (L, R)
+            {
+                channel_mask |= (1ULL << 0);  // bit 0: L
+                channel_mask |= (1ULL << 1);  // bit 1: R
+                break;
+            }
+            case 1: // 3.0 (L, C, R)
+            {
+                channel_mask |= (1ULL << 0);  // bit 0: L
+                channel_mask |= (1ULL << 1);  // bit 1: R
+                channel_mask |= (1ULL << 2);  // bit 2: C
+                break;
+            }
+            case 2: // 5.0.0 (L, R, C, Ls, Rs) || 5.1.0 (L, R, C, LFE, Ls, Rs)
+            {
+                if (substream->b_ajoc) {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                } else {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 3);  // bit 3: LFE
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                }
+                break;
+            }
+            case 3: // 5.0.2 (L, R, C, Ls, Rs, Tsl, Tsr) || 5.1.2 (L, R, C, LFE, Ls, Rs, Tsl, Tsr)  
+            {
+                if (substream->b_ajoc) {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                    channel_mask |= (1ULL << 10); // bit 10: Tsl
+                    channel_mask |= (1ULL << 11); // bit 11: Tsr
+                } else {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 3);  // bit 3: LFE
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                    channel_mask |= (1ULL << 10); // bit 10: Tsl
+                    channel_mask |= (1ULL << 11); // bit 11: Tsr
+                }
+                break;
+            }
+            case 4: 
+            {
+                // 5.0.4 (L, R, C, Ls, Rs, Tfl, Tfr, Tbl, Tbr ) || 5.1.4 (L, R, C, LFE, Ls, Rs, Tfl, Tfr, Tbl, Tbr )
+                if (substream->b_ajoc) {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                    channel_mask |= (1ULL << 8);  // bit 8: Tfl
+                    channel_mask |= (1ULL << 9);  // bit 9: Tfr
+                    channel_mask |= (1ULL << 12); // bit 12: Tbl
+                    channel_mask |= (1ULL << 13); // bit 13: Tbr
+                } else {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 3);  // bit 3: LFE
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                    channel_mask |= (1ULL << 8);  // bit 8: Tfl
+                    channel_mask |= (1ULL << 9);  // bit 9: Tfr
+                    channel_mask |= (1ULL << 12); // bit 12: Tbl
+                    channel_mask |= (1ULL << 13); // bit 13: Tbr
+                }
+                break;
+            }
+            case 5: 
+            {
+                // 7.0.0 (L,C,R,Ls,Rs,Lb,Rb) || 7.1.0 (L,C,R,LFE,Ls,Rs,Lb,Rb)
+                if (substream->b_ajoc) {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                    channel_mask |= (1ULL << 6);  // bit 6: Lb
+                    channel_mask |= (1ULL << 7);  // bit 7: Rb
+                } else {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 3);  // bit 3: LFE
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                    channel_mask |= (1ULL << 6);  // bit 6: Lb
+                    channel_mask |= (1ULL << 7);  // bit 7: Rb
+                }
+                break;
+            }
+            case 6: 
+            {
+                // 7.0.2 (L,C,R,Ls,Rs,Lb,Rb,Tsl,Tsr) || 7.1.2 (L,C,R,LFE,Ls,Rs,Lb,Rb,Tsl,Tsr)
+                if (substream->b_ajoc) {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                    channel_mask |= (1ULL << 6);  // bit 6: Lb
+                    channel_mask |= (1ULL << 7);  // bit 7: Rb
+                    channel_mask |= (1ULL << 10); // bit 10: Tsl
+                    channel_mask |= (1ULL << 11); // bit 11: Tsr
+                } else {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 3);  // bit 3: LFE
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                    channel_mask |= (1ULL << 6);  // bit 6: Lb
+                    channel_mask |= (1ULL << 7);  // bit 7: Rb
+                    channel_mask |= (1ULL << 10); // bit 10: Tsl
+                    channel_mask |= (1ULL << 11); // bit 11: Tsr
+                }
+                break;
+            }
+            case 7: 
+            {
+                // 7.0.4 (L,C,R,Ls,Rs,Lb,Rb,Tfl,Tfr,Tbl,Tbr) || 7.1.4 (L,C,R,LFE,Ls,Rs,Lb,Rb,Tfl,Tfr,Tbl,Tbr)
+                if (substream->b_ajoc) {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                    channel_mask |= (1ULL << 6);  // bit 6: Lb
+                    channel_mask |= (1ULL << 7);  // bit 7: Rb
+                    channel_mask |= (1ULL << 8);  // bit 8: Tfl
+                    channel_mask |= (1ULL << 9);  // bit 9: Tfr
+                    channel_mask |= (1ULL << 12); // bit 12: Tbl
+                    channel_mask |= (1ULL << 13); // bit 13: Tbr
+                } else {
+                    channel_mask |= (1ULL << 0);  // bit 0: L
+                    channel_mask |= (1ULL << 1);  // bit 1: R
+                    channel_mask |= (1ULL << 2);  // bit 2: C
+                    channel_mask |= (1ULL << 3);  // bit 3: LFE
+                    channel_mask |= (1ULL << 4);  // bit 4: Ls
+                    channel_mask |= (1ULL << 5);  // bit 5: Rs
+                    channel_mask |= (1ULL << 6);  // bit 6: Lb
+                    channel_mask |= (1ULL << 7);  // bit 7: Rb
+                    channel_mask |= (1ULL << 8);  // bit 8: Tfl
+                    channel_mask |= (1ULL << 9);  // bit 9: Tfr
+                    channel_mask |= (1ULL << 12); // bit 12: Tbl
+                    channel_mask |= (1ULL << 13); // bit 13: Tbr
+                }
+                break;
+            }
+            default:
+                channel_mask = 0;
+                break;
+        }
+    }
+
+    // Convert bed_channel_assignment_flag to channel mask (AC-4 Table 64)
+    if (substream->b_nonstd_bed_channel_assignment_flags_present) {
+        nonstd_mask = substream->nonstd_bed_channel_assignment_flag;
+        if (nonstd_mask & (1u << 16)) channel_mask |= (1ULL << 0);   // L
+        if (nonstd_mask & (1u << 15)) channel_mask |= (1ULL << 1);   // R
+        if (nonstd_mask & (1u << 14)) channel_mask |= (1ULL << 2);   // C
+        if (nonstd_mask & (1u << 13)) channel_mask |= (1ULL << 3);  // LFE
+        if (nonstd_mask & (1u << 12)) channel_mask |= (1ULL << 4);   // Ls
+        if (nonstd_mask & (1u << 11)) channel_mask |= (1ULL << 5);   // Rs
+        if (nonstd_mask & (1u << 10)) channel_mask |= (1ULL << 6);   // Lb
+        if (nonstd_mask & (1u <<  9)) channel_mask |= (1ULL << 7);   // Rb
+        if (nonstd_mask & (1u <<  8)) channel_mask |= (1ULL << 8);   // Tfl
+        if (nonstd_mask & (1u <<  7)) channel_mask |= (1ULL << 9);   // Tfr
+        if (nonstd_mask & (1u <<  6)) channel_mask |= (1ULL << 10);  // Tsl
+        if (nonstd_mask & (1u <<  5)) channel_mask |= (1ULL << 11);  // Tsr
+        if (nonstd_mask & (1u <<  4)) channel_mask |= (1ULL << 12);   // Tbl
+        if (nonstd_mask & (1u <<  3)) channel_mask |= (1ULL << 13);  // Tbr
+        if (nonstd_mask & (1u <<  2)) channel_mask |= (1ULL << 14);  // Lw
+        if (nonstd_mask & (1u <<  1)) channel_mask |= (1ULL << 15);  // Rw
+        if (nonstd_mask & (1u <<  0)) channel_mask |= (1ULL << 16);  // LFE2
+    }
+
+    // Convert std_bed_channel_assignment_flag to channel mask (AC-4 Table 65)
+    if (substream->b_channel_assignment_flags_present) {
+        std_mask = substream->std_bed_channel_assignment_flag;
+        if (std_mask & (1u << 9)) channel_mask |= (1ULL << 0);   // L
+        if (std_mask & (1u << 9)) channel_mask |= (1ULL << 1);   // R
+        if (std_mask & (1u << 8)) channel_mask |= (1ULL << 2);   // C
+        if (std_mask & (1u << 7)) channel_mask |= (1ULL << 3);  // LFE
+        if (std_mask & (1u << 6)) channel_mask |= (1ULL << 4);   // Ls
+        if (std_mask & (1u << 6)) channel_mask |= (1ULL << 5);   // Rs
+        if (std_mask & (1u << 5)) channel_mask |= (1ULL << 6);   // Lb
+        if (std_mask & (1u << 5)) channel_mask |= (1ULL << 7);   // Rb
+        if (std_mask & (1u << 4)) channel_mask |= (1ULL << 8);   // Tfl
+        if (std_mask & (1u << 4)) channel_mask |= (1ULL << 9);   // Tfr
+        if (std_mask & (1u << 3)) channel_mask |= (1ULL << 10);  // Tsl
+        if (std_mask & (1u << 3)) channel_mask |= (1ULL << 11);  // Tsr
+        if (std_mask & (1u << 2)) channel_mask |= (1ULL << 12);   // Tbl
+        if (std_mask & (1u << 2)) channel_mask |= (1ULL << 13);  // Tbr
+        if (std_mask & (1u << 1)) channel_mask |= (1ULL << 14);  // Lw
+        if (std_mask & (1u << 1)) channel_mask |= (1ULL << 15);  // Rw
+        if (std_mask & (1u << 0)) channel_mask |= (1ULL << 16);  // LFE2
+    }
+    return channel_mask;
+}
+
 static s32 gf_ac4_presentation_ch_mode(GF_AC4PresentationV1 *p)
 {
-	s32 pres_ch_mode = -1, b_obj_or_ajoc = 0;
-	u32 i, j;
+	s32 pres_ch_mode = -1;
+    u8 b_obj_or_ajoc = 0, b_has_dyn = 0, b_has_isf = 0;
+	u32 i, j, merged_mask = 0;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *substream;
 
-	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.3.1.27 Table 91
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) 6.3.3.1.27
 	for (i = 0; i < p->n_substream_groups; i++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
+		
 		for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
 			if (!substream) continue;
+
+			// Dolby AC-4 Streams Within the ISO Base Media File Format Guidelines for multiplexers v1.0rc0
+			// section 3.1.1.1
 			if (group->b_channel_coded){
 				pres_ch_mode = gf_ac4_cfg_super_set(pres_ch_mode, substream->ch_mode);
-			}else {
+			} else {
 				b_obj_or_ajoc = 1;
 			}
 		}
 	}
 	if (b_obj_or_ajoc == 1) {
-		pres_ch_mode = -1;
+		// derive an appropriate channel configuration from the first substream group (Dolby AC-4 Streams Within the ISO Base Media File Format)
+		group = gf_list_get(p->substream_groups, 0);
+			
+		for (j = 0; j < group->n_lf_substreams; j++){
+			substream = gf_list_get(group->substreams, j);
+			if (!substream) continue;
+
+			if (substream->b_substream_contains_dynamic_objects == 1) {
+                b_has_dyn = 1;
+            }
+			if (substream->b_substream_contains_ISF_objects == 1) {
+                b_has_isf = 1;
+            }
+            merged_mask |= get_obj_channel_mask(substream);
+		}
+		if (!b_has_dyn && !b_has_isf){
+            pres_ch_mode = gf_ac4_convert_speaker_layout_to_channel_mode(merged_mask);
+        } else {
+            pres_ch_mode = -1;
+        }
 	}
 	return pres_ch_mode;
 }
 
-static u32 gf_ac4_presentation_channel_mask_v1(GF_AC4PresentationV1 *p)
+u32 gf_ac4_get_channel_mask_from_ch_mode(GF_AC4PresentationV1 *p)
+{
+	u8 ch_mode = p->dsi_presentation_ch_mode;
+	u32 substreamSpeakerGroupIndexMask = AC4_SPEAKER_GROUP_INDEX_MASK_BY_CH_MODE[ch_mode];
+    if ((ch_mode >= AC4_CH_MODE_7_0_4) && (ch_mode <= AC4_CH_MODE_9_1_4)) {
+        if (!p->pres_b_4_back_channels_present) {    // b_4_back_channels_present false
+            substreamSpeakerGroupIndexMask &= ~0x8;             // Remove back channels (Lb,Rb) from mask
+        }
+        if (!p->pres_b_centre_present) {             // b_centre_present false
+            substreamSpeakerGroupIndexMask &= ~0x2;             // Remove centre channel (C) from mask
+        }
+        switch (p->pres_top_channel_pairs) {      // top_channels_present
+            case 0:
+                substreamSpeakerGroupIndexMask &= ~0x30;        // Remove top channels (Tfl,Tfr,Tbl,Tbr) from mask
+                break;
+            case 1:
+            case 2:
+                substreamSpeakerGroupIndexMask &= ~0x30;        // Remove top channels (Tfl,Tfr,Tbl,Tbr) from mask
+                substreamSpeakerGroupIndexMask |=  0x80;        // Add top channels (Tl, Tr) from mask;
+                break;
+        }
+    }
+    return substreamSpeakerGroupIndexMask;
+
+}
+
+static u32 gf_ac4_presentation_v1_channel_groups(GF_AC4PresentationV1 *p)
 {
 	u32 channel_mask = 0, i, j;
 	u8 b_obj_or_ajoc = 0;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *substream;
 
-	// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.14
 	for (i = 0; i < p->n_substream_groups; i++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
 		for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
 			if (group->b_channel_coded){
-				channel_mask |= substream->dsi_substream_channel_mask;
+				channel_mask |= substream->dsi_substream_channel_groups;
 			}else {
 				b_obj_or_ajoc = 1;
 			}
@@ -15779,13 +16297,14 @@ static u32 gf_ac4_presentation_channel_mask_v1(GF_AC4PresentationV1 *p)
 	}
 
 	// TODO: temporary solution according to Dolby's internal discussion
-	if (channel_mask == 0x03) { channel_mask = 0x01;}
+	if (channel_mask == 0x03) channel_mask = 0x01;
 
 	// If one substream contains Tfl, Tfr, Tbl, Tbr, Tl and Tr shall be removed.
-	if ((channel_mask & 0x30) && (channel_mask & 0x80))  { channel_mask &= ~0x80;}
+	if ((channel_mask & 0x30) && (channel_mask & 0x80)) channel_mask &= ~0x80;
 
 	// objective channel mask
-	if (b_obj_or_ajoc == 1) { channel_mask = 0x800000; }
+	if (b_obj_or_ajoc == 1) channel_mask = gf_ac4_get_channel_mask_from_ch_mode(p);
+
 	return channel_mask;
 }
 
@@ -15870,7 +16389,7 @@ static s32 gf_ac4_get_b_presentation_core_differs(GF_AC4PresentationV1 *p, s32 p
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *substream;
 
-	// ETSI TS 103 190-2 V1.2.1 (2018-02) Table 93
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) Pseudocode 26
 	for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
@@ -15911,10 +16430,62 @@ static s32 gf_ac4_get_b_presentation_core_differs(GF_AC4PresentationV1 *p, s32 p
 	return pres_ch_mode_core;
 }
 
-static Bool gf_ac4_substream_index_table(GF_BitStream *bs, GF_AC4Config* hdr)
+static Bool gf_ac4_assign_substream_info(u32 index, GF_AC4SubStreamInfo *info, GF_List *hdr_p_list, GF_List *parsed_substream_groups)
 {
-	u32 n_substreams, s; //, substream_size;
+	u32 s, g, p;
+	GF_AC4SubStream *substream;
+	GF_AC4SubStreamGroupV1 *group;
+	GF_AC4PresentationV1 *presentation;
+
+	// find substream info in presentation
+	for (p = 0; p < gf_list_count(hdr_p_list); p++) {
+		presentation = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, p);
+		if (!presentation) continue;
+
+		if (presentation->substreams) {
+			for (s = 0; s < gf_list_count(presentation->substreams); s++) {
+				substream = gf_list_get(presentation->substreams, s);
+				if (substream && substream->substream_index == index) {
+					info->substream = substream;
+					info->substream_group = NULL;
+					info->presentation = presentation;
+					
+					return GF_TRUE;
+				}
+			}
+		}
+		// find substream info in substream group
+		if (presentation->substream_groups) {
+			for (g = 0; g < gf_list_count(presentation->substream_groups); g++) {
+				group = (GF_AC4SubStreamGroupV1*)gf_list_get(presentation->substream_groups, g);
+				if (group->b_substreams_present && group->substreams) {
+					for (s = 0; s < gf_list_count(group->substreams); s++) {
+						substream = gf_list_get(group->substreams, s);
+						if (substream && substream->substream_index == index) {
+							info->substream = substream;
+							info->substream_group = group;
+							info->presentation = presentation;
+
+							return GF_TRUE;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return GF_FALSE;
+}
+
+static u32 gf_ac4_substream_index_table(GF_BitStream *bs, 
+										GF_List *substream_index_table,
+										GF_List *hdr_p_list,
+										GF_List *parsed_substream_groups)
+{
+	u32 n_substreams, i;
 	u8 b_size_present, b_more_bits;
+	u32 size = 0;
+	GF_AC4SubStreamInfo *info;
 
 	n_substreams = gf_bs_read_int_log(bs, 2, "n_substreams");
     if (n_substreams == 0) {
@@ -15925,33 +16496,1168 @@ static Bool gf_ac4_substream_index_table(GF_BitStream *bs, GF_AC4Config* hdr)
     } else {
         b_size_present = 1;
     }
+
     if (b_size_present) {
-        for (s = 0; s < n_substreams && gf_bs_available(bs); s++) {
-            b_more_bits = gf_bs_read_int_log(bs, 1, "b_more_bits");
-            /*substream_size = */gf_bs_read_int_log(bs, 10, "substream_size");
+        for (i = 0; i < n_substreams && gf_bs_available(bs); i++) {
+			b_more_bits = gf_bs_read_int_log(bs, 1, "b_more_bits");
+			size = gf_bs_read_int_log(bs, 10, "substream_size");
             if (b_more_bits) {
-                //substream_size += (gf_ac4_variable_bits(bs, 2) << 10);
-                gf_ac4_variable_bits(bs, 2);
+                size += (gf_ac4_variable_bits(bs, 2) << 10);
             }
+
+			GF_SAFEALLOC(info, GF_AC4SubStreamInfo);
+			if (!info) return 0;
+
+			info->size = size;
+			info->substream = NULL;
+			info->substream_group = NULL;
+			info->presentation = NULL;
+
+			// find the substream with substream_index = i in parsed_substream_groups
+			gf_ac4_assign_substream_info(i, info, hdr_p_list, parsed_substream_groups);
+
+			gf_list_add(substream_index_table, info);
         }
     }
+	return n_substreams;
+}
+
+static Bool gf_ac4_de_config(GF_BitStream *bs, GF_AC4SubStream *substream)
+{
+	substream->de_method = gf_bs_read_int_log(bs, 2, "de_method");
+	gf_bs_read_int_log(bs, 2, "de_max_gain");
+	substream->de_channel_config = gf_bs_read_int_log(bs, 3, "de_channel_config");
+	return GF_TRUE;
+}
+
+/* ETSI TS 103 190-1 V1.4.1 (2025-07) Annex A.4 DE Huffman codebook tables */
+const u32 GF_AC4_DE_HCB_ABS_0_LEN[32] = {
+    3,  3,  4,  4,  5,  5,  5,  5,  4,  4,  3,  7,  7,  7,  8,  7,
+    7,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  7,  7,  8,
+};
+
+const u32 GF_AC4_DE_HCB_ABS_0_CW[32] = {
+    0x000006, 0x000003, 0x000009, 0x000001, 0x00001f, 0x00001d, 0x000015, 0x000017, 0x000000, 0x000003, 0x000002, 0x000079, 0x000015, 0x000010, 0x000029, 0x000078,
+    0x00005a, 0x000020, 0x00003d, 0x000039, 0x000022, 0x000021, 0x000028, 0x00002c, 0x000029, 0x000038, 0x000023, 0x00000b, 0x000009, 0x00005b, 0x000011, 0x000028,
+};
+
+const u32 GF_AC4_DE_HCB_DIFF_0_LEN[63] = {
+    14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
+    14, 14, 13, 13, 13, 10, 10,  9,  8,  8,  7,  6,  5,  4,  3,  1,
+     3,  5,  5,  6,  7,  7,  7,  8,  8,  8, 10, 10, 10, 11, 11, 11,
+    11, 12, 12, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 13,
+};
+
+const u32 GF_AC4_DE_HCB_DIFF_0_CW[63] = {
+    0x0002b0, 0x0002b1, 0x0002b4, 0x0002b5, 0x0002b7, 0x0002b6, 0x0002ba, 0x0002bb, 0x0002bc, 0x00079d, 0x00148d, 0x0014b1, 0x00079e, 0x00079f, 0x00148f, 0x0014b6,
+    0x0014b4, 0x0014b5, 0x00014c, 0x000159, 0x0003cc, 0x00002a, 0x00014a, 0x00003d, 0x00000b, 0x000057, 0x000028, 0x000003, 0x000002, 0x000004, 0x000003, 0x000001,
+    0x000001, 0x00000b, 0x000000, 0x000006, 0x00002a, 0x00000e, 0x000004, 0x000053, 0x00001f, 0x000056, 0x000149, 0x000078, 0x000028, 0x000297, 0x000290, 0x0000f2,
+    0x000052, 0x000522, 0x0000a7, 0x000a59, 0x0003cd, 0x00015c, 0x0014b7, 0x0014b0, 0x00148e, 0x00148c, 0x00079c, 0x0002bf, 0x0002bd, 0x0002be, 0x00014d,
+};
+
+const u32 GF_AC4_DE_HCB_ABS_1_LEN[61] = {
+     9, 12, 12, 12, 12, 12, 12, 11, 10, 11, 11, 10, 10, 10, 10, 10,
+    10, 10,  9,  9,  9,  9,  8,  8,  8,  7,  6,  6,  6,  5,  1,  4,
+     5,  5,  5,  5,  5,  5,  6,  6,  5,  6,  7,  6,  7,  8,  8,  9,
+     9,  9,  9, 10, 10, 10, 11, 10, 11, 11, 12, 12, 10,
+};
+
+const u32 GF_AC4_DE_HCB_ABS_1_CW[61] = {
+    0x00015c, 0x000aea, 0x000aeb, 0x000c56, 0x000c78, 0x000c79, 0x000e51, 0x000427, 0x000210, 0x00062a, 0x00063d, 0x000212, 0x00021d, 0x00031d, 0x0002bb, 0x000314,
+    0x000390, 0x000395, 0x00010b, 0x00015f, 0x00018b, 0x0001cb, 0x000086, 0x0000ab, 0x0000c6, 0x000054, 0x000020, 0x000024, 0x000038, 0x00001e, 0x000000, 0x00000d,
+    0x00001f, 0x000017, 0x000016, 0x000014, 0x000013, 0x000011, 0x00003b, 0x00003a, 0x000019, 0x000025, 0x000073, 0x000030, 0x000056, 0x0000c4, 0x0000aa, 0x0001c9,
+    0x00015e, 0x00010f, 0x00010a, 0x000391, 0x00031c, 0x00021c, 0x000729, 0x000211, 0x000574, 0x000426, 0x000e50, 0x000c57, 0x00031f,
+};
+
+const u32 GF_AC4_DE_HCB_DIFF_1_LEN[121] = {
+    13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,
+    13, 13, 13, 13, 12, 13, 13, 13, 13, 13, 13, 12, 12, 12, 11, 12,
+    12, 12, 12, 12, 12, 12, 11, 11, 11, 11, 11, 10, 10, 10, 10,  9,
+     9,  9,  8,  8,  7,  7,  7,  6,  6,  5,  4,  3,  1,  4,  5,  5,
+     6,  6,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10, 11, 11, 11, 11,
+    11, 12, 11, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13,
+    13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,
+    13, 13, 13, 13, 13, 13, 13, 13, 13,
+};
+
+const u32 GF_AC4_DE_HCB_DIFF_1_CW[121] = {
+    0x001cf0, 0x001cbd, 0x001cbc, 0x001ccc, 0x001cb8, 0x001ccb, 0x001ccf, 0x001cc6, 0x001cca, 0x001cc9, 0x001cc8, 0x001cce, 0x001cc5, 0x001cd8, 0x001cc4, 0x001cdf,
+    0x001cd1, 0x001cd5, 0x001ce2, 0x001ce3, 0x000c21, 0x001cfc, 0x001cf1, 0x001cf2, 0x001cf6, 0x001cf4, 0x001cf7, 0x000c20, 0x000c24, 0x000c25, 0x000729, 0x000d1e,
+    0x000d1f, 0x000d59, 0x000d5b, 0x000d5f, 0x000e6d, 0x000e77, 0x00061b, 0x000613, 0x0006a8, 0x0006ae, 0x000730, 0x00030a, 0x00030c, 0x000355, 0x000396, 0x00016c,
+    0x0001a2, 0x0001bb, 0x0000d0, 0x0000dc, 0x00005a, 0x000069, 0x00006f, 0x000031, 0x000038, 0x000019, 0x00000a, 0x000004, 0x000000, 0x00000f, 0x00001d, 0x000017,
+    0x000036, 0x00002c, 0x00006b, 0x000060, 0x0000e4, 0x0000d4, 0x0000b7, 0x0001ba, 0x000187, 0x00016d, 0x000395, 0x00030b, 0x00073e, 0x000728, 0x0006a9, 0x00068d,
+    0x00068e, 0x000e7f, 0x000611, 0x000d5e, 0x000d5a, 0x000d58, 0x000d19, 0x000d18, 0x000c34, 0x000c35, 0x000e74, 0x001cfd, 0x001cf3, 0x001cf5, 0x001cec, 0x001ced,
+    0x001cea, 0x001ce7, 0x001ce5, 0x001ce6, 0x001ce4, 0x001cdd, 0x001ce1, 0x001ce0, 0x001cd4, 0x001cde, 0x001cd7, 0x001cdc, 0x001cd2, 0x001cd6, 0x001ccd, 0x001cd3,
+    0x001cd9, 0x001cbf, 0x001cbe, 0x001cd0, 0x001cbb, 0x001cba, 0x001cb9, 0x001cc7, 0x001ceb,
+};
+
+static u32 gf_ac4_huff_decode_diff(const u32 *cw, u32 code)
+{
+	u32 cb_idx, table_size = 0;
+	if (!cw) return 0;
+
+	if (cw == GF_AC4_DE_HCB_ABS_0_CW) {
+		table_size = GF_ARRAY_LENGTH(GF_AC4_DE_HCB_ABS_0_CW);
+	} else if (cw == GF_AC4_DE_HCB_DIFF_0_CW) {
+		table_size = GF_ARRAY_LENGTH(GF_AC4_DE_HCB_DIFF_0_CW);
+	} else if (cw == GF_AC4_DE_HCB_ABS_1_CW) {
+		table_size = GF_ARRAY_LENGTH(GF_AC4_DE_HCB_ABS_1_CW);
+	} else if (cw == GF_AC4_DE_HCB_DIFF_1_CW) {
+		table_size = GF_ARRAY_LENGTH(GF_AC4_DE_HCB_DIFF_1_CW);
+	} else {
+		return 0;
+	}
+
+	for (cb_idx = 0; cb_idx < table_size; cb_idx++) {
+		if (((u32) cw[cb_idx]) == code)
+			return cb_idx;
+	}
+	return 0;
+}
+
+static u32 gf_ac4_de_abs_huffman(u8 table_idx, u32 code)
+{
+	const u32 *hcb;
+	if (table_idx == 0) {
+		hcb = GF_AC4_DE_HCB_ABS_0_CW;
+	} else {
+		hcb = GF_AC4_DE_HCB_ABS_1_CW;
+	}
+	return gf_ac4_huff_decode_diff(hcb, code);
+}
+
+static u32 gf_ac4_de_diff_huffman(u8 table_idx, u32 code)
+{
+	const u32 *hcb;
+	if (table_idx == 0) {
+		hcb = GF_AC4_DE_HCB_DIFF_0_CW;
+	} else {
+		hcb = GF_AC4_DE_HCB_DIFF_1_CW;
+	}
+	return gf_ac4_huff_decode_diff(hcb, code);
+}
+
+static u32 gf_ac4_de_read_abs_huffman(GF_BitStream *bs, u8 table_idx)
+{
+	u32 i, code = 0, code_len = 0, table_size;
+	const u32 *hcb, *hcb_len;
+	if (table_idx == 0) {
+		hcb = GF_AC4_DE_HCB_ABS_0_CW;
+		hcb_len = GF_AC4_DE_HCB_ABS_0_LEN;
+		table_size = GF_ARRAY_LENGTH(GF_AC4_DE_HCB_ABS_0_CW);
+	} else {
+		hcb = GF_AC4_DE_HCB_ABS_1_CW;
+		hcb_len = GF_AC4_DE_HCB_ABS_1_LEN;
+		table_size = GF_ARRAY_LENGTH(GF_AC4_DE_HCB_ABS_1_CW);
+	}
+
+	while (gf_bs_available(bs)) {
+		code = (code << 1) | gf_bs_read_int(bs, 1);
+		code_len++;
+
+		for (i = 0; i < table_size; i++) {
+			if ((hcb_len[i] == code_len) && (hcb[i] == code))
+				return code;
+		}
+	}
+	return code;
+}
+
+static u32 gf_ac4_de_read_diff_huffman(GF_BitStream *bs, u8 table_idx)
+{
+	u32 i, code = 0, code_len = 0, table_size;
+	const u32 *hcb, *hcb_len;
+	if (table_idx == 0) {
+		hcb = GF_AC4_DE_HCB_DIFF_0_CW;
+		hcb_len = GF_AC4_DE_HCB_DIFF_0_LEN;
+		table_size = GF_ARRAY_LENGTH(GF_AC4_DE_HCB_DIFF_0_CW);
+	} else {
+		hcb = GF_AC4_DE_HCB_DIFF_1_CW;
+		hcb_len = GF_AC4_DE_HCB_DIFF_1_LEN;
+		table_size = GF_ARRAY_LENGTH(GF_AC4_DE_HCB_DIFF_1_CW);
+	}
+
+	while (gf_bs_available(bs)) {
+		code = (code << 1) | gf_bs_read_int(bs, 1);
+		code_len++;
+
+		for (i = 0; i < table_size; i++) {
+			if ((hcb_len[i] == code_len) && (hcb[i] == code))
+				return code;
+		}
+	}
+	return code;
+}
+
+static Bool gf_ac4_de_data(GF_BitStream *bs, u8 de_method, u8 de_nr_channels, u8 b_iframe, u8 b_de_simulcast)
+{
+	// ETSI TS 103 190-1 V1.4.1 (2025-07) 4.3.14.5.1 de_nr_bands - number of parameter bands
+	const u32 de_nr_bands = 8;
+	u32 de_keep_pos_flag, de_keep_data_flag, de_ms_proc_flag, ch, band;
+	u32 de_par_code, ref_val;
+	u32 de_par[4][8], de_par_prev[4][8];
+
+	if (de_nr_channels > 0) {
+		if ((de_method == 1 || de_method == 3) && de_nr_channels > 1) {
+			if (b_de_simulcast == 0) {
+				if (b_iframe) {
+					de_keep_pos_flag = 0;
+				} else {
+					de_keep_pos_flag = gf_bs_read_int_log(bs, 1, "de_keep_pos_flag");
+				}
+				if (de_keep_pos_flag == 0) {
+					gf_bs_read_int_log(bs, 5, "de_mix_coef1_idx");
+					if (de_nr_channels == 3) {
+						gf_bs_read_int_log(bs, 5, "de_mix_coef2_idx");
+					}
+				}
+			}
+		}
+		if (b_iframe) {
+			de_keep_data_flag = 0;
+		} else {
+			de_keep_data_flag = gf_bs_read_int_log(bs, 1, "de_keep_data_flag");
+		}
+		if (de_keep_data_flag == 0) {
+			if ((de_method == 0 || de_method == 2) && de_nr_channels == 2) {
+				de_ms_proc_flag = gf_bs_read_int_log(bs, 1, "de_ms_proc_flag");
+			} else {
+				de_ms_proc_flag = 0;
+			}
+
+			// skip the calculation of de_par and de_par_prev since they are not used in the bitstream parsing
+			for (ch = 0; ch < de_nr_channels - de_ms_proc_flag; ch++) {
+				if (b_iframe != 0 && ch == 0) {
+					de_par_code = gf_ac4_de_read_abs_huffman(bs, de_method % 2);
+
+					de_par[0][0] = gf_ac4_de_abs_huffman(de_method % 2, de_par_code);
+					ref_val = de_par[0][0];
+					de_par_prev[0][0] = de_par[0][0];
+
+					for (band = 1; band < de_nr_bands; band++) {
+						de_par_code = gf_ac4_de_read_diff_huffman(bs, de_method % 2);
+						
+						de_par[0][band] = ref_val + gf_ac4_de_diff_huffman(de_method % 2, de_par_code);
+						ref_val = de_par[0][band];
+						de_par_prev[0][band] = de_par[0][band];
+					}
+				} else {
+					for (band = 0; band < de_nr_bands; band++) {
+						if (b_iframe) {
+							de_par_code = gf_ac4_de_read_diff_huffman(bs, de_method % 2);
+
+							de_par[ch][band] = ref_val + gf_ac4_de_diff_huffman(de_method % 2, de_par_code);
+							ref_val = de_par[0][band];
+						}
+						else {
+							de_par_code = gf_ac4_de_read_diff_huffman(bs, de_method % 2);
+
+							de_par[ch][band] = de_par_prev[ch][band] + gf_ac4_de_diff_huffman(de_method % 2,
+							de_par_code);
+						}
+						de_par_prev[ch][band] = de_par[ch][band];
+					}
+				}
+				ref_val = de_par[ch][0];
+			}
+
+			if (de_method >= 2) {
+				gf_bs_read_int_log(bs, 5, "de_signal_contribution");
+			}
+		}
+	}
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_dialog_enhancement(GF_BitStream *bs, GF_AC4SubStream *substream, u8 b_iframe)
+{
+	// this is the dialog_enhancement() function in ETSI TS 103 190-1 V1.4.1 (2025-07) 4.2.14.11
+	u8 de_nr_channels;
+
+	substream->b_de_data_present = gf_bs_read_int_log(bs, 1, "b_de_data_present");
+	if (substream->b_de_data_present) {
+		if (b_iframe) {
+			gf_ac4_de_config(bs, substream);
+		}
+		else {
+			if (gf_bs_read_int_log(bs, 1, "b_de_config_flag")) {
+				gf_ac4_de_config(bs, substream);
+			}
+		}
+
+		// ETSI TS 103 190-1 V1.4.1 (2025-07) Table 171
+		switch (substream->de_channel_config) {
+			case 0:
+				de_nr_channels = 1;
+				break;
+			case 1:
+				de_nr_channels = 2;
+				break;
+			case 2:
+				de_nr_channels = 1;
+				break;
+			case 3:
+				de_nr_channels = 2;
+				break;
+			case 4:
+				de_nr_channels = 1;
+				break;
+			case 5:
+				de_nr_channels = 2;
+				break;
+			case 6:
+				de_nr_channels = 2;
+				break;
+			case 7:
+				de_nr_channels = 3;
+				break;
+			default:
+				// reserved
+				return GF_FALSE;
+		}
+
+		gf_ac4_de_data(bs, substream->de_method, de_nr_channels, b_iframe, 0);
+		if (substream->ch_mode == 13 || substream->ch_mode == 14) {
+			if (gf_bs_read_int_log(bs, 1, "b_de_simulcast")) {
+				gf_ac4_de_data(bs, substream->de_method, de_nr_channels, b_iframe, 1);
+			}
+		}
+	}
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_channel_mode_contains_Lfe(u32 ch_mode)
+{
+	switch(ch_mode) {
+		case 4:
+		case 6:
+		case 8:
+		case 10:
+		case 12:
+		case 14:
+		case 15:
+			return GF_TRUE;
+		default:
+			return GF_FALSE;
+	}
+	return GF_FALSE;
+}
+
+static Bool gf_ac4_further_loudness_info(GF_BitStream *bs, u8 sus_ver, u8 b_presentation_ldn)
+{
+	u32 loudness_version, prgmbndy_bit, e_bits_size, i;
+
+	if (b_presentation_ldn || sus_ver == 0) {
+		loudness_version = gf_bs_read_int_log(bs, 2, "loudness_version");
+		if (loudness_version == 3) {
+			loudness_version += gf_bs_read_int_log(bs, 4, "extended_loudness_version");
+		}
+
+		if (gf_bs_read_int_log(bs, 4, "loud_prac_type") != 0) {
+			if (gf_bs_read_int_log(bs, 1, "b_loudcorr_dialgate")) {
+				gf_bs_read_int_log(bs, 3, "dialgate_prac_type");
+			}
+			gf_bs_read_int_log(bs, 1, "b_loudcorr_type");
+		}
+	} else {
+		gf_bs_read_int_log(bs, 1, "b_loudcorr_dialgate");
+	}
+	if (gf_bs_read_int_log(bs, 1, "b_loudrelgat")) {
+		gf_bs_read_int_log(bs, 11, "loudrelgat");
+	}
+	if (gf_bs_read_int_log(bs, 1, "b_loudspchgat")) {
+		gf_bs_read_int_log(bs, 11, "loudspchgat");
+		gf_bs_read_int_log(bs, 3, "dialgate_prac_type");
+	}
+
+	if (gf_bs_read_int_log(bs, 1, "b_loudstrm3s")) {
+		gf_bs_read_int_log(bs, 11, "loudstrm3s");
+	}
+	if (gf_bs_read_int_log(bs, 1, "b_max_loudstrm3s")) {
+		gf_bs_read_int_log(bs, 11, "max_loudstrm3s");
+	}
+	if (gf_bs_read_int_log(bs, 1, "b_truepk")) {
+		gf_bs_read_int_log(bs, 11, "truepk");
+	}
+	if (gf_bs_read_int_log(bs, 1, "b_max_truepk")) {
+		gf_bs_read_int_log(bs, 11, "max_truepk");
+	}
+	if (b_presentation_ldn || sus_ver == 0) {
+		if (gf_bs_read_int_log(bs, 1, "b_prgmbndy")) {
+			// prgmbndy = 1;
+			prgmbndy_bit = 0;
+			while (prgmbndy_bit == 0) {
+				// prgmbndy <<= 1;
+				prgmbndy_bit = gf_bs_read_int_log(bs, 1, "prgmbndy_bit");
+			}
+			gf_bs_read_int_log(bs, 1, "b_end_or_start");
+			if (gf_bs_read_int_log(bs, 1, "b_prgmbndy_offset")) {
+				gf_bs_read_int_log(bs, 11, "prgmbndy_offset");
+			}
+		}
+	}
+	if (gf_bs_read_int_log(bs, 1, "b_lra")) {
+		gf_bs_read_int_log(bs, 10, "lra");
+		gf_bs_read_int_log(bs, 3, "lra_prac_type");
+	}
+	if (gf_bs_read_int_log(bs, 1, "b_loudmntry")) {
+		gf_bs_read_int_log(bs, 11, "loudmntry");
+	}
+	if (gf_bs_read_int_log(bs, 1, "b_max_loudmntry")) {
+		gf_bs_read_int_log(bs, 11, "max_loudmntry");
+	}
+	if (sus_ver >= 1) {
+		if (gf_bs_read_int_log(bs, 1, "b_rtllcomp")) {
+			gf_bs_read_int_log(bs, 8, "rtll_comp");
+		}
+		if (gf_bs_read_int_log(bs, 1, "b_extension")) {
+			e_bits_size = gf_bs_read_int_log(bs, 5, "e_bits_size");
+			if (e_bits_size == 31) {
+				e_bits_size += gf_ac4_variable_bits(bs, 4);
+			}
+			for (i = 0; i < e_bits_size; i++) {
+				gf_bs_read_int_log(bs, 1, "extension_bit");
+			}
+		}
+	} else {
+		if (gf_bs_read_int_log(bs, 1, "b_extension")) {
+			e_bits_size = gf_bs_read_int_log(bs, 5, "e_bits_size");
+			if (e_bits_size == 31) {
+				e_bits_size += gf_ac4_variable_bits(bs, 4);
+			}
+			if (gf_bs_read_int_log(bs, 1, "b_rtllcomp")) {
+				gf_bs_read_int_log(bs, 8, "rtll_comp");
+				for (i = 0; i < e_bits_size - 9; i++) {
+					gf_bs_read_int_log(bs, 1, "extension_bit");
+				}
+			} else {
+				for (i = 0; i < e_bits_size - 1; i++) {
+					gf_bs_read_int_log(bs, 1, "extension_bit");
+				}
+			}
+		}
+	}
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_basic_metadata(GF_BitStream *bs, GF_AC4SubStream *substream)
+{
+	u8 sus_ver = substream->sus_ver;
+
+	if (sus_ver == 0) {
+		gf_bs_read_int_log(bs, 7, "dialnorm_bits");
+	}
+	if (gf_bs_read_int_log(bs, 1, "b_more_basic_metadata")) {
+		if (sus_ver == 0) {
+			if (gf_bs_read_int_log(bs, 1, "b_further_loudness_info")) {
+				gf_ac4_further_loudness_info(bs, sus_ver, 0);
+			}
+		} else {
+			if (gf_bs_read_int_log(bs, 1, "b_substream_loudness_info")) {
+				gf_bs_read_int_log(bs, 8, "substream_loudness_bits");
+				if (gf_bs_read_int_log(bs, 1, "b_further_substream_loudness_info")) {
+					gf_ac4_further_loudness_info(bs, sus_ver, 0);
+				}
+			}
+		}
+
+		// the relation butween ch_mode and channel mode is in ETSI TS 103 190-2 V1.3.1 (2025-07) Table 56
+		if (substream->ch_mode == 1) { // == stereo
+			if (gf_bs_read_int_log(bs, 1, "b_prev_dmx_info")) {
+				gf_bs_read_int_log(bs, 3, "pre_dmixtyp_2ch");
+				gf_bs_read_int_log(bs, 2, "phase90_info_2ch");
+			}
+		}
+		if (substream->ch_mode > 1) { // > stereo
+			if (sus_ver == 0) {
+				if (gf_bs_read_int_log(bs, 1, "b_stereo_dmx_coeff")) {
+					gf_bs_read_int_log(bs, 3, "loro_centre_mixgain");
+					gf_bs_read_int_log(bs, 3, "loro_surround_mixgain");
+
+					if (gf_bs_read_int_log(bs, 1, "b_loro_dmx_loud_corr")) {
+						gf_bs_read_int_log(bs, 5, "loro_dmx_loud_corr");
+					}
+
+					if (gf_bs_read_int_log(bs, 1, "b_ltrt_mixinfo")) {
+						gf_bs_read_int_log(bs, 3, "ltrt_centre_mixgain");
+						gf_bs_read_int_log(bs, 3, "ltrt_surround_mixgain");
+					}
+
+					if (gf_bs_read_int_log(bs, 1, "b_ltrt_dmx_loud_corr")) {
+						gf_bs_read_int_log(bs, 5, "ltrt_dmx_loud_corr");
+					}
+
+					if (gf_ac4_channel_mode_contains_Lfe(substream->ch_mode)) {
+						if (gf_bs_read_int_log(bs, 1, "b_lfe_mixinfo")) {
+							gf_bs_read_int_log(bs, 5, "lfe_mixgain");
+						}
+					}
+					gf_bs_read_int_log(bs, 2, "preferred_dmx_method");
+				}
+			}
+			if (substream->ch_mode == 3 || substream->ch_mode == 4) { // == 5_X
+				if (gf_bs_read_int_log(bs, 1, "b_predmixtyp_5ch")) {
+					gf_bs_read_int_log(bs, 3, "pre_dmixtyp_5ch");
+				}
+				if (gf_bs_read_int_log(bs, 1, "b_preupmixtyp_5ch")) {
+					gf_bs_read_int_log(bs, 4, "pre_upmixtyp_5ch");
+				}
+			}
+			// 7_X does not include 7.0.4 and 7.1.4 based on section 6.2.3.1
+			if (substream->ch_mode >= 5 && substream->ch_mode <= 10) { // == 7_X
+				if (gf_bs_read_int_log(bs, 1, "b_upmixtyp_7ch")) {
+					if (substream->ch_mode == 5) { // 3/4/0
+						gf_bs_read_int_log(bs, 2, "pre_upmixtyp_3_4");
+					} else {
+						if (substream->ch_mode == 9) { // 3/2/2
+							gf_bs_read_int_log(bs, 1, "pre_upmixtyp_3_2_2");
+						}
+					}
+				}
+			}
+			gf_bs_read_int_log(bs, 2, "phase90_info_mc");
+			gf_bs_read_int_log(bs, 1, "b_surround_attenuation_known");
+			gf_bs_read_int_log(bs, 1, "b_lfe_attenuation_known");
+		}
+		if (gf_bs_read_int_log(bs, 1, "b_dc_blocking")) {
+			gf_bs_read_int_log(bs, 1, "dc_block_on");
+		}
+	}
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_extended_metadata(GF_BitStream *bs, GF_AC4SubStream *substream, GF_AC4PresentationV1 *presentation)
+{
+	u8 b_dialog = 0;
+	u32 ch_mode = substream->ch_mode;
+	u8 b_associated = 0;
+
+	// ETSI TS 103 190-1 V1.4.1 (2025-07) 4.3.12.4.1
+	if (presentation->presentation_config == 2 || presentation->presentation_config == 3 || presentation->presentation_config == 4) {
+		b_associated = 1;
+	}
+
+	if (substream->sus_ver >= 1) {
+		b_dialog = gf_bs_read_int_log(bs, 1, "b_dialog");
+	} else {
+		if (b_associated) {
+			if (gf_bs_read_int_log(bs, 1, "b_scale_main")) {
+				gf_bs_read_int_log(bs, 8, "scale_main");
+			}
+			if (gf_bs_read_int_log(bs, 1, "b_scale_main_centre")) {
+				gf_bs_read_int_log(bs, 8, "scale_main_centre");
+			}
+			if (gf_bs_read_int_log(bs, 1, "b_scale_main_front")) {
+				gf_bs_read_int_log(bs, 8, "scale_main_front");
+			}
+			if (ch_mode == 0) { // mono
+				gf_bs_read_int_log(bs, 8, "pan_associated");
+			}
+		}
+	}
+
+	if (b_dialog) {
+		substream->b_dialog_max_gain = gf_bs_read_int_log(bs, 1, "b_dialog_max_gain");
+		if (substream->b_dialog_max_gain) {
+			gf_bs_read_int_log(bs, 2, "dialog_max_gain");
+		}
+		if (gf_bs_read_int_log(bs, 1, "b_pan_dialog_present")) {
+			if (ch_mode == 0) { // mono
+				gf_bs_read_int_log(bs, 8, "pan_dialog");
+			} else {
+				gf_bs_read_int_log(bs, 8, "pan_dialog[0]");
+				gf_bs_read_int_log(bs, 8, "pan_dialog[1]");
+				gf_bs_read_int_log(bs, 2, "pan_signal_selector");
+			}
+		}
+	}
+	
+	if (gf_bs_read_int_log(bs, 1, "b_channels_classifier")) {
+		// channel_mode_contains_c()
+		if (ch_mode == 0 || (ch_mode >= 2 && ch_mode <= 15)) {
+			if (gf_bs_read_int_log(bs, 1, "b_c_active")) {
+				gf_bs_read_int_log(bs, 1, "b_c_has_dialog");
+			}
+		}
+		// channel_mode_contains_lr()
+		if (ch_mode >= 1 && ch_mode <= 15) {
+			if (gf_bs_read_int_log(bs, 1, "b_l_active")) {
+				gf_bs_read_int_log(bs, 1, "b_l_has_dialog");
+			}
+			if (gf_bs_read_int_log(bs, 1, "b_r_active")) {
+				gf_bs_read_int_log(bs, 1, "b_r_has_dialog");
+			}
+		}
+		// channel_mode_contains_LsRs()
+		if (ch_mode >= 3 && ch_mode <= 15) {
+			gf_bs_read_int_log(bs, 1, "b_ls_active");
+			gf_bs_read_int_log(bs, 1, "b_rs_active");
+		}
+		// channel_mode_contains_LbRb()
+		if (ch_mode == 5 || ch_mode == 6 || (ch_mode >= 11 && ch_mode <= 15)) {
+			gf_bs_read_int_log(bs, 1, "b_lb_active");
+			gf_bs_read_int_log(bs, 1, "b_rb_active");
+		}
+		// channel_mode_contains_LwRw()
+		if (ch_mode == 7 || ch_mode == 8 || ch_mode == 15) {
+			gf_bs_read_int_log(bs, 1, "b_lw_active");
+			gf_bs_read_int_log(bs, 1, "b_rw_active");
+		}
+		//channel_mode_contains_TflTfr ()
+		if (ch_mode == 9 || ch_mode == 10) {
+			gf_bs_read_int_log(bs, 1, "b_tfl_active");
+			gf_bs_read_int_log(bs, 1, "b_tfr_active");
+		}
+		// channel_mode_contains_Lfe()
+		if (gf_ac4_channel_mode_contains_Lfe(ch_mode)) {
+			gf_bs_read_int_log(bs, 1, "b_lfe_active");
+		}
+	}
+	if (gf_bs_read_int_log(bs, 1, "b_event_probability")) {
+		gf_bs_read_int_log(bs, 4, "event_probability");
+	}
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_dialog_enhancement_info(GF_BitStream *bs, GF_AC4SubStream *substream)
+{
+	// this is the dialog_enhancement_info() function in Dolby AC-4 Streams Within the ISO Base Media File Format Guidelines for multiplexers v1.0 section 7.2.2
+	u8 dei_version;
+	u32 dei_drc_offset_code;
+	u32 dei_drc_offset_value, dei_drc_offset_ext;
+
+	dei_version = gf_bs_read_int_log(bs, 2, "dei_version");
+	if (dei_version == 0x0) {
+		/* Dialogue Enhancement Gain */
+		substream->dei_dialog_gain_code_present = gf_bs_read_int_log(bs, 1, "dei_dialog_gain_code_present");
+		if (substream->dei_dialog_gain_code_present == 0x1) {
+			substream->dei_dialog_gain_code = gf_bs_read_int_log(bs, 6, "dei_dialog_gain_code");
+
+			substream->dei_prevent_de_processing = 1;
+		}
+		else {
+			substream->dei_prevent_de_processing = gf_bs_read_int_log(bs, 1, "dei_prevent_de_processing");
+		}
+		if (1 == substream->dei_prevent_de_processing) {
+			/* DRC Loudness Offset */
+			if (substream->dei_dialog_gain_code_present != 0x0) {
+				dei_drc_offset_code = gf_bs_read_int_log(bs, 4, "dei_drc_offset_code");
+				dei_drc_offset_value = (dei_drc_offset_code - 6) / 2; // [dB]; range: -3dB .. +4 dB, 0.5 dB steps
+				if (dei_drc_offset_code == 0xf) {
+					dei_drc_offset_ext = gf_bs_read_int_log(bs, 4, "dei_drc_offset_ext");
+					dei_drc_offset_value = dei_drc_offset_ext + 5; // [dB]; range: +5dB .. +20 dB, 1 dB steps
+				}
+			}
+			else {
+				dei_drc_offset_value = 0; // 0 dB
+			}
+
+			/* Dialogue Enhancement Group ID */
+			if (gf_bs_read_int_log(bs, 1, "dei_group_id_present") != 0) {
+				gf_bs_read_int_log(bs, 2, "dei_group_id_minus1");
+			}
+			else {
+				// dei_group_id = 0;
+			}
+			/* Content Properties */
+			if (gf_bs_read_int_log(bs, 1, "dei_dialog_is_separated") != 0) {
+				gf_bs_read_int_log(bs, 1, "dei_main_contains_dialog");
+			}
+		}
+	}
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_emdf_payloads_substream(GF_BitStream *bs, GF_AC4SubStream *substream)
+{
+	u32 emdf_payload_id, emdf_payload_size, remaining_bits, i;
+	u8 b_smpoffst = 0, b_payload_frame_aligned = 0;
+	u64 pos;
+
+	emdf_payload_id = gf_bs_read_int_log(bs, 5, "emdf_payload_id");
+	while (gf_bs_available(bs) && emdf_payload_id != 0) {
+		if (emdf_payload_id == 31) {
+			emdf_payload_id += gf_ac4_variable_bits(bs, 5);
+		}
+		
+		// emdf_payload_config
+		b_smpoffst = gf_bs_read_int_log(bs, 1, "b_smpoffst");
+		if (b_smpoffst) {
+			gf_ac4_variable_bits(bs, 11); // smpoffst
+		}
+		if (gf_bs_read_int_log(bs, 1, "b_duration")) {
+			gf_ac4_variable_bits(bs, 11); // duration
+		}
+		if (gf_bs_read_int_log(bs, 1, "b_groupid")) {
+			gf_ac4_variable_bits(bs, 2); // groupid
+		}
+		if (gf_bs_read_int_log(bs, 1, "b_codecdata")) {
+			gf_bs_read_int_log(bs, 8, "codecdata");
+		}
+		if (!gf_bs_read_int_log(bs, 1, "b_discard_unknown_payload")) {
+			if (b_smpoffst == 0) {
+				b_payload_frame_aligned = gf_bs_read_int_log(bs, 1, "b_payload_frame_aligned");
+				if (b_payload_frame_aligned) {
+					gf_bs_read_int_log(bs, 1, "b_create_duplicate");
+					gf_bs_read_int_log(bs, 1, "b_remove_duplicate");
+				}
+			}
+			if (b_smpoffst == 1 || b_payload_frame_aligned == 1) {
+				gf_bs_read_int_log(bs, 5, "priority");
+				gf_bs_read_int_log(bs, 2, "proc_allowed");
+			}
+		}
+
+		emdf_payload_size = gf_ac4_variable_bits(bs, 8);
+		if (gf_bs_available(bs) < emdf_payload_size * 8) {
+			// not enough bits for the payload, skip the rest of the payloads
+			break;
+		}
+
+		pos = gf_bs_get_bit_offset(bs);
+		
+		switch(emdf_payload_id) {
+			case 0x14:
+				gf_ac4_dialog_enhancement_info(bs, substream);
+				break;
+			default:
+				// skip other payload
+				break;
+		}
+
+		remaining_bits = emdf_payload_size * 8 - (gf_bs_get_bit_offset(bs) - pos);
+		gf_bs_read_int(bs, remaining_bits % 8); // skip remaining bits in the current byte
+		for (i = 0; i < remaining_bits / 8; i++) {
+			gf_bs_read_int(bs, 8);
+		}
+
+		emdf_payload_id = gf_bs_read_int_log(bs, 5, "emdf_payload_id");
+	}
+	gf_bs_align(bs);
+
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_ext_prec_pos(GF_BitStream *bs)
+{
+	u8 ext_prec_pos_presence_0, ext_prec_pos_presence_1, ext_prec_pos_presence_2;
+
+	ext_prec_pos_presence_0 = gf_bs_read_int_log(bs, 1, "ext_prec_pos_presence_0");
+	ext_prec_pos_presence_1 = gf_bs_read_int_log(bs, 1, "ext_prec_pos_presence_1");
+	ext_prec_pos_presence_2 = gf_bs_read_int_log(bs, 1, "ext_prec_pos_presence_2");
+
+	if (ext_prec_pos_presence_2) {
+		gf_bs_read_int_log(bs, 2, "ext_prec_pos3D_X");
+	}
+	if (ext_prec_pos_presence_1) {
+		gf_bs_read_int_log(bs, 2, "ext_prec_pos3D_Y");
+	}
+	if (ext_prec_pos_presence_0) {
+		gf_bs_read_int_log(bs, 2, "ext_prec_pos3D_Z");
+	}
+
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_ext_prec_alt_pos(GF_BitStream *bs, u32 n_objs, u8 b_keep, u32 *obj_type, u32 *b_lfe)
+{
+	u32 obj;
+	if (b_keep == 0) {
+		for (obj = 0; obj < n_objs; obj++) {
+			if ((obj_type[obj] == GF_AC4_OBJ_TYPE_DYN) && (b_lfe[obj] == 0)) {
+				if (gf_bs_read_int_log(bs, 1, "b_ext_prec_alt_pos")) {
+					gf_ac4_ext_prec_pos(bs);
+				}
+			}
+		}
+	}
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_object_basic_info(GF_BitStream *bs)
+{
+	u8 basic_info_md, object_gain_code;
+
+	if (gf_bs_read_int_log(bs, 1, "b_default_basic_info_md") == 0) {
+		basic_info_md = gf_bs_read_int_log(bs, 1, "basic_info_md");
+		if (basic_info_md) {
+			basic_info_md = (basic_info_md << 1) + gf_bs_read_int_log(bs, 1, "basic_info_md");
+		}
+		if (basic_info_md == 0b0 || basic_info_md == 0b10) {
+			object_gain_code = gf_bs_read_int_log(bs, 1, "object_gain_code");
+			if (object_gain_code) {
+				object_gain_code = (object_gain_code << 1) + gf_bs_read_int_log(bs, 1, "object_gain_code");
+			}
+			if (object_gain_code == 0b0) {
+				gf_bs_read_int_log(bs, 6, "object_gain_value");
+			}
+		}
+		if (basic_info_md == 0b10 || basic_info_md == 0b11) {
+			gf_bs_read_int_log(bs, 5, "object_priority_code");
+		}
+	}
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_object_render_info(GF_BitStream *bs, u32 object_render_info_status, u8 b_no_delta)
+{
+	u8 b_obj_render_otherprops_present, b_obj_render_zone_present, b_obj_render_position_present;
+	u8 b_diff_pos_coding, group_other_mask, object_div_mode;
+	u8 group_zone_flag_0, group_zone_flag_1, group_zone_flag_2;
+
+	if (object_render_info_status == 1) { // ALL_NEW
+		b_obj_render_otherprops_present = 1;
+		b_obj_render_zone_present = 1;
+		b_obj_render_position_present = 1;
+	}
+	else {
+		/* object_render_info_mask section */
+		b_obj_render_otherprops_present = gf_bs_read_int_log(bs, 5, "b_obj_render_otherprops_present");
+		b_obj_render_zone_present = gf_bs_read_int_log(bs, 5, "b_obj_render_zone_present");
+		b_obj_render_position_present = gf_bs_read_int_log(bs, 5, "b_obj_render_position_present");
+	}
+	if (b_obj_render_position_present) {
+		if (b_no_delta) {
+			b_diff_pos_coding = 0;
+		} else {
+			b_diff_pos_coding = gf_bs_read_int_log(bs, 1, "b_diff_pos_coding");
+		}
+		if (b_diff_pos_coding) {
+			gf_bs_read_int_log(bs, 3, "diff_pos3D_X");
+			gf_bs_read_int_log(bs, 3, "diff_pos3D_Y");
+			gf_bs_read_int_log(bs, 3, "diff_pos3D_Z");
+		} else {
+			gf_bs_read_int_log(bs, 6, "pos3D_X");
+			gf_bs_read_int_log(bs, 6, "pos3D_Y");
+			gf_bs_read_int_log(bs, 1, "pos3D_Z_sign");
+			gf_bs_read_int_log(bs, 4, "pos3D_Z");
+		}
+	}
+	if (b_obj_render_zone_present) {
+		if (gf_bs_read_int_log(bs, 1, "b_grouped_zone_defaults") == 0) {
+			group_zone_flag_0 = gf_bs_read_int_log(bs, 1, "group_zone_flag_0");
+			group_zone_flag_1 = gf_bs_read_int_log(bs, 1, "group_zone_flag_1");
+			group_zone_flag_2 = gf_bs_read_int_log(bs, 1, "group_zone_flag_2");
+
+			if (group_zone_flag_2) {
+				gf_bs_read_int_log(bs, 3, "zone_mask");
+			}
+			if (group_zone_flag_1) {
+				// b_enable_elevation = 0;
+			}
+			if (group_zone_flag_0) {
+				// b_object_snap = 1;
+			}
+		}
+	}
+	if (b_obj_render_otherprops_present) {
+		if (gf_bs_read_int_log(bs, 1, "b_grouped_other_defaults") == 0) {
+			group_other_mask = gf_bs_read_int_log(bs, 4, "group_other_mask");
+			if (group_other_mask & 0b0001) {
+				if (gf_bs_read_int_log(bs, 1, "object_width_mode") == 0) {
+					gf_bs_read_int_log(bs, 5, "object_width_code");
+				} else {
+					gf_bs_read_int_log(bs, 5, "object_width_X_code");
+					gf_bs_read_int_log(bs, 5, "object_width_Y_code");
+					gf_bs_read_int_log(bs, 5, "object_width_Z_code");
+				}
+			}
+		if (group_other_mask & 0b0010) {
+			gf_bs_read_int_log(bs, 3, "object_screen_factor_code");
+			gf_bs_read_int_log(bs, 2, "object_depth_factor");
+		} else {
+			// object_screen_factor_code = 0;
+		}
+		if (group_other_mask & 0b0100) {
+			if (gf_bs_read_int_log(bs, 1, "b_obj_at_infinity")) {
+			// obj_distance = inf;
+			} else {
+				gf_bs_read_int_log(bs, 4, "obj_distance_factor_code");
+			}
+		}
+			if (group_other_mask & 0b1000) {
+				object_div_mode = gf_bs_read_int_log(bs, 2, "object_div_mode");
+				if (object_div_mode == 0b00) {
+					gf_bs_read_int_log(bs, 2, "object_div_table");
+				}
+				else {
+					if (object_div_mode & 0b10) {
+						gf_bs_read_int_log(bs, 6, "object_div_code");
+					}
+				}
+			}
+		}
+	}
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_object_info_block(GF_BitStream *bs, u8 b_no_delta, u8 b_dynamic_object)
+{
+	u8 b_object_not_active, object_basic_info_status, object_render_info_status;
+	u32 atd_size, i;
+
+	b_object_not_active = gf_bs_read_int_log(bs, 1, "b_object_not_active");
+	if (b_object_not_active) {
+		object_basic_info_status = 0; // DEFAULT;
+	} else {
+		if (b_no_delta) {
+		object_basic_info_status = 1; // ALL_NEW;
+		} else {
+			if (gf_bs_read_int_log(bs, 1, "b_basic_info_reuse")) {
+				object_basic_info_status = 2; // REUSE;
+			} else {
+				object_basic_info_status = 1; // ALL_NEW;
+			}
+		}
+	}
+
+	if (object_basic_info_status == 1) { // ALL_NEW;
+		gf_ac4_object_basic_info(bs);
+	}
+	if (b_object_not_active) {
+		object_render_info_status = 0; // DEFAULT;
+	} else {
+		if (b_dynamic_object) {
+			if (b_no_delta) {
+				object_render_info_status = 1; // ALL_NEW;
+			} else {
+				if (gf_bs_read_int_log(bs, 1, "b_render_info_reuse")) {
+					object_render_info_status = 2; // REUSE;
+				} else {
+					if (gf_bs_read_int_log(bs, 1, "b_render_info_partial_reuse")) {
+						object_render_info_status = 3; // PART_REUSE;
+					} else {
+						object_render_info_status = 1; // ALL_NEW;
+					}
+				}
+			}
+		}
+		else {
+			object_render_info_status = 0; // DEFAULT;
+		}
+	}
+	if (object_render_info_status == 1 || object_render_info_status == 3) { // ALL_NEW or PART_REUSE
+		gf_ac4_object_render_info(bs, object_render_info_status, b_no_delta);
+	}
+	if (gf_bs_read_int_log(bs, 1, "b_add_table_data")) {
+		atd_size = gf_bs_read_int_log(bs, 4, "add_table_data_size_minus1") + 1;
+	
+		// skip the parser for add_per_object_md()
+		// used_bits = add_per_object_md(b_dynamic_object, b_object_not_active);
+		// remain_bits = 8 * atd_size - used_bits;
+	
+		for (i = 0; i < atd_size; i++) {
+			gf_bs_read_int_log(bs, 8, "add_table_data");
+		}
+	}
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_oamd_dyndata_single(GF_BitStream *bs, GF_AC4SubStream *substream, GF_AC4PresentationV1 *presentation)
+{
+	u32 i, b, n_alt_data_sets, s, n_data_points, dp, skip_bits;
+	u8 b_dynamic_object, b_keep;
+
+	u32 n_objs = substream->n_objs;
+	u32 n_blocks = 0; // should be num_obj_info_blocks
+	u8 b_iframe = substream->b_audio_ndot || substream->b_pres_ndot || substream->b_oamd_ndot;
+	u32 *obj_type = substream->obj_types;
+	u32 *b_lfe = substream->b_lfes;
+
+	for (i = 0; i < n_objs; i++) {
+		if (obj_type[i] == GF_AC4_OBJ_TYPE_DYN && b_lfe[i] == 0) {
+			b_dynamic_object = 1;
+		} else {
+			b_dynamic_object = 0;
+		}
+		for (b = 0; b < n_blocks; b++) {
+			gf_ac4_object_info_block(bs, (b_iframe != 0) && (b == 0), b_dynamic_object);
+		}
+	}
+	if (presentation->b_alternative) {
+		gf_bs_read_int_log(bs, 1, "b_ducking_disabled");
+		if (gf_bs_read_int_log(bs, 2, "object_sound_category") == 3) {
+			gf_ac4_variable_bits(bs, 2); // object_sound_category +=
+		}
+		n_alt_data_sets = gf_bs_read_int_log(bs, 2, "n_alt_data_sets");
+		if (n_alt_data_sets == 3) {
+			n_alt_data_sets += gf_ac4_variable_bits(bs, 2);
+		}
+		for (s = 0; s < n_alt_data_sets; s++) {
+			b_keep = gf_bs_read_int_log(bs, 1, "b_keep");
+			if (b_keep == 0) {
+				n_data_points = n_objs;
+				if (obj_type[0] == GF_AC4_OBJ_TYPE_ISF) {
+					n_data_points = 1;
+				} else {
+					if (gf_bs_read_int_log(bs, 1, "b_common_data")) {
+						n_data_points = 1;
+					}
+				}
+				for (dp = 0; dp < n_data_points; dp++) {
+					if (obj_type[dp] == GF_AC4_OBJ_TYPE_BED || obj_type[dp] == GF_AC4_OBJ_TYPE_ISF) {
+						if (gf_bs_read_int_log(bs, 1, "b_alt_gain")) {
+							gf_bs_read_int_log(bs, 6, "alt_obj_gain");
+						}
+					} else {
+						if (obj_type[dp] == GF_AC4_OBJ_TYPE_DYN) {
+							if (gf_bs_read_int_log(bs, 1, "b_alt_gain")) {
+								gf_bs_read_int_log(bs, 6, "alt_obj_gain");
+							}
+							if (b_lfe[dp] == 0) {
+								if (gf_bs_read_int_log(bs, 1, "b_alt_position")) {
+									gf_bs_read_int_log(bs, 6, "alt_pos3D_X");
+									gf_bs_read_int_log(bs, 6, "alt_pos3D_Y");
+									gf_bs_read_int_log(bs, 1, "alt_pos3D_Z_sign");
+									gf_bs_read_int_log(bs, 4, "alt_pos3D_Z");
+								}
+							}
+						}
+					}
+				}
+			}
+			if (gf_bs_read_int_log(bs, 1, "b_additional_data")) {
+				skip_bits = (gf_ac4_variable_bits(bs, 2) + 1) * 8;
+				skip_bits = skip_bits - gf_ac4_ext_prec_alt_pos(bs, n_objs, b_keep, obj_type, b_lfe);
+				for (i = 0; i < skip_bits; i++) {
+					gf_bs_read_int_log(bs, 1, "skip_data");
+				}
+			}
+		}
+	}
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_metadata(GF_BitStream *bs, GF_AC4SubStream *substream, GF_AC4PresentationV1 *presentation)
+{
+	u8 b_iframe = substream->b_audio_ndot;
+
+	gf_ac4_basic_metadata(bs, substream);
+	gf_ac4_extended_metadata(bs, substream, presentation);
+	if (presentation->b_alternative && substream->b_ajoc == 0) {
+		gf_ac4_oamd_dyndata_single(bs, substream, presentation);
+	}
+
+	gf_bs_read_int_log(bs, 7, "tools_metadata_size_value");
+	if (gf_bs_read_int_log(bs, 1, "b_more_bits")) {
+		gf_ac4_variable_bits(bs, 3); // tools_metadata_size << 7
+	}
+	
+	if (substream->sus_ver == 0) {
+		// sus_ver will not be 0 here because bitstream_version is always > 1
+		// drc_frame(bs, b_iframe);
+		return GF_FALSE;
+	}
+
+	gf_ac4_dialog_enhancement(bs, substream, b_iframe);
+	if (gf_bs_read_int_log(bs, 1, "b_emdf_payloads_substream")) {
+		gf_ac4_emdf_payloads_substream(bs, substream);
+	}
+
+	return GF_TRUE;
+}
+
+
+static Bool gf_ac4_substream(GF_BitStream *bs, GF_AC4SubStream *substream, GF_AC4PresentationV1 *presentation)
+{
+	u32 audio_size;
+	u64 pos;
+
+	audio_size = gf_bs_read_int_log(bs, 15, "audio_size_value");
+	if(gf_bs_read_int_log(bs, 1, "b_more_bits")) {
+		audio_size += (gf_ac4_variable_bits(bs, 7) << 15);
+	}
+
+	pos = gf_bs_get_position(bs);
+
+	// skip the audio_data for now and parse the metadata after audio data
+	gf_bs_seek(bs, pos + audio_size);
+	gf_bs_align(bs);
+
+	gf_ac4_metadata(bs, substream, presentation);
+
+	gf_bs_align(bs);
+
+	return GF_TRUE;
+}
+
+static Bool gf_ac4_presentation_substream(GF_BitStream *bs, GF_AC4PresentationV1 *presentation)
+{
+	u32 name_len, i, n_targets, t, sus, add_data_bytes, add_data_bits;
+
+	if (presentation->b_alternative) {
+		if (gf_bs_read_int_log(bs, 1, "b_name_present")) {
+			if (gf_bs_read_int_log(bs, 1, "b_length")) {
+				name_len = gf_bs_read_int_log(bs, 5, "name_len");
+			} else {
+				name_len = 32;
+			}
+			for (i = 0; i < name_len && gf_bs_available(bs); i++) {
+				gf_bs_read_int_log(bs, 8, "presentation_name");
+			}
+		}
+		n_targets = gf_bs_read_int_log(bs, 2, "n_targets_minus1") + 1;
+		if (n_targets == 4) {
+			n_targets += gf_ac4_variable_bits(bs, 2);
+		}
+		for (t = 0; t < n_targets; t++) {
+			gf_bs_read_int_log(bs, 3, "target_level");
+			gf_bs_read_int_log(bs, 4, "target_device_category[]");
+			if (gf_bs_read_int_log(bs, 1, "b_tdc_extension") == 1) {
+				gf_bs_read_int_log(bs, 4, "reserved_bits");
+			}
+			if (gf_bs_read_int_log(bs, 1, "b_ducking_depth_present")) {
+				gf_bs_read_int_log(bs, 6, "max_ducking_depth");
+			}
+			if (gf_bs_read_int_log(bs, 1, "b_loud_corr_target")) {
+				gf_bs_read_int_log(bs, 5, "loud_corr_target");
+			}
+			for (sus = 0; sus < presentation->n_substreams_in_presentation; sus++) {
+				if (gf_bs_read_int_log(bs, 1, "b_active")) {
+					if (gf_bs_read_int_log(bs, 1, "alt_data_set_index") == 1) {
+						gf_ac4_variable_bits(bs, 2);
+					}
+				}
+			}
+		}
+	}
+
+	presentation->b_additional_data = gf_bs_read_int_log(bs, 1, "b_additional_data");
+	if (presentation->b_additional_data) {
+		add_data_bytes = gf_bs_read_int_log(bs, 4, "add_data_bytes_minus1") + 1;
+		if (add_data_bytes == 16) {
+			add_data_bytes += gf_ac4_variable_bits(bs, 2);
+		}
+		gf_bs_align(bs);
+		add_data_bits = add_data_bytes * 8;
+		presentation->immersive_audio_indicator = gf_bs_read_int_log(bs, 1, "immersive_audio_indicator");
+		add_data_bits = add_data_bits - 1;
+
+		// skip the rest of additional data for now
+	}
+	// skip the rest of presentation substream data for now
+
 	return GF_TRUE;
 }
 
 static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_parse)
 {
 	u8 bitstream_version, fs_index, b_program_id, b_program_uuid_present = 0, b_iframe_global = 0;
-	u32 n_presentations, payload_base, frame_rate_index, i, short_program_id = 0, j, *idx;
+	u32 n_presentations, payload_base, frame_rate_index, i, short_program_id = 0, j, *idx, s;
 	u32 max_group_index = 0, frame_rate_factor = 0, b_obj_or_ajoc = 0;
 	u32 channel_count = 0, speaker_group_index_mask = 0, local_channel_count = 0;
+	u32 n_substreams = 0;
 	u8 program_uuid[16];
 	Bool default_presentation_flag;
 	s32 wait_frames, pres_ch_mode_core, pres_ch_mode;
 	GF_AC4PresentationV1 *pinfo;
 	GF_AC4SubStreamGroupV1 *group;
-	GF_List *temp_groups, *hdr_p_list;
+	GF_List *parsed_substream_groups, *hdr_p_list;
 	GF_AC4StreamInfo* stream = &(hdr->stream);
-	u64 toc_pos;
+	u64 toc_pos, pos;
+	GF_List *substream_index_table;
+	GF_AC4SubStreamInfo *info;
+	GF_AC4SubStream *substream;
 	GF_Err e = GF_OK;
 
 	// ac4_toc
@@ -16006,7 +17712,9 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			}
 		*/
 		return GF_TRUE;
-	} else {
+	}
+	else {
+		// else bitstream_version > 1, parse the presentation information according to ETSI TS 103 190-2 V1.2.1 (2018-02)
 		b_program_id = gf_bs_read_int_log(bs, 1, "b_program_id");
 		if (b_program_id == 1) {
 			short_program_id = gf_bs_read_int_log(bs, 16, "short_program_id");
@@ -16068,7 +17776,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 		}
 
 		// calloc the space for GF_LIST<GF_AC4SubStreamGroupV1>
-		temp_groups = gf_list_new();
+		parsed_substream_groups = gf_list_new();
 
 		for (i = 0; (i < max_group_index + 1) && (n_presentations > 0); i++) {
 			pinfo = gf_ac4_get_presentation_by_substreamgroup(&hdr->stream, i);
@@ -16091,14 +17799,10 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 										&local_channel_count,
 										&speaker_group_index_mask,
 										&b_obj_or_ajoc);
-			gf_list_add(temp_groups, group);
+			gf_list_add(parsed_substream_groups, group);
 
 			if (channel_count < local_channel_count) {
 				channel_count = local_channel_count;
-			}
-			if (gf_bs_is_overflow(bs)) {
-				e = GF_NON_COMPLIANT_BITSTREAM;
-				break;
 			}
 		}
 
@@ -16115,18 +17819,18 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			for (j = 0; j < p->n_substream_groups; j++) {
 				idx = gf_list_get(p->substream_group_indexs, j);
 				if (!idx) continue;
-				group = (GF_AC4SubStreamGroupV1*)gf_list_get(temp_groups, *idx);
+				group = (GF_AC4SubStreamGroupV1*)gf_list_get(parsed_substream_groups, *idx);
 				if (group) {
 					gf_list_add(p->substream_groups, group);
-					p->dolby_atmos_indicator |= group->dolby_atmos_indicator;
+					p->n_substreams_in_presentation += gf_list_count(group->substreams);
 				} else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AC4] Cannot find substream group %d for presentation %d\n", *idx, i));
+					// [AC4] Cannot find substream group for presentation
 					e = GF_NOT_SUPPORTED;
 					break;
 				}
 			}
 
-			// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10
+			// ETSI TS 103 190-2 V1.3.1 (2025-07) (2018-02) E.10.2
 			// other elements in GF_AC4PresentationV1 for Sample Description Box
 			pres_ch_mode = gf_ac4_presentation_ch_mode(p);
 			p->b_presentation_channel_coded = (pres_ch_mode == -1) ? 0: 1;
@@ -16136,12 +17840,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 					p->pres_b_4_back_channels_present = gf_ac4_pres_b_4_back_channels_present(p);
 					p->pres_top_channel_pairs = gf_ac4_pres_top_channel_pairs(p);
 				}
-				p->presentation_channel_mask_v1 = gf_ac4_presentation_channel_mask_v1(p);
-			}
-
-			// channel based immersive
-			if (p->pres_top_channel_pairs) {
-				p->dolby_atmos_indicator = 1;
+				p->presentation_v1_channel_groups = gf_ac4_presentation_v1_channel_groups(p);
 			}
 
 			pres_ch_mode_core = gf_ac4_get_b_presentation_core_differs(p, pres_ch_mode);
@@ -16149,7 +17848,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			if (p->b_presentation_core_differs == 1) {
 				p->b_presentation_core_channel_coded = (pres_ch_mode_core == -1) ? 0: 1;
 				if (p->b_presentation_core_channel_coded == 1) {
-					// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.17 Table E.7
+					// ETSI TS 103 190-2 V1.3.1 (2025-07) Table E.14
 					p->dsi_presentation_channel_mode_core = pres_ch_mode_core - 3;
 				}
 			}
@@ -16162,33 +17861,6 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			gf_list_del(p->substream_group_indexs);
 		}
 
-		// remove from temp groups that have been added elsewhere to avoid double frees
-		for (i = 0; i < n_presentations; i++) {
-			GF_AC4PresentationV1 *p = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, i);
-			if (p == NULL) {
-				break;
-			}
-			for (j=0; j < gf_list_count(p->substream_groups); j++) {
-				group = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, j);
-				if (group) {
-					gf_list_del_item(temp_groups, group);
-				}
-			}
-		}
-
-		// free auxiliary information temp_groups that have not been copied elsewhere
-		while ((group = (GF_AC4SubStreamGroupV1*)gf_list_pop_back(temp_groups))) {
-			if (group->substreams) {
-				for (int s = 0; s < gf_list_count(group->substreams); s++) {
-					GF_AC4SubStream* subs = gf_list_get(group->substreams, s);
-					gf_free(subs);
-				}
-				gf_list_del(group->substreams);
-			}
-			gf_free(group);
-		}
-		gf_list_del(temp_groups);
-
 		// If the substreams are channel-based, calculate channel_count with speaker_group_index_mask of the first/default presentation. If the substreams are non-channel-based, set channel_count to max(channel_count)
 		if (b_obj_or_ajoc == 0) {
 			hdr->channel_count = gf_ac4_get_channel_count_from_speaker_group_index_mask(speaker_group_index_mask);
@@ -16196,15 +17868,202 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 		else {
 			hdr->channel_count = channel_count;
 		}
+
+		substream_index_table = gf_list_new();
+		n_substreams = gf_ac4_substream_index_table(bs, substream_index_table, hdr_p_list, parsed_substream_groups);
+		gf_bs_align(bs);
+
+		// end of ac4_toc
+		hdr->toc_size = gf_bs_get_position(bs) - toc_pos;
+
+		if (n_substreams == 0 || n_substreams != gf_list_count(substream_index_table)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Number of substreams in substream index table does not match the number of substreams parsed from substream group info"));
+			e = GF_NOT_SUPPORTED;
+			n_substreams = 0; // skip the rest of parsing if the number of substreams is not correct
+		}
+
+		// fill area and byte align
+		gf_bs_seek(bs, gf_bs_get_position(bs) + payload_base);
+		gf_bs_align(bs);
+
+		// ETSI TS 103 190-2 V1.3.1 (2025-07) Table 50: ac4_substream_data mapping
+		for (i = 0; i < n_substreams; i++) {
+			pos = gf_bs_get_position(bs);
+			info = (GF_AC4SubStreamInfo*)gf_list_get(substream_index_table, i);
+			if (info && info->substream && info->presentation) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("Parsing ac4_substream index %d, type: %d", i, info->substream->type));
+				switch (info->substream->type) {
+					case GF_AC4_SUBSTREAM_INFO:
+					case GF_AC4_SUBSTREAM_INFO_CHAN:
+					case GF_AC4_SUBSTREAM_INFO_OBJ:
+					case GF_AC4_SUBSTREAM_INFO_AJOC:
+						if (info->substream && !gf_ac4_substream(bs, info->substream, info->presentation)) {
+							e = GF_NOT_SUPPORTED;
+						}
+						break;
+					case GF_AC4_EMDF_PAYLOADS_SUBSTREAM_INFO:
+						if (info->substream && !gf_ac4_emdf_payloads_substream(bs, info->substream)) {
+							e = GF_NOT_SUPPORTED;
+						}
+						break;
+					case GF_AC4_PRESENTATION_SUBSTREAM_INFO:
+						if (info->presentation && !gf_ac4_presentation_substream(bs, info->presentation)) {
+							e = GF_NOT_SUPPORTED;
+						}
+						break;
+					case GF_AC4_HSF_EXT_SUBSTREAM_INFO:
+					case GF_AC4_OAMD_SUBSTREAM_INFO:
+						// no need to parse the content of these substreams for now as they are not used for presentation construction
+						break;
+					default:
+						// [AC4] Unsupported substream type
+						e = GF_NOT_SUPPORTED;
+						break;
+				}
+			}
+			if (info) {
+				gf_bs_seek(bs, pos + info->size);
+				gf_bs_align(bs);
+			} else {
+				e = GF_NOT_SUPPORTED;
+				break;
+			}
+		}
+
+		// Dolby AC-4 Streams Within the ISO Base Media File Format Guidelines for multiplexers v1.0
+		// 1. assign de_indicator and immersive_audio_indicator for presentation based on the information from substreams
+		// 2. free the substream info in group
+		GF_List *free_substream = gf_list_new();
+
+		for (i = 0; i < n_presentations; i++) {
+			GF_AC4PresentationV1 *p = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, i);
+			if (p) {
+				if (p->substreams) {
+					for (s = 0; s < gf_list_count(p->substreams); s++) {
+						substream = gf_list_get(p->substreams, s);
+						if (substream) {
+							// section 3.1.1.3
+							p->de_indicator |= substream->dei_prevent_de_processing;
+							p->de_indicator |= substream->b_de_data_present;
+							p->de_indicator |= substream->b_dialog_max_gain;
+						}
+					}
+				}
+
+				// for IMS content, immersive_audio_indicator should be derived from the channel_mode.
+				if (p->presentation_version == 2) {
+					p->immersive_audio_indicator = 0;
+				}
+
+				for (j = 0; j < gf_list_count(p->substream_groups); j++) {
+					group = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, j);
+					if (!group) continue;
+
+					if (p->presentation_version == 2) {
+						p->immersive_audio_indicator |= group->immersive_audio_indicator_ims;
+					}
+					// for others, immersive_audio_indicator should be derived from ES
+					// but if there is no immersive_audio_indicator in presentation substream, it should be derived from substream group information
+					else if (!p->b_additional_data) {	
+						p->immersive_audio_indicator |= group->immersive_audio_indicator;
+
+						// channel based immersive
+						if (p->pres_top_channel_pairs) {
+							p->immersive_audio_indicator = 1;
+						}
+					}
+
+					if (group->substreams) {
+						for (s = 0; s < gf_list_count(group->substreams); s++) {
+							substream = gf_list_get(group->substreams, s);
+							if (substream) {
+								// section 3.1.1.3
+								p->de_indicator |= substream->dei_prevent_de_processing;
+								p->de_indicator |= substream->b_de_data_present;
+								p->de_indicator |= substream->b_dialog_max_gain;
+							}
+						}
+					}
+				}
+
+				for (j = 0; j < gf_list_count(p->substream_groups); j++) {
+					group = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, j);
+					if (group && group->substreams) {
+						GF_List *tmp_substreams = gf_list_new();
+						if (!tmp_substreams) {
+							e = GF_OUT_OF_MEM;
+							break;
+						}
+						while ((substream = (GF_AC4SubStream*)gf_list_pop_back(group->substreams))) {
+							switch(substream->type) {
+								case GF_AC4_SUBSTREAM_INFO:
+								case GF_AC4_SUBSTREAM_INFO_CHAN:
+								case GF_AC4_SUBSTREAM_INFO_OBJ:
+								case GF_AC4_SUBSTREAM_INFO_AJOC:
+									/* pop_back + insert first keeps the original ordering */
+									gf_list_insert(tmp_substreams, substream, 0);
+									break;
+								default:
+									gf_list_add(free_substream, substream);
+									break;
+							}
+						}
+						gf_list_del(group->substreams);
+						group->substreams = tmp_substreams;
+					}
+				}
+				if (e) break;
+			}
+			if (e) break;
+		}
+
+		// free all auxiliary memory
+		// 1. parsed_substream_groups
+		// 2. substream_index_table
+		// 3. free_substream
+
+		// remove from temp groups that have been added elsewhere to avoid double frees
+		for (i = 0; i < n_presentations; i++) {
+			GF_AC4PresentationV1 *p = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, i);
+			if (p) {
+				for (j=0; j < gf_list_count(p->substream_groups); j++) {
+					group = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, j);
+					if (group) {
+						gf_list_del_item(parsed_substream_groups, group);
+					}
+				}
+			}
+		}
+
+		// free auxiliary information parsed_substream_groups that have not been copied elsewhere
+		while ((group = (GF_AC4SubStreamGroupV1*)gf_list_pop_back(parsed_substream_groups))) {
+			if (group->substreams) {
+				for (int s = 0; s < gf_list_count(group->substreams); s++) {
+					substream = gf_list_get(group->substreams, s);
+					gf_free(substream);
+				}
+				gf_list_del(group->substreams);
+			}
+			gf_free(group);
+		}
+		gf_list_del(parsed_substream_groups);
+
+		// clean the data in substream_index_table and sorted_substream_index_table
+		while ((info = (GF_AC4SubStreamInfo*)gf_list_pop_back(substream_index_table))) {
+			gf_free(info);
+		}
+		gf_list_del(substream_index_table);
+
+		// clean the data in free_substream
+		while ((substream = (GF_AC4SubStream*)gf_list_pop_back(free_substream))) {
+			gf_free(substream);
+		}
+		gf_list_del(free_substream);
 	}
-
-	gf_ac4_substream_index_table(bs, hdr);
-	gf_bs_align(bs);
-
-	hdr->toc_size = gf_bs_get_position(bs) - toc_pos;
 
 	return e == GF_OK ? GF_TRUE : GF_FALSE;
 }
+
 
 static Bool AC4_FindSyncCodeBS(GF_BitStream *bs)
 {

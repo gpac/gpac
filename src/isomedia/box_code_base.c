@@ -385,6 +385,299 @@ GF_Err kind_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void prsl_box_del(GF_Box *s)
+{
+	GF_PreselectionGroupBox *ptr = (GF_PreselectionGroupBox *) s;
+	if (ptr == NULL) return;
+	if (ptr->entity_id_count && ptr->entity_ids) gf_free(ptr->entity_ids);
+	if (ptr->preselection_tag) gf_free(ptr->preselection_tag);
+	if (ptr->interleaving_tag) gf_free(ptr->interleaving_tag);
+	gf_free(ptr);
+}
+
+#define GF_READ_STRING_WITH_0END(bs, ptr, size) \
+    { \
+        char *x_data; \
+        u32 x_i = 0; \
+        GF_SAFE_ALLOC_N(x_data, (size) + 1, char); \
+        while (gf_bs_available(bs) && x_i < (size)) { \
+            x_data[x_i] = (char) gf_bs_read_u8(bs); \
+            if (x_data[x_i] == '\0') break; \
+            x_i++; \
+        } \
+        x_data[(size)] = '\0'; \
+        ptr = gf_strdup(x_data); \
+        gf_free(x_data); \
+		if (!ptr) return GF_OUT_OF_MEM; \
+    }
+
+GF_Err prsl_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	u32 i, size, str_len;
+	GF_PreselectionGroupBox *ptr = (GF_PreselectionGroupBox *)s;
+
+	ptr->version = gf_bs_read_int(bs, 8);
+	ptr->flags = gf_bs_read_int(bs, 24);
+	ISOM_DECREASE_SIZE(ptr, 4)
+
+	ptr->group_id = gf_bs_read_u32(bs);
+	ptr->entity_id_count = gf_bs_read_u32(bs);
+	ISOM_DECREASE_SIZE(ptr, 8)
+
+	if ((u64) ptr->entity_id_count > (u64) SIZE_MAX / sizeof(u32)) {
+		return GF_OUT_OF_MEM;
+	}
+	if ((u64) ptr->entity_id_count > ptr->size / 4) {
+		return GF_ISOM_INVALID_FILE;
+	}
+
+	if (ptr->entity_id_count) {
+		ptr->entity_ids = (u32 *) gf_malloc(ptr->entity_id_count * sizeof(u32));
+		if (!ptr->entity_ids) return GF_OUT_OF_MEM;
+	}
+	for (i = 0; i < ptr->entity_id_count; i++) {
+		ptr->entity_ids[i] = gf_bs_read_u32(bs);
+	}
+	ISOM_DECREASE_SIZE(ptr, 4 * ptr->entity_id_count)
+
+	size = (u32) ptr->size;
+
+	if (ptr->flags & GF_ISOM_PRESELECTION_TAG_PRESENT) {
+		GF_READ_STRING_WITH_0END(bs, ptr->preselection_tag, size);
+
+		str_len = (u32) strlen(ptr->preselection_tag) + 1;
+		ISOM_DECREASE_SIZE(ptr, str_len)
+	}
+	if (ptr->flags & GF_ISOM_SELECTION_PRIORITY_PRESENT) {
+		ptr->selection_priority = gf_bs_read_u8(bs);
+		size -= 1;
+		ISOM_DECREASE_SIZE(ptr, 1)
+	}
+	if (ptr->flags & GF_ISOM_INTERLEAVING_TAG_PRESENT) {
+		GF_READ_STRING_WITH_0END(bs, ptr->interleaving_tag, size);
+
+		str_len = (u32) strlen(ptr->interleaving_tag) + 1;
+		ISOM_DECREASE_SIZE(ptr, str_len)
+	}
+
+	return gf_isom_box_array_read(s, bs);
+}
+
+GF_Box *prsl_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_PreselectionGroupBox, GF_ISOM_BOX_TYPE_PRSL);
+	tmp->child_boxes = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err prsl_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_PreselectionGroupBox *ptr = (GF_PreselectionGroupBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u32(bs, ptr->group_id);
+	gf_bs_write_u32(bs, ptr->entity_id_count);
+	for (i = 0; i < ptr->entity_id_count; i++) {
+		gf_bs_write_u32(bs, ptr->entity_ids[i]);
+	}
+	if (ptr->flags & GF_ISOM_PRESELECTION_TAG_PRESENT) {
+		gf_bs_write_data(bs, ptr->preselection_tag, (u32) (strlen(ptr->preselection_tag) + 1 ));
+	}
+	if (ptr->flags & GF_ISOM_SELECTION_PRIORITY_PRESENT) {
+		gf_bs_write_u8(bs, ptr->selection_priority);
+	}
+	if (ptr->flags & GF_ISOM_INTERLEAVING_TAG_PRESENT) {
+		gf_bs_write_data(bs, ptr->interleaving_tag, (u32) (strlen(ptr->interleaving_tag) + 1 ));
+	}
+
+	return GF_OK;
+}
+
+GF_Err prsl_box_size(GF_Box *s)
+{
+	GF_PreselectionGroupBox *ptr = (GF_PreselectionGroupBox *)s;
+
+	ptr->size += 12 + (4 * ptr->entity_id_count);
+	if (ptr->flags & GF_ISOM_PRESELECTION_TAG_PRESENT) {
+		ptr->size += strlen(ptr->preselection_tag) + 1;
+	}
+	if (ptr->flags & GF_ISOM_SELECTION_PRIORITY_PRESENT) {
+		ptr->size += 1;
+	}
+	if (ptr->flags & GF_ISOM_INTERLEAVING_TAG_PRESENT) {
+		ptr->size += strlen(ptr->interleaving_tag) + 1;
+	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+void ardi_box_del(GF_Box *s)
+{
+	GF_AudioRenderingIndicationBox *ptr = (GF_AudioRenderingIndicationBox *) s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+GF_Err ardi_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_AudioRenderingIndicationBox *ptr = (GF_AudioRenderingIndicationBox *)s;
+	ptr->version = gf_bs_read_int(bs, 8);
+	ptr->flags = gf_bs_read_int(bs, 24);
+	ptr->audio_rendering_indication = gf_bs_read_u8(bs);
+	return GF_OK;
+}
+
+GF_Box *ardi_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AudioRenderingIndicationBox, GF_ISOM_BOX_TYPE_ARDI);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err ardi_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AudioRenderingIndicationBox *ptr = (GF_AudioRenderingIndicationBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, ptr->audio_rendering_indication);
+	return GF_OK;
+}
+
+GF_Err ardi_box_size(GF_Box *s)
+{
+	GF_AudioRenderingIndicationBox *ptr = (GF_AudioRenderingIndicationBox *)s;
+
+	ptr->size += 5;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+void diap_box_del(GF_Box *s)
+{
+	GF_DialogueProcessingBox *ptr = (GF_DialogueProcessingBox *) s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+GF_Err diap_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_DialogueProcessingBox *ptr = (GF_DialogueProcessingBox *)s;
+	ptr->version = gf_bs_read_int(bs, 8);
+	ptr->flags = gf_bs_read_int(bs, 24);
+	ptr->dialog_gain = (s8) gf_bs_read_u8(bs);
+	return GF_OK;
+}
+
+GF_Box *diap_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_DialogueProcessingBox, GF_ISOM_BOX_TYPE_DIAP);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err diap_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_DialogueProcessingBox *ptr = (GF_DialogueProcessingBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, (u8) ptr->dialog_gain);
+	return GF_OK;
+}
+
+GF_Err diap_box_size(GF_Box *s)
+{
+	GF_DialogueProcessingBox *ptr = (GF_DialogueProcessingBox *)s;
+
+	ptr->size += 5;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+void labl_box_del(GF_Box *s)
+{
+	GF_LabelBox *ptr = (GF_LabelBox *) s;
+	if (ptr == NULL) return;
+	if (ptr->language) gf_free(ptr->language);
+	if (ptr->label) gf_free(ptr->label);
+	gf_free(ptr);
+}
+
+GF_Err labl_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_LabelBox *ptr = (GF_LabelBox *)s;
+	u32 size;
+
+	ptr->version = gf_bs_read_int(bs, 8);
+	ptr->flags = gf_bs_read_int(bs, 24);
+
+	ptr->label_id = gf_bs_read_u16(bs);
+	size = (u32) ptr->size - 2;
+
+	GF_READ_STRING_WITH_0END(bs, ptr->language, size);
+
+	size -= (u32) strlen(ptr->language) + 1;
+
+	GF_READ_STRING_WITH_0END(bs, ptr->label, size);
+
+	return GF_OK;
+}
+
+GF_Box *labl_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_LabelBox, GF_ISOM_BOX_TYPE_LABL);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err labl_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_LabelBox *ptr = (GF_LabelBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u16(bs, ptr->label_id);
+	if (ptr->language) {
+		gf_bs_write_data(bs, ptr->language, (u32) (strlen(ptr->language) + 1 ));
+	}
+	if (ptr->label) {
+		gf_bs_write_data(bs, ptr->label, (u32) (strlen(ptr->label) + 1));
+	}
+	return GF_OK;
+}
+
+GF_Err labl_box_size(GF_Box *s)
+{
+	GF_LabelBox *ptr = (GF_LabelBox *)s;
+
+	ptr->size += 6;
+	if (ptr->language) {
+		ptr->size += strlen(ptr->language) + 1;
+	}
+	if (ptr->label) {
+		ptr->size += strlen(ptr->label) + 1;
+	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 void ctts_box_del(GF_Box *s)
 {
 	GF_CompositionOffsetBox *ptr = (GF_CompositionOffsetBox *)s;

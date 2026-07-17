@@ -1691,14 +1691,34 @@ GF_Err gf_odf_ac3_cfg_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg
 */
 GF_Err gf_odf_ac3_cfg_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg);
 
+typedef enum {
+	GF_AC4_SUBSTREAM_INFO = 1,
+	GF_AC4_SUBSTREAM_INFO_CHAN = 2,
+	GF_AC4_SUBSTREAM_INFO_OBJ = 3,
+	GF_AC4_SUBSTREAM_INFO_AJOC = 4,
+	GF_AC4_HSF_EXT_SUBSTREAM_INFO = 5,
+	GF_AC4_EMDF_PAYLOADS_SUBSTREAM_INFO = 6,
+	GF_AC4_PRESENTATION_SUBSTREAM_INFO = 7,
+	GF_AC4_OAMD_SUBSTREAM_INFO = 8
+} GF_AC4SubStreamType;
+
+typedef enum {
+	GF_AC4_OBJ_TYPE_BED = 1,
+	GF_AC4_OBJ_TYPE_DYN = 2,
+	GF_AC4_OBJ_TYPE_ISF = 3
+} GF_AC4ObjType;
+
+#define GF_AC4_MAX_NUM_OBJECTS 30
+
 typedef struct {
+	// common attribute
     u8 b_4_back_channels_present;
     u8 b_centre_present;
     u8 top_channels_present;
     u8 dsi_sf_multiplier;
     u8 b_substream_bitrate_indicator;
     u8 substream_bitrate_indicator;
-    u32 dsi_substream_channel_mask;
+    u32 dsi_substream_channel_groups;
     u8 b_ajoc;
     u8 b_static_dmx;
     u8 n_dmx_objects_minus1;
@@ -1707,9 +1727,42 @@ typedef struct {
     u8 b_substream_contains_dynamic_objects;
     u8 b_substream_contains_ISF_objects;
 
+	// used to determine the signal mode of the stream: object-based or channel-based
+	u8 b_ch_assign_code;
+	u32 bed_chan_assign_code;
+	u8 b_nonstd_bed_channel_assignment_flags_present;
+	u8 b_channel_assignment_flags_present;
+	u32 nonstd_bed_channel_assignment_flag;
+	u32 std_bed_channel_assignment_flag;
+
 	// auxiliary information, used to parse the frame
 	u8 b_lfe;
 	u32 ch_mode;
+	u32 channel_mode;
+	// for ac4 substream
+	u8 n_objects_code;
+	u8 b_audio_ndot;
+	u8 sus_ver;
+	u8 de_method;
+	u8 de_channel_config;
+	u8 b_de_data_present;
+	u8 b_dialog_max_gain;
+	u32 n_objs;
+	u32 obj_types[GF_AC4_MAX_NUM_OBJECTS];
+	u32 b_lfes[GF_AC4_MAX_NUM_OBJECTS];
+	u32 b_ajoc_codeds[GF_AC4_MAX_NUM_OBJECTS];
+	// for preselection substream
+	u8 b_alternative;
+	u8 b_pres_ndot;
+	// for oamd substream
+	u8 b_oamd_ndot;
+	// for emdf payloads substream
+	u8 dei_prevent_de_processing;
+	u8 dei_dialog_gain_code_present;
+	u8 dei_dialog_gain_code;
+
+	u32 substream_index;
+	u32 type;
 } GF_AC4SubStream;
 
 typedef struct {
@@ -1721,7 +1774,8 @@ typedef struct {
 	u8 b_language_indicator;
 	u8 n_language_tag_bytes;
 	u8 language_tag_bytes[64]; // n_language_tag_bytes is 6 bits
-	u8 dolby_atmos_indicator;
+	u8 immersive_audio_indicator;
+	u8 immersive_audio_indicator_ims; // immersive audio indicator for IMS
 	u8 n_lf_substreams;
 	GF_List *substreams; // GF_AC4SubStream
 } GF_AC4SubStreamGroupV1;
@@ -1743,7 +1797,7 @@ typedef struct {
 typedef struct {
 	u8 presentation_version;
 	u8 presentation_config;
-	u8 mdcompat;
+	u8 md_compat;
 	u8 b_presentation_id;
 	u8 presentation_id;
 	u8 dsi_frame_rate_multiply_info;
@@ -1754,7 +1808,7 @@ typedef struct {
 	u8 dsi_presentation_ch_mode;
 	u8 pres_b_4_back_channels_present;
 	u8 pres_top_channel_pairs;
-	u32 presentation_channel_mask_v1;
+	u32 presentation_v1_channel_groups;
 	u8 b_presentation_core_differs;
 	u8 b_presentation_core_channel_coded;
 	u8 dsi_presentation_channel_mode_core;
@@ -1773,15 +1827,26 @@ typedef struct {
 	u8 b_alternative;
 	GF_AC4AlternativeInfo alternative_info;
 	u8 de_indicator;
-	u8 dolby_atmos_indicator;
+	u8 immersive_audio_indicator;
 	u8 b_extended_presentation_id;
 	u16 extended_presentation_id;
 	u8 n_substream_groups;
 	GF_List *substream_groups; // GF_AC4SubStreamGroupV1
+	GF_List *substreams; // GF_AC4SubStream for presentation_substream_info, emdf_payloads_substream_info
 
 	// auxiliary information, not exist in DSI
 	GF_List *substream_group_indexs;
+	u8 pres_b_centre_present;
+	u32 n_substreams_in_presentation;
+	u8 b_additional_data;
 } GF_AC4PresentationV1;
+
+typedef struct {
+	u32 size;
+	GF_AC4SubStream* substream;
+	GF_AC4SubStreamGroupV1* substream_group;
+	GF_AC4PresentationV1* presentation;
+} GF_AC4SubStreamInfo;
 
 /*! AC-4 stream info */
 typedef struct __ac4_stream
@@ -1888,6 +1953,72 @@ void gf_odf_ac4_cfg_clean_list(GF_AC4Config *hdr);
 \param cfg the address of AC4 config to destroy
 */
 void gf_odf_ac4_cfg_del(GF_AC4Config *cfg);
+
+// Kind value: Use IEC 23009-1 (DASH) "Role", see Section 5.8.5.5 and Table 34
+#define PRESELECTION_KIND_SCHEME_URI_DASH_URN "urn:mpeg:dash:role:2011"
+#define PRESELECTION_KIND_VALUE_DASH_MAIN "main" // default
+#define PRESELECTION_KIND_VALUE_DASH_ALTERNATE "alternate"
+#define PRESELECTION_KIND_VALUE_DASH_SUPPLEMENTARY "supplementary"
+#define PRESELECTION_KIND_VALUE_DASH_COMMENTARY "commentary"
+#define PRESELECTION_KIND_VALUE_DASH_DUB "dub"
+#define PRESELECTION_KIND_VALUE_DASH_DESCRIPTION "description"
+#define PRESELECTION_KIND_VALUE_DASH_CAPTION "caption"
+#define PRESELECTION_KIND_VALUE_DASH_SUBTITLE "subtitle"
+#define PRESELECTION_KIND_VALUE_DASH_SIGN "sign"
+#define PRESELECTION_KIND_VALUE_DASH_METADATA "metadata"
+#define PRESELECTION_KIND_VALUE_DASH_ENHANCED_AUDIO_INTELLIGIBILITY "enhanced-audio-intelligibility"
+#define PRESELECTION_KIND_VALUE_DASH_EMERGENCY "emergency"
+#define PRESELECTION_KIND_VALUE_DASH_FORCED_SUBTITLE "forced-subtitle"
+#define PRESELECTION_KIND_VALUE_DASH_EASYREADER "easyreader"
+#define PRESELECTION_KIND_VALUE_DASH_KARAOKE "karaoke"
+#define PRESELECTION_DIALOG_GAIN_UNIT 2
+
+typedef struct {
+	Bool is_group_label;
+	u16 label_id;
+	char *label;
+	char *language;
+} GF_Label;
+
+typedef struct {
+	char *schemeURI;
+	char *value; // optional
+} GF_Kind;
+
+typedef struct {
+	u32 flags;
+	u32 group_id;
+	char *preselection_tag;
+	u8 selection_priority;
+	char *interleaving_tag;
+	u8 audio_rendering_indication;
+	char *extended_language;
+	GF_List *labels;
+	GF_List *kinds;
+	s8 dialog_gain;
+	Bool dialog_gain_present;
+} GF_PreselectionConfig;
+
+/*! parse preselection in property or file to config
+\param data the address of buffer
+\param data_len the len of buffer
+\param cfg the address of the list of GF_PreselectionConfig
+\return error if any
+*/
+GF_Err gf_odf_preselection_cfg_parse(u8 *data, u32 data_len, GF_List *cfg);
+
+/*! write preselection config to bitstream in property or file
+\param cfg the address of the list of GF_PreselectionConfig
+\param bs the bitstream object in which to write the config
+\return error if any
+*/
+GF_Err gf_odf_preselection_cfg_write(GF_List *cfg_list, GF_BitStream *bs);
+
+/*! clean the preselection config
+\param cfg the address of the list of GF_PreselectionConfig
+\return error if any
+*/
+GF_Err gf_odf_preselection_cfg_del(GF_List *cfg);
 
 
 /*! Opus decoder config*/

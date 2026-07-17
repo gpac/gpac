@@ -386,6 +386,7 @@ typedef struct _dash_stream
 	u64 ch_layout;
 	u32 ch_mask;
 	u8 ac4_content_type;
+	u8 ac4_content_classifier;
 	GF_PropVec4i srd;
 	u32 color_primaries, color_transfer_characteristics, color_matrix, color_transfer_characteristics_alt;
 	Bool sscale;
@@ -1691,12 +1692,13 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					gf_odf_ac4_cfg_parse(dsi->value.data.ptr, dsi->value.data.size, &ac4);
 					GF_AC4PresentationV1* p = (GF_AC4PresentationV1*)gf_list_get(ac4.stream.presentations, 0);
 					if (p) {
-						ds->ch_mask = p->presentation_channel_mask_v1;
+						ds->ch_mask = p->presentation_v1_channel_groups;
+						if (ds->ch_mask == 0) ds->ch_mask = 0x800000;
 						_nb_ch = gf_ac4_dolby_channel_count_from_channel_mask_v1(ds->ch_mask);
 						// Dolby AC-4 in MPEG-DASH for Online Delivery Specification 2.5.1 presentation_version of immersive stereo content is 2
 						if (p->presentation_version == 2) {
 							ds->ac4_content_type = AC4_IMMERSIVE_STEREO;
-							if (p->dolby_atmos_indicator) {
+							if (p->immersive_audio_indicator) {
 								ds->ac4_content_type = AC4_IMMERSIVE_STEREO_ATMOS;
 							}
 						} else if (p->presentation_version == 1) {
@@ -1718,6 +1720,31 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 										_nb_ch = ss->n_umx_objects_minus1 + 2;
 									}
 								}
+							}
+						}
+						if (p->substream_groups) {
+							GF_AC4SubStreamGroupV1 *group = gf_list_get(p->substream_groups, 0);
+							if (p->n_substream_groups > 1) {
+								if (p->presentation_config == 2 && p->n_substream_groups > 1) {
+									group = gf_list_get(p->substream_groups, 1);
+								} else if ((p->presentation_config == 3 || p->presentation_config == 4) && p->n_substream_groups > 2) {
+									group = gf_list_get(p->substream_groups, 2);
+								} else if (p->presentation_config == 5) {
+									for (u32 i = 0; i < p->n_substream_groups; i++) {
+										GF_AC4SubStreamGroupV1 *sg = gf_list_get(p->substream_groups, i);
+										if (sg && sg->b_content_type) {
+											if (sg->content_classifier == 2 || sg->content_classifier == 3 ||
+												sg->content_classifier == 5 || sg->content_classifier == 6 ||
+												sg->content_classifier == 7) {
+													group = sg;
+													break;
+											}
+										}
+									}
+								}
+							}
+							if (group && group->b_content_type) {
+								ds->ac4_content_classifier = group->content_classifier;
 							}
 						}
 					}
@@ -2276,6 +2303,159 @@ static GF_Err dasher_add_x_attribute(GF_List* list, const char *name, const char
 	return GF_OK;
 }
 
+static GF_Err dasher_setup_preselection(GF_DasherCtx *ctx, GF_DashStream *ds, GF_FilterPid *pid)
+{
+	GF_Err e = GF_OK;
+	GF_MPD_Period *period = ctx->current_period->period;
+	GF_List *cfg_list = NULL;
+	GF_MPD_Preselection *p_mpd = NULL;
+	const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_PRESELECTION);
+	GF_MPD_Descriptor *desc = NULL;
+	GF_MPD_GroupLabel *gl = NULL;
+	GF_MPD_Label *l = NULL;
+
+	if (!p || !period || !period->preselections) return GF_OK;
+	if (!ds->set || !ds->set->representations) return GF_OK;
+
+	// TODO: 
+	// For now, we only support the case where the Preselection elements are used when there are more than one presentation within one stream (“fat streams”). In this case, one AdaptationSet can be referenced by multiple Preselection.
+
+	// check if this AdaptationSet is already referenced by existed Preselection element in the MPD
+	for (u32 i = 0; i < gf_list_count(period->preselections); i++) {
+		p_mpd = (GF_MPD_Preselection*)gf_list_get(period->preselections, i);
+		if (!p_mpd || !p_mpd->preselection_components) continue;
+
+		for (u32 j = 0 ; j < gf_list_count(p_mpd->preselection_components); j++) {
+			u32 *as_id = (u32*)gf_list_get(p_mpd->preselection_components, j);
+			if (as_id && *as_id == ds->as_id) {
+				return GF_OK;
+			}
+		}
+	}
+
+	cfg_list = gf_list_new();
+	if (!cfg_list) return GF_OUT_OF_MEM;
+
+	e = gf_odf_preselection_cfg_parse(p->value.data.ptr, p->value.data.size, cfg_list);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Could not parse preselection info, %s\n", gf_error_to_string(e)));
+		return GF_BAD_PARAM;
+	}
+
+	// No preselection info found
+	if (gf_list_count(cfg_list) == 0) {
+		gf_list_del(cfg_list);
+		return GF_OK;
+	}
+
+	// For DASH, we add preselection entity at Period level
+	for (u32 i = 0; i < gf_list_count(cfg_list); i++) {
+		GF_PreselectionConfig *p_cfg = (GF_PreselectionConfig*)gf_list_get(cfg_list, i);
+		if (!p_cfg) continue;
+
+		// Preselection id is assigned based on group_id from PreselectionConfig, id shall be unique within one Period
+		for (u32 j = 0; j < gf_list_count(period->preselections); j++) {
+			GF_MPD_Preselection *existing_p_mpd = (GF_MPD_Preselection*)gf_list_get(period->preselections, j);
+			if (existing_p_mpd && existing_p_mpd->id == p_cfg->group_id) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Preselection id %d is not unique within the period\n", p_cfg->group_id));
+				return GF_BAD_PARAM;
+			}
+		}
+		p_mpd = gf_mpd_preselection_new(p_cfg->group_id);
+		if (!p_mpd) return GF_OUT_OF_MEM;
+
+		// preselection_components
+		u32 *comp = (u32*)gf_malloc(sizeof(u32));
+		if (!comp) return GF_OUT_OF_MEM;
+		*comp = ds->as_id;
+		if (!p_mpd->preselection_components) {
+			p_mpd->preselection_components = gf_list_new();
+			if (!p_mpd->preselection_components) return GF_OUT_OF_MEM;
+		}
+		gf_list_add(p_mpd->preselection_components, comp);
+
+		if (p_cfg->extended_language) {
+			p_mpd->lang = gf_strdup(p_cfg->extended_language);
+		}
+
+		if (p_cfg->flags & 0x001000) { // GF_ISOM_PRESELECTION_TAG_PRESENT
+			p_mpd->tag = gf_strdup(p_cfg->preselection_tag);
+		}
+
+		if (p_cfg->flags & 0x002000) { // GF_ISOM_SELECTION_PRIORITY_PRESENT
+			p_mpd->selection_priority = p_cfg->selection_priority;
+		}
+
+		if (p_cfg->dialog_gain_present) {
+			char tmp[50] = {0};
+			if (p_cfg->dialog_gain == 0) {
+				tmp[0] = '0';
+			} else {
+				sprintf(tmp, "%.1f", p_cfg->dialog_gain * 1.0 / PRESELECTION_DIALOG_GAIN_UNIT);
+			}
+			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2018:dash:audio_dialog_gain:2025", tmp);
+			gf_list_add(p_mpd->supplemental_properties, desc);
+
+			if (p_cfg->dialog_gain > 0) {
+				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:role:2011", "enhanced-audio-intelligibility");
+				gf_list_add(p_mpd->accessibility, desc);
+			}
+		}
+
+		for (u32 j = 0; j < gf_list_count(p_cfg->kinds); j++) {
+			GF_Kind *kind = (GF_Kind*)gf_list_get(p_cfg->kinds, j);
+			if (!kind || !kind->schemeURI) continue;
+
+			if (!strcmp(kind->schemeURI, PRESELECTION_KIND_SCHEME_URI_DASH_URN) && (!strcmp(kind->value, PRESELECTION_KIND_VALUE_DASH_DESCRIPTION) ||
+					!strcmp(kind->value, PRESELECTION_KIND_VALUE_DASH_ENHANCED_AUDIO_INTELLIGIBILITY))) {
+
+				desc = gf_mpd_descriptor_new(NULL, kind->schemeURI, PRESELECTION_KIND_VALUE_DASH_ALTERNATE);
+				gf_list_add(p_mpd->role, desc);
+
+				// uses urn:mpeg:dash:role:2011 for Accessibility
+				desc = gf_mpd_descriptor_new(NULL, kind->schemeURI, kind->value);
+				gf_list_add(p_mpd->accessibility, desc);
+
+				if (!strcmp(kind->value, PRESELECTION_KIND_VALUE_DASH_DESCRIPTION)) {
+					// Audio description for the visually impaired
+					desc = gf_mpd_descriptor_new(NULL, "urn:tva:metadata:cs:AudioPurposeCS:2007", "1");
+					gf_list_add(p_mpd->accessibility, desc);
+				} else {
+					// Audio description for the hearing impaired
+					desc = gf_mpd_descriptor_new(NULL, "urn:tva:metadata:cs:AudioPurposeCS:2007", "2");
+					gf_list_add(p_mpd->accessibility, desc);
+				}
+			} else {
+				desc = gf_mpd_descriptor_new(NULL, kind->schemeURI, kind->value);
+				gf_list_add(p_mpd->role, desc);
+			}
+		}
+
+		for (u32 j = 0; j < gf_list_count(p_cfg->labels); j++) {
+			GF_Label *label = (GF_Label*)gf_list_get(p_cfg->labels, j);
+
+			if (!label)	 continue;
+			if (label->is_group_label) {
+				gl = gf_mpd_grouplabel_new(label->label_id, label->language, label->label);
+				gf_list_add(p_mpd->group_labels, gl);
+			} else {
+				l = gf_mpd_label_new(label->label_id, label->language, label->label);
+				gf_list_add(p_mpd->labels, l);
+			}
+		}
+
+		gf_list_add(period->preselections, p_mpd);
+	}
+
+	// create xml descriptor
+	desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:preselection:2016", NULL);
+	gf_list_add(ds->set->supplemental_properties, desc);
+
+	gf_odf_preselection_cfg_del(cfg_list);
+
+	return e;
+}
+
 static GF_Err dasher_add_dolby_vision_attribute(GF_DasherCtx *ctx, GF_DashStream *ds, Bool force_inband)
 {
 	GF_FilterPid *pid = ds->ipid;
@@ -2705,7 +2885,7 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 		Bool use_ac4 = GF_FALSE;
 		Bool use_dtshd = GF_FALSE;
 		Bool use_dtsx = GF_FALSE;
-		GF_MPD_Descriptor *desc;
+		GF_MPD_Descriptor *desc, *desc_audio=NULL;
 		char value[256];
 		ds->rep->samplerate = ds->sr;
 
@@ -2742,13 +2922,23 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2014:dash:audio_channel_configuration:2011", value);
 		} else if (use_ac4) {
 			// ETSI TS 103 190-2 V1.3.1 (2025-07) G.3.3
-			if (ds->ch_mask == 0 || ds->ch_mask == 0x800000) {
-				sprintf(value, "%06X", 0x800000);
-				desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2015:dash:audio_channel_configuration:2015", value);
-			}
-			else {
+			u32 mpeg_scheme_value = gf_audio_get_dolby_channel_config_value_from_mask(ds->ch_mask);
+			if (ctx->profile <= GF_DASH_PROFILE_FULL) {
+				if (mpeg_scheme_value != 0) {
+					sprintf(value, "%d", mpeg_scheme_value);
+					desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:ChannelConfiguration", value);
+				} else {
+					sprintf(value, "%06X", ds->ch_mask);
+					desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2015:dash:audio_channel_configuration:2015", value);
+				}
+			} else {
+				// To be compatible with both ATSC 3.0 and DVB-DASH, include two AudioChannelConfiguration descriptors
 				sprintf(value, "%06X", ds->ch_mask);
 				desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2015:dash:audio_channel_configuration:2015", value);
+				if (mpeg_scheme_value != 0) {
+					sprintf(value, "%d", mpeg_scheme_value);
+					desc_audio = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:ChannelConfiguration", value);
+				}
 			}
 		} else if (use_dtshd) {
 			sprintf(value, "%d", ds->nb_ch);
@@ -2774,12 +2964,18 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 		gf_mpd_del_list(ds->rep->audio_channels, gf_mpd_descriptor_free, GF_TRUE);
 
 		gf_list_add(ds->rep->audio_channels, desc);
+		if (desc_audio) gf_list_add(ds->rep->audio_channels, desc_audio);
+
 		if (ds->atmos_complexity_type) {
 			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2018:dash:EC3_ExtensionType:2018", "JOC");
 			gf_list_add(ds->rep->supplemental_properties, desc);
 
 			sprintf(value, "%d", ds->atmos_complexity_type);
 			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2018:dash:EC3_ExtensionComplexityIndex:2018", value);
+			gf_list_add(ds->rep->supplemental_properties, desc);
+		}
+		if (use_ac4 && (ds->ac4_content_type == AC4_IMMERSIVE_STEREO || ds->ac4_content_type == AC4_IMMERSIVE_STEREO_ATMOS)) {
+			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2016:dash:virtualized_content:2016", "1");
 			gf_list_add(ds->rep->supplemental_properties, desc);
 		}
 	}
@@ -3373,6 +3569,17 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				sprintf(value, "%d", ds->color_transfer_characteristics_alt);
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
 				gf_list_add(set->supplemental_properties, desc);
+		}
+
+		// add AudioPurposeCS for AC-4 in broadcast profiles
+		if ((ds->codec_id == GF_CODECID_AC4) && (ctx->profile > GF_DASH_PROFILE_FULL)) {
+			desc = NULL;
+			if (ds->ac4_content_classifier == 2) { // visually impaired
+				desc = gf_mpd_descriptor_new(NULL, "urn:tva:metadata:cs:AudioPurposeCS:2007", "1");
+			} else if (ds->ac4_content_classifier == 3) { // hearing impaired
+				desc = gf_mpd_descriptor_new(NULL, "urn:tva:metadata:cs:AudioPurposeCS:2007", "2");
+			}
+			if (desc) gf_list_add(set->accessibility, desc);
 		}
 
 		//add custom inband event in manifest
@@ -8956,12 +9163,9 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				switch(ds->ac4_content_type) {
 				// Dolby AC-4 and HTTP Live Streaming Specification 1 November 2021 4.3
 				case AC4_IMMERSIVE_STEREO:
-					ds->rep->nb_chan = 0;
-					sprintf(ds->rep->str_chan, "2/IMSA");
-					break;
 				case AC4_IMMERSIVE_STEREO_ATMOS:
 					ds->rep->nb_chan = 0;
-					sprintf(ds->rep->str_chan, "2/IMSA,ATMOS");
+					sprintf(ds->rep->str_chan, "2/IMSA");
 					break;
 				case AC4_CHANNEL_BASED_IMMERSIVE_CONTENT:
 					ds->rep->nb_chan = 0;
@@ -9943,6 +10147,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 			ds->done = 1;
 			continue;
 		}
+
+		dasher_setup_preselection(ctx, ds, ds->ipid);
 
 		//flush as much as possible
 		while (1) {

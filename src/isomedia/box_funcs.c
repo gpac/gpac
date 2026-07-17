@@ -320,9 +320,14 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 		((GF_TrackGroupTypeBox*)newBox)->group_type = type;
 	} else if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_GRPL)) {
-		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_GRPT);
+		if (type == GF_ISOM_SAMPLE_GROUP_PRSL) {
+			newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_PRSL);
+		}
+		else {
+			newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_GRPT);
+			((GF_EntityToGroupTypeBox*)newBox)->grouping_type = type;
+		}
 		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
-		((GF_EntityToGroupTypeBox*)newBox)->grouping_type = type;
 	} else {
 		//OK, create the box based on the type
 		is_special = GF_FALSE;
@@ -970,6 +975,11 @@ ISOM_BOX_IMPL_DECL(a1op)
 
 ISOM_BOX_IMPL_DECL(grpl)
 
+ISOM_BOX_IMPL_DECL(prsl)
+ISOM_BOX_IMPL_DECL(ardi)
+ISOM_BOX_IMPL_DECL(labl)
+ISOM_BOX_IMPL_DECL(diap)
+
 ISOM_BOX_IMPL_DECL_CHILD(strk)
 ISOM_BOX_IMPL_DECL(stri)
 ISOM_BOX_IMPL_DECL(stsg)
@@ -1214,13 +1224,13 @@ static struct box_registry_entry {
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_URN, urn, "dref", 0, 1),
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_IMDT, url, "dref", 0, 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_CPRT, cprt, "udta", 0),
-	FBOX_DEFINE( GF_ISOM_BOX_TYPE_KIND, kind, "udta", 0),
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_KIND, kind, "udta prsl", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_HDLR, hdlr, "mdia meta minf", 0),	//minf container is OK in QT ...
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_TRAK, trak, "moov"),
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_EXTK, trak, "moov"),
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_EXTL, extl, "extk", 0, 0x000001 | 0x000002 | 0x000004 | 0x000008),
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_EDTS, edts, "trak extk"),
-	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_UDTA, udta, "moov trak moof traf"),
+	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_UDTA, udta, "moov trak moof traf prsl"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_DREF, dref, "dinf", 0),
 	FBOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_STSD, stsd, "stbl", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_STTS, stts, "stbl", 0),
@@ -1243,7 +1253,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MFRA, mfra, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MFRO, mfro, "mfra", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TFRA, tfra, "mfra", 1),
-	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia extk ipco", 0),
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia extk ipco prsl", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PDIN, pdin, "file", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SBGP, sbgp, "stbl traf", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", 2),
@@ -1521,6 +1531,11 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_FNCH, fnch, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IENC, ienc, "ipco", 0, "cenc"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IAUX, iaux, "ipco", 0, "cenc"),
+
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_PRSL, prsl, "grpl", "iso"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_ARDI, ardi, "prsl", "iso"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LABL, labl, "prsl", "iso"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DIAP, diap, "udta", "dolby"),
 
 	//MIAF
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CLLI, clli, "video_sample_entry ipco encv resv", "p12"),
