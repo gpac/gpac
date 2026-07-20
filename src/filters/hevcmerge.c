@@ -232,8 +232,11 @@ static void hevcmerge_rewrite_pps(GF_HEVCMergeCtx *ctx, char *in_PPS, u32 in_PPS
 
 	gf_bs_get_content_no_truncate(ctx->bs_nal_out, &ctx->buffer_nal_no_epb, &pps_size_no_epb, &ctx->buffer_nal_no_epb_alloc);
 
+	if (!out_PPS_length || !out_PPS) return;
 	*out_PPS_length = pps_size_no_epb + gf_media_nalu_emulation_bytes_add_count(ctx->buffer_nal_no_epb, pps_size_no_epb);
+	if (!*out_PPS_length) return;
 	*out_PPS = gf_malloc(*out_PPS_length);
+	if (!*out_PPS) return;
 	gf_media_nalu_add_emulation_bytes(ctx->buffer_nal_no_epb, *out_PPS, pps_size_no_epb);
 }
 
@@ -275,7 +278,7 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, char
 	num_entry_point_start = (u32)hevc->s_info.entry_point_start_bits;
 	slice_qp_delta_start = (u32)hevc->s_info.slice_qp_delta_start_bits;
 
-	// nal_unit_header			 
+	// nal_unit_header
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
 	nal_unit_type = gf_bs_read_int(ctx->bs_nal_in, 6);
 	gf_bs_write_int(ctx->bs_nal_out, nal_unit_type, 6);
@@ -1216,7 +1219,7 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	if (!tile_pid) {
 		GF_SAFEALLOC(tile_pid, HEVCTilePidCtx);
 		if (!tile_pid) return GF_OUT_OF_MEM;
-		
+
 		gf_filter_pid_set_udta(pid, tile_pid);
 		tile_pid->pid = pid;
 		tile_pid->hevc_state.full_slice_header_parse = GF_TRUE;
@@ -1524,7 +1527,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 			if (!output_pck) {
 				output_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->hevc_nalu_size_length + nal_pck_size, &output_nal);
 				if (!output_pck) return GF_OUT_OF_MEM;
-				
+
 				// todo: might need to rewrite crypto info
 				gf_filter_pck_merge_properties(pck_src, output_pck);
 			}

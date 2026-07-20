@@ -684,10 +684,12 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 				u32 b64_size = samp->dataLength*2 + 3;
 				char *b64;
 				b64 = (char *)gf_malloc(sizeof(char)*b64_size);
-				b64_size = gf_base64_encode(samp->data, samp->dataLength, b64, b64_size);
-				b64[b64_size] = 0;
-				gf_fprintf(vtt, "%s\n", b64);
-				gf_free(b64);
+				if (b64) {
+					b64_size = gf_base64_encode(samp->data, samp->dataLength, b64, b64_size);
+					b64[b64_size] = 0;
+					gf_fprintf(vtt, "%s\n", b64);
+					gf_free(b64);
+				}
 			}
 		}
 		gf_fprintf(vtt, "\n");
