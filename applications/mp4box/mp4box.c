@@ -999,6 +999,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	"- Allowed compatibility ID are `none`, `hdr10`, `bt709`, `hlg709`, `hlg2100`, `bt2020`, `brd`, or integer value as per DV spec\n"
 	"- Profile can be prefixed with 'f' to force DV codec type signaling, e.g. `f8.2`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("dvmdc", NULL, "`S` set the Dolby Vision metadata compression (valid value: 0, 1, 3. default = 0)", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("dvflags", NULL, "`S` Set Dolby Vision feature flags for the content (valid value: 0, 0x200 (for Dolby Vision 2 experience). default = 0)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("fullrange", NULL, "`S` force the video fullrange type in VUI for the AVC|H264 content (value `yes`, `on` or `no`, `off`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("videofmt", NULL, "`S` force the video format in VUI for AVC|H264 and HEVC content, value can be `component`, `pal`, `ntsc`, `secam`, `mac`, `undef`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("colorprim", NULL, "`S` force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
