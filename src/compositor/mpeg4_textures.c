@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -356,11 +356,11 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				char szExtractName[GF_MAX_PATH], *opt, *src_url;
 				opt = (char *) gf_opts_get_key("core", "cache");
 				if (opt) {
-					strcpy(szExtractName, opt);
+					gf_strcpy(szExtractName, opt);
 				} else {
-					strcpy(szExtractName, gf_get_default_cache_directory());
+					gf_strcpy(szExtractName, gf_get_default_cache_directory());
 				}
-				strcat(szExtractName, "/");
+				gf_strcat(szExtractName, "/");
 				src_url = (char *) gf_scene_get_service_url( gf_node_get_graph(txh->owner ) );
 
 				gf_sha1_csum((u8 *)src_url, (u32) strlen(src_url), hash);
@@ -368,11 +368,11 @@ static void imagetexture_update(GF_TextureHandler *txh)
 					char t[3];
 					t[2] = 0;
 					sprintf(t, "%02X", hash[i]);
-					strcat(szExtractName, t);
+					gf_strcat(szExtractName, t);
 				}
-				strcat(szExtractName, "_");
+				gf_strcat(szExtractName, "_");
 
-				strcat(szExtractName, ct->cacheURL.buffer);
+				gf_strcat(szExtractName, ct->cacheURL.buffer);
 				cached_texture = gf_fopen(szExtractName, "wb");
 				if (cached_texture) {
 					gf_fwrite(ct->data, ct->data_len, cached_texture);

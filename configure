@@ -2705,7 +2705,7 @@ fi
 else
 
 if test "$enable_sanitizer" = "yes" ; then
-    CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g -fno-omit-frame-pointer -fno-stack-protector -U_FORTIFY_SOURCE -DASAN_ENABLED"
+    CFLAGS="$CFLAGS -fsanitize=address,undefined,float-cast-overflow,bounds -fno-sanitize-recover -g -fno-omit-frame-pointer -fno-stack-protector -U_FORTIFY_SOURCE -DASAN_ENABLED"
     LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
 fi
 

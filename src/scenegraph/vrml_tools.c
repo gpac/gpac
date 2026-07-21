@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -157,10 +157,16 @@ void gf_sg_vrml_parent_setup(GF_Node *pNode)
 
 void gf_sg_vrml_parent_destroy(GF_Node *pNode)
 {
-	GF_VRMLParent *par = (GF_VRMLParent *)pNode;
-	gf_node_unregister_children(pNode, par->children);
-	gf_node_unregister_children(pNode, par->addChildren);
-	gf_node_unregister_children(pNode, par->removeChildren);
+	GF_VRMLParent* par = (GF_VRMLParent*)pNode;
+	GF_ChildNodeItem* children = par->children;
+	GF_ChildNodeItem* addChildren = par->addChildren;
+	GF_ChildNodeItem* removeChildren = par->removeChildren;
+	par->children = NULL;
+	par->addChildren = NULL;
+	par->removeChildren = NULL;
+	gf_node_unregister_children(pNode, children);
+	gf_node_unregister_children(pNode, addChildren);
+	gf_node_unregister_children(pNode, removeChildren);
 }
 
 GF_EXPORT
@@ -1751,7 +1757,7 @@ char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 
 	switch (info->fieldType) {
 	case GF_SG_VRML_SFBOOL:
-		strcpy(szVal, *((SFBool*)info->far_ptr) ? "TRUE" : "FALSE");
+		gf_strcpy(szVal, *((SFBool*)info->far_ptr) ? "TRUE" : "FALSE");
 		return gf_strdup(szVal);
 	case GF_SG_VRML_SFINT32:
 		sprintf(szVal, "%d", *((SFInt32*)info->far_ptr) );
@@ -1829,7 +1835,7 @@ char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 				i+=4;
 				break;
 			}
-			strcat(buf, szVal);
+			gf_strcat(buf, szVal);
 		}
 		return buf;
 	}

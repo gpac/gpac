@@ -1102,17 +1102,19 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 					if (end)
 						gf_dynstrcat(&file_suf_name, end, "_");
 
-					len = (u32) strlen(file_suf_name);
-					//replace : and / characters
-					for (i=0; i<len; i++) {
-						switch (file_suf_name[i]) {
-						case ':':
-						case '/':
-							file_suf_name[i] = '.';
-							break;
+					if (file_suf_name) {
+						len = (u32) strlen(file_suf_name);
+						//replace : and / characters
+						for (i=0; i<len; i++) {
+							switch (file_suf_name[i]) {
+							case ':':
+							case '/':
+								file_suf_name[i] = '.';
+								break;
+							}
 						}
+						gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(file_suf_name) );
 					}
-					gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(file_suf_name) );
 				}
 			} else {
 				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->file_idx) );

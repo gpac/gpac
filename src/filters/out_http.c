@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2025
+ *			Copyright (c) Telecom ParisTech 2019-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / http server and output filter
@@ -1077,7 +1077,7 @@ GF_Err httpout_new_subsession(GF_HTTPOutSession *sess, s64 stream_id)
 	sub_sess->last_active_time = gf_sys_clock_high_res();
 	//mark the subsession as being hmux right away so that we can process it even if no pending data on socket (cf httpout_process_session)
 	sub_sess->http_type = sess->http_type;
-	strcpy(sub_sess->peer_address, sess->peer_address);
+	gf_strcpy(sub_sess->peer_address, sess->peer_address);
 	sub_sess->http_sess = gf_dm_sess_new_subsession(sess->http_sess, stream_id, sub_sess, &e);
 	if (!sub_sess->http_sess) {
 		gf_free(sub_sess);
@@ -1896,7 +1896,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (!full_path && !strcmp(url+1, "favicon.ico")) {
 			char path[GF_MAX_PATH];
 			if (gf_opts_default_shared_directory(path)) {
-				strcat(path, "/res/gpac.ico");
+				gf_strcat(path, "/res/gpac.ico");
 				if (gf_file_exists(path)) full_path = gf_strdup(path);
 			}
 		}
@@ -2159,8 +2159,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	//copy range for logs before resetting session headers
 	if (sess->do_log && range) {
-		strncpy(szRange, range, 199);
-		szRange[199] = 0;
+		gf_strcpy(szRange, range);
 	} else {
 		szRange[0] = 0;
 	}
@@ -3004,7 +3003,7 @@ static Bool on_h3_accept(void *udta, GF_DownloadSession *http_sess, const char *
 	gf_list_add(ctx->sessions, sess);
 	gf_list_add(ctx->active_sessions, sess);
 
-	strcpy(sess->peer_address, address);
+	gf_strcpy(sess->peer_address, address);
 	sess->peer_port = port;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Accepting new QUIC connection from %s\n", sess->peer_address));
@@ -3095,7 +3094,7 @@ check_next_conn:
 
 	gf_sk_set_buffer_size(new_conn, GF_FALSE, ctx->block_size);
 	gf_sk_set_buffer_size(new_conn, GF_TRUE, ctx->block_size);
-	strcpy(sess->peer_address, peer_address);
+	gf_strcpy(sess->peer_address, peer_address);
 	sess->peer_port = peer_port;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Accepting new %sconnection from %s\n", ssl_c ? " TLS" : "", sess->peer_address));
@@ -3140,7 +3139,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		url = sep+1;
 		cplen = (u32) (sep-ctx->dst-7);
 		if (cplen>1023) cplen=1023;
-		strncpy(szIP, ctx->dst+7, cplen);
+		memcpy(szIP, ctx->dst+7, cplen);
 		szIP[MIN(cplen,1023)] = 0;
 		sep = strchr(szIP, ':');
 		if (sep) {
@@ -3174,8 +3173,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 				ctx->in_caps[1].val = PROP_NAME( ctx->mime );
 				ctx->in_caps[1].flags = GF_CAPS_INPUT;
 			} else {
-				strncpy(ctx->szExt, ext, 9);
-				ctx->szExt[9] = 0;
+				gf_strcpy(ctx->szExt, ext);
 				strlwr(ctx->szExt);
 				ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
 				ctx->in_caps[1].val = PROP_NAME( ctx->szExt );

@@ -1747,8 +1747,8 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 			sprintf(szHeader, "%u\n00:00:00,000 --> ", stream->num_frame);
 			char *tx3g_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt);
 			tx3g_format_time(stream->curr_pck.duration, stream->ifce->timescale, szDur, GF_TRUE);
-			strcat(szHeader, szDur);
-			strcat(szHeader, "\n");
+			gf_strcat(szHeader, szDur);
+			gf_strcat(szHeader, "\n");
 			u32 hlen = (u32) strlen(szHeader);
 			u8 *data = gf_malloc(stream->curr_pck.data_len+hlen+1);
 			memcpy(data, szHeader, hlen);

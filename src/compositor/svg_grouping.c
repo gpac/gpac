@@ -97,13 +97,14 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 			if (!strncmp(frag_uri, "svgView", 7)) {
 				if (!strncmp(frag_uri, "svgView(viewBox(", 16)) {
 					Float x, y, w, h;
-					sscanf(frag_uri, "svgView(viewBox(%f,%f,%f,%f))", &x, &y, &w, &h);
-					ext_vb.x = FLT2FIX(x);
-					ext_vb.y = FLT2FIX(y);
-					ext_vb.width = FLT2FIX(w);
-					ext_vb.height = FLT2FIX(h);
-					ext_vb.is_set = 1;
-					vb = &ext_vb;
+					if (sscanf(frag_uri, "svgView(viewBox(%f,%f,%f,%f))", &x, &y, &w, &h) == 4) {
+						ext_vb.x = FLT2FIX(x);
+						ext_vb.y = FLT2FIX(y);
+						ext_vb.width = FLT2FIX(w);
+						ext_vb.height = FLT2FIX(h);
+						ext_vb.is_set = 1;
+						vb = &ext_vb;
+					}
 				}
 				else if (!strncmp(frag_uri, "svgView(transform(", 18)) {
 					Bool ret = gf_svg_parse_transformlist(&mx, (char *) frag_uri+18);
@@ -279,7 +280,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 	GF_Matrix bck_mx;
 #endif
-	Bool is_dirty;
+	u32 is_dirty;
 	GF_IRect top_clip;
 	SFVec2f prev_vp;
 	SVGPropertiesPointers backup_props, *prev_props;

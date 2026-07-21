@@ -466,7 +466,7 @@ static Bool enum_net_ifces(void *cbk, const char *name, const char *IP, u32 flag
 	char *prev_name = cbk;
 	if (strcmp(prev_name, name)) {
 		if (prev_name[0]) fprintf(stdout, "\n");
-		strcpy(prev_name, name);
+		gf_strlcpy(prev_name, name, 100);
 		fprintf(stdout, "%s", name);
 		fprintf(stdout, ": %s", (flags & GF_NETIF_ACTIVE) ? "Up" : "Down");
 		if (flags & GF_NETIF_NO_MCAST) fprintf(stdout, " NoMulticast");
@@ -513,7 +513,7 @@ int gpac_main(int _argc, char **_argv)
 	//init static vars
 	helpout = stdout;
 	list_filters = print_filter_info = gen_doc = help_flags = 0;
-	strcpy(separator_set, GF_FS_DEFAULT_SEPS);
+	gf_strcpy(separator_set, GF_FS_DEFAULT_SEPS);
 
 	//bools
 	dump_stats = dump_graph = print_meta_filters = load_test_filters = GF_FALSE;
@@ -674,7 +674,7 @@ int gpac_main(int _argc, char **_argv)
 		if (arg_val) {
 			u32 len = (u32) (arg_val - arg);
 			if (len>1023) len=1023;
-			strncpy(szArgName, arg, len);
+			memcpy(szArgName, arg, len);
 			szArgName[len]=0;
 			arg = szArgName;
 			arg_val++;
@@ -1410,7 +1410,7 @@ restart:
 					char *updated_args;
 					u32 len = (u32) (need_gfio - arg);
 					updated_args = gf_malloc(sizeof(char)*(len+1));
-					strncpy(updated_args, arg, len);
+					memcpy(updated_args, arg, len);
 					updated_args[len]=0;
 
 					fio_url = make_fileio(need_gfio+7, &fargs, need_gfio[3]=='i' ? 1 : 0, &e);
@@ -2130,7 +2130,7 @@ static Bool gpac_handle_prompt(GF_FilterSession *fsess, char char_code)
 			e = gf_fs_get_filter_stats(fsess, idx, &stats);
 			gf_fs_lock_filters(fsess, GF_FALSE);
 			if (e==GF_OK)
-				strncpy(szFilter, stats.filter_id ? stats.filter_id : stats.name, 99);
+				gf_strcpy(szFilter, stats.filter_id ? stats.filter_id : stats.name);
 		}
 		if (e) {
 			fprintf(stderr, "Cannot get filter for ID %s, aborting.\n", szFilter);
@@ -2652,9 +2652,8 @@ static Bool cache_file_op(void *cbck, char *item_name, char *item_path, GF_FileE
 		url+=3;
 		len = (u32) strlen(url);
 		dst_name = gf_malloc(len+dir_len+1);
-		memset(dst_name, 0, len+dir_len+1);
-
-		strncpy(dst_name, item_path, dir_len);
+		memcpy(dst_name, item_path, dir_len);
+		dst_name[dir_len] = 0;
 		k=dir_len;
 		for (i=0; i<len; i++) {
 			dst_name[k] = url[i];
@@ -3525,7 +3524,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 
 	gf_mkdir("testdir");
 	gf_mkdir("testdir/somedir");
-	strcpy(url, "testdir/somedir/test.bin");
+	gf_strcpy(url, "testdir/somedir/test.bin");
 	FILE *f=gf_fopen(url, "wb");
 	fprintf(f, "some test\n");
 #ifdef GPAC_MEMORY_TRACKING
@@ -3840,11 +3839,11 @@ static int gpac_do_creds(char *creds_args)
 			goto err_exit;
 		}
 
-		strcpy(credFilePath, p);
+		gf_strcpy(credFilePath, p);
 		char *sep = strrchr(credFilePath, '/');
 		if (!sep) sep = strrchr(credFilePath, '\\');
 		if (sep) sep[0] = 0;
-		strcat(credFilePath, "/users.cfg");
+		gf_strcat(credFilePath, "/users.cfg");
 		gf_opts_set_key("core", "users", credFilePath);
 		gf_opts_save();
 		cred_file = gf_opts_get_key("core", "users");

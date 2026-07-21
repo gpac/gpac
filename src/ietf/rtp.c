@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -321,10 +321,10 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 
 			size_t start;
 			gf_get_user_name(name);
-			if (strlen(name)) strcat(name, "@");
+			if (strlen(name)) gf_strcat(name, "@");
 			start = strlen(name);
 			//get host IP or loopback if error
-			if (gf_sk_get_local_ip(ch->rtp, name+start) != GF_OK) strcpy(name+start, "127.0.0.1");
+			if (gf_sk_get_local_ip(ch->rtp, name+start) != GF_OK) gf_strlcpy(name+start, "127.0.0.1", GF_MAX_IP_NAME_LEN-start);
 			ch->CName = gf_strdup(name);
 		}
 	}

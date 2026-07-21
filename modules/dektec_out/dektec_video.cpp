@@ -3,7 +3,7 @@
 *
 *			Authors: Romain Bouqueau, Jean Le Feuvre
 *			Copyright (c) 2014-2016 GPAC Licensing
-*			Copyright (c) 2016-2020 Telecom Paris
+*			Copyright (c) 2016-2026 Telecom Paris
 *					All rights reserved
 *
 *  This file is part of GPAC / Dektec SDI video output filter
@@ -24,6 +24,7 @@
 *
 */
 
+#define GPAC_ALLOW_UNSAFE_STRFUNC
 #include "dektec_video.h"
 
 #ifdef GPAC_HAS_DTAPI

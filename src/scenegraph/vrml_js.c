@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -1201,7 +1201,7 @@ static JSValue node_toString(JSContext *c, JSValueConst obj, int argc, JSValueCo
 			snprintf(str, 500, "DEF %d ", id - 1);
 		}
 	}
-	strncat(str, gf_node_get_class_name(n), 500);
+	gf_strcat(str, gf_node_get_class_name(n));
 	return JS_NewString(c, (const char *) str);
 }
 
@@ -2910,8 +2910,10 @@ static void vrml_js_init_api(GF_ScriptPriv *sc, GF_Node *script)
     JS_SetPropertyStr(sc->js_ctx, sc->js_obj, "alert", JS_NewCFunction(sc->js_ctx, js_print, "print", 1));
     JS_SetPropertyStr(sc->js_ctx, sc->js_obj, "parseXML", JS_NewCFunction(sc->js_ctx, vrml_parse_xml, "parseXML", 1));
 
-	/*remember pointer to scene graph!!*/
-	JS_SetOpaque(sc->js_obj, script->sgprivate->scenegraph);
+	/*remember pointer to scene graph - do NOT use global object private, might be owned by QuickJS !*/
+	JSValue sg_obj = JS_NewObject(sc->js_ctx);
+	JS_SetOpaque(sg_obj, script->sgprivate->scenegraph);
+    JS_SetPropertyStr(sc->js_ctx, sc->js_obj, "__scenegraph", sg_obj);
 
 	JS_SetPropertyStr(sc->js_ctx, sc->js_obj, "FALSE", JS_FALSE);
 	JS_SetPropertyStr(sc->js_ctx, sc->js_obj, "TRUE", JS_TRUE);

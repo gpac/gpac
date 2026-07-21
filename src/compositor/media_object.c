@@ -1250,9 +1250,9 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 
 	if (!obj->URLs.count) {
 		if (!obj->odm) return GF_FALSE;
-		strcpy(szURL1, obj->odm->scene_ns->url);
+		gf_strcpy(szURL1, obj->odm->scene_ns->url);
 	} else {
-		strcpy(szURL1, obj->URLs.vals[0].url);
+		gf_strcpy(szURL1, obj->URLs.vals[0].url);
 	}
 
 	/*don't analyse audio/video to locate segments or viewports*/
@@ -1318,7 +1318,7 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 	if (ext) ext[0] = 0;
 	for (i=0; i<an_url->count; i++) {
 		if (!an_url->vals[i].url) return GF_FALSE;
-		strcpy(szURL2, an_url->vals[i].url);
+		gf_strcpy(szURL2, an_url->vals[i].url);
 		ext = strrchr(szURL2, '#');
 		if (ext) ext[0] = 0;
 		if (!stricmp(szURL1, szURL2)) return GF_TRUE;

@@ -195,6 +195,15 @@ void gf_sg_del(GF_SceneGraph *sg)
 	gf_list_del(sg->routes_to_destroy);
 #endif
 	gf_list_del(sg->exported_nodes);
+	if (sg->referencing_commands) {
+		u32 i, cnt = gf_list_count(sg->referencing_commands);
+		for (i = 0; i < cnt; i++) {
+			GF_SceneGraph **in_scene_ptr = (GF_SceneGraph **)gf_list_get(sg->referencing_commands, i);
+			*in_scene_ptr = NULL;
+		}
+		gf_list_del(sg->referencing_commands);
+		sg->referencing_commands = NULL;
+	}
 	gf_free(sg);
 }
 
@@ -407,6 +416,29 @@ void gf_sg_reset(GF_SceneGraph *sg)
 #ifndef GPAC_DISABLE_VRML
 	if (!sg->pOwningProto && gf_list_count(sg->protos) && sg->GetExternProtoLib)
 		sg->GetExternProtoLib(sg->userpriv, NULL);
+
+	/* Drop node_code refs from all protos before force-freeing nodes below,
+	   preventing UAF when gf_sg_proto_del unregisters the same nodes */
+	{
+		u32 pi, pcount;
+		pcount = gf_list_count(sg->protos);
+		for (pi = 0; pi < pcount; pi++) {
+			GF_Proto* p = (GF_Proto*)gf_list_get(sg->protos, pi);
+			while (gf_list_count(p->node_code)) {
+				GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
+				gf_node_unregister(n, NULL);
+			}
+		}
+		pcount = gf_list_count(sg->unregistered_protos);
+		for (pi = 0; pi < pcount; pi++) {
+			GF_Proto* p = (GF_Proto*)gf_list_get(sg->unregistered_protos, pi);
+			while (gf_list_count(p->node_code)) {
+				GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
+				gf_node_unregister(n, NULL);
+			}
+		}
+	}
+
 #endif
 
 	/*WATCHOUT: we may have cyclic dependencies due to
@@ -658,12 +690,12 @@ void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 
 GF_Err gf_node_try_destroy(GF_SceneGraph *sg, GF_Node *pNode, GF_Node *parentNode)
 {
-	if (!sg) return GF_BAD_PARAM;
-	/*if node has been destroyed, don't even look at it*/
-	if (gf_list_find(sg->exported_nodes, pNode)>=0) return GF_OK;
-	if (!pNode || !pNode->sgprivate->num_instances) return GF_OK;
+	if (!pNode || !sg) return GF_OK;
+	if (gf_list_find(sg->exported_nodes, pNode) >= 0) return GF_OK;
+	if (!pNode->sgprivate->num_instances) return GF_OK;
 	return gf_node_unregister(pNode, parentNode);
 }
+
 
 GF_EXPORT
 GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
@@ -766,6 +798,7 @@ GF_EXPORT
 GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 {
 	if (!node) return GF_OK;
+	if (node->sgprivate->num_instances >= 0xFFFF) return GF_BAD_PARAM;
 
 	node->sgprivate->num_instances ++;
 	/*parent may be NULL (top node and proto)*/
@@ -1266,7 +1299,7 @@ GF_Node *gf_sg_new_base_node()
 GF_EXPORT
 u32 gf_node_get_tag(GF_Node*p)
 {
-	gf_assert(p);
+	if (!p) return (u32)-1;
 	return p->sgprivate->tag;
 }
 GF_EXPORT
@@ -1599,6 +1632,11 @@ void gf_node_free(GF_Node *node)
 
 	if (node->sgprivate->interact) {
 		if (node->sgprivate->interact->routes) {
+			u32 i, count = gf_list_count(node->sgprivate->interact->routes);
+			for (i = 0; i < count; i++) {
+				GF_Route* r = (GF_Route*)gf_list_get(node->sgprivate->interact->routes, i);
+				r->FromNode = NULL;
+			}
 			gf_list_del(node->sgprivate->interact->routes);
 		}
 #ifndef GPAC_DISABLE_SVG
@@ -1619,6 +1657,28 @@ void gf_node_free(GF_Node *node)
 		}
 #endif
 		gf_free(node->sgprivate->interact);
+	}
+	if (node->sgprivate->scenegraph) {
+		NodeIDedItem* nid = node->sgprivate->scenegraph->id_node;
+		while (nid) {
+			GF_ParentList* pl = nid->node->sgprivate->parents;
+			GF_ParentList* prev_pl = NULL;
+			while (pl) {
+				if (pl->node == node) {
+					GF_ParentList* next_pl = pl->next;
+					if (prev_pl)
+						prev_pl->next = next_pl;
+					else
+						nid->node->sgprivate->parents = next_pl;
+					gf_free(pl);
+					pl = next_pl;
+				} else {
+					prev_pl = pl;
+					pl = pl->next;
+				}
+			}
+			nid = nid->next;
+		}
 	}
 	gf_assert(! node->sgprivate->parents);
 	gf_free(node->sgprivate);

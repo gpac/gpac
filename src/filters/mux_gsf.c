@@ -1200,7 +1200,7 @@ static GF_Err gsfmx_initialize(GF_Filter *filter)
 			for (i=0; i<16; i++) {
 				char szC[3];
 				sprintf(szC, "%02X", ctx->crypt_IV[i]);
-				strcat(szIV, szC);
+				gf_strcat(szIV, szC);
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[GSFMux] Generated IV value Ox%s\n", szIV));
 		}

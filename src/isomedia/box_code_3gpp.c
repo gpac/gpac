@@ -1060,6 +1060,7 @@ GF_Err dimC_box_read(GF_Box *s, GF_BitStream *bs)
 	p->streamType = gf_bs_read_int(bs, 1);
 	p->containsRedundant = gf_bs_read_int(bs, 2);
 
+	if (p->size > GF_UINT_MAX-1) return GF_ISOM_INVALID_FILE;
 	char *str = gf_malloc( (size_t) (p->size+1));
 	if (!str) return GF_OUT_OF_MEM;
 	msize = (u32) p->size;
@@ -1151,10 +1152,11 @@ GF_Err diST_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;
 
+	if (s->size > GF_UINT_MAX-1) return GF_ISOM_INVALID_FILE;
 	p->content_script_types = gf_malloc(sizeof(u8) * ((u32) s->size + 1));
 	if (!p->content_script_types) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, p->content_script_types, (u32) s->size);
-	p->content_script_types[s->size] = 0;
+	p->content_script_types[(u32) s->size] = 0;
 	return GF_OK;
 }
 

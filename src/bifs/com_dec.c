@@ -965,7 +965,7 @@ static GF_Err BD_DecRouteReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	}
 #endif
 
-	if (ptr) strcpy(name, ptr);
+	if (ptr) gf_strcpy(name, ptr);
 
 	/*origin*/
 	node_id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);

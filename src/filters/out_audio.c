@@ -226,7 +226,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->pid);
 		gf_filter_pid_send_event(ctx->pid, &evt);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Seek request to %f speed %f\n", ctx->start, ctx->speed));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Seek request to %f speed %f\n", ctx->start, ctx->speed));
 		gf_filter_pid_init_play_event(ctx->pid, &evt, ctx->start, ctx->speed, "VideoOut");
 		gf_filter_pid_send_event(ctx->pid, &evt);
 
@@ -397,10 +397,10 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			gf_filter_hint_single_clock(ctx->filter, gf_sys_clock_high_res(), timestamp);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] At %d ms audio frame CTS "LLU" (compensated time %g s, HW delay "LLU" us)\n", gf_sys_clock(), cts, ((Double)timestamp.num)/timestamp.den, ctx->hwdelay_us ));
 		}
-		
+
 		if (data && !ctx->wait_recfg && (size >= ctx->pck_offset)) {
 			u32 nb_copy;
-			
+
 			nb_copy = (size - ctx->pck_offset);
 			if (nb_copy + done > buffer_size) nb_copy = buffer_size - done;
 			memcpy(buffer+done, data+ctx->pck_offset, nb_copy);
@@ -498,7 +498,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (p) ctx->audio_out->SetPan(ctx->audio_out, p->value.uint);
 	}
 	gf_filter_release_property(pe);
-	
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_PRIORITY);
 	if (p) aout_set_priority(ctx, p->value.uint);
 
@@ -593,7 +593,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->pid_delay = p ? p->value.longsint : 0;
 
 	ctx->needs_recfg = GF_TRUE;
-	
+
 	//not threaded, request a task to restart audio (cannot do it during the audio callback)
 #ifndef GPAC_DISABLE_THREADS
 	if (!ctx->th)
@@ -850,4 +850,3 @@ const GF_FilterRegister *aout_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_AOUT
-

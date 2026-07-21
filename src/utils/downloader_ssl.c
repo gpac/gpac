@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2025
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / downloader sub-project
@@ -398,7 +398,7 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic) {
 #ifdef GPAC_HAS_HTTP2
 	if (!dm->disable_http2) {
 #ifndef GPAC_HAS_GNUTLS // openssl
-		strcat(ALPN_PROTOS, "\x02h2");
+		gf_strcat(ALPN_PROTOS, "\x02h2");
 #else
         alpn_protos[alpn_count++] = alpn_h2;
 #endif
@@ -413,7 +413,7 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unable to initialize SSL context for QUIC, disabling HTTP3\n"));
 			dm->h3_mode = H3_MODE_NO;
 		} else {
-			strcat(ALPN_PROTOS, "\x02h3");
+			gf_strcat(ALPN_PROTOS, "\x02h3");
 		}
 #else // gnutls
 		alpn_protos[alpn_count++] = alpn_h3;
@@ -1309,7 +1309,7 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, GF_UserC
 	size = gf_base64_encode(pass_buf, (u32) strlen(pass_buf), range_buf, 1024);
 	gf_free(pass_buf);
 	range_buf[size] = 0;
-	strcpy(creds->digest, range_buf);
+	gf_strcpy(creds->digest, range_buf);
 	creds->valid = GF_TRUE;
 
 #ifndef GPAC_DISABLE_CRYPTO
@@ -1338,7 +1338,7 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, GF_UserC
 
 		GF_Crypt *gfc = gf_crypt_open(GF_AES_128, GF_CTR);
 		gf_crypt_init(gfc, k, NULL);
-		strcpy(szPATH, password);
+		gf_strcpy(szPATH, password);
 		gf_crypt_encrypt(gfc, szPATH, plen);
 		gf_crypt_close(gfc);
 		szPATH[plen] = 0;
@@ -1391,8 +1391,8 @@ GF_UserCredentials* gf_user_credentials_find_for_site(GF_DownloadManager *dm, co
 			if (!cred) return NULL;
 			cred->dm = dm;
 			sep[0] = 0;
-			strcpy(cred->username, key);
-			strcpy(szP, sep+1);
+			gf_strcpy(cred->username, key);
+			gf_strcpy(szP, sep+1);
 			sep[0] = ':';
 
 			GF_Crypt *gfc = gf_crypt_open(GF_AES_128, GF_CTR);
@@ -1415,7 +1415,7 @@ static void on_user_pass(void *udta, const char *user, const char *pass, Bool st
 	u32 len = user ? (u32) strlen(user) : 0;
 	if (len && (user != creds->username)) {
 		if (len> 49) len = 49;
-		strncpy(creds->username, user, 49);
+		memcpy(creds->username, user, 49);
 		creds->username[len]=0;
 	}
 	if (user && pass) {
@@ -1467,13 +1467,11 @@ GF_UserCredentials * gf_user_credentials_register(GF_DownloadManager * dm, Bool 
 	}
 	creds->valid = valid;
 	if (username) {
-		strncpy(creds->username, username, 49);
-		creds->username[49] = 0;
+		gf_strcpy(creds->username, username);
 	} else {
 		creds->username[0] = 0;
 	}
-	strncpy(creds->site, server_name, 1023);
-	creds->site[1023] = 0;
+	gf_strcpy(creds->site, server_name);
 	if (username && password && valid)
 		gf_user_credentials_save_digest(dm, creds, password, GF_FALSE);
 	else {

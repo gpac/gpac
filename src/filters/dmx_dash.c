@@ -1752,6 +1752,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		srd_deps.type = GF_PROP_STRING_LIST;
 		srd_deps.value.string_list.nb_items = group->nb_group_deps;
 		srd_deps.value.string_list.vals = gf_malloc(sizeof(char *) * group->nb_group_deps);
+		if (!srd_deps.value.string_list.vals) return;
 
 		for (i=0; i<group->nb_group_deps; i++) {
 			char szSRDInf[1024];
@@ -1776,6 +1777,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			nb_q = gf_dash_group_get_num_qualities(ctx->dash, g_idx);
 			deps_q.value.string_list.nb_items = nb_q;
 			deps_q.value.string_list.vals = gf_malloc(sizeof(char *) * nb_q);
+			if (!deps_q.value.string_list.vals) continue;
 
 			for (k=0; k<nb_q; k++) {
 				char *qdesc = NULL;
@@ -2439,23 +2441,23 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 		//init to default, overwrite later
 		algo = GF_DASH_ALGO_GPAC_LEGACY_BUFFER;
 		if (gf_file_exists(algo_str)) {
-			strcpy(szFile, algo_str);
+			gf_strcpy(szFile, algo_str);
 			found = GF_TRUE;
 		} else if (!strstr(algo_str, ".js")) {
-			strcpy(szFile, algo_str);
-			strcat(szFile, ".js");
+			gf_strcpy(szFile, algo_str);
+			gf_strcat(szFile, ".js");
 			if (gf_file_exists(szFile)) {
 				found = GF_TRUE;
 			}
 		}
 		if (!found) {
 			gf_opts_default_shared_directory(szFile);
-			strcat(szFile, "/scripts/");
-			strcat(szFile, algo_str);
+			gf_strcat(szFile, "/scripts/");
+			gf_strcat(szFile, algo_str);
 			if (gf_file_exists(szFile)) {
 				found = GF_TRUE;
 			} else if (!strstr(algo_str, ".js")) {
-				strcat(szFile, ".js");
+				gf_strcat(szFile, ".js");
 				if (gf_file_exists(szFile))
 					found = GF_TRUE;
 			}

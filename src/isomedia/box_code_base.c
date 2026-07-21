@@ -13348,6 +13348,7 @@ GF_Err mvcg_box_read(GF_Box *s,GF_BitStream *bs)
 	ptr->num_entries = gf_bs_read_u16(bs);
 	gf_bs_read_u8(bs);
 	ptr->entries = gf_malloc(ptr->num_entries * sizeof(MVCIEntry));
+	if (!ptr->entries) return GF_OUT_OF_MEM;
 	memset(ptr->entries, 0, ptr->num_entries * sizeof(MVCIEntry));
 	for (i=0; i<ptr->num_entries; i++) {
 		ISOM_DECREASE_SIZE(s, 1)

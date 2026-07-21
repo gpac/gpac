@@ -3223,10 +3223,9 @@ GF_Err gf_isom_set_copyright(GF_ISOFile *movie, const char *threeCharCode, char 
 		for (i=0; i<count; i++) {
 			ptr = (GF_CopyrightBox*)gf_list_get(map->boxes, i);
 			if (!strcmp(threeCharCode, (const char *) ptr->packedLanguageCode)) {
-				gf_free(ptr->notice);
-				ptr->notice = (char*)gf_malloc(sizeof(char) * (strlen(notice) + 1));
+				if (ptr->notice) gf_free(ptr->notice);
+				ptr->notice = (char*)gf_strdup(notice);
 				if (!ptr->notice) return GF_OUT_OF_MEM;
-				strcpy(ptr->notice, notice);
 				return GF_OK;
 			}
 		}
@@ -3236,9 +3235,8 @@ GF_Err gf_isom_set_copyright(GF_ISOFile *movie, const char *threeCharCode, char 
 	if (!ptr) return GF_OUT_OF_MEM;
 
 	memcpy(ptr->packedLanguageCode, threeCharCode, 4);
-	ptr->notice = (char*)gf_malloc(sizeof(char) * (strlen(notice)+1));
+	ptr->notice = gf_strdup(notice);
 	if (!ptr->notice) return GF_OUT_OF_MEM;
-	strcpy(ptr->notice, notice);
 	return udta_on_child_box_ex((GF_Box *)movie->moov->udta, (GF_Box *) ptr, GF_FALSE, GF_FALSE);
 }
 
@@ -4867,7 +4865,7 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		entry->spatial_quality = udesc->spatial_quality;
 		entry->Width = udesc->width;
 		entry->Height = udesc->height;
-		strncpy(entry->compressor_name, udesc->compressor_name, GF_ARRAY_LENGTH(entry->compressor_name));
+		gf_strcpy(entry->compressor_name, udesc->compressor_name);
 		entry->compressor_name[ GF_ARRAY_LENGTH(entry->compressor_name) - 1] = 0;
 		entry->color_table_index = -1;
 		entry->frames_per_sample = 1;
@@ -4999,7 +4997,8 @@ GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNum
 		entry->spatial_quality = udesc->spatial_quality;
 		entry->Width = udesc->width;
 		entry->Height = udesc->height;
-		strcpy(entry->compressor_name, udesc->compressor_name);
+		memset(entry->compressor_name, 0, 33);
+		gf_strcpy(entry->compressor_name, udesc->compressor_name);
 		entry->color_table_index = -1;
 		entry->frames_per_sample = 1;
 		entry->horiz_res = udesc->h_res ? udesc->h_res : 0x00480000;
@@ -6215,7 +6214,7 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 	} else {
 		u32 i, j, len;
 		char szOrig[1024], szLine[1024];
-		strcpy(szOrig, nameUTF8);
+		gf_strcpy(szOrig, nameUTF8);
 		j=0;
 		len = (u32) strlen(szOrig);
 		for (i=0; i<len; i++) {
@@ -8713,8 +8712,10 @@ GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32
 	vid_ent->horiz_res = horiz_res;
 	vid_ent->vert_res = vert_res;
 	vid_ent->frames_per_sample = frames_per_sample;
-	if (compressor_name)
-		strncpy(vid_ent->compressor_name, compressor_name, 32);
+	if (compressor_name) {
+		memset(vid_ent->compressor_name, 0, 33);
+		gf_strcpy(vid_ent->compressor_name, compressor_name);
+	}
 
 	vid_ent->color_table_index = color_table_index;
 	return GF_OK;

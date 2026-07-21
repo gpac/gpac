@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -211,13 +211,17 @@ Bool gf_rtp_is_disc(GF_RTPChannel *ch);
 /*macros for RTSP command and response formmating*/
 #define RTSP_WRITE_STEPALLOC	250
 
-#define RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, str)		\
-	if (strlen((const char *) str)+pos >= buf_size) {	\
-		buf_size += (u32) strlen((const char *) str);	\
+#define RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, str)	{	\
+	u32 _alen = (u32) strlen((const char *) str);\
+	if (_alen+pos >= buf_size) {	\
+		buf_size += _alen+1;	\
 		buf = (char *) gf_realloc(buf, buf_size);		\
 	}	\
-	strcpy(buf+pos, (const char *) str);		\
-	pos += (u32) strlen((const char *) str); \
+	memcpy(buf+pos, str, _alen);		\
+	buf[pos+_alen]=0;		\
+	pos += _alen; \
+}
+
 
 #define RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str)		\
 	if (str){	\

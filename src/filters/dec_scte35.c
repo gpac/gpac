@@ -328,11 +328,13 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 			// we're done with the event
 			gf_isom_box_del((GF_Box*)evt->emib);
 			gf_free(evt);
+			evt = NULL;
 		} else {
 			e = scte35dec_schedule(ctx, evt->dts, evt->emib);
-			gf_free(evt);
 			if(e)
 				goto exit;
+			gf_free(evt);
+			evt = NULL;
 			if (max_dur != GF_UINT_MAX && max_dur > 0)
 				continue; // still time within time scope: re-schedule and continue to process
 			else
@@ -341,7 +343,7 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 	}
 
 exit:
-	if (e) {
+	if (e && evt) {
 		gf_isom_box_del((GF_Box*)evt->emib);
 		gf_free(evt);
 	}

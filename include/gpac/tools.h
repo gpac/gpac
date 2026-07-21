@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -2585,7 +2585,7 @@ const char *gf_opts_get_filename();
 \param path_buffer GF_MAX_PATH buffer to store output
 \return GF_TRUE if success, GF_FALSE otherwise
  */
-Bool gf_opts_default_shared_directory(char *path_buffer);
+Bool gf_opts_default_shared_directory(char path_buffer[GF_MAX_PATH]);
 
 
 /*!
@@ -2676,6 +2676,10 @@ void gf_gl_txw_reset(GF_GLTextureWrapper *tx);
 
 /*! macros to get the size of an array of struct*/
 #define GF_ARRAY_LENGTH(a) (sizeof(a) / sizeof((a)[0]))
+
+/*! avoid UB when casting floats to ints */
+#define GF_FLOAT_TO_U32(x) (((x) >= 0) && ((x) <= (double)GF_UINT_MAX) ? (u32)(x) : 0)
+#define GF_FLOAT_TO_U64(x) (((x) >= 0) && ((x) <= (double)GF_UINT64_MAX) ? (u64)(x) : 0)
 
 #ifdef __cplusplus
 }

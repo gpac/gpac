@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2025
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / downloader sub-project
@@ -1443,7 +1443,7 @@ resetup_socket:
 			u32 i;
 			proxy_port = 80;
 			char *sep = strstr(proxy, "://");
-			strcpy(szProxy, sep ? sep+3 : proxy);
+			gf_strcpy(szProxy, sep ? sep+3 : proxy);
 			sep = strchr(szProxy, ':');
 			if (sep) {
 				proxy_port = atoi(sep+1);
@@ -1962,8 +1962,8 @@ retry_cache:
 			opt = NULL;
 			goto retry_cache;
 		}
-		strcpy(szTemp, dm->cache_directory);
-		strcat(szTemp, "gpaccache.test");
+		gf_strcpy(szTemp, dm->cache_directory);
+		gf_strcat(szTemp, "gpaccache.test");
 		test = gf_fopen(szTemp, "wb");
 		if (!test) {
 			gf_mkdir(dm->cache_directory);
@@ -2888,7 +2888,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 	}
 
 	/*setup authentication*/
-	strcpy(pass_buf, "");
+	gf_strcpy(pass_buf, "");
 	sess->creds = gf_user_credentials_find_for_site( sess->dm, sess->server_name, NULL);
 	if (sess->creds && sess->creds->valid) {
 #ifdef GPAC_HAS_CURL
@@ -2916,8 +2916,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		par.name = "GET";
 	}
 
-	strncpy(req_name, par.name, 19);
-	req_name[19] = 0;
+	gf_strcpy(req_name, par.name);
 
 	if (!strcmp(req_name, "GET")) {
 		sess->http_read_type = GET;
@@ -3177,10 +3176,10 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 			continue;
 		}
 #endif
-		strcat(sHTTP, hdr->name);
-		strcat(sHTTP, ": ");
-		strcat(sHTTP, hdr->value);
-		strcat(sHTTP, "\r\n");
+		gf_strlcat(sHTTP, hdr->name, sess->http_buf_size);
+		gf_strlcat(sHTTP, ": ", sess->http_buf_size);
+		gf_strlcat(sHTTP, hdr->value, sess->http_buf_size);
+		gf_strlcat(sHTTP, "\r\n", sess->http_buf_size);
 	}
 #ifdef GPAC_HAS_CURL
 	if (sess->curl_hnd) {
@@ -3190,7 +3189,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 	}
 #endif
 
-	strcat(sHTTP, "\r\n");
+	gf_strlcat(sHTTP, "\r\n", sess->http_buf_size);
 
 #ifdef GPAC_HAS_CURL
 	if (sess->curl_hnd) {
@@ -3200,7 +3199,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 	if (send_profile || par.data) {
 		u32 len = (u32) strlen(sHTTP);
 		char *tmp_buf = (char*)gf_malloc(sizeof(char)*(len+par.size+1));
-		strcpy(tmp_buf, sHTTP);
+		memcpy(tmp_buf, sHTTP, len+1);
 		if (par.data) {
 			memcpy(tmp_buf+len, par.data, par.size);
 			tmp_buf[len+par.size] = 0;

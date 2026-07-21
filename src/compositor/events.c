@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -337,8 +337,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 								if (!n1->textContent) n1->textContent = gf_strdup("");
 								caret_pos = (u32) strlen(n1->textContent);
 								if (n2->textContent) {
-									n1->textContent = (char*)gf_realloc(n1->textContent, sizeof(char)*(strlen(n1->textContent)+strlen(n2->textContent)+1));
-									strcat(n1->textContent, n2->textContent);
+									gf_dynstrcat(&n1->textContent, n2->textContent, NULL);
 								}
 								gf_node_list_del_child(&children, (GF_Node*)n2);
 								gf_node_unregister((GF_Node*)n2, compositor->focus_node);

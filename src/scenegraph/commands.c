@@ -40,6 +40,11 @@ GF_Command *gf_sg_command_new(GF_SceneGraph *graph, u32 tag)
 	ptr->tag = tag;
 	ptr->in_scene = graph;
 	ptr->command_fields = gf_list_new();
+	if (graph) {
+		if (!graph->referencing_commands)
+			graph->referencing_commands = gf_list_new();
+		gf_list_add(graph->referencing_commands, &ptr->in_scene);
+	}
 	if (tag < GF_SG_LAST_BIFS_COMMAND) ptr->new_proto_list = gf_list_new();
 	return ptr;
 }
@@ -52,6 +57,9 @@ void gf_sg_command_del(GF_Command *com)
 	GF_Proto *proto;
 #endif
 	if (!com) return;
+
+	if (com->in_scene && com->in_scene->referencing_commands)
+		gf_list_del_item(com->in_scene->referencing_commands, &com->in_scene);
 
 	if (com->tag < GF_SG_LAST_BIFS_COMMAND) {
 #ifndef GPAC_DISABLE_VRML
@@ -76,7 +84,10 @@ void gf_sg_command_del(GF_Command *com)
 				}
 				break;
 			default:
-				if (inf->field_ptr) gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
+				if (inf->field_ptr && inf->field_ptr != (void *)&inf->new_node 	&& inf->field_ptr != (void *)&inf->node_list) {
+					gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
+				}
+				if (inf->new_node) gf_node_try_destroy(com->in_scene, inf->new_node, NULL);
 				break;
 			}
 			gf_free(inf);
@@ -1003,4 +1014,3 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 }
 
 #endif
-

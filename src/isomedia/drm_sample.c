@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *          Authors: Cyril Concolato / Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2025
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -781,8 +781,7 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 		sinf->info->piff_tenc->key_info[3] = key_info[3];
 		memcpy(sinf->info->piff_tenc->key_info+4, key_info+4, 16*sizeof(char));
 	}
-	//tenc only for mkey
-	else if (!key_info[0]) {
+	else {
 		if (key_info_size<20) return GF_BAD_PARAM;
 		sinf->info->tenc = (GF_TrackEncryptionBox *)gf_isom_box_new_parent(&sinf->info->child_boxes, GF_ISOM_BOX_TYPE_TENC);
 		if (!sinf->info->tenc) return GF_OUT_OF_MEM;
@@ -1119,7 +1118,7 @@ GF_SampleEncryptionBox * gf_isom_create_piff_psec_box(u8 version, u32 flags, u32
 	if (psec->flags & 0x1) {
 		psec->AlgorithmID = AlgorithmID;
 		psec->IV_size = IV_size;
-		strcpy((char *)psec->KID, (const char *)KID);
+		memcpy((char *)psec->KID, (const char *)KID, sizeof(bin128) );
 	}
 	psec->samp_aux_info = gf_list_new();
 
@@ -1870,10 +1869,8 @@ GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 d
 	sinf->info->adkm->header->std_enc_params->enc_info = (GF_AdobeEncryptionInfoBox *)gf_isom_box_new_parent(&sinf->info->adkm->header->std_enc_params->child_boxes, GF_ISOM_BOX_TYPE_AEIB);
 	if (!sinf->info->adkm->header->std_enc_params->enc_info) return GF_OUT_OF_MEM;
 
-	sinf->info->adkm->header->std_enc_params->enc_info->enc_algo = (char *)gf_malloc(8*sizeof(char));
+	sinf->info->adkm->header->std_enc_params->enc_info->enc_algo = (char *)gf_strdup("AES-CBC");
 	if (!sinf->info->adkm->header->std_enc_params->enc_info->enc_algo) return GF_OUT_OF_MEM;
-
-	strcpy(sinf->info->adkm->header->std_enc_params->enc_info->enc_algo, "AES-CBC");
 	sinf->info->adkm->header->std_enc_params->enc_info->key_length = 16;
 
 	sinf->info->adkm->header->std_enc_params->key_info = (GF_AdobeKeyInfoBox *)gf_isom_box_new_parent(&sinf->info->adkm->header->std_enc_params->child_boxes, GF_ISOM_BOX_TYPE_AKEY);
@@ -1886,7 +1883,7 @@ GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 d
 		sinf->info->adkm->header->std_enc_params->key_info->params->metadata = (char *)gf_malloc((len+1)*sizeof(char));
 		if (!sinf->info->adkm->header->std_enc_params->key_info->params->metadata) return GF_OUT_OF_MEM;
 
-		strncpy(sinf->info->adkm->header->std_enc_params->key_info->params->metadata, metadata, len);
+		memcpy(sinf->info->adkm->header->std_enc_params->key_info->params->metadata, metadata, len);
 		sinf->info->adkm->header->std_enc_params->key_info->params->metadata[len] = 0;
 	}
 

@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2013-2024
+ *			Copyright (c) Telecom ParisTech 2013-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / WebVTT decoder filter
@@ -156,8 +156,8 @@ void vttd_setup_scene(GF_VTTDec *ctx)
 		gf_svg_parse_attribute(n, &info, (char *) ctx->script, 0);
 	} else {
 		char szPath[GF_MAX_PATH];
-		strcpy(szPath, "file://");
-		strcat(szPath, ctx->script);
+		gf_strcpy(szPath, "file://");
+		gf_strcat(szPath, ctx->script);
 		gf_svg_parse_attribute(n, &info, (char *) szPath, 0);
 	}
 

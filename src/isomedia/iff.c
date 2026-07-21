@@ -100,7 +100,7 @@ GF_Err a1lx_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
 	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox *)s;
-	
+
 	ISOM_DECREASE_SIZE(p, 1);
 	gf_bs_read_int(bs, 7);
 	p->large_size = gf_bs_read_int(bs, 1);
@@ -1094,7 +1094,7 @@ GF_Err mdcv_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, p->mdcv.white_point_y);
 	gf_bs_write_u32(bs, p->mdcv.max_display_mastering_luminance);
 	gf_bs_write_u32(bs, p->mdcv.min_display_mastering_luminance);
-	
+
 	return GF_OK;
 }
 
@@ -1811,7 +1811,7 @@ import_next_sample:
 					u32 private_data_size;
 
 					gf_isom_get_pssh_info(fsrc, i+1, SystemID, &version, &KID_count, &KIDs, &private_data, &private_data_size);
-					
+
 					gf_isom_cenc_set_pssh(movie, SystemID, version, KID_count, (bin128 *) KIDs, (u8 *) private_data, private_data_size, 2);
 				}
 			}
@@ -1853,7 +1853,7 @@ import_next_sample:
 		//}
 	}
 
-	
+
 	if (neg_time)
 		image_props->time = -1;
 
@@ -1900,6 +1900,9 @@ GF_Err gf_isom_iff_create_image_grid_item_internal(GF_ISOFile *movie, Bool root_
 	GF_Err e = GF_OK;
 	u32 grid4cc = GF_4CC('g', 'r', 'i', 'd');
 	GF_BitStream *grid_bs;
+
+	if (!image_props) return GF_BAD_PARAM;
+
 	if (image_props->num_grid_rows < 1 || image_props->num_grid_columns < 1 || image_props->num_grid_rows > 256 || image_props->num_grid_columns > 256) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Wrong grid parameters: %d, %d\n", image_props->num_grid_rows, image_props->num_grid_columns));
 		return GF_BAD_PARAM;

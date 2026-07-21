@@ -6273,13 +6273,13 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		gf_isom_set_fragment_option(ctx->file, 0, GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET, 1);
 
 		gf_isom_get_brand_info(ctx->file, &mbrand, NULL, &mcount);
-		strcpy(szB, gf_4cc_to_str(mbrand));
+		gf_strcpy(szB, gf_4cc_to_str(mbrand));
 		if (!strncmp(szB, "iso", 3) && (szB[3] >= mval) && (szB[3] <= 'F') ) found = 1;
 		i=0;
 		while (!found && (i<mcount)) {
 			i++;
 			gf_isom_get_alternate_brand(ctx->file, i, &mbrand);
-			strcpy(szB, gf_4cc_to_str(mbrand));
+			gf_strcpy(szB, gf_4cc_to_str(mbrand));
 			if (!strncmp(szB, "iso", 3) && (szB[3] >= mval) && (szB[3] <= 'F') ) found = 1;
 		}
 
@@ -8145,6 +8145,10 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	}
 #endif
 	if (ctx->file) {
+		if ((uintptr_t)ctx->file < 0x1000) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Invalid file pointer\n"));
+			return GF_BAD_PARAM;
+		}
 		if (gf_isom_get_mode(ctx->file) < GF_ISOM_OPEN_WRITE) return GF_BAD_PARAM;
 		if (ctx->store>=MP4MX_MODE_FRAG) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use fragmented output on already opened ISOBMF file\n"));

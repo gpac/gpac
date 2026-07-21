@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -250,7 +250,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(u8 *buffer)
 			nPos = gf_token_get(buf, 0, "=", param_name, 100);
 			/*nPos = */gf_token_get(buf, nPos, "=", param_val, 100);
 		} else {
-			strcpy(param_name, buf);
+			gf_strcpy(param_name, buf);
 		}
 
 		//very first param is the profile
@@ -318,7 +318,7 @@ GF_Err gf_rtsp_parse_header(u8 *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCo
 	//then parse the full header
 	LinePos = 0;
 	ValBuf[0] = 0;
-	strcpy(HeaderBuf, "");
+	gf_strcpy(HeaderBuf, "");
 	while (1) {
 		LinePos = gf_token_get_line(buffer, LinePos, BufferSize, LineBuffer, 1024);
 		if (LinePos <= 0) return GF_REMOTE_SERVICE_ERROR;
@@ -342,8 +342,8 @@ GF_Err gf_rtsp_parse_header(u8 *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCo
 				if (sizeof(ValBuf)-strlen(ValBuf) < strlen(temp)+2)
 					return GF_REMOTE_SERVICE_ERROR;
 				//n-line value - append
-				strcat(ValBuf, "\r\n");
-				strcat(ValBuf, temp);
+				gf_strcat(ValBuf, "\r\n");
+				gf_strcat(ValBuf, temp);
 				continue;
 			}
 		}
@@ -360,8 +360,7 @@ GF_Err gf_rtsp_parse_header(u8 *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCo
 		if ( (HeaderLine == 2) || ((u32) LinePos >= BodyStart) ) return GF_OK;
 
 		//process current line
-		strncpy(HeaderBuf, temp, sizeof(HeaderBuf));
-		HeaderBuf[sizeof(HeaderBuf)-1] = 0;
+		gf_strcpy(HeaderBuf, temp);
 
 		//skip ':'
 		Pos += 1;

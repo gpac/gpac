@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2023
+ *			Copyright (c) Telecom ParisTech 2007-2026
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript Storage bindings
@@ -163,9 +163,9 @@ static JSValue storage_constructor(JSContext *ctx, JSValueConst new_target, int 
 	gf_sha1_csum((u8 *)storage_url, (u32) strlen(storage_url), hash);
 	for (i=0; i<20; i++) {
 		sprintf(temp, "%02X", hash[i]);
-		strcat(szFile, temp);
+		gf_strcat(szFile, temp);
 	}
-	strcat(szFile, ".cfg");
+	gf_strcat(szFile, ".cfg");
 
 	count = gf_list_count(all_storages);
 	for (i=0; i<count; i++) {
