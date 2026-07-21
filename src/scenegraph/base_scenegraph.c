@@ -333,6 +333,33 @@ static GFINLINE u32 get_num_id_nodes(GF_SceneGraph *sg)
 	return count;
 }
 
+#ifndef GPAC_DISABLE_VRML
+static void drop_nested_node_codes(GF_SceneGraph* sg)
+{
+	u32 pi, pcount;
+	pcount = gf_list_count(sg->protos);
+	for (pi = 0; pi < pcount; pi++) {
+		GF_Proto* p = (GF_Proto*)gf_list_get(sg->protos, pi);
+		while (gf_list_count(p->node_code)) {
+			GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
+			gf_node_unregister(n, NULL);
+		}
+		if (p->sub_graph)
+			drop_nested_node_codes(p->sub_graph);
+	}
+	pcount = gf_list_count(sg->unregistered_protos);
+	for (pi = 0; pi < pcount; pi++) {
+		GF_Proto* p = (GF_Proto*)gf_list_get(sg->unregistered_protos, pi);
+		while (gf_list_count(p->node_code)) {
+			GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
+			gf_node_unregister(n, NULL);
+		}
+		if (p->sub_graph)
+			drop_nested_node_codes(p->sub_graph);
+	}
+}
+#endif
+
 GF_EXPORT
 void gf_sg_reset(GF_SceneGraph *sg)
 {
@@ -419,25 +446,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 
 	/* Drop node_code refs from all protos before force-freeing nodes below,
 	   preventing UAF when gf_sg_proto_del unregisters the same nodes */
-	{
-		u32 pi, pcount;
-		pcount = gf_list_count(sg->protos);
-		for (pi = 0; pi < pcount; pi++) {
-			GF_Proto* p = (GF_Proto*)gf_list_get(sg->protos, pi);
-			while (gf_list_count(p->node_code)) {
-				GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
-				gf_node_unregister(n, NULL);
-			}
-		}
-		pcount = gf_list_count(sg->unregistered_protos);
-		for (pi = 0; pi < pcount; pi++) {
-			GF_Proto* p = (GF_Proto*)gf_list_get(sg->unregistered_protos, pi);
-			while (gf_list_count(p->node_code)) {
-				GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
-				gf_node_unregister(n, NULL);
-			}
-		}
-	}
+	drop_nested_node_codes(sg);
 
 #endif
 
