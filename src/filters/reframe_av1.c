@@ -1270,7 +1270,11 @@ GF_Err av1dmx_process(GF_Filter *filter)
 	char *data;
 	u32 pck_size;
 
-	if (ctx->bsmode == UNSUPPORTED) return GF_EOS;
+	if (ctx->bsmode == UNSUPPORTED) {
+		pck = gf_filter_pid_get_packet(ctx->ipid);
+		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_EOS;
+	}
 
 	//always reparse duration
 	if (!ctx->duration.num)

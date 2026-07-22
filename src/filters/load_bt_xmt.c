@@ -861,6 +861,8 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 		probe_size--;
 	}
 
+	if (!probe_size) goto exit;
+
 	//for XML, strip doctype, <?xml and comments
 	while (1) {
 		char *search=NULL;
@@ -888,6 +890,8 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 	}
 	//probe_data is now the first element of the document, if XML
 	//we should refine by getting the xmlns attribute value rather than searching for its value...
+
+	if (!probe_size) goto exit;
 
 	if (gf_strmemstr(probe_data, probe_size, "http://www.w3.org/1999/XSL/Transform")
 	) {
