@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Ivica Arsov, Jean Le Feuvre
- *			Copyright (c) Mines-Telecom 2009-2022
+ *			Copyright (c) Mines-Telecom 2009
  *					All rights reserved
  *
  *  This file is part of GPAC / Wrapper

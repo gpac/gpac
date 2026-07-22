@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Pierre Souchay , Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2008-2019
+ *			Copyright (c) Telecom Paris 2008
  *					All rights reserved
  *
  *  Jack audio output module : output audio thru the jackd daemon

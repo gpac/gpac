@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2026
+ *			Copyright (c) Telecom Paris 2020
  *					All rights reserved
  *
  *  This file is part of GPAC / TTML decoder filter

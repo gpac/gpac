@@ -2,8 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Rodolphe Fouquet, Jean Le Feuvre
-*			Copyright (c) Motion Spell 2016
-*                     (c) Telecom Paris 2022-2026
+*			Copyright (c) Motion Spell, Telecom Paris 2016
 *					All rights reserved
 *
 *  This file is part of GPAC / crypto lib sub-project

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2026
+ *			Copyright (c) Telecom Paris 2019
  *					All rights reserved
  *
  *  This file is part of GPAC / ProRes reframer filter

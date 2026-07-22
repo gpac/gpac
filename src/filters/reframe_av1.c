@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Romain Bouqueau, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2026
+ *			Copyright (c) Telecom Paris 2018
  *					All rights reserved
  *
  *  This file is part of GPAC / AV1 IVF/OBU/annexB reframer filter

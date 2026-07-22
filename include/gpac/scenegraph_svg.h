@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2004-2019
+ *			Copyright (c) Telecom Paris 2004
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph sub-project

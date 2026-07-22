@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Romain Bouqueau
- *			Copyright (c) Romain Bouqueau @ GPAC Licensing
+ *			Copyright (c) Romain Bouqueau @ Motion Spell
  *					All rights reserved
  *
  *  This file is part of GPAC / Dektec SDI video render module

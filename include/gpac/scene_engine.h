@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato - Jean le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2019
+ *			Copyright (c) Telecom Paris 2005
  *					All rights reserved
  *
  *  This file is part of GPAC

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom Paris 2018
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 part2 video rewrite filter

@@ -2,7 +2,7 @@
  *          GPAC - Multimedia Framework C SDK
  *
  *          Authors: Cyril Concolato
- *          Copyright (c) Telecom ParisTech 2007-2012
+ *          Copyright (c) Telecom Paris 2007
  *          All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project

@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Deniz Ugur
- *			Copyright (c) Motion Spell 2025
+ *			Authors: Deniz Ugur, Jean Le Feuvre
+ *			Copyright (c) Motion Spell, Telecom Paris 2025
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project

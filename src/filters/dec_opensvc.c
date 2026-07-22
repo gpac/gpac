@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2026
+ *			Copyright (c) Telecom Paris 2010
  *					All rights reserved
  *
  *  This file is part of GPAC / OpenSVC Decoder filter

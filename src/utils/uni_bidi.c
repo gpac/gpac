@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2023
+ *			Copyright (c) Telecom Paris 2007
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project

@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2013-2026
+ *			Copyright (c) Telecom Paris 2013
  *					All rights reserved
  *
  *  This file is part of GPAC / WebVTT decoder filter

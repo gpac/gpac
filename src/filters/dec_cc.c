@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023-2024
+ *			Copyright (c) Telecom Paris 2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Closed captions decode filter

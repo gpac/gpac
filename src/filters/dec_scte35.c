@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Romain Bouqueau
- *			Copyright (c) Motion Spell 2024-2026
+ *			Authors: Romain Bouqueau, Jean Le Feuvre
+ *			Copyright (c) Motion Spell, Telecom Paris 2024
  *					All rights reserved
  *
  *  This file is part of GPAC / SCTE35 property decode filter

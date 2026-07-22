@@ -2,8 +2,8 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Romain Bouqueau, Jean Le Feuvre
-*			Copyright (c) 2014-2016 GPAC Licensing
-*			Copyright (c) 2016-2026 Telecom Paris
+*			Copyright (c) Motion Spell 2014-2016
+*			Copyright (c) Telecom Paris 2016-2026
 *					All rights reserved
 *
 *  This file is part of GPAC / Dektec SDI video output filter

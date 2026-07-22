@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom Paris 2000
  *					All rights reserved
  *
  *  This file is part of GPAC / OpenGL tools used by compositor filter, vout filter and WebGL bindings

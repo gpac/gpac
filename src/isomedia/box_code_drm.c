@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2005-2025
+ *			Copyright (c) Telecom Paris 2005
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project

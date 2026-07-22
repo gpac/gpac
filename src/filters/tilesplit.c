@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2024
+ *			Copyright (c) Telecom Paris 2020
  *					All rights reserved
  *
  *  This file is part of GPAC / tile splitting filter

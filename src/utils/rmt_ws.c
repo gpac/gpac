@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Aurelien David
- *			Copyright (c) Telecom ParisTech 2025-2026
+ *			Copyright (c) Telecom Paris 2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project

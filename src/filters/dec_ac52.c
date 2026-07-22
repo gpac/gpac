@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom Paris 2000
  *					All rights reserved
  *
  *  This file is part of GPAC / AC3 liba52 decoder filter

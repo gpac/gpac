@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2025-2026
+ *			Copyright (c) Telecom Paris 2025
  *					All rights reserved
  *
  *  This file is part of GPAC / downloader sub-project

@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2004-2012
+ *			Copyright (c) Telecom Paris 2004
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Loader module

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2006-2012
+ *			Copyright (c) Telecom Paris 2006
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project

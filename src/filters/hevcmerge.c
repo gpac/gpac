@@ -4,7 +4,7 @@
  *			Authors: Jean Le Feuvre
  *					 Yacine Mathurin Boubacar Aziakou
  *					 Samir Mustapha
- *			Copyright (c) Telecom ParisTech 2019-2024
+ *			Copyright (c) Telecom Paris 2019
  *					All rights reserved
  *
  *  This file is part of GPAC / HEVC tile merger filter
