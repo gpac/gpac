@@ -186,7 +186,7 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 
 	pck = gf_filter_pck_new_alloc(stream->opid, size, &pck_data);
 	if (!pck) return;
-	
+
 	memcpy(pck_data, payload, size);
 	if (hdr->decodingTimeStampFlag)
 		gf_filter_pck_set_dts(pck, hdr->decodingTimeStamp - stream->ts_offset);

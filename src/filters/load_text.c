@@ -4677,10 +4677,12 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 
 	data = res;
 	//strip all spaces and \r\n\t
-	while (data[0] && strchr("\n\r\t ", (char) data[0])) {
+	while (res_size && data[0] && strchr("\n\r\t ", (char) data[0])) {
 		data++;
 		res_size--;
 	}
+
+	if (!res_size) goto exit;
 
 #define PROBE_OK(_score, _mime) \
 		*score = _score;\
@@ -4721,6 +4723,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttml")
 	}
 
+exit:
 	if (dst) gf_free(dst);
 	return NULL;
 }
