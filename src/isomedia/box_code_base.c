@@ -2776,17 +2776,19 @@ GF_Err name_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_NameBox *ptr = (GF_NameBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
-	e = gf_isom_box_write_header(s, bs);
+	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	if (ptr->string) {
-		gf_bs_write_data(bs, ptr->string, (u32) strlen(ptr->string) + 1);
+		//do not write the terminating 0
+		gf_bs_write_data(bs, ptr->string, (u32) strlen(ptr->string));
 	}
 	return GF_OK;
 }
 GF_Err name_box_size(GF_Box *s)
 {
 	GF_NameBox *ptr = (GF_NameBox *)s;
-	if (ptr->string) ptr->size += strlen(ptr->string) + 1;
+	//do not count the terminating 0
+	if (ptr->string) ptr->size += strlen(ptr->string);
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
