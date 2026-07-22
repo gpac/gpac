@@ -746,7 +746,7 @@ void gf_dm_sess_push_header(GF_DownloadSession *sess, const char *hdr, const cha
 		sscanf(value, LLU, &sess->total_size);
 	}
 
-	sess->rsp_hdrs = (char *)gf_realloc(sess->rsp_hdrs, sizeof(char *) * (sess->nb_rsp_hdrs+2));
+	sess->rsp_hdrs = (char **)gf_realloc(sess->rsp_hdrs, sizeof(char *) * (sess->nb_rsp_hdrs+2));
 	if (!sess->rsp_hdrs) return;
 
 	sess->rsp_hdrs[sess->nb_rsp_hdrs] = gf_strdup(hdr);

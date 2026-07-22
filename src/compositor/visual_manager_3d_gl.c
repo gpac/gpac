@@ -960,7 +960,7 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 	Bool use_npot = visual->compositor->gl_caps.npot_texture;
 	if (visual->gl_textures) return GF_OK;
 
-	visual->gl_textures = (u32 *)gf_malloc(sizeof(GLuint) * visual->nb_views);
+	visual->gl_textures = (u32 *)gf_malloc(sizeof(u32) * visual->nb_views);
 	if (!visual->gl_textures) return GF_OUT_OF_MEM;
 
 	glGenTextures(visual->nb_views, visual->gl_textures);

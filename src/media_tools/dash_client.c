@@ -6299,11 +6299,11 @@ retry_rep:
 							goto exit;
 						}
 						rep->playback.init_segment.data = (u8 *)gf_malloc(rep->playback.init_segment.size);
-						if (rep->playback.init_segment.data) {
+						if (!rep->playback.init_segment.data) {
 							e = GF_OUT_OF_MEM;
 							goto exit;
 						}
-						memcpy(rep->playback.init_segment.data, mem_address, sizeof(char) * rep->playback.init_segment.size);
+						memcpy(rep->playback.init_segment.data, mem_address, rep->playback.init_segment.size);
 
 						rep->segment_list->initialization_segment->sourceURL = gf_blob_register(&rep->playback.init_segment);
 						rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
@@ -6313,11 +6313,9 @@ retry_rep:
 						if (t) {
 							s32 res;
 							rep->playback.init_segment.size = (u32) gf_fsize(t);
-
 							rep->playback.init_segment.data = (u8 *)gf_malloc(rep->playback.init_segment.size);
 							if (!rep->playback.init_segment.data) {
 								e = GF_OUT_OF_MEM;
-								gf_fclose(t);
 								goto exit;
 							}
 							res = (s32) gf_fread(rep->playback.init_segment.data, rep->playback.init_segment.size, t);

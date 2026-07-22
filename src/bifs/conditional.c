@@ -43,6 +43,8 @@ void Conditional_PreDestroy(GF_Node *n, void *eff, Bool is_destroy)
 {
 	if (is_destroy) {
 		ConditionalStack *priv = (ConditionalStack*)gf_node_get_private(n);
+		if (priv->codec)
+			gf_list_del_item(priv->codec->conditional_nodes, &priv->codec);
 		if (priv) gf_free(priv);
 	}
 }
@@ -63,7 +65,7 @@ static void Conditional_execute(M_Conditional *node)
 	GF_Proto *prevproto;
 	GF_SceneGraph *prev_graph;
 	ConditionalStack *priv = (ConditionalStack*)gf_node_get_private((GF_Node*)node);
-	if (!priv) return;
+	if (!priv || !priv->codec) return;
 
 	/*set the codec working graph to the node one (to handle conditional in protos)*/
 	prev_graph = priv->codec->current_graph;
@@ -134,6 +136,7 @@ void SetupConditional(GF_BifsDecoder *codec, GF_Node *node)
 	ConditionalStack *priv;
 	if (gf_node_get_tag(node) != TAG_MPEG4_Conditional) return;
 	priv = (ConditionalStack*)gf_malloc(sizeof(ConditionalStack));
+	if (priv) return;
 
 	/*needed when initializing extern protos*/
 	if (!codec->info) codec->info = (BIFSStreamInfo*)gf_list_get(codec->streamInfo, 0);
@@ -142,6 +145,7 @@ void SetupConditional(GF_BifsDecoder *codec, GF_Node *node)
 	priv->info = codec->info;
 	priv->codec = codec;
 	codec->has_conditionnals = GF_TRUE;
+	gf_list_add(codec->conditional_nodes, &priv->codec);
 	gf_node_set_callback_function(node, Conditional_PreDestroy);
 	gf_node_set_private(node, priv);
 	((M_Conditional *)node)->on_activate = Conditional_OnActivate;
@@ -185,6 +189,8 @@ void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig)
 	priv = (ConditionalStack*)gf_malloc(sizeof(ConditionalStack));
 	if (!priv) return;
 	priv->codec = priv_orig->codec;
+	if (priv->codec)
+		gf_list_add(priv->codec->conditional_nodes, &priv->codec);
 	priv->info = priv_orig->info;
 	gf_node_set_callback_function(node, Conditional_PreDestroy);
 	gf_node_set_private(node, priv);

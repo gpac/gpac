@@ -1057,7 +1057,6 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 
 	ctx->pids_ctx = (PidCtx *)gf_malloc(sizeof(PidCtx)*ctx->demuxer->nb_streams);
 	if (!ctx->pids_ctx) return GF_OUT_OF_MEM;
-
 	memset(ctx->pids_ctx, 0, sizeof(PidCtx)*ctx->demuxer->nb_streams);
 	ctx->nb_streams = ctx->demuxer->nb_streams;
 

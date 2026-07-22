@@ -20,6 +20,7 @@ fi
 GPAC_CONFIGURATION="$@"
 
 TMPC="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.c"
+TMPCP="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.c"
 TMPH="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.h"
 TMPCXX="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.cpp"
 TMPE="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}"
@@ -1144,8 +1145,19 @@ dolog() {
 }
 
 docc() {
+if test "$cc_is_cpp" = "1" ; then
+cat > $TMPCP << EOF
+extern "C" {
+EOF
+cat $TMPC >> $TMPCP
+cat >> $TMPCP << EOF
+}
+EOF
+ $cc -o $TMPO $TMPCP $@ 0>/dev/null 2>$TMPL
+else
  $cc -o $TMPO $TMPC $@ 0>/dev/null 2>$TMPL
- dolog $@
+fi
+dolog $@
 }
 
 
@@ -1765,13 +1777,7 @@ fi
 
 ffmpeg_lflags="$ffmpeg_lflags $ffmpeg_extra_ldflags"
 
-config_package ffmpeg "$ffmpeg_pck_names" "" "$ffmpeg_lflags" "" '#ifdef __cplusplus
-extern "C" {
-#include <libavformat/avformat.h>
-}
-#else
-#include <libavformat/avformat.h>
-#endif
+config_package ffmpeg "$ffmpeg_pck_names" "" "$ffmpeg_lflags" "" '#include <libavformat/avformat.h>
 int main(void) { avformat_alloc_context(); return 0; }'
 
 if test "$has_ffmpeg" != "no" ; then

@@ -103,6 +103,7 @@ struct __tag_bifs_dec
 
 	Bool UseName;
 	Bool has_conditionnals;
+	GF_List *conditional_nodes;
 
 	GF_SceneGraph *scenegraph;
 	/*modified during conditional execution / proto parsing*/
@@ -247,5 +248,3 @@ u32 gf_bifs_ndt_get_node_type(u32 NDT_Tag, u32 NodeType, u32 Version);
 #endif
 
 #endif	//_GF_BIFS_DEV_H_
-
-

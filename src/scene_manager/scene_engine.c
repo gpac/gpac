@@ -1007,7 +1007,7 @@ GF_SceneEngine *gf_seng_init_from_context(void *calling_object, GF_SceneManager 
 	/*Step 1: create context and load input*/
 	seng->sg = ctx->scene_graph;
 	seng->ctx = ctx;
-	seng->owns_context = 0;
+	seng->owns_context = GF_FALSE;
 
 	e = gf_sm_live_setup(seng);
 	if (e!=GF_OK) {
@@ -1050,7 +1050,7 @@ GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputConte
 	/*Step 1: create context and load input*/
 	seng->sg = gf_sg_new();
 	seng->ctx = gf_sm_new(seng->sg);
-	seng->owns_context = 1;
+	seng->owns_context = GF_TRUE;
 	memset(& seng->loader, 0, sizeof(GF_SceneLoader));
 	seng->loader.ctx = seng->ctx;
 	seng->loader.type = load_type;

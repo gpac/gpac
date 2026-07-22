@@ -232,8 +232,10 @@ static void hevcmerge_rewrite_pps(GF_HEVCMergeCtx *ctx, const u8 *in_PPS, u32 in
 
 	gf_bs_get_content_no_truncate(ctx->bs_nal_out, &ctx->buffer_nal_no_epb, &pps_size_no_epb, &ctx->buffer_nal_no_epb_alloc);
 
+	if (!out_PPS_length || !out_PPS) return;
 	*out_PPS_length = pps_size_no_epb + gf_media_nalu_emulation_bytes_add_count(ctx->buffer_nal_no_epb, pps_size_no_epb);
-	*out_PPS = (u8 *)gf_malloc(*out_PPS_length);
+	if (!*out_PPS_length) return;
+	*out_PPS = (u8 *) gf_malloc(*out_PPS_length);
 	if (! *out_PPS) { *out_PPS_length = 0; return; }
 	gf_media_nalu_add_emulation_bytes(ctx->buffer_nal_no_epb, *out_PPS, pps_size_no_epb);
 }
