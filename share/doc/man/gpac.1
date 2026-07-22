@@ -1558,17 +1558,22 @@ set rmt ws sleep (ms) between server updates
 .TP
 .B \-rmt-cert (string)
 .br
-rmt ws: certificate file in PEM format to use for TLS mode
+certificate file in PEM format to use for TLS mode of rmt ws
 .br
 .TP
 .B \-rmt-pkey (string)
 .br
-rmt ws: private key file in PEM format to use for TLS mode
+private key file in PEM format to use for TLS mode of rmt ws
 .br
 .TP
 .B \-rmt-path (string, default: $GSHARE/scripts/rmt/server.js)
 .br
-rmt ws: path to JS backend
+path to rmt ws JS backend
+.br
+.TP
+.B \-rmt-log (string)
+.br
+path to backend log recording, skip recording if NULL
 .br
 .TP
 .B \-userws-port (int, default: 6364)
@@ -1578,22 +1583,22 @@ set user ws port
 .TP
 .B \-userws-localhost
 .br
-make userws ws only accepts localhost connection
+make user ws only accepts localhost connection
 .br
 .TP
 .B \-userws-sleep (int, default: 10)
 .br
-set userws sleep (ms) between server updates
+set user ws sleep (ms) between server updates
 .br
 .TP
 .B \-userws-cert (string)
 .br
-userws: certificate file in PEM format to use for TLS mode
+certificate file in PEM format to use for TLS mode for user ws
 .br
 .TP
 .B \-userws-pkey (string)
 .br
-userws: private key file in PEM format to use for TLS mode
+private key file in PEM format to use for TLS mode for user ws
 .br
 .TP
 .B \-diso-nosize
@@ -2253,6 +2258,18 @@ Note: A filter with sourceID set cannot get input from filters with no IDs.
 .br
 
 .br
+A sourceID name can end with * to match by prefix rather than full name, the prefix being all the characters up to *.
+.br
+Example
+.br
+fA:FID=AB1 fB:FID=ABCD fC:FID=B1 fD:SID=AB*
+.br
+
+.br
+This indicates that fD only accepts input from fA and fB but not from fC
+.br
+
+.br
 A sourceID name can be further extended using fragment identifier (# by default):
 .br
 * name#PIDNAME: accepts only PID(s) with name PIDNAME
@@ -2863,7 +2880,7 @@ This will dump first service in dump_10.ts, second service in dump_12.ts, etc...
 .br
 As seen previously, the following options may be set on any filter, but are not visible in individual filter help:
 .br
-* FID: filter identifier
+* FID: filter identifier (string value)
 .br
 * SID: filter source(s) (string value)
 .br

@@ -2054,6 +2054,7 @@ Bool filter_source_id_match(GF_FilterPid *src_pid, const char *src_filter_id, GF
 	Bool first_pass = GF_TRUE;
 	Bool has_default_match;
 	Bool is_pid_excluded;
+	u32 src_fid_len = src_filter_id ? (u32) strlen(src_filter_id) : 0;
 	*pid_excluded = GF_FALSE;
 	if (dst_filter) {
 		if (!dst_filter->source_ids)
@@ -2098,13 +2099,19 @@ sourceid_reassign:
 		//skip frag char
 		if (frag_name) frag_name++;
 
+		Bool match_prefix = GF_FALSE;
+		if ((sublen>1) && source_ids[sublen-1] == '*') {
+			sublen--;
+			match_prefix = GF_TRUE;
+		}
+
 		//any ID, always match
 		if (source_ids[0]=='*') { }
 		// id does not match
 		else {
 			Bool res;
 			if (src_filter_id)
-				res = strncmp(src_filter_id, source_ids, sublen) ? GF_FALSE : GF_TRUE;
+				res = ((match_prefix || (src_fid_len==sublen)) && !strncmp(src_filter_id, source_ids, sublen)) ? GF_TRUE : GF_FALSE;
 			else
 				res = sublen ? GF_FALSE : GF_TRUE;
 			if (use_neg) res = !res;
