@@ -345,6 +345,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 	mid = prev_stream = base_stream = 0;
 	i=0;
 	while ((att = (GF_X_Attribute*)gf_list_enum(media->Attributes, &i))) {
+		if (!att->Value) continue;
 		if (!stricmp(att->Name, "control")) ctrl = att->Value;
 		else if (!stricmp(att->Name, "gpac-broadcast")) force_bcast = GF_TRUE;
 		else if (!stricmp(att->Name, "mpeg4-esid") && att->Value) ESID = atoi(att->Value);

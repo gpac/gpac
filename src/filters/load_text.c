@@ -429,6 +429,8 @@ char *gf_text_get_utf8_line(char szLine[2048], u32 lineSize, FILE *txt_in, s32 u
 			i+=2;
 		}
 	}
+	szLine[2046]=0;
+	szLine[2047]=0;
 	sptr = (u16 *)szLine;
 	i = gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);
 	if (i == GF_UTF8_FAIL) i = 0;
