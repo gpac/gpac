@@ -2111,7 +2111,7 @@ sourceid_reassign:
 		else {
 			Bool res;
 			if (src_filter_id)
-				res = ((match_prefix || (src_fid_len==sublen)) && !strncmp(src_filter_id, source_ids, sublen)) ? GF_TRUE : GF_FALSE;
+				res = ((!sublen || match_prefix || (src_fid_len==sublen)) && !strncmp(src_filter_id, source_ids, sublen)) ? GF_TRUE : GF_FALSE;
 			else
 				res = sublen ? GF_FALSE : GF_TRUE;
 			if (use_neg) res = !res;
