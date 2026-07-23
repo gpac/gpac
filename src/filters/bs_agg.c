@@ -310,7 +310,8 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 				GF_List *bck = vvcc_out->param_array;
 				u8 *gci_bck = vvcc_out->general_constraint_info;
 				memcpy(vvcc_out, vvcc, sizeof(GF_VVCConfig));
-				vvcc_out->general_constraint_info = (u8 *)gf_realloc(gci_bck, vvcc_out->num_constraint_info);
+				vvcc_out->general_constraint_info = gci_bck;
+				vvcc_out->general_constraint_info = (u8 *)gf_realloc(vvcc_out->general_constraint_info, vvcc_out->num_constraint_info);
 				if (!vvcc_out->general_constraint_info) {
 					e = GF_OUT_OF_MEM;
 					goto err_exit;

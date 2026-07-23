@@ -136,7 +136,7 @@ void SetupConditional(GF_BifsDecoder *codec, GF_Node *node)
 	ConditionalStack *priv;
 	if (gf_node_get_tag(node) != TAG_MPEG4_Conditional) return;
 	priv = (ConditionalStack*)gf_malloc(sizeof(ConditionalStack));
-	if (priv) return;
+	if (!priv) return;
 
 	/*needed when initializing extern protos*/
 	if (!codec->info) codec->info = (BIFSStreamInfo*)gf_list_get(codec->streamInfo, 0);

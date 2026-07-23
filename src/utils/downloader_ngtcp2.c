@@ -822,12 +822,11 @@ static GF_Err h3_data_pending(GF_DownloadSession *sess)
 		if (! *buf || *size + sess->hmux_send_data_len > *allocated) {
 			*allocated = *size + sess->hmux_send_data_len;
 			if (*allocated < SOCK_BUF_SIZE/2) *allocated = SOCK_BUF_SIZE/2;
-			u8 *rbuf = (u8 *)gf_realloc(*buf, *allocated);
-			if (! rbuf) {
+			*buf = (u8 *)gf_realloc(*buf, *allocated);
+			if (! *buf) {
 				gf_mx_v(sess->mx);
 				return GF_OUT_OF_MEM;
 			}
-			*buf = rbuf;
 		}
 		memcpy(*buf + *size, sess->hmux_send_data, sess->hmux_send_data_len);
 		*size += sess->hmux_send_data_len;

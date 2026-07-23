@@ -553,7 +553,7 @@ static int avi_add_odml_index_entry(avi_t *AVI, unsigned char *tag, int flags, u
 static int avi_add_index_entry(avi_t *AVI, unsigned char *tag, int flags, u64 pos, u64 len)
 {
 	if(AVI->n_idx>=AVI->max_idx) {
-		void *ptr = gf_realloc((void *)AVI->idx,(AVI->max_idx+4096)*16);
+		void *ptr = gf_realloc_strict((void *)AVI->idx,(AVI->max_idx+4096)*16);
 
 		if(ptr == 0) {
 			AVI_errno = AVI_ERR_NO_MEM;
@@ -2158,7 +2158,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 							memset(wfe, 0, sizeof(alWAVEFORMATEX));
 							memcpy(wfe, hdrl_data + i, wfes);
 							if (str2ushort((unsigned char *)&wfe->cb_size) != 0) {
-								nwfe = (char *) gf_realloc(wfe, sizeof(alWAVEFORMATEX) +
+								nwfe = (char *) gf_realloc_strict(wfe, sizeof(alWAVEFORMATEX) +
 								                  str2ushort((unsigned char *)&wfe->cb_size));
 								if (nwfe != 0) {
 									s64 lpos = gf_ftell(AVI->fdes);

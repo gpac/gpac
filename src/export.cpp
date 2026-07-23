@@ -221,6 +221,7 @@
 #else
 #pragma comment (linker, EXPORT_SYMBOL(gf_malloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_calloc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_realloc_strict) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_realloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_free) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_strdup) )

@@ -298,7 +298,8 @@ GF_Err gf_ipmpx_data_parse_16(char *val, u16 **outData, u16 *outDataSize)
 			}
 		}
 	}
-	(*outData) = (u16*)gf_realloc(data, sizeof(u16)*count);
+	*outData = data;
+	(*outData) = (u16*)gf_realloc(*outData, sizeof(u16)*count);
 	*outDataSize = *outData ? count : 0;
 	return *outData ? GF_OK : GF_OUT_OF_MEM;
 }

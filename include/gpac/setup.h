@@ -810,7 +810,7 @@ u64 gf_memory_size(); /*gets memory allocated in bytes*/
 /*! duplicates string, shall be freed using \ref gf_free*/
 #define gf_strdup(s) gf_mem_strdup(s, __FILE__, __LINE__)
 /*! reallocates memory, shall be freed using \ref gf_free*/
-#define gf_realloc(ptr1, size) gf_mem_realloc(ptr1, size, __FILE__, __LINE__)
+#define gf_realloc_strict(ptr1, size) gf_mem_realloc(ptr1, size, __FILE__, __LINE__)
 
 u64 gf_mem_get_stats(u32 *nb_allocs, u32 *nb_callocs, u32 *nb_reallocs, u32 *nb_free);
 
@@ -845,9 +845,17 @@ char* gf_strdup(const char *str);
 \param size same as realloc()
 \return address of reallocated block
 */
-void* gf_realloc(void *ptr, size_t size);
+void* gf_realloc_strict(void *ptr, size_t size);
 
 #endif
+
+/*! reallocates memory, shall be freed using \ref gf_free
+\param ptr to reallocate, must have been allocated using gf_malloc, gf_calloc or gf_realloc. This memory WILL be freed if reallocation fails
+\param size new size to allocate
+\return address of reallocated block, or NULL if error
+*/
+void* gf_realloc(void *ptr, size_t size);
+
 /*! @} */
 
 /*! free a string same as \ref gf_free, used for accessing gf_free in bindings

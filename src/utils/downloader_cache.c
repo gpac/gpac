@@ -1212,7 +1212,7 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
 		if (blob->size >= entry->mem_allocated) {
 			u32 new_size;
 			new_size = MAX(entry->mem_allocated*2, blob->size+1);
-			entry->mem_storage = (u8*)gf_realloc(entry->mem_allocated ? entry->mem_storage : NULL, (new_size+2));
+			entry->mem_storage = (u8*)gf_realloc(entry->mem_storage, (new_size+2));
 			if (!entry->mem_storage) {
 				entry->mem_allocated = 0;
 				gf_mx_v(entry->cache_blob.mx);

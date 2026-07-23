@@ -155,7 +155,7 @@ void *gf_calloc(size_t num, size_t size_of)
 	return CALLOC(num, size_of);
 }
 GF_EXPORT
-void *gf_realloc(void *ptr, size_t size)
+void *gf_realloc_strict(void *ptr, size_t size)
 {
 	return REALLOC(ptr, size);
 }
@@ -921,7 +921,7 @@ void gf_memory_print()
 static GFINLINE int gf_vasprintf (char **strp, const char *fmt, va_list ap)
 {
 	int vsn_ret, size;
-	char *buffer, *realloc_buffer;
+	char *buffer;
 
 	size = 2 * (u32) strlen(fmt); /*first guess for the size*/
 	buffer = (char*)gf_malloc(size);
@@ -942,14 +942,8 @@ static GFINLINE int gf_vasprintf (char **strp, const char *fmt, va_list ap)
 
 		/*else double the allocated size*/
 		size *= 2;
-		realloc_buffer = (char*)gf_realloc(buffer, size);
-		if (!realloc_buffer)	{
-			gf_free(buffer);
-			return -1;
-		} else {
-			buffer = realloc_buffer;
-		}
-
+		buffer = (char*)gf_realloc(buffer, size);
+		if (!buffer) return -1;
 	}
 }
 #endif
@@ -970,3 +964,14 @@ int gf_asprintf(char **strp, const char *fmt, ...)
 }
 
 #endif //unused
+
+GF_EXPORT
+void *gf_realloc(void *ptr, size_t size)
+{
+	void *new_ptr = gf_realloc_strict(ptr, size);
+	if (!new_ptr) {
+		gf_free(ptr);
+		return NULL;
+	}
+	return new_ptr;
+}
