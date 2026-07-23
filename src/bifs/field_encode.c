@@ -298,7 +298,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			e = gf_bifs_enc_node(codec, list->node, field->NDTtype, bs, node);
 
 			/*activate QP*/
-			if (list->node->sgprivate->tag == TAG_MPEG4_QuantizationParameter) {
+			if (list->node && list->node->sgprivate->tag == TAG_MPEG4_QuantizationParameter) {
 				qp_local = ((M_QuantizationParameter *)list->node)->isLocal;
 				if (qp_on) gf_bifs_enc_qp_remove(codec, GF_FALSE);
 				e = gf_bifs_enc_qp_set(codec, list->node);

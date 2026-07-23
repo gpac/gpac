@@ -4271,7 +4271,7 @@ vol (uint, default: 100, minmax: 0-100, updatable): set default audio volume, as
 .br
 pan (uint, default: 50, minmax: 0-100, updatable): set stereo pan, as a percentage between 0 and 100, 50 being centered
 .br
-buffer (uint, default: 200):   set playout buffer in ms
+buffer (uint, default: 100):   set playout buffer in ms
 .br
 mbuffer (uint, default: 0):    set max buffer occupancy in ms. If less than buffer, use buffer
 .br
@@ -7185,7 +7185,7 @@ skipr (bool, default: true):   skip repeated files (ignored in cache mode)
 .br
 stsi (bool, default: false):   define one output PID per tsi/serviceID (ignored in cache mode)
 .br
-stats (uint, default: 1000):   log statistics at the given rate in ms (0 disables stats)
+stats (sint, default: 1000):   log statistics at the given rate in ms (0 disables stats, negative values never reset stats)
 .br
 tsidbg (uint, default: 0):     gather only objects with given TSI (debug)
 .br

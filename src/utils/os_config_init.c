@@ -334,6 +334,12 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 /*Linux, OSX, iOS*/
 #else
 
+#include <errno.h>
+
+#if defined(__FreeBSD__)
+#include <sys/sysctl.h>
+#endif
+
 //dlinfo
 #if defined(__DARWIN__) || defined(__APPLE__) || defined(__FreeBSD__)
 #include <dlfcn.h>
@@ -357,7 +363,7 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 {
 	char app_path[GF_MAX_PATH];
 	char *sep;
-#if (defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_LINUX) || defined(__FreeBSD__))
+#if (defined(__DARWIN__) || defined(__APPLE__))
 	u32 size;
 #endif
 
@@ -419,13 +425,30 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 			return 1;
 		}
 
-#elif defined(GPAC_CONFIG_LINUX) || defined(__FreeBSD__)
-		size = readlink("/proc/self/exe", file_path, GF_MAX_PATH-1);
-		if (size>0) {
-			file_path[size] = 0;
-			sep = strrchr(file_path, '/');
-			if (sep) sep[0] = 0;
-			return 1;
+#elif defined(__FreeBSD__)
+		{
+			int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
+			size_t sz = GF_MAX_PATH;
+			if (sysctl(mib, 4, file_path, &sz, NULL, 0) == 0) {
+				sep = strrchr(file_path, '/');
+				if (sep) sep[0] = 0;
+				return 1;
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("sysctl(KERN_PROC_PATHNAME) failed: %s\n", strerror(errno)));
+			return 0;
+		}
+
+#elif defined(GPAC_CONFIG_LINUX)
+		{
+			ssize_t ssize = readlink("/proc/self/exe", file_path, GF_MAX_PATH-1);
+			if (ssize > 0) {
+				file_path[ssize] = 0;
+				sep = strrchr(file_path, '/');
+				if (sep) sep[0] = 0;
+				return 1;
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot read /proc/self/exe: %s - is procfs mounted?\n", strerror(errno)));
+			return 0;
 		}
 
 #elif defined(GPAC_CONFIG_WIN32)
@@ -1654,14 +1677,15 @@ GF_DEF_ARG("charset", NULL, "set charset when not recognized from input. Possibl
  GF_DEF_ARG("rmt-port", NULL, "set rmt ws port", "6363", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-localhost", NULL, "make rmt ws only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-sleep", NULL, "set rmt ws sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-cert", NULL, "rmt ws: certificate file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-pkey", NULL, "rmt ws: private key file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-path", NULL, "rmt ws: path to JS backend", "$GSHARE/scripts/rmt/server.js", NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-cert", NULL, "certificate file in PEM format to use for TLS mode of rmt ws", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-pkey", NULL, "private key file in PEM format to use for TLS mode of rmt ws", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-path", NULL, "path to rmt ws JS backend", "$GSHARE/scripts/rmt/server.js", NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-log", NULL, "path to backend log recording, skip recording if NULL", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("userws-port", NULL, "set user ws port", "6364", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("userws-localhost", NULL, "make userws ws only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("userws-sleep", NULL, "set userws sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("userws-cert", NULL, "userws: certificate file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("userws-pkey", NULL, "userws: private key file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-localhost", NULL, "make user ws only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-sleep", NULL, "set user ws sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-cert", NULL, "certificate file in PEM format to use for TLS mode for user ws", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-pkey", NULL, "private key file in PEM format to use for TLS mode for user ws", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
 
 
  GF_DEF_ARG("diso-nosize", NULL, "skip box size info when dumping ISOBMFF", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
@@ -2843,3 +2867,17 @@ retry_char:
 		return GF_TRUE;
 	return GF_FALSE;
 }
+
+
+// sanitizer suppression list to avoid false-positives on gl calls
+#ifdef __SANITIZE_ADDRESS__
+#include <sanitizer/lsan_interface.h>
+__attribute__((visibility("default")))
+const char *__lsan_default_suppressions(void) {
+    return "leak:libgallium\n"
+           "leak:libGLX_mesa\n"
+           "leak:libGLX.so\n"
+           "leak:libGL\n"
+           "leak:libSDL2\n";
+}
+#endif

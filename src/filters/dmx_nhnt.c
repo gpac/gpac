@@ -311,8 +311,13 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 
 
 			if (!strncmp(p->value.string, "gfio://", 7)) {
+				const char *media_url = gf_fileio_translate_url(p->value.string);
+				if (!media_url) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[NHNT] Cannot resolve gfio URL %s\n", p->value.string));
+					return GF_URL_ERROR;
+				}
 				use_gfio = GF_TRUE;
-				gf_strcpy(szMedia, gf_fileio_translate_url(p->value.string));
+				gf_strcpy(szMedia, media_url);
 			} else {
 				gf_strcpy(szMedia, p->value.string);
 			}
@@ -372,16 +377,16 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			ctx->timescale = gf_bs_read_u32(ctx->bs);
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale));
 
-			if (use_gfio) {
-				gf_strcpy(szMedia, gf_fileio_translate_url(p->value.string));
-			} else {
-				gf_strcpy(szMedia, p->value.string);
-			}
-			ext = gf_file_ext_start(szMedia);
-			if (ext) ext[0] = 0;
-			gf_strlcat(szMedia, ".info", sizeof(szMedia));
+			const char *info_url = use_gfio ? gf_fileio_translate_url(p->value.string) : p->value.string;
+			finfo = NULL;
+			if (info_url) {
+				gf_strcpy(szMedia, info_url);
+				ext = gf_file_ext_start(szMedia);
+				if (ext) ext[0] = 0;
+				gf_strlcat(szMedia, ".info", sizeof(szMedia));
 
-			finfo = gf_fopen_ex(szMedia, p->value.string, "rb", GF_FALSE);
+				finfo = gf_fopen_ex(szMedia, p->value.string, "rb", GF_FALSE);
+			}
 			dsi = NULL;
 			if (finfo) {
 				if ( gf_file_load_data_filep(finfo, (u8 **) &dsi, &dsi_size) != GF_OK) {

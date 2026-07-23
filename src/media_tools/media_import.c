@@ -1312,6 +1312,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		importer->nb_tracks = 0;
 		count = gf_filter_get_ipid_count(prober);
 		for (i=0; i<count; i++) {
+			if (importer->nb_tracks >= GF_IMPORT_MAX_TRACKS)
+				break;
 			const GF_PropertyValue *p;
 			struct __track_import_info *tki = &importer->tk_info[importer->nb_tracks];
 			GF_FilterPid *pid = gf_filter_get_ipid(prober, i);
@@ -1392,12 +1394,12 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!importer->run_in_session) {
 		//mux args
 		e = gf_dynstrcat(&args, "mp4mx:importer", ":");
-		sprintf(szSubArg, "file=%p", importer->dest);
+		snprintf(szSubArg, sizeof(szSubArg), "file=%p", importer->dest);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 
 	if (importer->trackID) {
-		sprintf(szSubArg, "SID=%s#PID=%d", szFilterID, importer->trackID);
+		snprintf(szSubArg, sizeof(szSubArg), "SID=%s#PID=%d", szFilterID, importer->trackID);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->filter_dst_opts)
@@ -1416,26 +1418,26 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	else if (importer->xps_inband==2)
 		e |= gf_dynstrcat(&args, "xps_inband=both", ":");
 	if (importer->esd && importer->esd->ESID) {
-		sprintf(szSubArg, "trackid=%d", importer->esd->ESID);
+		snprintf(szSubArg, sizeof(szSubArg), "trackid=%d", importer->esd->ESID);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	else if (importer->target_trackID) {
-		sprintf(szSubArg, "trackid=%u", importer->target_trackID);
+		snprintf(szSubArg, sizeof(szSubArg), "trackid=%u", importer->target_trackID);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->flags & GF_IMPORT_FORCE_SYNC)
 		e |= gf_dynstrcat(&args, ":forcesync", NULL);
 
 	if (importer->duration.den) {
-		sprintf(szSubArg, "dur=%d/%d", importer->duration.num, importer->duration.den);
+		snprintf(szSubArg, sizeof(szSubArg), "dur=%d/%d", importer->duration.num, importer->duration.den);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->frames_per_sample) {
-		sprintf(szSubArg, "pack3gp=%d", importer->frames_per_sample);
+		snprintf(szSubArg, sizeof(szSubArg), "pack3gp=%d", importer->frames_per_sample);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->moov_timescale) {
-		sprintf(szSubArg, "moovts=%d", importer->moov_timescale);
+		snprintf(szSubArg, sizeof(szSubArg), "moovts=%d", importer->moov_timescale);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2) { e |= gf_dynstrcat(&args, "ase=v0s", ":"); }
@@ -1453,7 +1455,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	}
 
 	if (importer->start_time) {
-		sprintf(szSubArg, "start=%f", importer->start_time);
+		snprintf(szSubArg, sizeof(szSubArg), "start=%f", importer->start_time);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (e) {
@@ -1552,11 +1554,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	//source args
 	e = gf_dynstrcat(&args, "importer:index=0", ":");
 	if (importer->trackID && !source_id_set) {
-		sprintf(szSubArg, "FID=%s", szFilterID);
+		snprintf(szSubArg, sizeof(szSubArg), "FID=%s", szFilterID);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (fmt) {
-		sprintf(szSubArg, "ext=%s", fmt);
+		snprintf(szSubArg, sizeof(szSubArg), "ext=%s", fmt);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->filter_src_opts) e |= gf_dynstrcat(&args, importer->filter_src_opts, ":");
@@ -1576,7 +1578,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->flags & GF_IMPORT_FORCE_MPEG4) e |= gf_dynstrcat(&args, "mpeg4", ":");
 	if (importer->keep_audelim) e |= gf_dynstrcat(&args, "audelim", ":");
 	if (importer->video_fps.num && importer->video_fps.den) {
-		sprintf(szSubArg, "fps=%d/%d", importer->video_fps.num, importer->video_fps.den);
+		snprintf(szSubArg, sizeof(szSubArg), "fps=%d/%d", importer->video_fps.num, importer->video_fps.den);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->is_alpha) e |= gf_dynstrcat(&args, "#Alpha", ":");
@@ -1589,20 +1591,20 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		e |= gf_dynstrcat(&args, importer->fontName, NULL);
 	}
 	if (importer->fontName) {
-		sprintf(szSubArg, "fontsize=%d", importer->fontSize);
+		snprintf(szSubArg, sizeof(szSubArg), "fontsize=%d", importer->fontSize);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->text_width && importer->text_height) {
-		sprintf(szSubArg, "width=%d:height=%d:txtx=%d:txty=%d", importer->text_width, importer->text_height, importer->text_x, importer->text_y);
+		snprintf(szSubArg, sizeof(szSubArg), "width=%d:height=%d:txtx=%d:txty=%d", importer->text_width, importer->text_height, importer->text_x, importer->text_y);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 
 	if (importer->source_magic) {
-		sprintf(szSubArg, "#SrcMagic="LLU, importer->source_magic);
+		snprintf(szSubArg, sizeof(szSubArg), "#SrcMagic="LLU, importer->source_magic);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->track_index) {
-		sprintf(szSubArg, "#MuxIndex=%d", importer->track_index);
+		snprintf(szSubArg, sizeof(szSubArg), "#MuxIndex=%d", importer->track_index);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (e) {

@@ -149,7 +149,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
 		fprintf(stderr, "Duration: %g s\n", (Double) (import->probe_duration/1000.0));
 	}
 	found = 0;
-	for (i=0; i<import->nb_tracks; i++) {
+	for (i=0; i<MIN(import->nb_tracks, GF_IMPORT_MAX_TRACKS); i++) {
 		u32 stype = import->tk_info[i].stream_type;
 		switch (track_id->type) {
 		case 0: //by trackID
@@ -211,7 +211,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
 				fprintf(stderr, " Program %d", import->tk_info[i].prog_num);
 			} else {
 				u32 j;
-				for (j=0; j<import->nb_progs; j++) {
+				for (j=0; j<MIN(import->nb_progs, GF_IMPORT_MAX_TRACKS); j++) {
 					if (import->tk_info[i].prog_num != import->pg_info[j].number) continue;
 					fprintf(stderr, " Program %s", import->pg_info[j].name);
 					break;
@@ -1523,7 +1523,7 @@ reparse_opts:
 		else if (!strnicmp(ext, "trackID=", 8)) track_id = parse_u32(&ext[8], "trackID");
 		else if (!strnicmp(ext, "PID=", 4)) track_id = parse_u32(&ext[4], "ID");
 		else if (!strnicmp(ext, "program=", 8)) {
-			for (i=0; i<import->nb_progs; i++) {
+			for (i=0; i<MIN(import->nb_progs, GF_IMPORT_MAX_TRACKS); i++) {
 				if (!stricmp(import->pg_info[i].name, ext+8)) {
 					prog_id = import->pg_info[i].number;
 					do_all = 0;
@@ -1540,7 +1540,7 @@ reparse_opts:
 		//figure out trackID
 		if (do_audio || do_video || do_auxv || do_pict || track_id) {
 			Bool found = track_id ? GF_FALSE : GF_TRUE;
-			for (i=0; i<import->nb_tracks; i++) {
+			for (i=0; i<MIN(import->nb_tracks, GF_IMPORT_MAX_TRACKS); i++) {
 				if (track_id && (import->tk_info[i].track_num==track_id)) {
 					found=GF_TRUE;
 					break;
@@ -1854,7 +1854,7 @@ reparse_opts:
 			if (fName) fName += 1;
 			else fName = "?";
 
-			sprintf(szHName, "%s@GPAC%s", fName, gf_gpac_version());
+			snprintf(szHName, sizeof(szHName), "%s@GPAC%s", fName, gf_gpac_version());
 			e = gf_isom_set_handler_name(dest, track, szHName);
 			GOTO_EXIT("setting handler name")
 		}

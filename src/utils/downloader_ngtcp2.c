@@ -1133,6 +1133,8 @@ static GF_Err h3_async_flush(GF_DownloadSession *sess, Bool for_close)
 	if (for_close) {
 		if (qr->local_buf_sent>qr->local_buf_ack)
 			return GF_IP_NETWORK_EMPTY;
+		if (sess->put_state==1)
+			return GF_IP_NETWORK_EMPTY;
 	}
 
 	if (!sess->local_buf_len && !sess->hmux_is_eos) return GF_OK;

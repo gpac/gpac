@@ -1750,6 +1750,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (url) gf_free(url);
 		gf_dm_sess_clear_headers(sess->http_sess);
 
+		gf_dm_sess_set_timeout(sess->http_sess, sess->ctx->timeout/10);
+
 		httpout_push_headers(sess);
 		//send reply once we are done receiving
 		assert(sess->nb_bytes==0);
@@ -3787,7 +3789,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 				e = write_e;
 			}
 		} else if (e==GF_IP_NETWORK_EMPTY) {
-			ctx->next_wake_us = 1;
+			ctx->next_wake_us = 500;
 			sess->last_active_time = gf_sys_clock_high_res();
 			//httpout_check_connection(sess);
 			return;

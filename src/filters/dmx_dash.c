@@ -1752,6 +1752,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		srd_deps.type = GF_PROP_STRING_LIST;
 		srd_deps.value.string_list.nb_items = group->nb_group_deps;
 		srd_deps.value.string_list.vals = gf_malloc(sizeof(char *) * group->nb_group_deps);
+		if (!srd_deps.value.string_list.vals) return;
 
 		for (i=0; i<group->nb_group_deps; i++) {
 			char szSRDInf[1024];
@@ -1776,6 +1777,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			nb_q = gf_dash_group_get_num_qualities(ctx->dash, g_idx);
 			deps_q.value.string_list.nb_items = nb_q;
 			deps_q.value.string_list.vals = gf_malloc(sizeof(char *) * nb_q);
+			if (!deps_q.value.string_list.vals) continue;
 
 			for (k=0; k<nb_q; k++) {
 				char *qdesc = NULL;
