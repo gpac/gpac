@@ -2075,14 +2075,14 @@ retry_import:
 
 				if (!pe->codecs) {
 					char *codecs = NULL;
-					for (k=0; k<import->nb_tracks; k++) {
+					for (k=0; k<MIN(import->nb_tracks, GF_IMPORT_MAX_TRACKS); k++) {
 						if (strlen(import->tk_info[k].szCodecProfile)) {
 							gf_dynstrcat(&codecs, import->tk_info[k].szCodecProfile, ",");
 						}
 					}
 					pe->codecs = codecs;
 				}
-				for (k=0; k<import->nb_tracks; k++) {
+				for (k=0; k<MIN(import->nb_tracks, GF_IMPORT_MAX_TRACKS); k++) {
 					switch (import->tk_info[k].stream_type) {
 					case GF_STREAM_VISUAL:
 						width = import->tk_info[k].video_info.width;
