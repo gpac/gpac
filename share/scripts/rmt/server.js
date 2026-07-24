@@ -1,5 +1,25 @@
 // server/server.js
-import { Sys as sys5 } from "gpaccore";
+import { Sys as sys9 } from "gpaccore";
+
+// server/JSClient/Messaging/MessageHandler.js
+import { Sys as sys } from "gpaccore";
+
+// server/config/live.config.js
+var UPDATE_INTERVALS = {
+  SESSION_STATS: 1e3,
+  FILTER_STATS: 1e3,
+  CPU_STATS: 500
+};
+var LOG_RETENTION = {
+  maxHistorySize: 500,
+  maxHistorySizeVerbose: 2e3,
+  keepRatio: {
+    error: 1,
+    warning: 0.8,
+    info: 0.2,
+    debug: 0.05
+  }
+};
 
 // server/JSClient/config.js
 var DEFAULT_FILTER_FIELDS = [
@@ -13,16 +33,8 @@ var DEFAULT_FILTER_FIELDS = [
   "nb_ipid",
   "nb_opid",
   "errors",
-  "current_errors"
-];
-var CPU_STATS_FIELDS = [
-  "total_cpu_usage",
-  "process_cpu_usage",
-  "process_memory",
-  "physical_memory",
-  "physical_memory_avail",
-  "gpac_memory",
-  "thread_count"
+  "current_errors",
+  "last_task_time"
 ];
 var FILTER_PROPS_LITE = [
   "name",
@@ -38,7 +50,7 @@ var FILTER_PROPS_LITE = [
   "pck_done",
   "time",
   "current_errors",
-  "last_task_time"
+  "po"
 ];
 var FILTER_ARGS_LITE = [];
 var PID_PROPS_LITE = [];
@@ -55,11 +67,6 @@ var FILTER_SUBSCRIPTION_FIELDS = [
   "current_errors",
   "last_task_time"
 ];
-var UPDATE_INTERVALS = {
-  SESSION_STATS: 1e3,
-  FILTER_STATS: 1e3,
-  CPU_STATS: 500
-};
 
 // server/JSClient/Cache/CacheManager.js
 function CacheManager() {
@@ -109,7 +116,117 @@ function CacheManager() {
 }
 var cacheManager = new CacheManager();
 
+// server/history/HistoryFileReader.js
+import * as std from "std";
+import * as os from "os";
+var ALLOWED_EXACT_FILES = ["snapshot.json", "events.jsonl", "manifest.json", "logs.jsonl", "journal_index.json"];
+var VALID_SESSION_ID = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$/;
+var VALID_CHUNK_FILE = /^chunks\/chunk_\d{4}\.jsonl$/;
+var VALID_LOG_CHUNK_FILE = /^logs\/logs_\d{4}\.jsonl$/;
+var VALID_CHECKPOINT_FILE = /^checkpoints\/cp_\d{4}\.json$/;
+function HistoryFileReader(historyDir) {
+  const baseDir = historyDir || "history";
+  this.listSessions = function() {
+    const sessions = [];
+    const [entries, err] = os.readdir(baseDir);
+    if (err) return sessions;
+    for (const entry of entries) {
+      if (!VALID_SESSION_ID.test(entry)) continue;
+      const dir = `${baseDir}/${entry}`;
+      const hasSnapshot = fileExists(`${dir}/snapshot.json`);
+      const hasManifest = fileExists(`${dir}/manifest.json`);
+      const hasEvents = fileExists(`${dir}/events.jsonl`);
+      if (!hasSnapshot && !hasManifest && !hasEvents) continue;
+      const hasCheckpoints = dirHasFiles(`${dir}/checkpoints`, /^cp_\d{4}\.json$/);
+      const sizeBytes = hasEvents ? fileSize(`${dir}/events.jsonl`) : 0;
+      const isComplete = fileExists(`${dir}/done`);
+      sessions.push({ sessionId: entry, hasSnapshot, hasEvents, hasManifest, hasCheckpoints, sizeBytes, isComplete });
+    }
+    sessions.sort((a, b) => a.sessionId < b.sessionId ? 1 : a.sessionId > b.sessionId ? -1 : 0);
+    return sessions;
+  };
+  this.readEventsRange = function(sessionId, fromUs, toUs) {
+    const manifestResult = this.readFile(sessionId, "manifest.json");
+    if (manifestResult.ok) {
+      return readEventsFromChunks(this, sessionId, manifestResult.content, fromUs, toUs);
+    }
+    const legacyResult = this.readFile(sessionId, "events.jsonl");
+    if (!legacyResult.ok) return [];
+    return parseAndFilterEvents(legacyResult.content, fromUs, toUs);
+  };
+  this.readFile = function(sessionId, fileName) {
+    if (!VALID_SESSION_ID.test(sessionId)) {
+      return { ok: false, error: "session_not_found", detail: `Invalid sessionId: ${sessionId}` };
+    }
+    const isAllowed = ALLOWED_EXACT_FILES.includes(fileName) || VALID_CHUNK_FILE.test(fileName) || VALID_LOG_CHUNK_FILE.test(fileName) || VALID_CHECKPOINT_FILE.test(fileName);
+    if (!isAllowed) {
+      return { ok: false, error: "file_not_allowed", detail: `File not allowed: ${fileName}` };
+    }
+    const path = `${baseDir}/${sessionId}/${fileName}`;
+    const file = std.open(path, "r");
+    if (!file) {
+      return { ok: false, error: "file_not_found", detail: `${fileName} not found in session ${sessionId}` };
+    }
+    try {
+      const content = file.readAsString();
+      return { ok: true, content };
+    } catch (e) {
+      return { ok: false, error: "read_error", detail: String(e) };
+    } finally {
+      file.close();
+    }
+  };
+}
+function readEventsFromChunks(reader, sessionId, manifestContent, fromUs, toUs) {
+  let manifest;
+  try {
+    manifest = JSON.parse(manifestContent);
+  } catch (e) {
+    print(`[HistoryFileReader] Failed to parse manifest for session ${sessionId}: ${e}`);
+    return [];
+  }
+  const { startUs, chunkCount, chunkDurationUs } = manifest;
+  const fromChunk = fromUs !== void 0 ? Math.max(0, Math.floor((fromUs - startUs) / chunkDurationUs)) : 0;
+  const toChunk = toUs !== void 0 ? Math.min(chunkCount - 1, Math.floor((toUs - startUs) / chunkDurationUs)) : chunkCount - 1;
+  let events = [];
+  for (let i = fromChunk; i <= toChunk; i++) {
+    const file = `chunks/chunk_${String(i).padStart(4, "0")}.jsonl`;
+    const chunkResult = reader.readFile(sessionId, file);
+    if (!chunkResult.ok) continue;
+    events = events.concat(parseAndFilterEvents(chunkResult.content, fromUs, toUs));
+  }
+  return events;
+}
+function parseAndFilterEvents(content, fromUs, toUs) {
+  return content.split("\n").filter((line) => line.trim()).map((line) => {
+    try {
+      return JSON.parse(line);
+    } catch (_e) {
+      return null;
+    }
+  }).filter((event) => event !== null).filter(
+    (event) => (fromUs === void 0 || event.ts_us >= fromUs) && (toUs === void 0 || event.ts_us <= toUs)
+  );
+}
+function fileExists(path) {
+  const file = std.open(path, "r");
+  if (!file) return false;
+  file.close();
+  return true;
+}
+function fileSize(path) {
+  const [stat3, err] = os.stat(path);
+  if (err) return 0;
+  return stat3.size || 0;
+}
+function dirHasFiles(dir, pattern) {
+  const [entries, err] = os.readdir(dir);
+  if (err) return false;
+  return entries.some((entry) => pattern.test(entry));
+}
+
 // server/JSClient/Messaging/MessageHandler.js
+var historyReader = new HistoryFileReader(sys.get_opt("core", "rmt-log") || "history");
 function MessageHandler(client) {
   this.client = client;
   this.handleMessage = function(msg, all_clients2) {
@@ -141,12 +258,11 @@ function MessageHandler(client) {
           },
           "subscribe_filter": () => {
             const idx = jtext.idx;
-            let interval = jtext.interval || UPDATE_INTERVALS.FILTER_STATS;
             let pidScope = jtext.pidScope || "both";
             if (!pidScope) {
               pidScope = "both";
             }
-            this.client.filterManager.subscribeToFilter(idx, interval, pidScope);
+            this.client.filterManager.subscribeToFilter(idx, pidScope);
             this.client.ensureMonitoringLoop();
           },
           "unsubscribe_filter": () => {
@@ -208,6 +324,44 @@ function MessageHandler(client) {
               message: "cache_stats",
               stats
             }));
+          },
+          "list_sessions": () => {
+            const sessions = historyReader.listSessions();
+            this.client.client.send(JSON.stringify({
+              command: "list_sessions",
+              status: "ok",
+              sessions
+            }));
+          },
+          "read_events_range": () => {
+            const { sessionId, fromUs, toUs } = jtext;
+            const events = historyReader.readEventsRange(sessionId, fromUs, toUs);
+            this.client.client.send(JSON.stringify({
+              command: "events_range",
+              status: "ok",
+              sessionId,
+              events
+            }));
+          },
+          "read_file": () => {
+            const { sessionId, file } = jtext;
+            const result = historyReader.readFile(sessionId, file);
+            if (result.ok) {
+              this.client.client.send(JSON.stringify({
+                command: "read_file",
+                status: "ok",
+                sessionId,
+                file,
+                content: result.content
+              }));
+            } else {
+              this.client.client.send(JSON.stringify({
+                command: "read_file",
+                status: "error",
+                error: result.error,
+                detail: result.detail
+              }));
+            }
           }
         };
         const handler = handlers[jtext["message"]];
@@ -466,10 +620,11 @@ function _collectStats(stats, filter) {
   if (stats.max_playout_time) result.max_playout_time = stats.max_playout_time;
   if (stats.min_playout_time) result.min_playout_time = stats.min_playout_time;
   if (stats.total_process_time > 0) result.average_process_time = stats.total_process_time / stats.nb_processed;
+  if (stats.first_process_time) result.first_process_time = stats.first_process_time;
   return result;
 }
 function PidDataCollector() {
-  this.collectInputPids = function(filter, withPidProperties) {
+  this.collectInputPids = function(filter, withPidProperties, statsOnly) {
     const ipids = {};
     for (let i = 0; i < filter.nb_ipid; i++) {
       const originalName = filter.ipid_props(i, "name");
@@ -495,11 +650,11 @@ function PidDataCollector() {
         pid.properties = allProps;
       }
       const key = pid.name || `ipid_${i}`;
-      ipids[key] = pid;
+      ipids[key] = statsOnly ? { buffer: pid.buffer, bitrate: pid.bitrate, ...pid.stats && { stats: pid.stats } } : pid;
     }
     return ipids;
   };
-  this.collectOutputPids = function(filter) {
+  this.collectOutputPids = function(filter, statsOnly) {
     const opids = {};
     for (let i = 0; i < filter.nb_opid; i++) {
       const originalName = filter.opid_props(i, "name");
@@ -521,12 +676,9 @@ function PidDataCollector() {
         role: getProp("Role")
       };
       const stats = _collectStats(rawStats, filter);
-      if (stats) {
-        if (rawStats.first_process_time) stats.first_process_time = rawStats.first_process_time;
-        pid.stats = stats;
-      }
+      if (stats) pid.stats = stats;
       const key = pid.name || `opid_${i}`;
-      opids[key] = pid;
+      opids[key] = statsOnly ? { buffer: pid.buffer, max_buffer: pid.max_buffer, bitrate: pid.bitrate, ...pid.stats && { stats: pid.stats } } : pid;
     }
     return opids;
   };
@@ -568,6 +720,9 @@ function ArgumentHandler(client) {
     }
     try {
       filter.update(argName, newValue);
+      if (this.client.historyCollector) {
+        this.client.historyCollector.recordFilterArgsUpdate(idx, argName, newValue);
+      }
     } catch (e) {
       print("Error: Failed to update argument: " + e.toString());
     }
@@ -605,9 +760,9 @@ function FilterManager(client) {
   this.stopDetails = function(idx) {
     this.details_needed[idx] = false;
   };
-  this.subscribeToFilter = function(idx, interval, pidScope) {
+  this.subscribeToFilter = function(idx, pidScope) {
     this.filterSubscriptions[idx] = {
-      interval: interval || UPDATE_INTERVALS.FILTER_STATS,
+      interval: UPDATE_INTERVALS.FILTER_STATS,
       fields: FILTER_SUBSCRIPTION_FIELDS,
       pidScope: pidScope || "both"
     };
@@ -677,18 +832,43 @@ function FilterManager(client) {
   };
 }
 
+// server/JSClient/Sys/buildCpuStatsPayload.js
+import { Sys as sys2 } from "gpaccore";
+function buildCpuStatsPayload() {
+  const stats = {
+    total_cpu_usage: sys2.total_cpu_usage,
+    process_cpu_usage: sys2.process_cpu_usage,
+    process_memory: sys2.process_memory,
+    physical_memory: sys2.physical_memory,
+    physical_memory_avail: sys2.physical_memory_avail,
+    gpac_memory: sys2.gpac_memory,
+    nb_cores: sys2.nb_cores,
+    thread_count: sys2.thread_count,
+    memory_usage_percent: 0,
+    process_memory_percent: 0,
+    gpac_memory_percent: 0,
+    cpu_efficiency: 0
+  };
+  if (sys2.physical_memory > 0) {
+    stats.memory_usage_percent = (sys2.physical_memory - sys2.physical_memory_avail) / sys2.physical_memory * 100;
+    stats.process_memory_percent = sys2.process_memory / sys2.physical_memory * 100;
+    stats.gpac_memory_percent = sys2.gpac_memory / sys2.physical_memory * 100;
+  }
+  if (sys2.total_cpu_usage > 0) {
+    stats.cpu_efficiency = sys2.process_cpu_usage / sys2.total_cpu_usage * 100;
+  }
+  return { stats };
+}
+
 // server/JSClient/Sys/CpuStatsManager.js
-import { Sys as sys } from "gpaccore";
 function CpuStatsManager(client) {
   this.client = client;
   this.isSubscribed = false;
   this.interval = UPDATE_INTERVALS.CPU_STATS;
-  this.fields = CPU_STATS_FIELDS;
   this.lastSent = 0;
-  this.subscribe = function(interval, fields) {
+  this.subscribe = function() {
     this.isSubscribed = true;
-    this.interval = interval || UPDATE_INTERVALS.CPU_STATS;
-    this.fields = fields || CPU_STATS_FIELDS;
+    this.interval = UPDATE_INTERVALS.CPU_STATS;
     this.lastSent = 0;
     this.client.ensureMonitoringLoop();
   };
@@ -699,33 +879,8 @@ function CpuStatsManager(client) {
     if (!this.isSubscribed) return;
     if (now - this.lastSent < this.interval) return;
     const serialized = cacheManager.getOrSet("cpu_stats", 50, () => {
-      const cpuStats = {
-        timestamp: now,
-        total_cpu_usage: sys.total_cpu_usage,
-        process_cpu_usage: sys.process_cpu_usage,
-        process_memory: sys.process_memory,
-        physical_memory: sys.physical_memory,
-        physical_memory_avail: sys.physical_memory_avail,
-        gpac_memory: sys.gpac_memory,
-        nb_cores: sys.nb_cores,
-        thread_count: sys.thread_count,
-        memory_usage_percent: 0,
-        process_memory_percent: 0,
-        gpac_memory_percent: 0,
-        cpu_efficiency: 0
-      };
-      if (sys.physical_memory > 0) {
-        cpuStats.memory_usage_percent = (sys.physical_memory - sys.physical_memory_avail) / sys.physical_memory * 100;
-        cpuStats.process_memory_percent = sys.process_memory / sys.physical_memory * 100;
-        cpuStats.gpac_memory_percent = sys.gpac_memory / sys.physical_memory * 100;
-      }
-      if (sys.total_cpu_usage > 0) {
-        cpuStats.cpu_efficiency = sys.process_cpu_usage / sys.total_cpu_usage * 100;
-      }
-      return JSON.stringify({
-        message: "cpu_stats",
-        stats: cpuStats
-      });
+      const { stats } = buildCpuStatsPayload();
+      return JSON.stringify({ message: "cpu_stats", stats: { timestamp: now, ...stats } });
     });
     if (this.client.client) {
       this.client.client.send(serialized);
@@ -741,10 +896,10 @@ function CpuStatsManager(client) {
 }
 
 // server/JSClient/Sys/LogManager.js
-import { Sys as sys3 } from "gpaccore";
+import { Sys as sys4 } from "gpaccore";
 
 // server/JSClient/Sys/Utils/LogHub.js
-import { Sys as sys2 } from "gpaccore";
+import { Sys as sys3 } from "gpaccore";
 var logHub = {
   subscribers: /* @__PURE__ */ new Map(),
   originalLogConfig: null,
@@ -753,9 +908,9 @@ var logHub = {
     const wasEmpty = this.subscribers.size === 0;
     this.subscribers.set(id, manager);
     if (wasEmpty) {
-      this.originalLogConfig = sys2.get_logs(true);
-      sys2.use_logx = true;
-      sys2.on_log = (tool, level, msg, tid, caller) => {
+      this.originalLogConfig = sys3.get_logs(true);
+      sys3.use_logx = true;
+      sys3.on_log = (tool, level, msg, tid, caller) => {
         for (const manager2 of this.subscribers.values()) manager2.handleLog(tool, level, msg, tid, caller);
       };
     }
@@ -771,15 +926,15 @@ var logHub = {
   },
   setLogLevel(logLevel) {
     this.activeLogLevel = logLevel;
-    sys2.set_logs(logLevel);
+    sys3.set_logs(logLevel);
     for (const manager of this.subscribers.values()) {
       manager.logLevel = logLevel;
       manager.sendToClient({ message: "log_config_changed", logLevel });
     }
   },
   _teardown() {
-    sys2.on_log = void 0;
-    if (this.originalLogConfig) sys2.set_logs(this.originalLogConfig);
+    sys3.on_log = void 0;
+    if (this.originalLogConfig) sys3.set_logs(this.originalLogConfig);
     this.originalLogConfig = null;
     this.activeLogLevel = null;
   }
@@ -789,7 +944,7 @@ var logHub = {
 function LogManager(client) {
   this.client = client;
   this.isSubscribed = false;
-  this.logLevel = "all@quiet";
+  this.logLevel = "all@warning";
   this.pendingLogs = [];
   this.batchTimer = null;
   this.subscribe = function(logLevel) {
@@ -827,7 +982,7 @@ function LogManager(client) {
   };
   this.handleLog = function(tool, level, message, thread_id, caller) {
     this.pendingLogs.push({
-      timestamp: sys3.clock_us(),
+      timestamp: sys4.clock_us(),
       timestampMs: Date.now(),
       tool,
       level,
@@ -859,7 +1014,7 @@ function LogManager(client) {
     return {
       isSubscribed: this.isSubscribed,
       logLevel: this.logLevel,
-      currentLogConfig: sys3.get_logs()
+      currentLogConfig: sys4.get_logs()
     };
   };
   this.flushPendingLogs = function() {
@@ -896,14 +1051,14 @@ function LogManager(client) {
 }
 
 // server/JSClient/CommandLineManager.js
-import { Sys as sys4 } from "gpaccore";
+import { Sys as sys5 } from "gpaccore";
 function CommandLineManager(client) {
   this.client = client;
   this.getCommandLine = function() {
     try {
-      if (typeof sys4 !== "undefined" && sys4.args) {
-        if (Array.isArray(sys4.args) && sys4.args.length > 0) {
-          const commandLine = sys4.args.join(" ");
+      if (typeof sys5 !== "undefined" && sys5.args) {
+        if (Array.isArray(sys5.args) && sys5.args.length > 0) {
+          const commandLine = sys5.args.join(" ");
           return commandLine;
         }
       }
@@ -932,10 +1087,11 @@ function CommandLineManager(client) {
 }
 
 // server/JSClient/index.js
-function JSClient(id, client, all_clients2, ensureMonitoringLoop2) {
+function JSClient(id, client, all_clients2, ensureMonitoringLoop2, historyCollector2) {
   this.id = id;
   this.client = client;
   this.ensureMonitoringLoop = ensureMonitoringLoop2;
+  this.historyCollector = historyCollector2;
   this.messageHandler = new MessageHandler(this);
   this.sessionStatsManager = new SessionStatsManager(this);
   this.sessionManager = new SessionManager(this);
@@ -945,6 +1101,13 @@ function JSClient(id, client, all_clients2, ensureMonitoringLoop2) {
   this.commandLineManager = new CommandLineManager(this);
   this.on_client_data = function(msg) {
     this.messageHandler.handleMessage(msg, all_clients2);
+  };
+  this.sendMonitorConfig = function() {
+    this.client.send(JSON.stringify({
+      message: "monitor_config",
+      intervals: UPDATE_INTERVALS,
+      logRetention: LOG_RETENTION
+    }));
   };
   this.cleanup = function() {
     try {
@@ -958,73 +1121,731 @@ function JSClient(id, client, all_clients2, ensureMonitoringLoop2) {
   };
 }
 
-// server/server.js
-var all_clients = [];
-var cid = 0;
-var filter_uid = 0;
-var all_filters = [];
+// server/history/HistoryCollector.js
+import { Sys as sys6 } from "gpaccore";
+
+// server/history/HistoryWriter.js
+import * as std3 from "std";
+import * as os2 from "os";
+
+// server/history/helpers/ChunkStream.js
+import * as std2 from "std";
+function ChunkStream(dir, prefix, maxDuration, maxCount) {
+  this._dir = dir;
+  this._prefix = prefix;
+  this._maxDuration = maxDuration;
+  this._maxCount = maxCount || Infinity;
+  this._file = null;
+  this._index = 0;
+  this._count = 0;
+  this._startUs = null;
+  this._lastUs = null;
+  this._completed = [];
+  this._path = function(index) {
+    const padded = String(index).padStart(4, "0");
+    return `${this._dir}/${this._prefix}_${padded}.jsonl`;
+  };
+  this._open = function() {
+    if (this._file) {
+      this._file.close();
+      this._file = null;
+    }
+    const path = this._path(this._index);
+    this._file = std2.open(path, "a");
+    if (!this._file) {
+      print(`[ChunkStream] Failed to open ${path}`);
+    }
+    this._count = 0;
+    this._startUs = null;
+  };
+  this._finalizeCurrentChunk = function() {
+    const dirName = this._dir.split("/").pop();
+    return {
+      file: `${dirName}/${this._prefix}_${String(this._index).padStart(4, "0")}.jsonl`,
+      fromUs: this._startUs,
+      toUs: this._lastUs,
+      count: this._count
+    };
+  };
+  this.write = function(line, tsUs) {
+    if (!this._file) this._open();
+    if (!this._file) return false;
+    if (this._startUs === null) this._startUs = tsUs;
+    this._file.puts(line + "\n");
+    this._count++;
+    this._lastUs = tsUs;
+    const shouldRotate = tsUs - this._startUs >= this._maxDuration || this._count >= this._maxCount;
+    if (shouldRotate) {
+      this._completed.push(this._finalizeCurrentChunk());
+      this._index++;
+      this._open();
+      return true;
+    }
+    return false;
+  };
+  this.getChunkCount = function() {
+    return this._index + 1;
+  };
+  this.getAllChunks = function() {
+    return this._completed.slice();
+  };
+  this.getAllChunksIncludingOpen = function() {
+    const all = this._completed.slice();
+    if (this._file && this._count > 0) all.push(this._finalizeCurrentChunk());
+    return all;
+  };
+  this.close = function() {
+    if (this._file) {
+      if (this._count > 0) this._completed.push(this._finalizeCurrentChunk());
+      this._file.close();
+      this._file = null;
+    }
+  };
+  this._open();
+}
+
+// server/config/history.config.js
+var RATE_LIMIT_US = 1e3 * 1e3;
+var CHUNK_DURATION_US = 10 * 1e3 * 1e3;
+var MAX_LOG_PER_CHUNK = 5e3;
+var MAX_LOG_MESSAGE_LENGTH = 500;
+var MANIFEST_REFRESH_US = 2 * 1e3 * 1e3;
+
+// server/history/HistoryWriter.js
+function writeFileAtomic(path, content) {
+  const tmpPath = `${path}.tmp`;
+  const tmpFile = std3.open(tmpPath, "w");
+  if (!tmpFile) {
+    print(`[HistoryWriter] Failed to write ${tmpPath}`);
+    return;
+  }
+  tmpFile.puts(content);
+  tmpFile.close();
+  const err = os2.rename(tmpPath, path);
+  if (err !== 0) {
+    print(`[HistoryWriter] Failed to rename ${tmpPath} to ${path} (errno ${err})`);
+  }
+}
+function formatSessionId(date) {
+  const pad = (value) => String(value).padStart(2, "0");
+  const datePart = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const timePart = `${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+  return `${datePart}_${timePart}`;
+}
+function HistoryWriter(historyDir, sessionId) {
+  const baseDir = historyDir || "history";
+  const id = sessionId || formatSessionId(/* @__PURE__ */ new Date());
+  const dir = `${baseDir}/${id}`;
+  const chunksDir = `${dir}/chunks`;
+  const logsDir = `${dir}/logs`;
+  const checkpointsDir = `${dir}/checkpoints`;
+  this.sessionId = id;
+  this.sessionDir = dir;
+  this.snapshotPath = `${dir}/snapshot.json`;
+  this._initialized = false;
+  this._events = null;
+  this._logs = null;
+  this._sessionStartUs = null;
+  this._lastEventUs = null;
+  this._checkpoints = [];
+  this._eventsIndex = [];
+  this._journalTsUs = [];
+  this._journalTypes = [];
+  this._lastManifestUs = null;
+  this._init = function() {
+    if (this._initialized) return;
+    this._initialized = true;
+    try {
+      os2.mkdir(baseDir);
+    } catch (_e) {
+    }
+    try {
+      os2.mkdir(dir);
+    } catch (_e) {
+    }
+    try {
+      os2.mkdir(chunksDir);
+    } catch (_e) {
+    }
+    try {
+      os2.mkdir(logsDir);
+    } catch (_e) {
+    }
+    try {
+      os2.mkdir(checkpointsDir);
+    } catch (_e) {
+    }
+    const [, statErr] = os2.stat(dir);
+    if (statErr !== 0) print(`[HistoryWriter] Cannot create ${dir} \u2014 check the -rmt-log path and permissions`);
+    else print(`[HistoryWriter] Recording session ${id} to ${dir}/`);
+    this._events = new ChunkStream(chunksDir, "chunk", CHUNK_DURATION_US);
+    this._logs = new ChunkStream(logsDir, "logs", CHUNK_DURATION_US, MAX_LOG_PER_CHUNK);
+  };
+  this._updateTimestamps = function(tsUs) {
+    if (this._sessionStartUs === null) this._sessionStartUs = tsUs;
+    this._lastEventUs = tsUs;
+  };
+  this.addEventIndex = function(tsUs, type, metadata) {
+    if (!Number.isFinite(tsUs)) return;
+    this._eventsIndex.push(metadata ? { ts_us: tsUs, type, ...metadata } : { ts_us: tsUs, type });
+  };
+  this.recordJournalFact = function(tsUs, type) {
+    if (!Number.isFinite(tsUs)) return;
+    this._journalTsUs.push(tsUs);
+    this._journalTypes.push(type);
+  };
+  this._writeJournalIndex = function() {
+    if (this._journalTsUs.length === 0) return;
+    const baseTsUs = this._journalTsUs[0];
+    const journalIndex = {
+      baseTsUs,
+      tsDeltaUs: this._journalTsUs.map((tsUs) => tsUs - baseTsUs),
+      types: this._journalTypes
+    };
+    writeFileAtomic(`${dir}/journal_index.json`, JSON.stringify(journalIndex) + "\n");
+  };
+  this._getJournalPointer = function() {
+    if (this._journalTsUs.length === 0) return void 0;
+    const errorCount = this._journalTypes.filter((type) => type === 1).length;
+    const warningCount = this._journalTypes.filter((type) => type === 2).length;
+    return {
+      file: "journal_index.json",
+      format: "columnar-delta-v1",
+      eventCount: this._journalTsUs.length,
+      errorCount,
+      warningCount
+    };
+  };
+  this._writeManifest = function() {
+    const manifest = {
+      version: 1,
+      startUs: this._sessionStartUs,
+      endUs: this._lastEventUs,
+      chunkDurationUs: CHUNK_DURATION_US,
+      chunkCount: this._events ? this._events.getChunkCount() : 1,
+      snapshot: "snapshot.json",
+      checkpoints: this._checkpoints,
+      eventChunks: this._events ? this._events.getAllChunksIncludingOpen() : [],
+      logChunks: this._logs ? this._logs.getAllChunksIncludingOpen() : [],
+      eventsIndex: [...this._eventsIndex].sort((a, b) => a.ts_us - b.ts_us),
+      journalIndex: this._getJournalPointer()
+    };
+    this._writeJournalIndex();
+    writeFileAtomic(`${dir}/manifest.json`, JSON.stringify(manifest) + "\n");
+    this._lastManifestUs = this._lastEventUs;
+  };
+  this._maybeWriteManifest = function() {
+    if (this.getCurrentChunkIndex() !== 0) return;
+    if (this._lastManifestUs !== null && this._lastEventUs - this._lastManifestUs < MANIFEST_REFRESH_US) return;
+    this._writeManifest();
+  };
+  this.writeSnapshot = function(obj) {
+    this._init();
+    const snapshotFile = std3.open(this.snapshotPath, "w");
+    if (!snapshotFile) {
+      print(`[HistoryWriter] Failed to write snapshot`);
+      return;
+    }
+    snapshotFile.puts(JSON.stringify(obj) + "\n");
+    snapshotFile.close();
+  };
+  this.writeLog = function(jsonString, tsUs) {
+    this._init();
+    this._updateTimestamps(tsUs);
+    if (this._logs.write(jsonString, tsUs)) this._writeManifest();
+    else this._maybeWriteManifest();
+  };
+  this.writeEvent = function(jsonString, tsUs) {
+    this._init();
+    this._updateTimestamps(tsUs);
+    const rotated = this._events.write(jsonString, tsUs);
+    if (rotated) this._writeManifest();
+    else this._maybeWriteManifest();
+    return rotated;
+  };
+  this.writeCheckpoint = function(chunkIndex, obj) {
+    const padded = String(chunkIndex).padStart(4, "0");
+    const file = `checkpoints/cp_${padded}.json`;
+    const cpFile = std3.open(`${dir}/${file}`, "w");
+    if (!cpFile) {
+      print(`[HistoryWriter] Failed to write checkpoint ${file}`);
+      return;
+    }
+    cpFile.puts(JSON.stringify(obj) + "\n");
+    cpFile.close();
+    this._checkpoints.push({ chunkIndex, file });
+    this._writeManifest();
+  };
+  this.getCurrentChunkIndex = function() {
+    return this._events ? this._events._index : 0;
+  };
+  this.getCurrentLogChunkIndex = function() {
+    return this._logs ? this._logs._index : 0;
+  };
+  this.close = function() {
+    if (this._events) this._events.close();
+    if (this._logs) this._logs.close();
+    this._writeManifest();
+    const doneFile = std3.open(`${dir}/done`, "w");
+    if (doneFile) doneFile.close();
+  };
+}
+
+// server/history/HistoryCollector.js
+var EVENT_VERSION = 1;
+var LOG_ID = "_hist_";
+var LOG_LEVEL_ERROR = 1;
+var LOG_LEVEL_WARNING = 2;
+function HistoryCollector(historyDir) {
+  this.enabled = !!historyDir;
+  this.writer = new HistoryWriter(historyDir);
+  this.pidCollector = new PidDataCollector();
+  this.snapshotWritten = false;
+  this.lastRecordUs = 0;
+  this.lastCpuRecordUs = 0;
+  this.pendingLogs = [];
+  this.logBatchTimer = null;
+  this._latestStructural = null;
+  this._currentPidState = null;
+  this._currentArgState = {};
+  this._chunkNeedsCheckpoint = false;
+  this._lastEventTsUs = 0;
+  this._writeCheckpointIfNeeded = function(chunkIndex, tsUs) {
+    if (!this._latestStructural) return;
+    if (!this._chunkNeedsCheckpoint) return;
+    if (chunkIndex <= 0) {
+      this._chunkNeedsCheckpoint = false;
+      return;
+    }
+    const checkpoint = {
+      version: this._latestStructural.version,
+      ts_us: tsUs,
+      graph_v: this._latestStructural.graph_v,
+      filters: this._latestStructural.filters,
+      pid_state: this._currentPidState,
+      metric_defs: session.session_metrics || null
+    };
+    if (Object.keys(this._currentArgState).length > 0) {
+      checkpoint.arg_state = this._currentArgState;
+      this._currentArgState = {};
+    }
+    this.writer.writeCheckpoint(chunkIndex, checkpoint);
+    this._chunkNeedsCheckpoint = false;
+  };
+  this._onChunkRotated = function() {
+    const newChunkIndex = this.writer.getCurrentChunkIndex();
+    this._writeCheckpointIfNeeded(newChunkIndex, this._lastEventTsUs);
+  };
+  this.startLogCapture = function() {
+    this.initialLogConfig = sys6.get_logs(true);
+    logHub.add(LOG_ID, this);
+  };
+  this.writeSnapshot = function(data) {
+    if (this.snapshotWritten) return;
+    data.log_config = this.initialLogConfig || null;
+    this.writer.writeSnapshot(data);
+    this.snapshotWritten = true;
+  };
+  this.recordGraph = function(filters, filterInstances, graphVersion) {
+    const pidCollector2 = new PidDataCollector();
+    const eventFilters = filters.map((filter, index) => {
+      const { ipid, opid, gpac_args, ...rest } = filter;
+      const filterInstance = filterInstances[index];
+      return {
+        ...rest,
+        ipids: ipid ?? [],
+        opids: opid ?? [],
+        gpac_args: filterInstance.all_args(true).filter(Boolean),
+        properties: {
+          ipids: pidCollector2.collectInputPids(filterInstance, true),
+          opids: pidCollector2.collectOutputPids(filterInstance)
+        }
+      };
+    });
+    const checkpointFilters = eventFilters.map((filter) => {
+      const { gpac_args, ...rest } = filter;
+      const strippedIpids = Object.fromEntries(
+        Object.entries(filter.properties.ipids).map(([k, v]) => {
+          const { properties, ...pidRest } = v;
+          return [k, pidRest];
+        })
+      );
+      return {
+        ...rest,
+        properties: { ...filter.properties, ipids: strippedIpids }
+      };
+    });
+    const filtersTsUs = sys6.clock_us();
+    this.writer.addEventIndex(filtersTsUs, "graph-change");
+    if (!this.snapshotWritten) {
+      this.writeSnapshot({
+        version: EVENT_VERSION,
+        ts_us: filtersTsUs,
+        command_line: null,
+        graph_v: graphVersion,
+        filters: eventFilters
+      });
+    }
+    const rotated = this.writer.writeEvent(JSON.stringify({
+      version: EVENT_VERSION,
+      message: "filters",
+      ts_us: filtersTsUs,
+      graph_v: graphVersion,
+      filters: eventFilters
+    }), filtersTsUs);
+    this._lastEventTsUs = filtersTsUs;
+    this._latestStructural = {
+      version: EVENT_VERSION,
+      graph_v: graphVersion,
+      filters: checkpointFilters
+    };
+    this._currentPidState = eventFilters.reduce((acc, filter) => {
+      const allPidProperties = {};
+      for (const [key, pid] of Object.entries(filter.properties.ipids)) {
+        if (pid.properties) allPidProperties[key] = pid.properties;
+      }
+      if (Object.keys(allPidProperties).length > 0) acc[filter.idx] = allPidProperties;
+      return acc;
+    }, {});
+    this._currentArgState = {};
+    this._chunkNeedsCheckpoint = true;
+    if (rotated) this._onChunkRotated(filtersTsUs);
+  };
+  this.recordSessionStats = function(payload, force) {
+    const ts_us = sys6.clock_us();
+    if (!force && ts_us - this.lastRecordUs < RATE_LIMIT_US) return;
+    this.lastRecordUs = ts_us;
+    const filterMap = {};
+    session.lock_filters(true);
+    for (let i = 0; i < session.nb_filters; i++) {
+      const f = session.get_filter(i);
+      if (!f.is_destroyed()) filterMap[f.idx] = f;
+    }
+    const enrichedStats = payload.stats.map((stat3) => {
+      const f = filterMap[stat3.idx];
+      if (!f) return stat3;
+      const entry = { ...stat3 };
+      if (f.nb_ipid > 0) entry.ipids = this.pidCollector.collectInputPids(f, false, true);
+      if (f.nb_opid > 0) entry.opids = this.pidCollector.collectOutputPids(f, true);
+      return entry;
+    });
+    session.lock_filters(false);
+    const rotated = this.writer.writeEvent(JSON.stringify({
+      version: EVENT_VERSION,
+      message: "session_stats",
+      ts_us,
+      all_packets_done: payload.all_packets_done,
+      stats: enrichedStats
+    }), ts_us);
+    this._lastEventTsUs = ts_us;
+    if (rotated) this._onChunkRotated(ts_us);
+  };
+  this.recordCpuStats = function(payload) {
+    const cpuTsUs = sys6.clock_us();
+    if (cpuTsUs - this.lastCpuRecordUs < RATE_LIMIT_US) return;
+    this.lastCpuRecordUs = cpuTsUs;
+    const rotated = this.writer.writeEvent(JSON.stringify({
+      version: EVENT_VERSION,
+      message: "cpu_stats",
+      ts_us: cpuTsUs,
+      ...payload
+    }), cpuTsUs);
+    this._lastEventTsUs = cpuTsUs;
+    if (rotated) this._onChunkRotated(cpuTsUs);
+  };
+  this.recordPidReconfigured = function(indexes, pidsByFilter) {
+    const tsUs = sys6.clock_us();
+    this.writer.addEventIndex(tsUs, "pid-reconfig");
+    if (!this._currentPidState) {
+      this._currentPidState = {};
+    }
+    for (const idx of indexes) {
+      if (pidsByFilter[idx]) {
+        const allPidProperties = {};
+        for (const [key, pid] of Object.entries(pidsByFilter[idx])) {
+          if (pid.properties) allPidProperties[key] = pid.properties;
+        }
+        if (Object.keys(allPidProperties).length > 0) this._currentPidState[idx] = allPidProperties;
+      }
+    }
+    if (indexes.length > 0) {
+      this._chunkNeedsCheckpoint = true;
+    }
+    const rotated = this.writer.writeEvent(JSON.stringify({
+      version: EVENT_VERSION,
+      message: "filter_pid_reconfigured",
+      ts_us: tsUs,
+      indexes,
+      pidsByFilter
+    }), tsUs);
+    this._lastEventTsUs = tsUs;
+    if (rotated) this._onChunkRotated(tsUs);
+  };
+  this.recordArgUpdated = function(indexes, argsByFilter) {
+    const tsUs = sys6.clock_us();
+    this.writer.addEventIndex(tsUs, "args-change");
+    for (const idx of indexes) {
+      if (argsByFilter[idx]) {
+        this._currentArgState[idx] = argsByFilter[idx];
+      }
+    }
+    if (indexes.length > 0) {
+      this._chunkNeedsCheckpoint = true;
+    }
+    const rotated = this.writer.writeEvent(JSON.stringify({
+      version: EVENT_VERSION,
+      message: "filter_arg_updated",
+      ts_us: tsUs,
+      indexes,
+      argsByFilter
+    }), tsUs);
+    this._lastEventTsUs = tsUs;
+    if (rotated) this._onChunkRotated(tsUs);
+  };
+  this.recordFilterArgsUpdate = function(filterIdx, argName, newValue) {
+    const argsTsUs = sys6.clock_us();
+    const rotated = this.writer.writeEvent(JSON.stringify({
+      version: EVENT_VERSION,
+      message: "filter_args_update",
+      ts_us: argsTsUs,
+      payload: { filter_idx: filterIdx, arg_name: argName, value: newValue }
+    }), argsTsUs);
+    this._lastEventTsUs = argsTsUs;
+    if (rotated) this._onChunkRotated(argsTsUs);
+  };
+  this.recordLogConfigChanged = function(logLevel) {
+    const tsUs = sys6.clock_us();
+    this.writer.writeLog(JSON.stringify({
+      version: EVENT_VERSION,
+      message: "log_config_changed",
+      ts_us: tsUs,
+      logLevel
+    }), tsUs);
+  };
+  this.handleLog = function(tool, level, message, thread_id, caller) {
+    this.pendingLogs.push({
+      timestamp: sys6.clock_us(),
+      tool,
+      level,
+      message: message?.length > MAX_LOG_MESSAGE_LENGTH ? message.substring(0, MAX_LOG_MESSAGE_LENGTH) + "..." : message,
+      thread_id,
+      caller: caller?.idx !== void 0 ? caller.idx : caller?.name || null
+    });
+    if (!this.logBatchTimer) {
+      this.logBatchTimer = true;
+      session.post_task(() => {
+        this.flushLogs();
+        return false;
+      });
+    }
+  };
+  this.flushLogs = function() {
+    if (this.pendingLogs.length) {
+      const tsUs = sys6.clock_us();
+      this.writer.writeLog(JSON.stringify({
+        version: EVENT_VERSION,
+        message: "log_batch",
+        ts_us: tsUs,
+        logs: this.pendingLogs
+      }), tsUs);
+      this.pendingLogs.forEach((log) => {
+        if (log.level !== LOG_LEVEL_ERROR && log.level !== LOG_LEVEL_WARNING) return;
+        this.writer.recordJournalFact(log.timestamp, log.level);
+      });
+      this.pendingLogs = [];
+    }
+    this.logBatchTimer = null;
+  };
+  this.sendToClient = function(data) {
+    if (data.message === "log_config_changed") {
+      this.recordLogConfigChanged(data.logLevel);
+    }
+  };
+  this.close = function() {
+    logHub.remove(LOG_ID);
+    this.flushLogs();
+    this.writer.close();
+  };
+  if (!this.enabled) {
+    this.snapshotWritten = true;
+    for (const key in this) {
+      if (typeof this[key] === "function") this[key] = () => {
+      };
+    }
+  }
+}
+
+// server/GraphManager.js
+import { Sys as sys8 } from "gpaccore";
+
+// server/history/SnapshotBuilder.js
+import { Sys as sys7 } from "gpaccore";
+function SnapshotBuilder() {
+  this.pidCollector = new PidDataCollector();
+  this.buildFilterEntry = function(f) {
+    const entry = gpac_filter_to_object(f, true);
+    delete entry.ipid;
+    delete entry.opid;
+    const minimal = gpac_filter_to_minimal_object(f);
+    entry.ipids = minimal.ipid;
+    entry.opids = minimal.opid;
+    entry.properties = {
+      ipids: this.pidCollector.collectInputPids(f, true),
+      opids: this.pidCollector.collectOutputPids(f)
+    };
+    return entry;
+  };
+  this.build = function(graphVersion, commandLine) {
+    const filters = [];
+    session.lock_filters(true);
+    for (let i = 0; i < session.nb_filters; i++) {
+      const f = session.get_filter(i);
+      if (!f.is_destroyed()) filters.push(this.buildFilterEntry(f));
+    }
+    session.lock_filters(false);
+    return {
+      version: 1,
+      ts_us: sys7.clock_us(),
+      command_line: commandLine,
+      graph_v: graphVersion,
+      filters,
+      session_metrics: session.session_metrics || null
+    };
+  };
+}
+
+// server/GraphManager.js
 var GRAPH_DEBOUNCE_US = 500 * 1e3;
 var GRAPH_MAX_WAIT_US = 3e3 * 1e3;
-var graphDirty = false;
-var graphVersion = 0;
-var lastGraphEventTime = 0;
-var firstGraphEventTime = 0;
-var debounceRunning = false;
-function onGraphEvent() {
-  if (!all_clients.length) return;
-  const now = sys5.clock_us();
-  graphDirty = true;
-  lastGraphEventTime = now;
-  if (!firstGraphEventTime) firstGraphEventTime = now;
-  if (!debounceRunning) {
+function GraphManager(deps) {
+  const { getClients, historyCollector: historyCollector2, ensureMonitoringLoop: ensureMonitoringLoop2 } = deps;
+  let graphVersion = 0;
+  let graphDirty = false;
+  let lastGraphEventTime = 0;
+  let graphBuildStartTime = 0;
+  let debounceRunning = false;
+  const snapshotBuilder = new SnapshotBuilder();
+  this.getGraphVersion = function() {
+    return graphVersion;
+  };
+  this.onGraphEvent = function() {
+    const now = sys8.clock_us();
+    graphDirty = true;
+    lastGraphEventTime = now;
+    if (!graphBuildStartTime) graphBuildStartTime = now;
+    ensureMonitoringLoop2();
+    if (debounceRunning) return;
     debounceRunning = true;
     session.post_task(() => {
-      const now2 = sys5.clock_us();
+      const now2 = sys8.clock_us();
       const sinceLast = now2 - lastGraphEventTime;
-      const sinceFirst = now2 - firstGraphEventTime;
-      if (sinceLast >= GRAPH_DEBOUNCE_US || sinceFirst >= GRAPH_MAX_WAIT_US) {
-        stabilizeGraph();
+      const sinceBuildStart = now2 - graphBuildStartTime;
+      const graphStable = sinceLast >= GRAPH_DEBOUNCE_US;
+      const maxBuildWaitReached = sinceBuildStart >= GRAPH_MAX_WAIT_US;
+      if (graphStable || maxBuildWaitReached) {
+        this._stabilize();
         debounceRunning = false;
-        firstGraphEventTime = 0;
+        graphBuildStartTime = 0;
         return false;
       }
       return 100;
     });
-  }
+  };
+  this._stabilize = function() {
+    graphDirty = false;
+    graphVersion++;
+    on_all_connected((allFilterInstances) => {
+      session.lock_filters(true);
+      const filters = allFilterInstances.map((f) => gpac_filter_to_minimal_object(f));
+      session.lock_filters(false);
+      if (!historyCollector2.snapshotWritten) {
+        let commandLine = null;
+        try {
+          commandLine = sys8.args ? sys8.args.join(" ") : null;
+        } catch (_e) {
+        }
+        const snapshot = snapshotBuilder.build(graphVersion, commandLine);
+        historyCollector2.writeSnapshot(snapshot);
+      }
+      historyCollector2.recordGraph(filters, allFilterInstances, graphVersion);
+      const filtersMsg = JSON.stringify({ message: "filters", filters });
+      const notifMsg = JSON.stringify({
+        message: "notification",
+        type: "graph_changed",
+        graphVersion
+      });
+      for (const client of getClients()) {
+        if (client.client) {
+          client.client.send(filtersMsg);
+          client.client.send(notifMsg);
+        }
+      }
+    });
+  };
 }
-function stabilizeGraph() {
-  graphDirty = false;
-  graphVersion++;
-  session.lock_filters(true);
+
+// server/JSClient/Session/buildSessionStatsPayload.js
+function buildSessionStatsPayload(session2, fields) {
+  const resolvedFields = fields || DEFAULT_FILTER_FIELDS;
+  const stats = [];
   const filters = [];
-  for (let i = 0; i < session.nb_filters; i++) {
-    const f = session.get_filter(i);
-    if (!f.is_destroyed()) {
-      filters.push(gpac_filter_to_minimal_object(f));
+  session2.lock_filters(true);
+  for (let i = 0; i < session2.nb_filters; i++) {
+    const f = session2.get_filter(i);
+    if (f.is_destroyed()) continue;
+    filters.push(f);
+    const obj = {};
+    for (const field of resolvedFields) obj[field] = f[field];
+    let allInputsEos = f.nb_ipid > 0;
+    for (let j = 0; j < f.nb_ipid; j++) {
+      if (!f.ipid_props(j, "eos")) {
+        allInputsEos = false;
+        break;
+      }
+    }
+    obj.is_eos = allInputsEos;
+    obj.last_ts_sent = f.last_ts_sent || null;
+    stats.push(obj);
+  }
+  let allFiltersEos = filters.length > 0;
+  for (const f of filters) {
+    if (f.nb_ipid === 0) continue;
+    for (let i = 0; i < f.nb_ipid; i++) {
+      if (!f.ipid_props(i, "eos")) {
+        allFiltersEos = false;
+        break;
+      }
     }
   }
-  session.lock_filters(false);
-  const filtersMsg = JSON.stringify({ message: "filters", filters });
-  const notifMsg = JSON.stringify({
-    message: "notification",
-    type: "graph_changed",
-    graphVersion
-  });
-  for (const client of all_clients) {
-    if (client.client) {
-      client.client.send(filtersMsg);
-      client.client.send(notifMsg);
-    }
-  }
+  const all_packets_done = session2.last_task && allFiltersEos;
+  session2.lock_filters(false);
+  return { all_packets_done, stats };
 }
+
+// server/server.js
+var recordPath = sys9.get_opt("core", "rmt-log");
+var historyCollector = new HistoryCollector(recordPath);
+print(recordPath ? `[History] Recording enabled -> ${recordPath}` : "[History] Recording disabled (no -rmt-log)");
+var all_clients = [];
+var cid = 0;
+var filter_uid = 0;
+var all_filters = [];
+var graphManager = new GraphManager({
+  getClients: () => all_clients,
+  historyCollector,
+  ensureMonitoringLoop
+});
 var monitoringRunning = false;
 function ensureMonitoringLoop() {
   if (monitoringRunning) return;
   monitoringRunning = true;
   session.post_task(() => {
-    const now = sys5.clock_us();
+    const now = sys9.clock_us();
     if (session.last_task) {
       for (const client of all_clients) client.sessionManager.handleSessionEnd(now);
+      historyCollector.recordSessionStats(buildSessionStatsPayload(session), true);
+      historyCollector.recordCpuStats(buildCpuStatsPayload());
+      historyCollector.close();
       monitoringRunning = false;
       return false;
     }
@@ -1037,11 +1858,13 @@ function ensureMonitoringLoop() {
         interval = Math.min(interval, client.sessionManager.getMinInterval());
       }
     }
-    if (!active) monitoringRunning = false;
-    return active ? interval : false;
+    historyCollector.recordSessionStats(buildSessionStatsPayload(session));
+    historyCollector.recordCpuStats(buildCpuStatsPayload());
+    return active ? interval : 1e3;
   });
 }
 session.reporting(true);
+historyCollector.startLogCapture();
 var remove_client = function(client_id) {
   for (let i = 0; i < all_clients.length; i++) {
     if (all_clients[i].id == client_id) {
@@ -1055,22 +1878,30 @@ session.set_new_filter_fun((f) => {
   f.iname = "" + f.idx;
   all_filters.push(f);
   if (f.itag == "NODISPLAY") return;
-  onGraphEvent();
+  graphManager.onGraphEvent();
 });
 session.set_del_filter_fun((f) => {
   let idx = all_filters.indexOf(f);
   if (idx >= 0) all_filters.splice(idx, 1);
   if (f.itag == "NODISPLAY") return;
-  onGraphEvent();
+  graphManager.onGraphEvent();
 });
+var pidCollector = new PidDataCollector();
 var pidReconfigured = /* @__PURE__ */ new Set();
 session.set_filter_pid_modified_fun((f) => {
   pidReconfigured.add(f.idx);
   if (pidReconfigured.size > 1) return;
   session.post_task(() => {
-    const msg = JSON.stringify({ message: "filter_pid_reconfigured", indexes: [...pidReconfigured] });
+    const indexes = [...pidReconfigured];
     pidReconfigured.clear();
+    const pidsByFilter = {};
+    for (const idx of indexes) {
+      const filter = all_filters.find((f2) => f2.idx === idx);
+      if (filter) pidsByFilter[idx] = pidCollector.collectInputPids(filter, true);
+    }
+    const msg = JSON.stringify({ message: "filter_pid_reconfigured", indexes });
     for (const c of all_clients) if (c.client) c.client.send(msg);
+    historyCollector.recordPidReconfigured(indexes, pidsByFilter);
     return false;
   });
 });
@@ -1079,15 +1910,23 @@ session.set_filter_arg_updated_fun((f) => {
   argUpdated.add(f.idx);
   if (argUpdated.size > 1) return;
   session.post_task(() => {
-    const msg = JSON.stringify({ message: "filter_arg_updated", indexes: [...argUpdated] });
+    const indexes = [...argUpdated];
     argUpdated.clear();
+    const argsByFilter = {};
+    for (const idx of indexes) {
+      const filter = all_filters.find((f2) => f2.idx === idx);
+      if (filter) argsByFilter[idx] = filter.all_args(true).filter(Boolean);
+    }
+    const msg = JSON.stringify({ message: "filter_arg_updated", indexes });
     for (const c of all_clients) if (c.client) c.client.send(msg);
+    historyCollector.recordArgUpdated(indexes, argsByFilter);
     return false;
   });
 });
-sys5.rmt_on_new_client = function(client) {
-  let js_client = new JSClient(++cid, client, all_clients, ensureMonitoringLoop);
+sys9.rmt_on_new_client = function(client) {
+  let js_client = new JSClient(++cid, client, all_clients, ensureMonitoringLoop, historyCollector);
   all_clients.push(js_client);
+  js_client.sendMonitorConfig();
   js_client.client.on_data = (msg) => {
     if (typeof msg == "string")
       js_client.on_client_data(msg);

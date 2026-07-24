@@ -2113,7 +2113,7 @@ sourceid_reassign:
 		else {
 			Bool res;
 			if (src_filter_id)
-				res = ((match_prefix || (src_fid_len==sublen)) && !strncmp(src_filter_id, source_ids, sublen)) ? GF_TRUE : GF_FALSE;
+				res = ((!sublen || match_prefix || (src_fid_len==sublen)) && !strncmp(src_filter_id, source_ids, sublen)) ? GF_TRUE : GF_FALSE;
 			else
 				res = sublen ? GF_FALSE : GF_TRUE;
 			if (use_neg) res = res ? GF_FALSE : GF_TRUE;
@@ -5640,6 +5640,21 @@ single_retry:
 				if (skipped) {
 					continue;
 				}
+
+				//filter was reassigned (pid is destroyed), return
+				if (reassigned) {
+					if (num_pass==1) {
+						can_reassign_filter = GF_TRUE;
+						continue;
+					}
+					gf_mx_v(filter->session->filters_mx);
+					if (loaded_filters) gf_list_del(loaded_filters);
+					gf_list_del(linked_dest_filters);
+					gf_list_del(force_link_resolutions);
+					gf_list_del(possible_linked_resolutions);
+					return;
+				}
+
 				if (pid->filter->session->run_status!=GF_OK) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s init canceled (session abort)\n", pid->filter->name, pid->name));
 					gf_mx_v(filter->session->filters_mx);
@@ -5652,21 +5667,6 @@ single_retry:
 					return;
 				}
 
-				//filter was reassigned (pid is destroyed), return
-				if (reassigned) {
-					if (num_pass==1) {
-						can_reassign_filter = GF_TRUE;
-						continue;
-					}
-					gf_mx_v(filter->session->filters_mx);
-					gf_assert(pid->init_task_pending);
-					safe_int_dec(&pid->init_task_pending);
-					if (loaded_filters) gf_list_del(loaded_filters);
-					gf_list_del(linked_dest_filters);
-					gf_list_del(force_link_resolutions);
-					gf_list_del(possible_linked_resolutions);
-					return;
-				}
 				//we might had it wrong solving the chain initially, break the chain
 				if (filter_dst->dynamic_filter && filter_dst->dst_filter) {
 					GF_Filter *new_dst = filter_dst;

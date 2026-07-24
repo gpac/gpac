@@ -10625,8 +10625,7 @@ Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_p
 	if (buflen < 6) return GF_FALSE;
 	(*pos) = AC3_FindSyncCode(buf, buflen);
 	if (*pos >= buflen) return GF_FALSE;
-
-	bs = gf_bs_new(buf + *pos, buflen, GF_BITSTREAM_READ);
+	bs = gf_bs_new(buf + *pos, buflen-*pos, GF_BITSTREAM_READ);
 	ret = gf_ac3_parser_bs(bs, hdr, full_parse);
 	gf_bs_del(bs);
 
@@ -10646,6 +10645,11 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 	syncword = gf_bs_read_u16(bs);
 	if (syncword != 0x0B77) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC3] Wrong sync word detected (0x%X - expecting 0x0B77).\n", syncword));
+		return GF_FALSE;
+	}
+
+	if (gf_bs_available(bs) < 6) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AC3] Truncated buffer\n"));
 		return GF_FALSE;
 	}
 	gf_bs_read_int_log(bs, 16, "crc1");
