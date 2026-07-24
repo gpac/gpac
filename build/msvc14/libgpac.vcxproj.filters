@@ -120,9 +120,6 @@
     <ClInclude Include="..\..\include\gpac\internal\crypt_dev.h">
       <Filter>include\internal</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\internal\dvb_mpe_dev.h">
-      <Filter>include\internal</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\gpac\internal\ietf_dev.h">
       <Filter>include\internal</Filter>
     </ClInclude>
@@ -250,12 +247,6 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\download.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\gpac\dsmcc.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\gpac\dvb_mpe.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\esi.h">
@@ -791,9 +782,6 @@
     <ClCompile Include="..\..\src\crypto\tiny_aes.c">
       <Filter>crypto</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\media_tools\ait.c">
-      <Filter>media_tools</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\media_tools\av_parsers.c">
       <Filter>media_tools</Filter>
     </ClCompile>
@@ -804,12 +792,6 @@
       <Filter>media_tools</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\media_tools\dash_segmenter.c">
-      <Filter>media_tools</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\media_tools\dsmcc.c">
-      <Filter>media_tools</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\media_tools\dvb_mpe.c">
       <Filter>media_tools</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\media_tools\gpac_ogg.c">
@@ -864,15 +846,6 @@
       <Filter>odf</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\odf\descriptors.c">
-      <Filter>odf</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\odf\ipmpx_code.c">
-      <Filter>odf</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\odf\ipmpx_dump.c">
-      <Filter>odf</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\odf\ipmpx_parse.c">
       <Filter>odf</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\odf\oci_codec.c">

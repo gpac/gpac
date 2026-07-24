@@ -132,10 +132,6 @@ void dom_node_set_textContent(GF_Node *n, char *text);
 
 JSValue dom_node_get_sibling(JSContext *c, GF_Node *n, Bool is_prev, Bool elt_only);
 
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-void html_media_init_js_api(GF_SceneGraph *scene);
-#endif
-
 #define _ScriptMessage(_sg, _msg) {\
 			GF_JSAPIParam par;	\
 			par.info.e = GF_SCRIPT_INFO;			\
@@ -2029,20 +2025,10 @@ static JSValue svg_mx2d_rotate(JSContext *c, JSValueConst obj, int argc, JSValue
 }
 
 
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-void *html_get_element_class(GF_Node *n);
-#endif
-
 JSClassID svg_get_element_class(GF_Node *n)
 {
 	if (!n) return 0;
 	if ((n->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG)) {
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-		if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
-			gf_assert(0);
-			return html_get_element_class(n);
-		}
-#endif
 		return svgElement.class_id;
 	}
 	return 0;
@@ -2347,19 +2333,11 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 	return ok;
 }
 
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-void html_media_js_api_del();
-#endif
-
 void gf_svg_script_context_del(GF_SVGJS *svg_js, GF_SceneGraph *scenegraph)
 {
 	gf_sg_js_dom_pre_destroy(JS_GetRuntime(svg_js->js_ctx), scenegraph, NULL);
 	gf_js_delete_context(svg_js->js_ctx);
 	dom_js_unload();
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-	/* HTML */
-	html_media_js_api_del();
-#endif
 
 	gf_free(svg_js);
 	scenegraph->svg_js = NULL;
@@ -2411,12 +2389,6 @@ GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 	sg->svg_js = svg_js;
 	/*load SVG & DOM APIs*/
 	svg_init_js_api(sg);
-
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-	/* HTML */
-	html_media_init_js_api(sg);
-#endif
-
 
 	svg_js->script_execute = svg_script_execute;
 	svg_js->handler_execute = svg_script_execute_handler;

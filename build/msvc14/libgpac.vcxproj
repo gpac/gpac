@@ -49,8 +49,6 @@
     <ClInclude Include="..\..\include\gpac\crypt.h" />
     <ClInclude Include="..\..\include\gpac\dash.h" />
     <ClInclude Include="..\..\include\gpac\download.h" />
-    <ClInclude Include="..\..\include\gpac\dsmcc.h" />
-    <ClInclude Include="..\..\include\gpac\dvb_mpe.h" />
     <ClInclude Include="..\..\include\gpac\esi.h" />
     <ClInclude Include="..\..\include\gpac\events.h" />
     <ClInclude Include="..\..\include\gpac\events_constants.h" />
@@ -61,7 +59,6 @@
     <ClInclude Include="..\..\include\gpac\internal\camera.h" />
     <ClInclude Include="..\..\include\gpac\internal\compositor_dev.h" />
     <ClInclude Include="..\..\include\gpac\internal\crypt_dev.h" />
-    <ClInclude Include="..\..\include\gpac\internal\dvb_mpe_dev.h" />
     <ClInclude Include="..\..\include\gpac\internal\ietf_dev.h" />
     <ClInclude Include="..\..\include\gpac\internal\isomedia_dev.h" />
     <ClInclude Include="..\..\include\gpac\internal\laser_dev.h" />
@@ -451,14 +448,11 @@
     <ClCompile Include="..\..\src\evg\raster_yuv.c" />
     <ClCompile Include="..\..\src\evg\stencil.c" />
     <ClCompile Include="..\..\src\evg\surface.c" />
-    <ClCompile Include="..\..\src\media_tools\ait.c" />
     <ClCompile Include="..\..\src\media_tools\route_dmx.c" />
     <ClCompile Include="..\..\src\media_tools\avilib.c" />
     <ClCompile Include="..\..\src\media_tools\av_parsers.c" />
     <ClCompile Include="..\..\src\media_tools\dash_client.c" />
     <ClCompile Include="..\..\src\media_tools\dash_segmenter.c" />
-    <ClCompile Include="..\..\src\media_tools\dsmcc.c" />
-    <ClCompile Include="..\..\src\media_tools\dvb_mpe.c" />
     <ClCompile Include="..\..\src\media_tools\gpac_ogg.c" />
     <ClCompile Include="..\..\src\media_tools\id3.c" />
     <ClCompile Include="..\..\src\media_tools\img.c" />
@@ -478,9 +472,6 @@
     <ClCompile Include="..\..\src\media_tools\webvtt.c" />
     <ClCompile Include="..\..\src\odf\descriptors.c" />
     <ClCompile Include="..\..\src\odf\desc_private.c" />
-    <ClCompile Include="..\..\src\odf\ipmpx_code.c" />
-    <ClCompile Include="..\..\src\odf\ipmpx_dump.c" />
-    <ClCompile Include="..\..\src\odf\ipmpx_parse.c" />
     <ClCompile Include="..\..\src\odf\oci_codec.c" />
     <ClCompile Include="..\..\src\odf\odf_code.c" />
     <ClCompile Include="..\..\src\odf\odf_codec.c" />

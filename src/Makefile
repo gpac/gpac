@@ -60,19 +60,7 @@ endif
 
 
 ## libgpac objects gathering: src/odf
-LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/odf_code.o odf/odf_codec.o odf/odf_command.o odf/slc.o
-ifeq ($(MINIMAL_OD),no)
-#LIBGPAC_ODF+=odf/qos.o odf/ipmpx_code.o odf/oci_codec.o
-
-ifeq ($(DISABLE_OD_DUMP),no)
-#LIBGPAC_ODF+=odf/ipmpx_dump.o
-endif
-
-ifeq ($(DISABLE_OD_PARSE),no)
-#LIBGPAC_ODF+=odf/ipmpx_parse.o
-endif
-
-endif
+LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/odf_code.o odf/odf_codec.o odf/odf_command.o odf/slc.o odf/qos.o odf/oci_codec.o
 
 ifeq ($(DISABLE_OD_DUMP),no)
 LIBGPAC_ODF+=odf/odf_dump.o
@@ -117,7 +105,7 @@ ifeq ($(DISABLE_M2TS_MUX),no)
 LIBGPAC_MEDIATOOLS+=media_tools/m2ts_mux.o
 endif
 ifeq ($(DISABLE_DVBX),no)
-LIBGPAC_MEDIATOOLS+=media_tools/ait.o media_tools/dsmcc.o media_tools/dvb_mpe.o media_tools/reedsolomon.o
+LIBGPAC_MEDIATOOLS+=media_tools/reedsolomon.o
 endif
 ifeq ($(DISABLE_AVILIB),no)
 LIBGPAC_MEDIATOOLS+=media_tools/avilib.o

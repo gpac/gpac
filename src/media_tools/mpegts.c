@@ -42,14 +42,6 @@
 #include <unistd.h>
 #endif
 
-#ifdef GPAC_ENABLE_MPE
-#include <gpac/dvb_mpe.h>
-#endif
-
-#ifdef GPAC_ENABLE_DSMCC
-#include <gpac/ait.h>
-#endif
-
 #define DEBUG_TS_PACKET 0
 
 GF_EXPORT
@@ -280,12 +272,6 @@ static void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 	if (es->flags & GF_M2TS_ES_IS_SECTION) {
 		GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
 		if (ses->sec) gf_m2ts_section_filter_del(ses->sec);
-
-#ifdef GPAC_ENABLE_MPE
-		if (es->flags & GF_M2TS_ES_IS_MPE)
-			gf_dvb_mpe_section_del(es);
-#endif
-
 	} else if (es->pid!=es->program->pmt_pid) {
 		GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 
@@ -344,35 +330,12 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 
 	if (!sec->process_section) {
 		if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_AIT)) ) {
-#ifdef GPAC_ENABLE_DSMCC
-			GF_M2TS_SL_PCK pck;
-			pck.data_len = sec->length;
-			pck.data = sec->section;
-			pck.stream = (GF_M2TS_ES *)ses;
-			//ts->on_event(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
-			on_ait_section(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
-#endif
 		} else if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA	|| sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE ||
 		                             sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_PRIVATE)) ) {
 
-#ifdef GPAC_ENABLE_DSMCC
-			GF_M2TS_SL_PCK pck;
-			pck.data_len = sec->length;
-			pck.data = sec->section;
-			pck.stream = (GF_M2TS_ES *)ses;
-			on_dsmcc_section(ts,GF_M2TS_EVT_DSMCC_FOUND,&pck);
-			//ts->on_event(ts, GF_M2TS_EVT_DSMCC_FOUND, &pck);
-#endif
 		}
-#ifdef GPAC_ENABLE_MPE
-		else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
-			GF_M2TS_SL_PCK pck;
-			pck.data_len = sec->length;
-			pck.data = sec->section;
-			pck.stream = (GF_M2TS_ES *)ses;
-			ts->on_mpe_event(ts, GF_M2TS_EVT_DVB_MPE, &pck);
+		else if (((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
 		}
-#endif
 		else if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_SCTE35_SPLICE_INFO)) ) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
@@ -1536,13 +1499,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_MPE_SECTIONS:
 			if (! ts->prefix_present) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("stream type MPE found : pid = %d \n", pid));
-#ifdef GPAC_ENABLE_MPE
-				es = gf_dvb_mpe_section_new();
-				if (es->flags & GF_M2TS_ES_IS_SECTION) {
-					/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
-					((GF_M2TS_SECTION_ES*)es)->sec = gf_m2ts_section_filter_new(NULL, GF_TRUE);
-				}
-#endif
 				break;
 			}
 
@@ -3348,41 +3304,8 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->eit = gf_m2ts_section_filter_new(NULL, GF_TRUE);
 	ts->tdt_tot = gf_m2ts_section_filter_new(gf_m2ts_process_tdt_tot, GF_TRUE);
 
-#ifdef GPAC_ENABLE_MPE
-	gf_dvb_mpe_init(ts);
-#endif
-
 	ts->nb_prog_pmt_received = 0;
-	ts->ChannelAppList = gf_list_new();
 	return ts;
-}
-
-GF_EXPORT
-void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts) {
-
-	char temp_dir[GF_MAX_PATH];
-	u32 length;
-	GF_Err e;
-
-	ts->dsmcc_controler = gf_list_new();
-	ts->process_dmscc = GF_TRUE;
-
-	gf_strcpy(temp_dir, gf_get_default_cache_directory() );
-	length = (u32) strlen(temp_dir);
-	if(temp_dir[length-1] == GF_PATH_SEPARATOR) {
-		temp_dir[length-1] = 0;
-	}
-
-	ts->dsmcc_root_dir = (char*)gf_calloc(strlen(temp_dir)+strlen("CarouselData")+2,1);
-	if (!ts->dsmcc_root_dir)
-		e = GF_OUT_OF_MEM;
-	else {
-		sprintf(ts->dsmcc_root_dir,"%s%cCarouselData",temp_dir,GF_PATH_SEPARATOR);
-		e = gf_mkdir(ts->dsmcc_root_dir);
-	}
-	if (e) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error during the creation of the directory %s \n",ts->dsmcc_root_dir));
-	}
 }
 
 GF_EXPORT
@@ -3430,47 +3353,8 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	gf_m2ts_reset_sdt(ts);
 	if (ts->tdt_tot)
 		gf_list_del(ts->SDTs);
-
-#ifdef GPAC_ENABLE_MPE
-	gf_dvb_mpe_shutdown(ts);
-#endif
-
-	if (ts->dsmcc_controler) {
-		if (gf_list_count(ts->dsmcc_controler)) {
-#ifdef GPAC_ENABLE_DSMCC
-			GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord = (GF_M2TS_DSMCC_OVERLORD*)gf_list_get(ts->dsmcc_controler,0);
-			gf_dir_cleanup(dsmcc_overlord->root_dir);
-			gf_rmdir(dsmcc_overlord->root_dir);
-			gf_m2ts_delete_dsmcc_overlord(dsmcc_overlord);
-			if(ts->dsmcc_root_dir) {
-				gf_free(ts->dsmcc_root_dir);
-			}
-#endif
-		}
-		gf_list_del(ts->dsmcc_controler);
-	}
-
-	while(gf_list_count(ts->ChannelAppList)) {
-#ifdef GPAC_ENABLE_DSMCC
-		GF_M2TS_CHANNEL_APPLICATION_INFO* ChanAppInfo = (GF_M2TS_CHANNEL_APPLICATION_INFO*)gf_list_get(ts->ChannelAppList,0);
-		gf_m2ts_delete_channel_application_info(ChanAppInfo);
-		gf_list_rem(ts->ChannelAppList,0);
-#endif
-	}
-	gf_list_del(ts->ChannelAppList);
-
-	if (ts->dsmcc_root_dir) gf_free(ts->dsmcc_root_dir);
 	gf_free(ts);
 }
-
-#if 0//unused
-void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
-{
-#ifdef GPAC_ENABLE_MPE
-	gf_dvb_mpe_print_info(ts);
-#endif
-}
-#endif
 
 //20 packets max
 #define M2TS_PROBE_SIZE	188*20

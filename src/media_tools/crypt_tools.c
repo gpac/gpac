@@ -201,7 +201,9 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			else if (!stricmp(att->name, "ipmpType")) {
 				if (!stricmp(att->value, "None")) tkc->ipmp_type = 0;
 				else if (!stricmp(att->value, "IPMP")) tkc->sel_enc_type = 1;
-				else if (!stricmp(att->value, "IPMPX")) tkc->sel_enc_type = 2;
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Unrecognized ipmpType algo %s, ignoring\n", att->value));
+				}
 			}
 			else if (!stricmp(att->name, "ipmpDescriptorID")) tkc->ipmp_desc_id = atoi(att->value);
 			else if (!stricmp(att->name, "encryptionMethod")) {

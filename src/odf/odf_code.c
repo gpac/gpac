@@ -2406,8 +2406,6 @@ GF_Descriptor *gf_odf_new_ipmp()
 	GF_IPMP_Descriptor *newDesc;
 	GF_SAFEALLOC(newDesc, GF_IPMP_Descriptor);
 	if (!newDesc) return NULL;
-
-	newDesc->ipmpx_data = gf_list_new();
 	newDesc->tag = GF_ODF_IPMP_TAG;
 	return (GF_Descriptor *) newDesc;
 }
@@ -2415,15 +2413,6 @@ GF_Err gf_odf_del_ipmp(GF_IPMP_Descriptor *ipmp)
 {
 	if (!ipmp) return GF_BAD_PARAM;
 	if (ipmp->opaque_data) gf_free(ipmp->opaque_data);
-#ifndef GPAC_MINIMAL_ODF
-	/*TODO DELETE IPMPX*/
-	while (gf_list_count(ipmp->ipmpx_data)) {
-		GF_IPMPX_Data *p = (GF_IPMPX_Data *)gf_list_get(ipmp->ipmpx_data, 0);
-		gf_list_rem(ipmp->ipmpx_data, 0);
-		gf_ipmpx_data_del(p);
-	}
-#endif
-	gf_list_del(ipmp->ipmpx_data);
 	gf_free(ipmp);
 	return GF_OK;
 }
@@ -2441,30 +2430,8 @@ GF_Err gf_odf_read_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp, u32 DescSize
 
 	size = DescSize - 3;
 
-	/*IPMPX escape*/
-	if ((ipmp->IPMP_DescriptorID==0xFF) && (ipmp->IPMPS_Type==0xFFFF)) {
-		ipmp->IPMP_DescriptorIDEx = gf_bs_read_int(bs, 16);
-		if (gf_bs_available(bs) < 16) return GF_ODF_INVALID_DESCRIPTOR;
-		gf_bs_read_data(bs,ipmp->IPMP_ToolID, 16);
-		ipmp->control_point = gf_bs_read_int(bs, 8);
-		nbBytes += 19;
-		if (ipmp->control_point) {
-			ipmp->cp_sequence_code = gf_bs_read_int(bs, 8);
-			nbBytes += 1;
-		}
-		while (nbBytes<DescSize) {
-			u64 pos;
-			GF_Err e;
-			GF_IPMPX_Data *p;
-			pos = gf_bs_get_position(bs);
-			e = gf_ipmpx_data_parse(bs, &p);
-			if (e) return e;
-			gf_list_add(ipmp->ipmpx_data, p);
-			nbBytes += gf_bs_get_position(bs) - pos;
-		}
-	}
 	/*URL*/
-	else if (! ipmp->IPMPS_Type) {
+	if (! ipmp->IPMPS_Type) {
 		ipmp->opaque_data = (u8 *)gf_malloc(size + 1);
 		if (! ipmp->opaque_data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ipmp->opaque_data, size);
@@ -2487,23 +2454,10 @@ GF_Err gf_odf_read_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp, u32 DescSize
 
 GF_Err gf_odf_size_ipmp(GF_IPMP_Descriptor *ipmp, u32 *outSize)
 {
-	u32 i, s;
 	if (!ipmp) return GF_BAD_PARAM;
 
 	*outSize = 3;
-	/*IPMPX escape*/
-	if ((ipmp->IPMP_DescriptorID==0xFF) && (ipmp->IPMPS_Type==0xFFFF)) {
-		GF_IPMPX_Data *p;
-		*outSize += 19;
-		if (ipmp->control_point) *outSize += 1;
-		s = 0;
-		i=0;
-		while ((p = (GF_IPMPX_Data *)gf_list_enum(ipmp->ipmpx_data, &i))) {
-			s += gf_ipmpx_data_full_size(p);
-		}
-		(*outSize) += s;
-	}
-	else if (! ipmp->IPMPS_Type) {
+	if (! ipmp->IPMPS_Type) {
 		if (!ipmp->opaque_data) return GF_ODF_INVALID_DESCRIPTOR;
 		*outSize += (u32) strlen(ipmp->opaque_data);
 	} else {
@@ -2515,7 +2469,7 @@ GF_Err gf_odf_size_ipmp(GF_IPMP_Descriptor *ipmp, u32 *outSize)
 GF_Err gf_odf_write_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp)
 {
 	GF_Err e;
-	u32 size, i;
+	u32 size;
 	if (!ipmp) return GF_BAD_PARAM;
 
 	e = gf_odf_size_descriptor((GF_Descriptor *)ipmp, &size);
@@ -2525,19 +2479,7 @@ GF_Err gf_odf_write_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp)
 	gf_bs_write_int(bs, ipmp->IPMP_DescriptorID, 8);
 	gf_bs_write_int(bs, ipmp->IPMPS_Type, 16);
 
-	if ((ipmp->IPMP_DescriptorID==0xFF) && (ipmp->IPMPS_Type==0xFFFF)) {
-		GF_IPMPX_Data *p;
-		gf_bs_write_int(bs, ipmp->IPMP_DescriptorIDEx, 16);
-		gf_bs_write_data(bs,ipmp->IPMP_ToolID, 16);
-		gf_bs_write_int(bs, ipmp->control_point, 8);
-		if (ipmp->control_point) gf_bs_write_int(bs, ipmp->cp_sequence_code, 8);
-
-		i=0;
-		while ((p = (GF_IPMPX_Data *) gf_list_enum(ipmp->ipmpx_data, &i))) {
-			gf_ipmpx_data_write(bs, p);
-		}
-	}
-	else if (!ipmp->IPMPS_Type) {
+	if (!ipmp->IPMPS_Type) {
 		if (!ipmp->opaque_data) return GF_ODF_INVALID_DESCRIPTOR;
 		gf_bs_write_data(bs, ipmp->opaque_data, (u32) strlen(ipmp->opaque_data));
 	} else {
@@ -3236,170 +3178,6 @@ GF_Err gf_odf_write_sup_cid(GF_BitStream *bs, GF_SCIDesc *scid)
 	gf_bs_write_int(bs, scid->languageCode, 24);
 	OD_WriteUTF8String(bs, scid->supplContentIdentifierTitle, GF_TRUE);
 	OD_WriteUTF8String(bs, scid->supplContentIdentifierValue, GF_TRUE);
-	return GF_OK;
-}
-
-
-/*IPMPX stuff*/
-GF_Descriptor *gf_odf_new_ipmp_tool_list()
-{
-	GF_IPMP_ToolList*newDesc = (GF_IPMP_ToolList*) gf_malloc(sizeof(GF_IPMP_ToolList));
-	if (!newDesc) return NULL;
-	newDesc->ipmp_tools = gf_list_new();
-	newDesc->tag = GF_ODF_IPMP_TL_TAG;
-	return (GF_Descriptor *) newDesc;
-}
-
-GF_Err gf_odf_del_ipmp_tool_list(GF_IPMP_ToolList *ipmptl)
-{
-	if (!ipmptl) return GF_BAD_PARAM;
-
-	while (gf_list_count(ipmptl->ipmp_tools)) {
-		GF_Descriptor *t = (GF_Descriptor *) gf_list_get(ipmptl->ipmp_tools, 0);
-		gf_list_rem(ipmptl->ipmp_tools, 0);
-		gf_odf_delete_descriptor(t);
-	}
-	gf_list_del(ipmptl->ipmp_tools);
-	gf_free(ipmptl);
-	return GF_OK;
-}
-
-GF_Err gf_odf_read_ipmp_tool_list(GF_BitStream *bs, GF_IPMP_ToolList *ipmptl, u32 DescSize)
-{
-	GF_Err e;
-	u32 tmpSize;
-	u32 nbBytes = 0;
-	if (! ipmptl) return GF_BAD_PARAM;
-
-	while (nbBytes < DescSize) {
-		GF_Descriptor *tmp = NULL;
-		e = gf_odf_parse_descriptor(bs, &tmp, &tmpSize);
-		if (e) return e;
-		if (!tmp) return GF_ODF_INVALID_DESCRIPTOR;
-		e = gf_list_add(ipmptl->ipmp_tools, tmp);
-		if (e) return e;
-		nbBytes += tmpSize + gf_odf_size_field_size(tmpSize);
-	}
-	if (nbBytes != DescSize) return GF_ODF_INVALID_DESCRIPTOR;
-	return GF_OK;
-}
-
-
-GF_Err gf_odf_size_ipmp_tool_list(GF_IPMP_ToolList *ipmptl, u32 *outSize)
-{
-	if (!ipmptl) return GF_BAD_PARAM;
-	*outSize = 0;
-	return gf_odf_size_descriptor_list(ipmptl->ipmp_tools, outSize);
-}
-
-GF_Err gf_odf_write_ipmp_tool_list(GF_BitStream *bs, GF_IPMP_ToolList *ipmptl)
-{
-	GF_Err e;
-	u32 size;
-	if (!ipmptl) return GF_BAD_PARAM;
-	e = gf_odf_size_descriptor((GF_Descriptor *)ipmptl, &size);
-	if (e) return e;
-	e = gf_odf_write_base_descriptor(bs, ipmptl->tag, size);
-	if (e) return e;
-	return gf_odf_write_descriptor_list(bs, ipmptl->ipmp_tools);
-}
-
-GF_Descriptor *gf_odf_new_ipmp_tool()
-{
-	GF_IPMP_Tool *newDesc = (GF_IPMP_Tool*) gf_malloc(sizeof(GF_IPMP_Tool));
-	if (!newDesc) return NULL;
-	memset(newDesc, 0, sizeof(GF_IPMP_Tool));
-	newDesc->tag = GF_ODF_IPMP_TL_TAG;
-	return (GF_Descriptor *) newDesc;
-}
-
-GF_Err gf_odf_del_ipmp_tool(GF_IPMP_Tool *ipmpt)
-{
-	if (!ipmpt) return GF_BAD_PARAM;
-	if (ipmpt->tool_url) gf_free(ipmpt->tool_url);
-	gf_free(ipmpt);
-	return GF_OK;
-}
-
-GF_Err gf_odf_read_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmpt, u32 DescSize)
-{
-	Bool is_alt, is_param;
-	u32 nbBytes = 0;
-	if (! ipmpt) return GF_BAD_PARAM;
-	gf_bs_read_data(bs,ipmpt->IPMP_ToolID, 16);
-	is_alt = (Bool)gf_bs_read_int(bs, 1);
-	is_param = (Bool)gf_bs_read_int(bs, 1);
-	gf_bs_read_int(bs, 6);
-	nbBytes = 17;
-
-	if (is_alt) {
-		u32 i;
-		ipmpt->num_alternate = gf_bs_read_int(bs, 8);
-		nbBytes += 1;
-		if (ipmpt->num_alternate > MAX_IPMP_ALT_TOOLS)
-			return GF_ODF_INVALID_DESCRIPTOR;
-		for (i=0; i<ipmpt->num_alternate; i++) {
-			if (nbBytes + 16 > DescSize) return GF_ODF_INVALID_DESCRIPTOR;
-			gf_bs_read_data(bs,ipmpt->specificToolID[i], 16);
-			nbBytes += 16;
-		}
-	}
-	if (nbBytes>DescSize) return GF_ODF_INVALID_DESCRIPTOR;
-
-	if (is_param) { }
-
-	if (nbBytes<DescSize) {
-		u32 s;
-		nbBytes += gf_ipmpx_array_size(bs, &s);
-		if (s>0xFFFFFF) return GF_ODF_INVALID_DESCRIPTOR;
-
-		if (s) {
-			ipmpt->tool_url = (char*)gf_malloc(s+1);
-			gf_bs_read_data(bs, (u8 *) ipmpt->tool_url, s);
-			ipmpt->tool_url[s] = 0;
-			nbBytes += s;
-		}
-	}
-
-	if (nbBytes!=DescSize) return GF_NON_COMPLIANT_BITSTREAM;
-	return GF_OK;
-}
-
-
-GF_Err gf_odf_size_ipmp_tool(GF_IPMP_Tool *ipmpt, u32 *outSize)
-{
-	if (!ipmpt) return GF_BAD_PARAM;
-	*outSize = 17;
-	if (ipmpt->num_alternate) *outSize += 1 + 16*ipmpt->num_alternate;
-
-	if (ipmpt->tool_url) {
-		u32 s = (u32) strlen(ipmpt->tool_url);
-		*outSize += gf_odf_size_field_size(s) - 1 + s;
-	}
-	return GF_OK;
-}
-
-GF_Err gf_odf_write_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmpt)
-{
-	GF_Err e;
-	u32 size;
-	if (!ipmpt) return GF_BAD_PARAM;
-	e = gf_odf_size_descriptor((GF_Descriptor *)ipmpt, &size);
-	if (e) return e;
-	e = gf_odf_write_base_descriptor(bs, ipmpt->tag, size);
-	if (e) return e;
-
-	gf_bs_write_data(bs,ipmpt->IPMP_ToolID, 16);
-	gf_bs_write_int(bs, ipmpt->num_alternate ? 1 : 0, 1);
-	gf_bs_write_int(bs, 0, 1);
-	gf_bs_write_int(bs, 0, 6);
-
-	if (ipmpt->num_alternate) {
-		u32 i;
-		gf_bs_write_int(bs, ipmpt->num_alternate, 8);
-		for (i=0; i<ipmpt->num_alternate; i++) gf_bs_write_data(bs,ipmpt->specificToolID[i], 16);
-	}
-	if (ipmpt->tool_url) gf_ipmpx_write_array(bs, ipmpt->tool_url, (u32) strlen(ipmpt->tool_url));
 	return GF_OK;
 }
 

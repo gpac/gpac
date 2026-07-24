@@ -170,10 +170,6 @@ GF_Err gf_odf_dump_desc(GF_Descriptor *desc, FILE *trace, u32 indent, Bool XMTDu
 		return gf_odf_dump_segment((GF_Segment *)desc, trace, indent, XMTDump);
 	case GF_ODF_MEDIATIME_TAG:
 		return gf_odf_dump_mediatime((GF_MediaTime *)desc, trace, indent, XMTDump);
-	case GF_ODF_IPMP_TL_TAG:
-		return gf_odf_dump_ipmp_tool_list((GF_IPMP_ToolList*)desc, trace, indent, XMTDump);
-	case GF_ODF_IPMP_TOOL_TAG:
-		return gf_odf_dump_ipmp_tool((GF_IPMP_Tool*)desc, trace, indent, XMTDump);
 #endif //GPAC_MINIMAL_ODF
 	case GF_ODF_TEXT_CFG_TAG:
 		return gf_odf_dump_txtcfg((GF_TextConfig *)desc, trace, indent, XMTDump);
@@ -323,21 +319,6 @@ static void DumpDouble(FILE *trace, const char *attName, Double val, u32 indent,
 {
 	StartAttribute(trace, attName, indent, XMTDump);
 	gf_fprintf(trace, "%g", val);
-	EndAttribute(trace, indent, XMTDump);
-}
-static void DumpBin128(FILE *trace, const char *name, char *data, u32 indent, Bool XMTDump)
-{
-	u32 i;
-	if (!name ||!data) return;
-	StartAttribute(trace, name, indent, XMTDump);
-	gf_fprintf(trace, "0x");
-	i=0;
-	while (!data[i] && (i<16)) i++;
-	if (i==16) {
-		gf_fprintf(trace, "00");
-	} else {
-		for (; i<16; i++) gf_fprintf(trace, "%02X", (unsigned char) data[i]);
-	}
 	EndAttribute(trace, indent, XMTDump);
 }
 
@@ -1215,35 +1196,13 @@ GF_Err gf_odf_dump_ipi_ptr(GF_IPIPtr *ipid, FILE *trace, u32 indent, Bool XMTDum
 
 GF_Err gf_odf_dump_ipmp(GF_IPMP_Descriptor *ipmp, FILE *trace, u32 indent, Bool XMTDump)
 {
-	u32 i, count;
 	StartDescDump(trace, "IPMP_Descriptor", indent, XMTDump);
 	indent++;
 
 	DumpIntHex(trace, "IPMP_DescriptorID", ipmp->IPMP_DescriptorID, indent, XMTDump, GF_TRUE);
 	DumpIntHex(trace, "IPMPS_Type", ipmp->IPMPS_Type, indent, XMTDump, GF_FALSE);
 
-
-	if ((ipmp->IPMP_DescriptorID==0xFF) && (ipmp->IPMPS_Type==0xFFFF)) {
-		DumpIntHex(trace, "IPMP_DescriptorIDEx", ipmp->IPMP_DescriptorIDEx, indent, XMTDump, GF_FALSE);
-		/*how the heck do we represent toolID??*/
-		DumpBin128(trace, "IPMP_ToolID", (char*)ipmp->IPMP_ToolID, indent, XMTDump);
-		DumpInt(trace, "controlPointCode", ipmp->control_point, indent, XMTDump);
-		if (ipmp->control_point) DumpInt(trace, "sequenceCode", ipmp->cp_sequence_code, indent, XMTDump);
-		EndAttributes(trace, indent, XMTDump);
-#ifndef GPAC_MINIMAL_ODF
-		/*parse IPMPX data*/
-		StartElement(trace, "IPMPX_Data", indent, XMTDump, GF_TRUE);
-		indent++;
-		count = gf_list_count(ipmp->ipmpx_data);
-		for (i=0; i<count; i++) {
-			GF_IPMPX_Data *p = (GF_IPMPX_Data *)gf_list_get(ipmp->ipmpx_data, i);
-			gf_ipmpx_dump_data(p, trace, indent, XMTDump);
-		}
-		indent--;
-		EndElement(trace, "IPMPX_Data", indent, XMTDump, GF_TRUE);
-#endif
-	}
-	else if (!ipmp->IPMPS_Type) {
+	if (!ipmp->IPMPS_Type) {
 		DumpString(trace, "URLString", ipmp->opaque_data, indent, XMTDump);
 	} else {
 		DumpData(trace, "IPMP_data", ipmp->opaque_data, ipmp->opaque_data_size, indent, XMTDump);
@@ -1752,39 +1711,6 @@ GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump
 	EndElement(trace, "StreamSource" , indent, GF_TRUE, GF_TRUE);
 	return GF_OK;
 }
-
-#ifndef GPAC_MINIMAL_ODF
-GF_Err gf_odf_dump_ipmp_tool_list(GF_IPMP_ToolList *tl, FILE *trace, u32 indent, Bool XMTDump)
-{
-	StartDescDump(trace, "IPMP_ToolListDescriptor", indent, XMTDump);
-	EndAttributes(trace, indent, XMTDump);
-	indent++;
-	DumpDescList(tl->ipmp_tools, trace, indent, "ipmpTool", XMTDump, GF_FALSE);
-	indent--;
-	EndDescDump(trace, "IPMP_ToolListDescriptor", indent, XMTDump);
-	return GF_OK;
-}
-
-GF_Err gf_odf_dump_ipmp_tool(GF_IPMP_Tool*t, FILE *trace, u32 indent, Bool XMTDump)
-{
-	StartDescDump(trace, "IPMP_Tool", indent, XMTDump);
-	indent++;
-	DumpBin128(trace, "IPMP_ToolID", (char*)t->IPMP_ToolID, indent, XMTDump);
-	if (t->tool_url) DumpString(trace, "ToolURL", t->tool_url, indent, XMTDump);
-	if (t->toolParamDesc) {
-		StartElement(trace, "toolParamDesc" , indent, XMTDump, GF_FALSE);
-#ifndef GPAC_MINIMAL_ODF
-		gf_ipmpx_dump_data((GF_IPMPX_Data *)t->toolParamDesc, trace, indent + (XMTDump ? 1 : 0), XMTDump);
-#endif
-		EndElement(trace, "toolParamDesc" , indent, XMTDump, GF_FALSE);
-	}
-	EndAttributes(trace, indent, XMTDump);
-	indent--;
-	EndDescDump(trace, "IPMP_Tool", indent, XMTDump);
-	return GF_OK;
-}
-#endif //GPAC_MINIMAL_ODF
-
 
 GF_Err gf_odf_dump_od_update(GF_ODUpdate *com, FILE *trace, u32 indent, Bool XMTDump)
 {

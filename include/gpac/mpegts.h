@@ -1220,15 +1220,6 @@ struct tag_m2ts_demux
 	/*! channel config path*/
 	const char *dvb_channels_conf_path;
 
-	/*! AIT*/
-	GF_List* ChannelAppList;
-
-	/*! carousel enabled*/
-	Bool process_dmscc;
-	/*! carousel root dir*/
-	char* dsmcc_root_dir;
-	/*! DSM-CC objects*/
-	GF_List* dsmcc_controler;
 	/*! triggers all table reset*/
 	Bool table_reset;
 
@@ -1275,11 +1266,6 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode);
 \return error if any
 */
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *demux, const u8 *data, u32 data_size);
-
-/*! initializes DSM-CC object carousel reception
-\param demux the target MPEG-2 TS demultiplexer
-*/
-void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *demux);
 
 /*! gets SDT info for a given program
 \param demux the target MPEG-2 TS demultiplexer

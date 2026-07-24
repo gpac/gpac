@@ -327,15 +327,12 @@ LOCAL_SRC_FILES := \
 	../../../../src/laser/lsr_dec.c \
 	../../../../src/laser/lsr_enc.c \
 	../../../../src/laser/lsr_tables.c \
-	../../../../src/media_tools/ait.c \
 	../../../../src/media_tools/route_dmx.c \
 	../../../../src/media_tools/avilib.c \
 	../../../../src/media_tools/av_parsers.c \
 	../../../../src/media_tools/crypt_tools.c \
 	../../../../src/media_tools/dash_client.c \
 	../../../../src/media_tools/dash_segmenter.c \
-	../../../../src/media_tools/dsmcc.c \
-	../../../../src/media_tools/dvb_mpe.c \
 	../../../../src/media_tools/gpac_ogg.c \
 	../../../../src/media_tools/id3.c \
 	../../../../src/media_tools/img.c \
@@ -354,9 +351,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/webvtt.c \
 	../../../../src/odf/desc_private.c \
 	../../../../src/odf/descriptors.c \
-	../../../../src/odf/ipmpx_code.c \
-	../../../../src/odf/ipmpx_dump.c \
-	../../../../src/odf/ipmpx_parse.c \
 	../../../../src/odf/oci_codec.c \
 	../../../../src/odf/odf_code.c \
 	../../../../src/odf/odf_codec.c \

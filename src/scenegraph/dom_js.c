@@ -42,15 +42,11 @@
 
 #ifdef GPAC_HAS_QJS
 
-#include <gpac/html5_mse.h>
-
 #ifdef GPAC_CONFIG_ANDROID
 #ifndef XP_UNIX
 #define XP_UNIX
 #endif /* XP_UNIX */
 #endif
-
-#include <gpac/html5_media.h>
 
 /************************************************************
  *
@@ -380,10 +376,6 @@ static JSValue dom_base_node_construct(JSContext *c, JSClassID class_id, GF_Node
 
 	if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio)
 	{
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-		html_media_element_js_init(c, new_obj, n);
-#endif
-
 	}
 	if (!n->sgprivate->interact) {
 		GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
@@ -614,21 +606,6 @@ static void sg_js_get_event_target(JSContext *c, JSValue obj, GF_EventType evtTy
 	*target = NULL;
 	*sg = NULL;
 	*n = NULL;
-
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-	if (gf_dom_event_get_category(evtType) == GF_DOM_EVENT_MEDIA) {
-		void gf_html_media_get_event_target(JSContext *c, JSValue obj, GF_DOMEventTarget **target, GF_SceneGraph **sg);
-		gf_html_media_get_event_target(c, obj, target, sg);
-		if (*target && *sg) return;
-	}
-
-	if (gf_dom_event_get_category(evtType) == GF_DOM_EVENT_MEDIASOURCE) {
-		void gf_mse_get_event_target(JSContext *c, JSValue obj, GF_DOMEventTarget **target, GF_SceneGraph **sg);
-		gf_mse_get_event_target(c, obj, target, sg);
-		if (*target && *sg) return;
-	}
-#endif
-
 
 	if (JS_GetOpaque(obj, domDocumentClass.class_id) || is_svg_document_class(c, obj)) {
 		/*document interface*/
@@ -2345,14 +2322,6 @@ static JSValue event_getProperty(JSContext *c, JSValueConst obj, int magic)
 		case GF_DOM_EVENT_TARGET_DOCUMENT:
 			return dom_document_construct(c, (GF_SceneGraph *) evt->target);
 
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-		case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
-			return OBJECT_TO_JSValue(((GF_HTML_MediaSource *)evt->target)->_this);
-		case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER:
-			return OBJECT_TO_JSValue(((GF_HTML_SourceBuffer *)evt->target)->_this);
-		case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST:
-			return OBJECT_TO_JSValue(((GF_HTML_SourceBufferList *)evt->target)->_this);
-#endif
 		default:
 			break;
 		}
@@ -2364,15 +2333,6 @@ static JSValue event_getProperty(JSContext *c, JSValueConst obj, int magic)
 			return dom_element_construct(c, (GF_Node*) evt->currentTarget->ptr);
 		case GF_DOM_EVENT_TARGET_DOCUMENT:
 			return dom_document_construct(c, (GF_SceneGraph *) evt->currentTarget->ptr);
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-		case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
-			return OBJECT_TO_JSValue(((GF_HTML_MediaSource *)evt->target)->_this);
-		case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER:
-			return OBJECT_TO_JSValue(((GF_HTML_SourceBuffer *)evt->target)->_this);
-			break;
-		case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST:
-			return OBJECT_TO_JSValue(((GF_HTML_SourceBufferList *)evt->target)->_this);
-#endif
 		default:
 			break;
 		}
@@ -2763,10 +2723,6 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c)
 	JS_FreeValue(c, global);
 }
 
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-void html_media_element_js_finalize(JSContext *c, GF_Node *n);
-#endif
-
 GF_EXPORT
 void gf_sg_js_dom_pre_destroy(JSRuntime *rt, GF_SceneGraph *sg, GF_Node *n)
 {
@@ -2791,9 +2747,6 @@ void gf_sg_js_dom_pre_destroy(JSRuntime *rt, GF_SceneGraph *sg, GF_Node *n)
 		js_node = dom_get_node(js_bind->obj);
 		if (js_node) {
 			if (js_node->sgprivate->tag == TAG_SVG_video || js_node->sgprivate->tag == TAG_SVG_audio) {
-#ifdef GPAC_ENABLE_HTML5_MEDIA
-				html_media_element_js_finalize(c, js_node);
-#endif
 			}
 			JS_SetOpaque(js_bind->obj, NULL);
 			JS_FreeValueRT(rt, js_node->sgprivate->interact->js_binding->obj);

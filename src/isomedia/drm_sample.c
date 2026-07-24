@@ -1951,21 +1951,6 @@ GF_Err gf_isom_get_adobe_protection_info(GF_ISOFile *the_file, u32 trackNumber, 
 }
 
 
-#if 0 //unused
-/*! removes the IPMPX tools from files
-\param isom_file the target ISO file
-*/
-void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *the_file)
-{
-	/*remove IPMPToolList if any*/
-	if (the_file && the_file->moov && the_file->moov->iods && (the_file ->moov->iods->descriptor->tag == GF_ODF_ISOM_IOD_TAG) ) {
-		GF_IsomInitialObjectDescriptor *iod = (GF_IsomInitialObjectDescriptor *)the_file ->moov->iods->descriptor;
-		if (iod->IPMPToolList) gf_odf_desc_del((GF_Descriptor*) iod->IPMPToolList);
-		iod->IPMPToolList = NULL;
-	}
-}
-#endif
-
 GF_EXPORT
 Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size)
 {

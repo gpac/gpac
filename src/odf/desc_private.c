@@ -136,12 +136,6 @@ GF_Descriptor *gf_odf_create_descriptor(u8 tag)
 		return gf_odf_new_pl_ext();
 	case GF_ODF_PL_IDX_TAG:
 		return gf_odf_new_pl_idx();
-
-	case GF_ODF_IPMP_TL_TAG:
-		return gf_odf_new_ipmp_tool_list();
-	case GF_ODF_IPMP_TOOL_TAG:
-		return gf_odf_new_ipmp_tool();
-
 	case 0:
 	case 0xFF:
 		return NULL;
@@ -253,12 +247,6 @@ GF_Err gf_odf_delete_descriptor(GF_Descriptor *desc)
 		return gf_odf_del_smpte_camera((GF_SMPTECamera *)desc);
 	case GF_ODF_SCI_TAG:
 		return gf_odf_del_sup_cid((GF_SCIDesc *)desc);
-
-	case GF_ODF_IPMP_TL_TAG:
-		return gf_odf_del_ipmp_tool_list((GF_IPMP_ToolList *)desc);
-	case GF_ODF_IPMP_TOOL_TAG:
-		return gf_odf_del_ipmp_tool((GF_IPMP_Tool *)desc);
-
 #endif /*GPAC_MINIMAL_ODF*/
 
 	default:
@@ -353,12 +341,6 @@ static GF_Err gf_odf_read_descriptor_internal(GF_BitStream *bs, GF_Descriptor *d
 		return gf_odf_read_smpte_camera(bs, (GF_SMPTECamera *)desc, DescSize);
 	case GF_ODF_SCI_TAG:
 		return gf_odf_read_sup_cid(bs, (GF_SCIDesc *)desc, DescSize);
-
-	case GF_ODF_IPMP_TL_TAG:
-		return gf_odf_read_ipmp_tool_list(bs, (GF_IPMP_ToolList *)desc, DescSize);
-	case GF_ODF_IPMP_TOOL_TAG:
-		return gf_odf_read_ipmp_tool(bs, (GF_IPMP_Tool *)desc, DescSize);
-
 #endif /*GPAC_MINIMAL_ODF*/
 	//default:
 	case GF_ODF_DSI_TAG:
@@ -462,13 +444,6 @@ GF_Err gf_odf_size_descriptor(GF_Descriptor *desc, u32 *outSize)
 		return gf_odf_size_smpte_camera((GF_SMPTECamera *)desc, outSize);
 	case GF_ODF_SCI_TAG:
 		return gf_odf_size_sup_cid((GF_SCIDesc *)desc, outSize);
-
-
-	case GF_ODF_IPMP_TL_TAG:
-		return gf_odf_size_ipmp_tool_list((GF_IPMP_ToolList *)desc, outSize);
-	case GF_ODF_IPMP_TOOL_TAG:
-		return gf_odf_size_ipmp_tool((GF_IPMP_Tool *)desc, outSize);
-
 #endif /*GPAC_MINIMAL_ODF*/
 	default:
 		/*don't write out l descriptors*/
@@ -564,11 +539,6 @@ GF_Err gf_odf_write_descriptor(GF_BitStream *bs, GF_Descriptor *desc)
 		return gf_odf_write_smpte_camera(bs, (GF_SMPTECamera *)desc);
 	case GF_ODF_SCI_TAG:
 		return gf_odf_write_sup_cid(bs, (GF_SCIDesc *)desc);
-
-	case GF_ODF_IPMP_TL_TAG:
-		return gf_odf_write_ipmp_tool_list(bs, (GF_IPMP_ToolList *)desc);
-	case GF_ODF_IPMP_TOOL_TAG:
-		return gf_odf_write_ipmp_tool(bs, (GF_IPMP_Tool *)desc);
 #endif /*GPAC_MINIMAL_ODF*/
 	default:
 		/*don't write out internal descriptors*/

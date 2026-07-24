@@ -56,10 +56,6 @@ s32 gf_odf_size_field_size(u32 size_desc);
 
 GF_Err DumpDescList(GF_List *list, FILE *trace, u32 indent, const char *ListName, Bool XMTDump, Bool no_skip_empty);
 
-/*IPMPX tools*/
-u32 gf_ipmpx_array_size(GF_BitStream *bs, u32 *array_size);
-void gf_ipmpx_write_array(GF_BitStream *bs, u8 *data, u32 data_len);
-
 /*QoS qualifiers base functions*/
 GF_Err gf_odf_parse_qos_qual(GF_BitStream *bs, GF_QoS_Default **qos_qual, u32 *qos_size);
 void gf_odf_delete_qos_qual(GF_QoS_Default *qos);
@@ -98,8 +94,6 @@ GF_Descriptor *gf_odf_new_smpte_camera();
 GF_Descriptor *gf_odf_new_sup_cid();
 GF_Descriptor *gf_odf_new_segment();
 GF_Descriptor *gf_odf_new_mediatime();
-GF_Descriptor *gf_odf_new_ipmp_tool_list();
-GF_Descriptor *gf_odf_new_ipmp_tool();
 GF_Descriptor *gf_odf_new_muxinfo();
 GF_Descriptor *gf_odf_New_ElemMask();
 GF_Descriptor *gf_odf_new_bifs_cfg();
@@ -140,8 +134,6 @@ GF_Err gf_odf_del_smpte_camera(GF_SMPTECamera *cpd);
 GF_Err gf_odf_del_sup_cid(GF_SCIDesc *scid);
 GF_Err gf_odf_del_segment(GF_Segment *sd);
 GF_Err gf_odf_del_mediatime(GF_MediaTime *mt);
-GF_Err gf_odf_del_ipmp_tool_list(GF_IPMP_ToolList *ipmptl);
-GF_Err gf_odf_del_ipmp_tool(GF_IPMP_Tool *ipmp);
 GF_Err gf_odf_del_muxinfo(GF_MuxInfo *mi);
 GF_Err gf_odf_del_bifs_cfg(GF_BIFSConfig *desc);
 GF_Err gf_odf_del_ui_cfg(GF_UIConfig *desc);
@@ -181,8 +173,6 @@ GF_Err gf_odf_read_smpte_camera(GF_BitStream *bs, GF_SMPTECamera *cpd, u32 DescS
 GF_Err gf_odf_read_sup_cid(GF_BitStream *bs, GF_SCIDesc *scid, u32 DescSize);
 GF_Err gf_odf_read_segment(GF_BitStream *bs, GF_Segment *sd, u32 DescSize);
 GF_Err gf_odf_read_mediatime(GF_BitStream *bs, GF_MediaTime *mt, u32 DescSize);
-GF_Err gf_odf_read_ipmp_tool_list(GF_BitStream *bs, GF_IPMP_ToolList *ipmptl, u32 DescSize);
-GF_Err gf_odf_read_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmp, u32 DescSize);
 GF_Err gf_odf_read_auxvid(GF_BitStream *bs, GF_AuxVideoDescriptor *ld, u32 DescSize);
 
 GF_Err gf_odf_size_iod(GF_InitialObjectDescriptor *iod, u32 *outSize);
@@ -218,8 +208,6 @@ GF_Err gf_odf_size_sup_cid(GF_SCIDesc *scid, u32 *outSize);
 GF_Err gf_odf_size_segment(GF_Segment *sd, u32 *outSize);
 GF_Err gf_odf_size_mediatime(GF_MediaTime *mt, u32 *outSize);
 GF_Err gf_odf_size_muxinfo(GF_MuxInfo *mi, u32 *outSize);
-GF_Err gf_odf_size_ipmp_tool_list(GF_IPMP_ToolList *ipmptl, u32 *outSize);
-GF_Err gf_odf_size_ipmp_tool(GF_IPMP_Tool *ipmp, u32 *outSize);
 GF_Err gf_odf_size_auxvid(GF_AuxVideoDescriptor *ld, u32 *outSize);
 
 GF_Err gf_odf_write_iod(GF_BitStream *bs, GF_InitialObjectDescriptor *iod);
@@ -255,8 +243,6 @@ GF_Err gf_odf_write_sup_cid(GF_BitStream *bs, GF_SCIDesc *scid);
 GF_Err gf_odf_write_segment(GF_BitStream *bs, GF_Segment *sd);
 GF_Err gf_odf_write_mediatime(GF_BitStream *bs, GF_MediaTime *mt);
 GF_Err gf_odf_write_muxinfo(GF_BitStream *bs, GF_MuxInfo *mi);
-GF_Err gf_odf_write_ipmp_tool_list(GF_BitStream *bs, GF_IPMP_ToolList *ipmptl);
-GF_Err gf_odf_write_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmp);
 GF_Err gf_odf_write_auxvid(GF_BitStream *bs, GF_AuxVideoDescriptor *ld);
 
 GF_Descriptor *gf_odf_new_text_cfg();
@@ -351,8 +337,6 @@ GF_Err gf_odf_dump_bifs_cfg(GF_BIFSConfig *dsi, FILE *trace, u32 indent, Bool XM
 GF_Err gf_odf_dump_laser_cfg(GF_LASERConfig *dsi, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_ui_cfg(GF_UIConfig *dsi, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMTDump);
-GF_Err gf_odf_dump_ipmp_tool_list(GF_IPMP_ToolList *tl, FILE *trace, u32 indent, Bool XMTDump);
-GF_Err gf_odf_dump_ipmp_tool(GF_IPMP_Tool*t, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_aux_vid(GF_AuxVideoDescriptor *ld, FILE *trace, u32 indent, Bool XMTDump);
 
 

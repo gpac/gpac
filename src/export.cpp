@@ -2191,16 +2191,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_stream_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_restamp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_sdt_info) )
-
-
-/* carousel.h */
-#ifdef GPAC_ENABLE_DSMCC
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_channel_application_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_dsmcc) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_init_dsmcc_overlord) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_dmscc_overlord) )
-#endif
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_dmscc_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_probe_file) )
 
 
@@ -2320,15 +2310,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_next_update_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_hls_clock ) )
 
-#endif
-
-/* dvb_mpe.h */
-#ifdef GPAC_ENABLE_MPE
-#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_init) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_shutdown) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_print_info) )
 #endif
 
 #ifndef GPAC_DISABLE_DASHIN

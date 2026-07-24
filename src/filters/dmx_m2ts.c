@@ -81,7 +81,7 @@ typedef struct
 {
 	//opts
 	const char *temi_url;
-	Bool dsmcc, seeksrc, sigfrag, dvbtxt, mappcr, sigfo;
+	Bool seeksrc, sigfrag, dvbtxt, mappcr, sigfo;
 	UnknownPesMode upes;
 	Double index;
 	u32 analyze;
@@ -1785,9 +1785,6 @@ static GF_Err m2tsdmx_initialize(GF_Filter *filter)
 	ctx->ts->user = filter;
 
 	ctx->filter = filter;
-	if (ctx->dsmcc) {
-		gf_m2ts_demux_dmscc_init(ctx->ts);
-	}
 	if (ctx->analyze)
 		ctx->mappcr = GF_FALSE;
 
@@ -1921,7 +1918,6 @@ static const GF_FilterCapability M2TSDmxCaps[] =
 static const GF_FilterArgs M2TSDmxArgs[] =
 {
 	{ OFFS(temi_url), "force TEMI URL", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dsmcc), "enable DSMCC receiver", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seeksrc), "seek local source file back to origin once all programs are setup", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sigfrag), "signal segment boundaries on output packets for DASH or HLS sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dvbtxt), "export DVB teletext streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},

@@ -603,13 +603,6 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		GF_IPMP_Descriptor *ipmp = (GF_IPMP_Descriptor*)desc;
 		if (!stricmp(fieldName, "IPMP_DescriptorID")) GET_U8(ipmp->IPMP_DescriptorID)
 		else if (!stricmp(fieldName, "IPMPS_Type")) GET_U16(ipmp->IPMPS_Type)
-		else if (!stricmp(fieldName, "IPMP_DescriptorIDEx")) GET_U16(ipmp->IPMP_DescriptorIDEx)
-		else if (!stricmp(fieldName, "IPMP_ToolID")) {
-			ret = 1;
-			gf_bin128_parse(val, ipmp->IPMP_ToolID);
-		}
-		else if (!stricmp(fieldName, "controlPointCode")) GET_U8(ipmp->control_point)
-		else if (!stricmp(fieldName, "sequenceCode")) GET_U8(ipmp->cp_sequence_code)
 	}
 	break;
 	case GF_ODF_IPMP_PTR_TAG:
@@ -650,15 +643,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	}
 	break;
 	case GF_ODF_IPMP_TOOL_TAG:
-	{
-		GF_IPMP_Tool *it = (GF_IPMP_Tool*)desc;
-		if (!stricmp(fieldName, "IPMP_ToolID")) {
-			ret = 1;
-			gf_bin128_parse(val, it->IPMP_ToolID);
-		}
-		else if (!stricmp(fieldName, "ToolURL"))  GET_STRING(it->tool_url)
-		}
-	break;
+		return GF_NOT_SUPPORTED;
 	}
 
 	return ret ? GF_OK : GF_BAD_PARAM;

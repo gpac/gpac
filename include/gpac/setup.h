@@ -758,7 +758,7 @@ typedef struct {
 # endif
 #endif
 
-//we currently disable all extra IPMP/IPMPX/OCI/extra MPEG-4 descriptors parsing
+//we currently disable all extra IPMP/OCI/extra MPEG-4 descriptors parsing
 #ifndef GPAC_MINIMAL_ODF
 #define GPAC_MINIMAL_ODF
 #endif
