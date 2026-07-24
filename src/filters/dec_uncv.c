@@ -169,17 +169,17 @@ static void uncv_del(UNCVConfig *cfg)
 	u32 i;
 	if (cfg->comp_defs) {
 		for (i=0; i<cfg->nb_comp_defs; i++) {
-			if (cfg->comp_defs[i].uri) gf_free(cfg->comp_defs[i].uri);
+			gf_free(cfg->comp_defs[i].uri);
 		}
 		gf_free(cfg->comp_defs);
 	}
-	if (cfg->comps) gf_free(cfg->comps);
+	gf_free(cfg->comps);
 	if (cfg->palette) {
-		if (cfg->palette->comps) gf_free(cfg->palette->comps);
-		if (cfg->palette->values) gf_free(cfg->palette->values);
+		gf_free(cfg->palette->comps);
+		gf_free(cfg->palette->values);
 		gf_free(cfg->palette);
 	}
-	if (cfg->fa_map) gf_free(cfg->fa_map);
+	gf_free(cfg->fa_map);
 	gf_free(cfg);
 }
 
@@ -798,8 +798,8 @@ static void uncv_reset(UNCVDecCtx *ctx)
 			BSRead *bsr = &ctx->bsrs[i];
 			if (bsr->bs) gf_bs_del(bsr->bs);
 			if (bsr->le_bs) gf_bs_del(bsr->le_bs);
-			if (bsr->le_buf) gf_free(bsr->le_buf);
-			if (bsr->block_comps) gf_free(bsr->block_comps);
+			gf_free(bsr->le_buf);
+			gf_free(bsr->block_comps);
 		}
 		gf_free(ctx->bsrs);
 		ctx->bsrs = NULL;
@@ -1115,6 +1115,7 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 
 		if (config->block_size && config->block_little_endian) {
 			bsr->le_buf = (u8 *)gf_malloc(config->block_size);
+			if (!bsr->le_buf) return GF_OUT_OF_MEM;
 			bsr->le_bs = gf_bs_new((u8*)&ctx, 1, GF_BITSTREAM_READ);
 		}
 

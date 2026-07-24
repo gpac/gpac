@@ -325,7 +325,7 @@ ROUTELCT *route_create_lct_channel(GF_Filter *filter, GF_ROUTEOutCtx *ctx, const
 	*e = GF_OK;
 	return rlct;
 fail:
-	if (rlct->ip) gf_free(rlct->ip);
+	gf_free(rlct->ip);
 	gf_free(rlct);
 	return NULL;
 }
@@ -385,7 +385,7 @@ ROUTEService *routeout_create_service(GF_Filter *filter, GF_ROUTEOutCtx *ctx, u3
 
 fail:
 	*e = GF_OUT_OF_MEM;
-	if (rlct->ip) gf_free(rlct->ip);
+	gf_free(rlct->ip);
 	gf_free(rlct);
 	if (rserv->pids) gf_list_del(rserv->pids);
 	if (rserv->rlcts) gf_list_del(rserv->rlcts);
@@ -406,12 +406,12 @@ void routeout_remove_pid(ROUTEPid *rpid, Bool is_rem)
 		gf_free(rpid->rlct);
 	}
 
-	if (rpid->init_seg_data) gf_free(rpid->init_seg_data);
-	if (rpid->init_seg_name) gf_free(rpid->init_seg_name);
-	if (rpid->hld_child_pl) gf_free(rpid->hld_child_pl);
-	if (rpid->hld_child_pl_name) gf_free(rpid->hld_child_pl_name);
-	if (rpid->base_template) gf_free(rpid->base_template);
-	if (rpid->seg_name) gf_free(rpid->seg_name);
+	gf_free(rpid->init_seg_data);
+	gf_free(rpid->init_seg_name);
+	gf_free(rpid->hld_child_pl);
+	gf_free(rpid->hld_child_pl_name);
+	gf_free(rpid->base_template);
+	gf_free(rpid->seg_name);
 
 	if (rpid->current_pck)
 		gf_filter_pck_unref(rpid->current_pck);
@@ -434,22 +434,22 @@ void routeout_delete_service(ROUTEService *serv)
 	}
 	gf_list_del(serv->rlcts);
 
-	if (serv->manifest_mime) gf_free(serv->manifest_mime);
-	if (serv->manifest_name) gf_free(serv->manifest_name);
-	if (serv->manifest_server) gf_free(serv->manifest_server);
-	if (serv->manifest_url) gf_free(serv->manifest_url);
-	if (serv->manifest) gf_free(serv->manifest);
+	gf_free(serv->manifest_mime);
+	gf_free(serv->manifest_name);
+	gf_free(serv->manifest_server);
+	gf_free(serv->manifest_url);
+	gf_free(serv->manifest);
 
-	if (serv->manifest_alt_mime) gf_free(serv->manifest_alt_mime);
-	if (serv->manifest_alt_name) gf_free(serv->manifest_alt_name);
-	if (serv->manifest_alt_server) gf_free(serv->manifest_alt_server);
-	if (serv->manifest_alt_url) gf_free(serv->manifest_alt_url);
-	if (serv->manifest_alt) gf_free(serv->manifest_alt);
-	if (serv->service_base_uri) gf_free(serv->service_base_uri);
+	gf_free(serv->manifest_alt_mime);
+	gf_free(serv->manifest_alt_name);
+	gf_free(serv->manifest_alt_server);
+	gf_free(serv->manifest_alt_url);
+	gf_free(serv->manifest_alt);
+	gf_free(serv->service_base_uri);
 
-	if (serv->stsid_bundle) gf_free(serv->stsid_bundle);
-	if (serv->service_name) gf_free(serv->service_name);
-	if (serv->log_name) gf_free(serv->log_name);
+	gf_free(serv->stsid_bundle);
+	gf_free(serv->service_name);
+	gf_free(serv->log_name);
 	gf_free(serv);
 }
 
@@ -492,7 +492,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				}
 
 				if (!rpid->base_template || strcmp(rpid->base_template, p->value.string)) {
-					if (rpid->base_template) gf_free(rpid->base_template);
+					gf_free(rpid->base_template);
 					rpid->base_template = gf_strdup(p->value.string);
 					rpid->route->needs_reconfig = GF_TRUE;
 					rpid->use_basename = (strchr(rpid->base_template, '/')==NULL) ? GF_TRUE : GF_FALSE;
@@ -791,7 +791,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 		gf_net_get_adapter_ip(ctx->ifce, &v4, &v6);
 		if (v4) {
 			ctx->ifce_ip = v4;
-			if (v6) gf_free(v6);
+			gf_free(v6);
 		} else {
 			ctx->ifce_ip = v6;
 		}
@@ -829,7 +829,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 		if (sep) sep[0] = 0;
 		root = sep ? strchr(sep+1, '/') : NULL;
 		if (root) root[0] = 0;
-		if (ctx->ip) gf_free(ctx->ip);
+		gf_free(ctx->ip);
 		ctx->ip = gf_strdup(ctx->dst + proto_offset);
 		if (sep) {
 			ctx->first_port = atoi(sep+1);
@@ -927,12 +927,12 @@ static void routeout_finalize(GF_Filter *filter)
 	if (ctx->sock_dvb_mabr)
 		gf_sk_del(ctx->sock_dvb_mabr);
 
-	if (ctx->lct_buffer) gf_free(ctx->lct_buffer);
-	if (ctx->lls_slt_table) gf_free(ctx->lls_slt_table);
-	if (ctx->lls_time_table) gf_free(ctx->lls_time_table);
-	if (ctx->dvb_mabr_config) gf_free(ctx->dvb_mabr_config);
-	if (ctx->dvb_mabr_fdt) gf_free(ctx->dvb_mabr_fdt);
-	if (ctx->ifce_ip) gf_free(ctx->ifce_ip);
+	gf_free(ctx->lct_buffer);
+	gf_free(ctx->lls_slt_table);
+	gf_free(ctx->lls_time_table);
+	gf_free(ctx->dvb_mabr_config);
+	gf_free(ctx->dvb_mabr_fdt);
+	gf_free(ctx->ifce_ip);
 	if (ctx->lct_bs) gf_bs_del(ctx->lct_bs);
 }
 
@@ -994,7 +994,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					crc = gf_crc_32(data, len);
 					//whenever init seg changes, bump stsid version
 					if (crc != rpid->init_seg_crc) {
-						if (rpid->init_seg_data) gf_free(rpid->init_seg_data);
+						gf_free(rpid->init_seg_data);
 						rpid->init_seg_data = (u8 *)gf_malloc(len);
 						if (rpid->init_seg_data) {
 							memcpy(rpid->init_seg_data, data, len);
@@ -1009,7 +1009,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 						p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 						if (!p) p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_INIT_NAME);
-						if (rpid->init_seg_name) gf_free(rpid->init_seg_name);
+						gf_free(rpid->init_seg_name);
 						rpid->init_seg_name = p ? routeout_strip_base(rpid->route, p->value.string) : NULL;
 					}
 					gf_filter_pid_drop_packet(rpid->pid);
@@ -1083,7 +1083,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 				data = gf_filter_pck_get_data(pck, &len);
 				crc = gf_crc_32(data, len);
 				if (crc != media_pid->hld_child_pl_crc) {
-					if (media_pid->hld_child_pl) gf_free(media_pid->hld_child_pl);
+					gf_free(media_pid->hld_child_pl);
 					media_pid->hld_child_pl = (char *)gf_malloc(len+1);
 					if (media_pid->hld_child_pl) {
 						memcpy(media_pid->hld_child_pl, data, len);
@@ -1101,7 +1101,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 						serv->needs_reconfig = GF_TRUE;
 
 					if (!media_pid->hld_child_pl_name || strcmp(media_pid->hld_child_pl_name, file_name)) {
-						if (media_pid->hld_child_pl_name) gf_free(media_pid->init_seg_name);
+						gf_free(media_pid->hld_child_pl_name);
 						media_pid->hld_child_pl_name = routeout_strip_base(rpid->route, (char *)file_name);
 						serv->needs_reconfig = GF_TRUE;
 					}
@@ -1136,7 +1136,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 				if (man_crc != *manifest_crc) {
 					*manifest_crc = man_crc;
-					if (*manifest) gf_free(*manifest);
+					gf_free(*manifest);
 					(*manifest) = (char *)gf_malloc(man_size+1);
 					if (*manifest) {
 						memcpy(*manifest, man_data, man_size);
@@ -1155,8 +1155,8 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					//we need a new TOI since manifest changed
 					*manifest_toi = 0;
 
-					if (*manifest_server) gf_free(*manifest_server);
-					if (*manifest_url) gf_free(*manifest_url);
+					gf_free(*manifest_server);
+					gf_free(*manifest_url);
 					*manifest_server = *manifest_url = NULL;
 
 					p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_URL);
@@ -1185,11 +1185,11 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 					p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MIME);
 					if (p) {
-						if (*manifest_mime) gf_free(*manifest_mime);
+						gf_free(*manifest_mime);
 						*manifest_mime = gf_strdup(p->value.string);
 					}
 
-					if (serv->service_base_uri) gf_free(serv->service_base_uri);
+					gf_free(serv->service_base_uri);
 					serv->service_base_uri = gf_strdup("tag:mabr.gpac.io.2025.services.");
 					char szTmp[100];
 					char *name = *manifest_url ? *manifest_url : *manifest_name;
@@ -1231,7 +1231,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 	}
 	if (serv->use_flute) {
 		if (manifest_updated) {
-			if (ctx->dvb_mabr_fdt) gf_free(ctx->dvb_mabr_fdt);
+			gf_free(ctx->dvb_mabr_fdt);
 			ctx->dvb_mabr_fdt = NULL;
 			ctx->last_dvb_mabr_clock = 0;
 		}
@@ -1590,7 +1590,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Updated Manifest+S-TSID bundle to:\n%s\n", serv->log_name, payload_text));
 
-	if (serv->stsid_bundle) gf_free(serv->stsid_bundle);
+	gf_free(serv->stsid_bundle);
 	serv->stsid_bundle = (u8 *) payload_text;
 	serv->stsid_bundle_size = 1 + (u32) strlen(payload_text);
 	if(!ctx->nozip) {
@@ -1739,7 +1739,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 	gf_dynstrcat(&payload, "</FDT-Instance>", NULL);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Updated Bootstrap FDT info to:\n%s\n", ctx->log_name, payload));
-	if (ctx->dvb_mabr_fdt) gf_free(ctx->dvb_mabr_fdt);
+	gf_free(ctx->dvb_mabr_fdt);
 	ctx->dvb_mabr_fdt = (u8 *)payload;
 	ctx->dvb_mabr_fdt_len = (u32) strlen(payload);
 	ctx->last_dvb_mabr_clock = 0;
@@ -2024,7 +2024,7 @@ retry:
 			rpid->init_seg_crc = crc;
 			rpid->route->needs_reconfig = GF_TRUE;
 			rpid->current_toi = 0;
-			if (rpid->init_seg_data) gf_free(rpid->init_seg_data);
+			gf_free(rpid->init_seg_data);
 			rpid->init_seg_data = (u8 *)gf_malloc(rpid->pck_size);
 			if (rpid->init_seg_data) {
 				memcpy(rpid->init_seg_data, rpid->pck_data, rpid->pck_size);
@@ -2032,7 +2032,7 @@ retry:
 				rpid->init_seg_sent = GF_FALSE;
 			}
 			p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_FILENAME);
-			if (rpid->init_seg_name) gf_free(rpid->init_seg_name);
+			gf_free(rpid->init_seg_name);
 			rpid->init_seg_name = p ? routeout_strip_base(rpid->route, p->value.string) : NULL;
 		}
 		gf_filter_pck_unref(rpid->current_pck);
@@ -2070,7 +2070,7 @@ retry:
 	if (rpid->raw_file) {
 		gf_assert(start && end);
 
-		if (rpid->seg_name) gf_free(rpid->seg_name);
+		gf_free(rpid->seg_name);
 		rpid->seg_name = (char*)"unknown";
 		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MCAST_NAME);
 		if (p)
@@ -2106,7 +2106,7 @@ retry:
 
 	if (start) {
 		p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_FILENAME);
-		if (rpid->seg_name) gf_free(rpid->seg_name);
+		gf_free(rpid->seg_name);
 		if (p) {
 			if (rpid->use_basename)
 				rpid->seg_name = gf_strdup(gf_file_basename(p->value.string));

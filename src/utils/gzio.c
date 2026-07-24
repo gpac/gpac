@@ -45,7 +45,7 @@ FILE *fdopen(int, const char *);
 #endif
 
 #define ALLOC(size) gf_malloc(size)
-#define TRYFREE(p) {if (p) gf_free(p);}
+#define TRYFREE(p) {gf_free(p);}
 
 static int const gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
 

@@ -392,8 +392,8 @@ GF_Err gf_file_move(const char *fileName, const char *newFileName)
 	wchar_t* wcsFileName = gf_utf8_to_wcs(fileName);
 	wchar_t* wcsNewFileName = gf_utf8_to_wcs(newFileName);
 	if (!wcsFileName || !wcsNewFileName) {
-		if (wcsFileName) gf_free(wcsFileName);
-		if (wcsNewFileName) gf_free(wcsNewFileName);
+		gf_free(wcsFileName);
+		gf_free(wcsNewFileName);
 		e = GF_IO_ERR;
 	} else {
 		op_result = MoveFileW(wcsFileName, wcsNewFileName);
@@ -992,8 +992,8 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		mbs_item_path = gf_wcs_to_utf8(item_path);
 		if (!mbs_file || !mbs_item_path)
 		{
-			if (mbs_file) gf_free(mbs_file);
-			if (mbs_item_path) gf_free(mbs_item_path);
+			gf_free(mbs_file);
+			gf_free(mbs_item_path);
 			return GF_IO_ERR;
 		}
 		if (enum_dir_fct(cbck, mbs_file, mbs_item_path, &file_info)) {
@@ -1127,7 +1127,7 @@ static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const c
 
 		if (blob->sub_open)
 			gf_unregister_file_handle((FILE *)fileio_ref);
-		if (blob->URL) gf_free(blob->URL);
+		gf_free(blob->URL);
 		gf_free(blob);
 		gf_fileio_del(fileio_ref);
 		return NULL;
@@ -1305,9 +1305,9 @@ void gf_fileio_del(GF_FileIO *gfio)
 	}
 	gf_mx_v(logs_mx);
 
-	if (gfio->url) gf_free(gfio->url);
-	if (gfio->res_url) gf_free(gfio->res_url);
-	if (gfio->printf_buf) gf_free(gfio->printf_buf);
+	gf_free(gfio->url);
+	gf_free(gfio->res_url);
+	gf_free(gfio->printf_buf);
 	gf_free(gfio);
 
 
@@ -1715,8 +1715,8 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 	wmode = gf_utf8_to_wcs(mode);
 	if (!wname || !wmode)
 	{
-		if (wname) gf_free(wname);
-		if (wmode) gf_free(wmode);
+		gf_free(wname);
+		gf_free(wmode);
 		return NULL;
 	}
 	res = _wfsopen(wname, wmode, _SH_DENYNO);

@@ -712,9 +712,9 @@ s32 ogg_stream_init(ogg_stream_state *os,s32 serialno) {
 /* _clear does not free os, only the non-flat storage within */
 s32 ogg_stream_clear(ogg_stream_state *os) {
 	if(os) {
-		if(os->body_data)gf_free(os->body_data);
-		if(os->lacing_vals)gf_free(os->lacing_vals);
-		if(os->granule_vals)gf_free(os->granule_vals);
+		gf_free(os->body_data);
+		gf_free(os->lacing_vals);
+		gf_free(os->granule_vals);
 
 		memset(os,0,sizeof(*os));
 	}
@@ -1003,7 +1003,7 @@ s32 ogg_sync_init(ogg_sync_state *oy) {
 /* clear non-flat storage within */
 s32 ogg_sync_clear(ogg_sync_state *oy) {
 	if(oy) {
-		if(oy->data)gf_free(oy->data);
+		gf_free(oy->data);
 		ogg_sync_init(oy);
 	}
 	return(0);

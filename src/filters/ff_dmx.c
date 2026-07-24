@@ -140,8 +140,7 @@ static void ffdmx_finalize(GF_Filter *filter)
 	}
 	if (ctx->options)
 		av_dict_free(&ctx->options);
-	if (ctx->probe_times)
-		gf_free(ctx->probe_times);
+	gf_free(ctx->probe_times);
 	if (ctx->demuxer && !ctx->src_as_avf) {
 		avformat_close_input(&ctx->demuxer);
 		avformat_free_context(ctx->demuxer);
@@ -151,7 +150,7 @@ static void ffdmx_finalize(GF_Filter *filter)
 		av_freep(&ctx->avio_ctx);
 	}
 	if (ctx->gfio) gf_fclose(ctx->gfio);
-	if (ctx->strbuf) gf_free(ctx->strbuf);
+	gf_free(ctx->strbuf);
 #if (LIBAVFORMAT_VERSION_MAJOR >= 59)
 	if (ctx->pkt) {
 		av_packet_free(&ctx->pkt);
@@ -412,9 +411,11 @@ static GF_Err ffdmx_flush_input(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 	AVDictionary** optionsarr = NULL;
 	if (ctx->options && ctx->demuxer && ctx->demuxer->nb_streams) {
 		optionsarr = (AVDictionary**)gf_malloc(ctx->demuxer->nb_streams * sizeof(AVDictionary*));
-		for (unsigned si = 0; si < ctx->demuxer->nb_streams; si++) {
-			optionsarr[si] = NULL;
-			av_dict_copy(&optionsarr[si], ctx->options, 0);
+		if (optionsarr) {
+			for (unsigned si = 0; si < ctx->demuxer->nb_streams; si++) {
+				optionsarr[si] = NULL;
+				av_dict_copy(&optionsarr[si], ctx->options, 0);
+			}
 		}
 	}
 	ctx->demuxer->probesize = ctx->strbuf_size;
@@ -1439,8 +1440,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 				gf_filter_pid_set_property(pid, GF_PROP_PID_CHAP_NAMES, &p);
 				//no free for string lists
 			} else {
-				if (times.vals) gf_free(times.vals);
-				if (names.vals) gf_free(names.vals);
+				gf_free(times.vals);
+				gf_free(names.vals);
 			}
 		}
 	}
@@ -1625,13 +1626,14 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	optionsarr_size = 0;
 	if (ctx->options && ctx->demuxer) {
 		optionsarr = (AVDictionary**)gf_malloc(ctx->demuxer->nb_streams * sizeof(AVDictionary*));
-		optionsarr_size = ctx->demuxer->nb_streams;
-		for (i=0; i < optionsarr_size; i++) {
-			optionsarr[i] = NULL;
-			av_dict_copy(&optionsarr[i], ctx->options, 0);
+		if (optionsarr) {
+			optionsarr_size = ctx->demuxer->nb_streams;
+			for (i=0; i < optionsarr_size; i++) {
+				optionsarr[i] = NULL;
+				av_dict_copy(&optionsarr[i], ctx->options, 0);
+			}
 		}
 	}
-
 	res = avformat_find_stream_info(ctx->demuxer, optionsarr);
 
 	if (optionsarr) {
@@ -1885,6 +1887,8 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 	pb.filename = "";
 	if (size <= AVPROBE_PADDING_SIZE) {
 		pb.buf = (u8 *)gf_malloc(size+AVPROBE_PADDING_SIZE);
+		if (!pb.buf) return NULL;
+
 		memcpy(pb.buf, data, sizeof(char)*size);
 		memset(pb.buf+size, 0, sizeof(char)*AVPROBE_PADDING_SIZE);
 		pb.buf_size = size;
@@ -2042,7 +2046,7 @@ static void ffdmxpid_finalize(GF_Filter *filter)
 {
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)gf_filter_get_udta(filter);
 	if (ctx->src) {
-		gf_free((char *)ctx->src);
+		gf_free((void*)ctx->src);
 		ctx->src = NULL;
 	}
 	ffdmx_finalize(filter);
@@ -2308,6 +2312,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	ctx->probe_frames = ctx->probes;
 	if (has_v && ctx->probes) {
 		ctx->probe_times = (u64 *)gf_malloc(sizeof(u64) * ctx->probes);
+		if (!ctx->probe_times) return GF_OUT_OF_MEM;
 		memset(ctx->probe_times, 0, sizeof(u64) * ctx->probes);
 		//we probe timestamps in either modes because timestamps of first frames are sometimes off
 		ctx->probe_frames = 0;

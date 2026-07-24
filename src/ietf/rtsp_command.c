@@ -43,7 +43,7 @@ GF_RTSPCommand *gf_rtsp_command_new()
 }
 
 
-#define COM_FREE_CLEAN(hdr)		if (com->hdr) gf_free(com->hdr);	\
+#define COM_FREE_CLEAN(hdr)		gf_free(com->hdr);	\
 								com->hdr = NULL;
 
 GF_EXPORT
@@ -78,7 +78,7 @@ void gf_rtsp_command_reset(GF_RTSPCommand *com)
 
 	com->Bandwidth = com->Blocksize = com->Content_Length = com->CSeq = 0;
 	com->Scale = com->Speed = 0.0;
-	if (com->Range) gf_free(com->Range);
+	gf_free(com->Range);
 	com->Range = NULL;
 
 	while (gf_list_count(com->Transports)) {
@@ -380,7 +380,7 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	gf_strcpy(sess->RTSPLastRequest, com->method);
 
 exit:
-	if (result) gf_free(result);
+	gf_free(result);
 	return e;
 }
 
@@ -426,10 +426,12 @@ void gf_rtsp_set_command_value(GF_RTSPCommand *com, char *Header, char *Value)
 	//eXtensions attributes
 	else if (!strnicmp(Header, "x-", 2)) {
 		x_Att = (GF_X_Attribute*)gf_malloc(sizeof(GF_X_Attribute));
-		x_Att->Name = gf_strdup(Header+2);
-		x_Att->Value = NULL;
-		if (Value && strlen(Value)) x_Att->Value = gf_strdup(Value);
-		gf_list_add(com->Xtensions, x_Att);
+		if (x_Att) {
+			x_Att->Name = gf_strdup(Header+2);
+			x_Att->Value = NULL;
+			if (Value && strlen(Value)) x_Att->Value = gf_strdup(Value);
+			gf_list_add(com->Xtensions, x_Att);
+		}
 	}
 	//the rest is ignored
 }

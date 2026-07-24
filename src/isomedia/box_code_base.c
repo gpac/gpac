@@ -33,7 +33,7 @@ void co64_box_del(GF_Box *s)
 	GF_ChunkLargeOffsetBox *ptr;
 	ptr = (GF_ChunkLargeOffsetBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->offsets) gf_free(ptr->offsets);
+	gf_free(ptr->offsets);
 	gf_free(ptr);
 }
 
@@ -97,8 +97,7 @@ void cprt_box_del(GF_Box *s)
 {
 	GF_CopyrightBox *ptr = (GF_CopyrightBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->notice)
-		gf_free(ptr->notice);
+	gf_free(ptr->notice);
 	gf_free(ptr);
 }
 
@@ -117,7 +116,7 @@ void chpl_box_del(GF_Box *s)
 	if (ptr == NULL) return;
 	while (gf_list_count(ptr->list)) {
 		GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(ptr->list, 0);
-		if (ce->name) gf_free(ce->name);
+		gf_free(ce->name);
 		gf_free(ce);
 		gf_list_rem(ptr->list, 0);
 	}
@@ -177,7 +176,7 @@ GF_Err chpl_box_read(GF_Box *s,GF_BitStream *bs)
 	}
 	return GF_OK;
 exit:
-	if (ce) gf_free(ce);
+	gf_free(ce);
 	return e;
 }
 
@@ -309,8 +308,8 @@ void kind_box_del(GF_Box *s)
 {
 	GF_KindBox *ptr = (GF_KindBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->schemeURI) gf_free(ptr->schemeURI);
-	if (ptr->value) gf_free(ptr->value);
+	gf_free(ptr->schemeURI);
+	gf_free(ptr->value);
 	gf_free(ptr);
 }
 
@@ -387,7 +386,7 @@ GF_Err kind_box_size(GF_Box *s)
 void ctts_box_del(GF_Box *s)
 {
 	GF_CompositionOffsetBox *ptr = (GF_CompositionOffsetBox *)s;
-	if (ptr->entries) gf_free(ptr->entries);
+	gf_free(ptr->entries);
 	gf_free(ptr);
 }
 
@@ -565,7 +564,7 @@ GF_Err cslg_box_size(GF_Box *s)
 void ccst_box_del(GF_Box *s)
 {
 	GF_CodingConstraintsBox *ptr = (GF_CodingConstraintsBox *)s;
-	if (ptr) gf_free(ptr);
+	gf_free(ptr);
 	return;
 }
 
@@ -616,7 +615,7 @@ void url_box_del(GF_Box *s)
 {
 	GF_DataEntryURLBox *ptr = (GF_DataEntryURLBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->location) gf_free(ptr->location);
+	gf_free(ptr->location);
 	gf_free(ptr);
 	return;
 }
@@ -700,8 +699,8 @@ void urn_box_del(GF_Box *s)
 {
 	GF_DataEntryURNBox *ptr = (GF_DataEntryURNBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->location) gf_free(ptr->location);
-	if (ptr->nameURN) gf_free(ptr->nameURN);
+	gf_free(ptr->location);
+	gf_free(ptr->nameURN);
 	gf_free(ptr);
 }
 
@@ -808,7 +807,7 @@ void unkn_box_del(GF_Box *s)
 {
 	GF_UnknownBox *ptr = (GF_UnknownBox *) s;
 	if (!s) return;
-	if (ptr->data) gf_free(ptr->data);
+	gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -926,7 +925,7 @@ GF_Err unkn_box_size(GF_Box *s)
 
 void def_parent_box_del(GF_Box *s)
 {
-	if (s) gf_free(s);
+	gf_free(s);
 }
 
 
@@ -958,7 +957,7 @@ GF_Err def_parent_box_size(GF_Box *s)
 
 void def_parent_full_box_del(GF_Box *s)
 {
-	if (s) gf_free(s);
+	gf_free(s);
 }
 
 
@@ -991,7 +990,7 @@ void uuid_box_del(GF_Box *s)
 {
 	GF_UnknownUUIDBox *ptr = (GF_UnknownUUIDBox *) s;
 	if (!s) return;
-	if (ptr->data) gf_free(ptr->data);
+	gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -1217,7 +1216,7 @@ void elst_box_del(GF_Box *s)
 	nb_entries = gf_list_count(ptr->entryList);
 	for (i = 0; i < nb_entries; i++) {
 		GF_EdtsEntry *p = (GF_EdtsEntry*)gf_list_get(ptr->entryList, i);
-		if (p) gf_free(p);
+		gf_free(p);
 	}
 	gf_list_del(ptr->entryList);
 	gf_free(ptr);
@@ -1432,7 +1431,7 @@ GF_Err esds_box_size(GF_Box *s)
 void free_box_del(GF_Box *s)
 {
 	GF_FreeSpaceBox *ptr = (GF_FreeSpaceBox *)s;
-	if (ptr->data) gf_free(ptr->data);
+	gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -1502,7 +1501,7 @@ GF_Err free_box_size(GF_Box *s)
 void ftyp_box_del(GF_Box *s)
 {
 	GF_FileTypeBox *ptr = (GF_FileTypeBox *) s;
-	if (ptr->altBrand) gf_free(ptr->altBrand);
+	gf_free(ptr->altBrand);
 	gf_free(ptr);
 }
 
@@ -1570,7 +1569,7 @@ void gnrm_box_del(GF_Box *s)
 {
 	GF_GenericSampleEntryBox *ptr = (GF_GenericSampleEntryBox *)s;
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)ptr);
-	if (ptr->data) gf_free(ptr->data);
+	gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -1631,7 +1630,7 @@ void gnrv_box_del(GF_Box *s)
 {
 	GF_GenericVisualSampleEntryBox *ptr = (GF_GenericVisualSampleEntryBox *)s;
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)ptr);
-	if (ptr->data) gf_free(ptr->data);
+	gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -1693,7 +1692,7 @@ void gnra_box_del(GF_Box *s)
 {
 	GF_GenericAudioSampleEntryBox *ptr = (GF_GenericAudioSampleEntryBox *)s;
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)ptr);
-	if (ptr->data) gf_free(ptr->data);
+	gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -1754,7 +1753,7 @@ void hdlr_box_del(GF_Box *s)
 {
 	GF_HandlerBox *ptr = (GF_HandlerBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->nameUTF8) gf_free(ptr->nameUTF8);
+	gf_free(ptr->nameUTF8);
 	gf_free(ptr);
 }
 
@@ -2008,7 +2007,7 @@ GF_Err hnti_box_size(GF_Box *s)
 void sdp_box_del(GF_Box *s)
 {
 	GF_SDPBox *ptr = (GF_SDPBox *)s;
-	if (ptr->sdpText) gf_free(ptr->sdpText);
+	gf_free(ptr->sdpText);
 	gf_free(ptr);
 
 }
@@ -2068,7 +2067,7 @@ GF_Err sdp_box_size(GF_Box *s)
 void rtp_hnti_box_del(GF_Box *s)
 {
 	GF_RTPBox *ptr = (GF_RTPBox *)s;
-	if (ptr->sdpText) gf_free(ptr->sdpText);
+	gf_free(ptr->sdpText);
 	gf_free(ptr);
 
 }
@@ -2133,7 +2132,7 @@ GF_Err rtp_hnti_box_size(GF_Box *s)
 
 void trpy_box_del(GF_Box *s)
 {
-	gf_free((GF_TRPYBox *)s);
+	gf_free(s);
 }
 GF_Err trpy_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2173,7 +2172,7 @@ GF_Err trpy_box_size(GF_Box *s)
 
 void totl_box_del(GF_Box *s)
 {
-	gf_free((GF_TRPYBox *)s);
+	gf_free(s);
 }
 GF_Err totl_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2214,7 +2213,7 @@ GF_Err totl_box_size(GF_Box *s)
 
 void nump_box_del(GF_Box *s)
 {
-	gf_free((GF_NUMPBox *)s);
+	gf_free(s);
 }
 GF_Err nump_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2254,7 +2253,7 @@ GF_Err nump_box_size(GF_Box *s)
 
 void npck_box_del(GF_Box *s)
 {
-	gf_free((GF_NPCKBox *)s);
+	gf_free(s);
 }
 GF_Err npck_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2293,7 +2292,7 @@ GF_Err npck_box_size(GF_Box *s)
 
 void tpyl_box_del(GF_Box *s)
 {
-	gf_free((GF_NTYLBox *)s);
+	gf_free(s);
 }
 GF_Err tpyl_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2332,7 +2331,7 @@ GF_Err tpyl_box_size(GF_Box *s)
 
 void tpay_box_del(GF_Box *s)
 {
-	gf_free((GF_TPAYBox *)s);
+	gf_free(s);
 }
 GF_Err tpay_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2371,7 +2370,7 @@ GF_Err tpay_box_size(GF_Box *s)
 
 void maxr_box_del(GF_Box *s)
 {
-	gf_free((GF_MAXRBox *)s);
+	gf_free(s);
 }
 GF_Err maxr_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2413,7 +2412,7 @@ GF_Err maxr_box_size(GF_Box *s)
 
 void dmed_box_del(GF_Box *s)
 {
-	gf_free((GF_DMEDBox *)s);
+	gf_free(s);
 }
 GF_Err dmed_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2451,7 +2450,7 @@ GF_Err dmed_box_size(GF_Box *s)
 
 void dimm_box_del(GF_Box *s)
 {
-	gf_free((GF_DIMMBox *)s);
+	gf_free(s);
 }
 GF_Err dimm_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2489,7 +2488,7 @@ GF_Err dimm_box_size(GF_Box *s)
 
 void drep_box_del(GF_Box *s)
 {
-	gf_free((GF_DREPBox *)s);
+	gf_free(s);
 }
 GF_Err drep_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2529,7 +2528,7 @@ GF_Err drep_box_size(GF_Box *s)
 
 void tmin_box_del(GF_Box *s)
 {
-	gf_free((GF_TMINBox *)s);
+	gf_free(s);
 }
 GF_Err tmin_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2568,7 +2567,7 @@ GF_Err tmin_box_size(GF_Box *s)
 
 void tmax_box_del(GF_Box *s)
 {
-	gf_free((GF_TMAXBox *)s);
+	gf_free(s);
 }
 GF_Err tmax_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2607,7 +2606,7 @@ GF_Err tmax_box_size(GF_Box *s)
 
 void pmax_box_del(GF_Box *s)
 {
-	gf_free((GF_PMAXBox *)s);
+	gf_free(s);
 }
 GF_Err pmax_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2646,7 +2645,7 @@ GF_Err pmax_box_size(GF_Box *s)
 
 void dmax_box_del(GF_Box *s)
 {
-	gf_free((GF_DMAXBox *)s);
+	gf_free(s);
 }
 GF_Err dmax_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -2686,7 +2685,7 @@ GF_Err dmax_box_size(GF_Box *s)
 void payt_box_del(GF_Box *s)
 {
 	GF_PAYTBox *payt = (GF_PAYTBox *)s;
-	if (payt->payloadString) gf_free(payt->payloadString);
+	gf_free(payt->payloadString);
 	gf_free(payt);
 }
 GF_Err payt_box_read(GF_Box *s, GF_BitStream *bs)
@@ -2742,7 +2741,7 @@ GF_Err payt_box_size(GF_Box *s)
 void name_box_del(GF_Box *s)
 {
 	GF_NameBox *name = (GF_NameBox *)s;
-	if (name->string) gf_free(name->string);
+	gf_free(name->string);
 	gf_free(name);
 }
 GF_Err name_box_read(GF_Box *s, GF_BitStream *bs)
@@ -3010,7 +3009,7 @@ void mdat_box_del(GF_Box *s)
 	GF_MediaDataBox *ptr = (GF_MediaDataBox *)s;
 	if (!s) return;
 
-	if (ptr->data) gf_free(ptr->data);
+	gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -3336,8 +3335,8 @@ void mdia_box_del(GF_Box *s)
 	if (ptr->nalu_ps_bs) gf_bs_del(ptr->nalu_ps_bs);
 	if (ptr->extracted_bs) gf_bs_del(ptr->extracted_bs);
 	if (ptr->extracted_samp) gf_isom_sample_del(&ptr->extracted_samp);
-	if (ptr->in_sample_buffer) gf_free(ptr->in_sample_buffer);
-	if (ptr->tmp_nal_copy_buffer) gf_free(ptr->tmp_nal_copy_buffer);
+	gf_free(ptr->in_sample_buffer);
+	gf_free(ptr->tmp_nal_copy_buffer);
 	if (ptr->information && ptr->information->dataHandler) {
 		gf_isom_datamap_del(ptr->information->dataHandler);
 		ptr->information->dataHandler = NULL;
@@ -3484,7 +3483,7 @@ void tfra_box_del(GF_Box *s)
 {
 	GF_TrackFragmentRandomAccessBox *ptr = (GF_TrackFragmentRandomAccessBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->entries) gf_free(ptr->entries);
+	gf_free(ptr->entries);
 	gf_free(ptr);
 }
 
@@ -3670,7 +3669,7 @@ void elng_box_del(GF_Box *s)
 {
 	GF_ExtendedLanguageBox *ptr = (GF_ExtendedLanguageBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->extended_language) gf_free(ptr->extended_language);
+	gf_free(ptr->extended_language);
 	gf_free(ptr);
 }
 
@@ -3885,7 +3884,7 @@ void moof_box_del(GF_Box *s)
 
 	gf_list_del(ptr->TrackList);
 	if (ptr->PSSHs) gf_list_del(ptr->PSSHs);
-	if (ptr->mdat) gf_free(ptr->mdat);
+	gf_free(ptr->mdat);
 	//happens if error while fragmenting, the emsg boxes are not part of the moof hierarchy !
 	if (ptr->emsgs) {
 		while (1) {
@@ -5129,7 +5128,7 @@ void padb_box_del(GF_Box *s)
 {
 	GF_PaddingBitsBox *ptr = (GF_PaddingBitsBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->padbits) gf_free(ptr->padbits);
+	gf_free(ptr->padbits);
 	gf_free(ptr);
 }
 
@@ -5397,8 +5396,7 @@ void stbl_box_del(GF_Box *s)
 		if (ptr->traf_map->frag_starts) {
 			u32 i;
 			for (i=0; i<ptr->traf_map->nb_entries; i++) {
-				if (ptr->traf_map->frag_starts[i].moof_template)
-					gf_free(ptr->traf_map->frag_starts[i].moof_template);
+				gf_free(ptr->traf_map->frag_starts[i].moof_template);
 			}
 			gf_free(ptr->traf_map->frag_starts);
 		}
@@ -5626,7 +5624,7 @@ void stco_box_del(GF_Box *s)
 {
 	GF_ChunkOffsetBox *ptr = (GF_ChunkOffsetBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->offsets) gf_free(ptr->offsets);
+	gf_free(ptr->offsets);
 	gf_free(ptr);
 }
 
@@ -5696,7 +5694,7 @@ void stdp_box_del(GF_Box *s)
 {
 	GF_DegradationPriorityBox *ptr = (GF_DegradationPriorityBox *)s;
 	if (ptr == NULL ) return;
-	if (ptr->priorities) gf_free(ptr->priorities);
+	gf_free(ptr->priorities);
 	gf_free(ptr);
 }
 
@@ -5757,7 +5755,7 @@ void stsc_box_del(GF_Box *s)
 {
 	GF_SampleToChunkBox *ptr = (GF_SampleToChunkBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->entries) gf_free(ptr->entries);
+	gf_free(ptr->entries);
 	gf_free(ptr);
 }
 
@@ -5999,7 +5997,7 @@ void stss_box_del(GF_Box *s)
 {
 	GF_SyncSampleBox *ptr = (GF_SyncSampleBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->sampleNumbers) gf_free(ptr->sampleNumbers);
+	gf_free(ptr->sampleNumbers);
 	gf_free(ptr);
 }
 
@@ -6063,7 +6061,7 @@ void stsz_box_del(GF_Box *s)
 {
 	GF_SampleSizeBox *ptr = (GF_SampleSizeBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->sizes) gf_free(ptr->sizes);
+	gf_free(ptr->sizes);
 	gf_free(ptr);
 }
 
@@ -6314,7 +6312,7 @@ GF_Err stsz_box_size(GF_Box *s)
 void stts_box_del(GF_Box *s)
 {
 	GF_TimeToSampleBox *ptr = (GF_TimeToSampleBox *)s;
-	if (ptr->entries) gf_free(ptr->entries);
+	gf_free(ptr->entries);
 	gf_free(ptr);
 }
 
@@ -6956,7 +6954,7 @@ GF_Box *tfrf_box_new()
 void tfrf_box_del(GF_Box *s)
 {
 	GF_MSSTimeRefBox *ptr = (GF_MSSTimeRefBox *)s;
-	if (ptr->frags) gf_free(ptr->frags);
+	gf_free(ptr->frags);
 	gf_free(s);
 }
 
@@ -7057,7 +7055,7 @@ static void stsd_switch_box(GF_BitStream *bs, GF_Box *box, GF_UnknownBox *a, u8 
 				count_subb--;
 				i--;
 			}
-			if (*data) gf_free(*data);
+			gf_free(*data);
 			gf_bs_get_content(new_dsi, data, data_size);
 			gf_bs_del(new_dsi);
 		} else {
@@ -7465,7 +7463,7 @@ void stri_box_del(GF_Box *s)
 {
 	GF_SubTrackInformationBox *ptr = (GF_SubTrackInformationBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->attribute_list) gf_free(ptr->attribute_list);
+	gf_free(ptr->attribute_list);
 	gf_free(ptr);
 }
 
@@ -7531,7 +7529,7 @@ void stsg_box_del(GF_Box *s)
 {
 	GF_SubTrackSampleGroupBox *ptr = (GF_SubTrackSampleGroupBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->group_description_index) gf_free(ptr->group_description_index);
+	gf_free(ptr->group_description_index);
 	gf_free(ptr);
 }
 
@@ -7680,7 +7678,7 @@ void reftype_box_del(GF_Box *s)
 {
 	GF_TrackReferenceTypeBox *ptr = (GF_TrackReferenceTypeBox *)s;
 	if (!ptr) return;
-	if (ptr->trackIDs) gf_free(ptr->trackIDs);
+	gf_free(ptr->trackIDs);
 	gf_free(ptr);
 }
 
@@ -7894,9 +7892,9 @@ void trun_box_del(GF_Box *s)
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
 	if (ptr == NULL) return;
 
-	if (ptr->samples) gf_free(ptr->samples);
+	gf_free(ptr->samples);
 	if (ptr->cache) gf_bs_del(ptr->cache);
-	if (ptr->sample_order) gf_free(ptr->sample_order);
+	gf_free(ptr->sample_order);
 	if (ptr->sample_refs) {
 		while (gf_list_count(ptr->sample_refs)) {
 			GF_TrafSampleRef *sref = (GF_TrafSampleRef *)gf_list_pop_back(ptr->sample_refs);
@@ -8815,8 +8813,8 @@ void pdin_box_del(GF_Box *s)
 {
 	GF_ProgressiveDownloadBox *ptr = (GF_ProgressiveDownloadBox*)s;
 	if (ptr == NULL) return;
-	if (ptr->rates) gf_free(ptr->rates);
-	if (ptr->times) gf_free(ptr->times);
+	gf_free(ptr->rates);
+	gf_free(ptr->times);
 	gf_free(ptr);
 }
 
@@ -8878,7 +8876,7 @@ void sdtp_box_del(GF_Box *s)
 {
 	GF_SampleDependencyTypeBox *ptr = (GF_SampleDependencyTypeBox*)s;
 	if (ptr == NULL) return;
-	if (ptr->sample_info) gf_free(ptr->sample_info);
+	gf_free(ptr->sample_info);
 	gf_free(ptr);
 }
 
@@ -9044,10 +9042,10 @@ void metx_box_del(GF_Box *s)
 	if (ptr == NULL) return;
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
 
-	if (ptr->content_encoding) gf_free(ptr->content_encoding);
-	if (ptr->xml_namespace) gf_free(ptr->xml_namespace);
-	if (ptr->xml_schema_loc) gf_free(ptr->xml_schema_loc);
-	if (ptr->mime_type) gf_free(ptr->mime_type);
+	gf_free(ptr->content_encoding);
+	gf_free(ptr->xml_namespace);
+	gf_free(ptr->xml_schema_loc);
+	gf_free(ptr->mime_type);
 	gf_free(ptr);
 }
 
@@ -9262,7 +9260,7 @@ void txtc_box_del(GF_Box *s)
 	GF_TextConfigBox *ptr = (GF_TextConfigBox*)s;
 	if (ptr == NULL) return;
 
-	if (ptr->config) gf_free(ptr->config);
+	gf_free(ptr->config);
 	gf_free(ptr);
 }
 
@@ -9464,7 +9462,7 @@ void lsrc_box_del(GF_Box *s)
 {
 	GF_LASERConfigurationBox *ptr = (GF_LASERConfigurationBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->hdr) gf_free(ptr->hdr);
+	gf_free(ptr->hdr);
 	gf_free(ptr);
 }
 
@@ -9583,7 +9581,7 @@ void sidx_box_del(GF_Box *s)
 {
 	GF_SegmentIndexBox *ptr = (GF_SegmentIndexBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->refs) gf_free(ptr->refs);
+	gf_free(ptr->refs);
 	gf_free(ptr);
 }
 
@@ -9693,7 +9691,7 @@ void ssix_box_del(GF_Box *s)
 	if (ptr->subsegments) {
 		for (i = 0; i < ptr->subsegment_alloc; i++) {
 			GF_SubsegmentInfo *subsegment = &ptr->subsegments[i];
-			if (subsegment->ranges) gf_free(subsegment->ranges);
+			gf_free(subsegment->ranges);
 		}
 		gf_free(ptr->subsegments);
 	}
@@ -9780,7 +9778,7 @@ void leva_box_del(GF_Box *s)
 {
 	GF_LevelAssignmentBox *ptr = (GF_LevelAssignmentBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->levels) gf_free(ptr->levels);
+	gf_free(ptr->levels);
 	gf_free(ptr);
 }
 
@@ -9890,7 +9888,7 @@ void pcrb_box_del(GF_Box *s)
 {
 	GF_PcrInfoBox *ptr = (GF_PcrInfoBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->pcr_values) gf_free(ptr->pcr_values);
+	gf_free(ptr->pcr_values);
 	gf_free(ptr);
 }
 
@@ -10280,7 +10278,7 @@ GF_Box *sbgp_box_new()
 void sbgp_box_del(GF_Box *a)
 {
 	GF_SampleGroupBox *p = (GF_SampleGroupBox *)a;
-	if (p->sample_entries) gf_free(p->sample_entries);
+	gf_free(p->sample_entries);
 	gf_free(p);
 }
 
@@ -10706,7 +10704,7 @@ void sgpd_del_entry(u32 grouping_type, void *entry, Bool is_opaque)
 {
 	if (is_opaque) {
 		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
-		if (ptr && ptr->data) gf_free(ptr->data);
+		if (ptr) gf_free(ptr->data);
 		gf_free(entry);
 		return;
 	}
@@ -10724,7 +10722,7 @@ void sgpd_del_entry(u32 grouping_type, void *entry, Bool is_opaque)
 	case GF_ISOM_SAMPLE_GROUP_SEIG:
 	{
 		GF_CENCSampleEncryptionGroupEntry *seig = (GF_CENCSampleEncryptionGroupEntry *)entry;
-		if (seig->key_info) gf_free(seig->key_info);
+		gf_free(seig->key_info);
 		gf_free(entry);
 	}
 		return;
@@ -10737,7 +10735,7 @@ void sgpd_del_entry(u32 grouping_type, void *entry, Bool is_opaque)
 	case GF_ISOM_SAMPLE_GROUP_SPOR:
 	{
 		GF_SubpictureOrderEntry *spor = (GF_SubpictureOrderEntry *)entry;
-		if (spor->subp_track_ref_idx) gf_free(spor->subp_track_ref_idx);
+		gf_free(spor->subp_track_ref_idx);
 		gf_free(spor);
 	}
 		return;
@@ -10745,7 +10743,7 @@ void sgpd_del_entry(u32 grouping_type, void *entry, Bool is_opaque)
 	case GF_ISOM_SAMPLE_GROUP_SULM:
 	{
 		GF_SubpictureLayoutMapEntry *sulm = (GF_SubpictureLayoutMapEntry *) entry;
-		if (sulm->groupIDs) gf_free(sulm->groupIDs);
+		gf_free(sulm->groupIDs);
 		gf_free(sulm);
 		return;
 	}
@@ -10756,7 +10754,7 @@ void sgpd_del_entry(u32 grouping_type, void *entry, Bool is_opaque)
 	case GF_ISOM_SAMPLE_GROUP_ESGH:
 	{
 		GF_EssentialSamplegroupEntry *esgh = (GF_EssentialSamplegroupEntry *) entry;
-		if (esgh->group_types) gf_free(esgh->group_types);
+		gf_free(esgh->group_types);
 		gf_free(esgh);
 		return;
 	}
@@ -10764,7 +10762,7 @@ void sgpd_del_entry(u32 grouping_type, void *entry, Bool is_opaque)
 	default:
 	{
 		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
-		if (ptr->data) gf_free(ptr->data);
+		gf_free(ptr->data);
 		gf_free(ptr);
 	}
 	}
@@ -11091,7 +11089,7 @@ void saiz_box_del(GF_Box *s)
 {
 	GF_SampleAuxiliaryInfoSizeBox*ptr = (GF_SampleAuxiliaryInfoSizeBox*)s;
 	if (ptr == NULL) return;
-	if (ptr->sample_info_size) gf_free(ptr->sample_info_size);
+	gf_free(ptr->sample_info_size);
 	gf_free(ptr);
 }
 
@@ -11173,8 +11171,8 @@ void saio_box_del(GF_Box *s)
 {
 	GF_SampleAuxiliaryInfoOffsetBox *ptr = (GF_SampleAuxiliaryInfoOffsetBox*)s;
 	if (ptr == NULL) return;
-	if (ptr->offsets) gf_free(ptr->offsets);
-	if (ptr->cached_data) gf_free(ptr->cached_data);
+	gf_free(ptr->offsets);
+	gf_free(ptr->cached_data);
 	gf_free(ptr);
 }
 
@@ -11286,7 +11284,7 @@ GF_Err saio_box_size(GF_Box *s)
 	case GF_ISOM_CBC_SCHEME:
 	case GF_ISOM_CENS_SCHEME:
 	case GF_ISOM_CBCS_SCHEME:
-		if (ptr->offsets) gf_free(ptr->offsets);
+		gf_free(ptr->offsets);
 		ptr->offsets = NULL;
 		ptr->entry_alloc = 0;
 		ptr->entry_count = 1;
@@ -11470,7 +11468,7 @@ void stvi_box_del(GF_Box *s)
 {
 	GF_StereoVideoBox *ptr = (GF_StereoVideoBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->stereo_indication_type) gf_free(ptr->stereo_indication_type);
+	gf_free(ptr->stereo_indication_type);
 	gf_free(ptr);
 }
 
@@ -11654,8 +11652,8 @@ void fpar_box_del(GF_Box *s)
 {
 	FilePartitionBox *ptr = (FilePartitionBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->scheme_specific_info) gf_free(ptr->scheme_specific_info);
-	if (ptr->entries) gf_free(ptr->entries);
+	gf_free(ptr->scheme_specific_info);
+	gf_free(ptr->entries);
 	gf_free(ptr);
 }
 
@@ -11791,7 +11789,7 @@ void fecr_box_del(GF_Box *s)
 {
 	FECReservoirBox *ptr = (FECReservoirBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->entries) gf_free(ptr->entries);
+	gf_free(ptr->entries);
 	gf_free(ptr);
 }
 
@@ -11862,10 +11860,10 @@ void segr_box_del(GF_Box *s)
 	FDSessionGroupBox *ptr = (FDSessionGroupBox *)s;
 	if (ptr == NULL) return;
 	for (i=0; i<ptr->num_session_groups; i++) {
-		if (ptr->session_groups[i].group_ids) gf_free(ptr->session_groups[i].group_ids);
-		if (ptr->session_groups[i].channels) gf_free(ptr->session_groups[i].channels);
+		gf_free(ptr->session_groups[i].group_ids);
+		gf_free(ptr->session_groups[i].channels);
 	}
-	if (ptr->session_groups) gf_free(ptr->session_groups);
+	gf_free(ptr->session_groups);
 	gf_free(ptr);
 }
 
@@ -11969,7 +11967,7 @@ void gitn_box_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->entries) {
 		for (i=0; i<ptr->nb_entries; i++) {
-			if (ptr->entries[i].name) gf_free(ptr->entries[i].name);
+			gf_free(ptr->entries[i].name);
 		}
 		gf_free(ptr->entries);
 	}
@@ -12052,7 +12050,7 @@ void fdpa_box_del(GF_Box *s)
 
 	if (ptr->headers) {
 		for (i=0; i<ptr->header_ext_count; i++) {
-			if (ptr->headers[i].data) gf_free(ptr->headers[i].data);
+			gf_free(ptr->headers[i].data);
 		}
 		gf_free(ptr->headers);
 	}
@@ -12171,7 +12169,7 @@ void extr_box_del(GF_Box *s)
 	GF_ExtraDataBox *ptr = (GF_ExtraDataBox *)s;
 	if (ptr == NULL) return;
 	if (ptr->feci) gf_isom_box_del((GF_Box*)ptr->feci);
-	if (ptr->data) gf_free(ptr->data);
+	gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -12296,7 +12294,7 @@ void trik_box_del(GF_Box *s)
 {
 	GF_TrickPlayBox *ptr = (GF_TrickPlayBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->entries) gf_free(ptr->entries);
+	gf_free(ptr->entries);
 	gf_free(ptr);
 }
 
@@ -12408,7 +12406,7 @@ GF_Err bloc_box_size(GF_Box *s)
 void ainf_box_del(GF_Box *s)
 {
 	GF_AssetInformationBox *ptr = (GF_AssetInformationBox *) s;
-	if (ptr->APID) gf_free(ptr->APID);
+	gf_free(ptr->APID);
 	gf_free(s);
 }
 
@@ -12456,7 +12454,7 @@ GF_Err ainf_box_size(GF_Box *s)
 void mhac_box_del(GF_Box *s)
 {
 	GF_MHAConfigBox *ptr = (GF_MHAConfigBox *) s;
-	if (ptr->mha_config) gf_free(ptr->mha_config);
+	gf_free(ptr->mha_config);
 	gf_free(s);
 }
 
@@ -12519,7 +12517,7 @@ GF_Err mhac_box_size(GF_Box *s)
 void mhap_box_del(GF_Box *s)
 {
 	GF_MHACompatibleProfilesBox *ptr = (GF_MHACompatibleProfilesBox *) s;
-	if (ptr->compat_profiles) gf_free(ptr->compat_profiles);
+	gf_free(ptr->compat_profiles);
 	gf_free(s);
 }
 
@@ -12999,7 +12997,7 @@ GF_Box *dOps_box_new()
 void dOps_box_del(GF_Box *s)
 {
 	GF_OpusSpecificBox *ptr = (GF_OpusSpecificBox *)s;
-	if (ptr) gf_free(ptr);
+	gf_free(ptr);
 }
 
 //we don't use odf_opus_cfg read due to endianness
@@ -13115,7 +13113,7 @@ GF_Err iacb_box_size(GF_Box *s)
 void dfla_box_del(GF_Box *s)
 {
 	GF_FLACConfigBox *ptr = (GF_FLACConfigBox *) s;
-	if (ptr->data) gf_free(ptr->data);
+	gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -13167,7 +13165,7 @@ GF_Box *ddts_box_new()
 void ddts_box_del(GF_Box *s)
 {
 	GF_DTSSpecificBox *ptr = (GF_DTSSpecificBox *)s;
-	if (ptr) gf_free(ptr);
+	gf_free(ptr);
 }
 
 GF_Err ddts_box_read(GF_Box *s, GF_BitStream *bs)
@@ -13240,8 +13238,8 @@ void udts_box_del(GF_Box *s)
 {
 	GF_UDTSSpecificBox *ptr = (GF_UDTSSpecificBox *)s;
 	if (ptr) {
-		if (ptr->cfg.PresentationIDTagData) gf_free(ptr->cfg.PresentationIDTagData);
-		if (ptr->cfg.ExpansionBoxData) gf_free(ptr->cfg.ExpansionBoxData);
+		gf_free(ptr->cfg.PresentationIDTagData);
+		gf_free(ptr->cfg.ExpansionBoxData);
 		gf_free(ptr);
 	}
 }
@@ -13342,7 +13340,7 @@ GF_Err udts_box_size(GF_Box *s)
 void mvcg_box_del(GF_Box *s)
 {
 	GF_MultiviewGroupBox *ptr = (GF_MultiviewGroupBox *) s;
-	if (ptr->entries) gf_free(ptr->entries);
+	gf_free(ptr->entries);
 	gf_free(ptr);
 }
 
@@ -13465,8 +13463,7 @@ void vwid_box_del(GF_Box *s)
 	GF_ViewIdentifierBox *ptr = (GF_ViewIdentifierBox *) s;
 	if (ptr->views) {
 		for (i=0; i<ptr->num_views; i++) {
-			if (ptr->views[i].view_refs)
-				gf_free(ptr->views[i].view_refs);
+			gf_free(ptr->views[i].view_refs);
 		}
 		gf_free(ptr->views);
 	}
@@ -13795,9 +13792,9 @@ void emsg_box_del(GF_Box *s)
 {
 	GF_EventMessageBox *ptr = (GF_EventMessageBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->scheme_id_uri) gf_free(ptr->scheme_id_uri);
-	if (ptr->value) gf_free(ptr->value);
-	if (ptr->message_data) gf_free(ptr->message_data);
+	gf_free(ptr->scheme_id_uri);
+	gf_free(ptr->value);
+	gf_free(ptr->message_data);
 	gf_free(ptr);
 }
 
@@ -13946,7 +13943,7 @@ GF_Err silb_box_read(GF_Box *s, GF_BitStream *bs)
 			}
 			e = gf_isom_read_null_terminated_string(s, bs, ptr->size, &ent->value);
 			if (e) {
-				if (ent->scheme_id_uri) gf_free(ent->scheme_id_uri);
+				gf_free(ent->scheme_id_uri);
 				gf_free(ent);
 				return e;
 			}
@@ -14026,9 +14023,9 @@ void emib_box_del(GF_Box *s)
 {
 	GF_EventMessageBox *ptr = (GF_EventMessageBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->scheme_id_uri) gf_free(ptr->scheme_id_uri);
-	if (ptr->value) gf_free(ptr->value);
-	if (ptr->message_data) gf_free(ptr->message_data);
+	gf_free(ptr->scheme_id_uri);
+	gf_free(ptr->value);
+	gf_free(ptr->message_data);
 	gf_free(ptr);
 }
 
@@ -14180,8 +14177,7 @@ void csgp_box_del(GF_Box *a)
 	if (p->patterns) {
 		u32 i;
 		for (i=0; i<p->pattern_count; i++) {
-			if (p->patterns[i].sample_group_description_indices)
-				gf_free(p->patterns[i].sample_group_description_indices);
+			gf_free(p->patterns[i].sample_group_description_indices);
 		}
 		gf_free(p->patterns);
 	}
@@ -14417,8 +14413,8 @@ void xtra_box_del(GF_Box *s)
 	GF_XtraBox *ptr = (GF_XtraBox *)s;
 	while (gf_list_count(ptr->tags)) {
 		GF_XtraTag *tag = (GF_XtraTag *) gf_list_pop_back(ptr->tags);
-		if (tag->name) gf_free(tag->name);
-		if (tag->prop_value) gf_free(tag->prop_value);
+		gf_free(tag->name);
+		gf_free(tag->prop_value);
 		gf_free(tag);
 	}
 	gf_list_del(ptr->tags);
@@ -14595,7 +14591,7 @@ GF_Box *svhd_box_new()
 void svhd_box_del(GF_Box *s)
 {
 	GF_SphericalVideoInfoBox *ptr = (GF_SphericalVideoInfoBox *)s;
-	if (ptr->string) gf_free(ptr->string);
+	gf_free(ptr->string);
 	gf_free(s);
 }
 
@@ -14797,7 +14793,7 @@ GF_Err empty_box_size(GF_Box *s)
 void extl_box_del(GF_Box *s)
 {
 	GF_ExternalTrackLocationBox *ptr = (GF_ExternalTrackLocationBox *)s;
-	if (ptr->location) gf_free(ptr->location);
+	gf_free(ptr->location);
 	gf_free(ptr);
 	return;
 }
@@ -14889,7 +14885,7 @@ void sref_box_del(GF_Box *s)
 	GF_SampleReferences *ptr = (GF_SampleReferences*)s;
 	while (gf_list_count(ptr->entries)) {
 		GF_SampleRefEntry *ent = (GF_SampleRefEntry *) gf_list_pop_back(ptr->entries);
-		if (ent->sample_refs) gf_free(ent->sample_refs);
+		gf_free(ent->sample_refs);
 		gf_free(ent);
 	}
 	gf_list_del(ptr->entries);
@@ -15071,7 +15067,7 @@ exit:
 
 	while (gf_list_count(def_refs)) {
 		GF_SampleRefDiffEntry *ent = (GF_SampleRefDiffEntry *) gf_list_pop_back(def_refs);
-		if (ent->sample_refs) gf_free(ent->sample_refs);
+		gf_free(ent->sample_refs);
 		gf_free(ent);
 	}
 	gf_list_del(def_refs);
@@ -15214,7 +15210,7 @@ static void cdrf_clean_refs(GF_List *refs)
 {
 	while (gf_list_count(refs)) {
 		GF_SampleRefDiffEntry *rent = (GF_SampleRefDiffEntry *)gf_list_pop_back(refs);
-		if (rent->sample_refs) gf_free(rent->sample_refs);
+		gf_free(rent->sample_refs);
 		gf_free(rent);
 	}
 	gf_list_del(refs);
@@ -15383,8 +15379,7 @@ GF_Err cdrf_box_write(GF_SampleReferences *ptr, GF_BitStream *bs)
 	if (prev_len) {
 		cdrf_box_flush_pattern(bs, pattern_len ? pattern_len : prev_len, prev_offset, nb_samples, sample_ids, bits);
 	}
-	if (sample_ids)
-		gf_free(sample_ids);
+	gf_free(sample_ids);
 	cdrf_clean_refs(refs);
 	return GF_OK;
 }

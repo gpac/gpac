@@ -134,7 +134,7 @@ void schm_box_del(GF_Box *s)
 {
 	GF_SchemeTypeBox *ptr = (GF_SchemeTypeBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->URI) gf_free(ptr->URI);
+	gf_free(ptr->URI);
 	gf_free(ptr);
 }
 
@@ -269,7 +269,7 @@ void iKMS_box_del(GF_Box *s)
 {
 	GF_ISMAKMSBox *ptr = (GF_ISMAKMSBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->URI) gf_free(ptr->URI);
+	gf_free(ptr->URI);
 	gf_free(ptr);
 }
 
@@ -418,9 +418,9 @@ void ohdr_box_del(GF_Box *s)
 {
 	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox*)s;
 	if (ptr == NULL) return;
-	if (ptr->ContentID) gf_free(ptr->ContentID);
-	if (ptr->RightsIssuerURL) gf_free(ptr->RightsIssuerURL);
-	if (ptr->TextualHeaders) gf_free(ptr->TextualHeaders);
+	gf_free(ptr->ContentID);
+	gf_free(ptr->RightsIssuerURL);
+	gf_free(ptr->TextualHeaders);
 	gf_free(ptr);
 }
 
@@ -515,8 +515,8 @@ void grpi_box_del(GF_Box *s)
 {
 	GF_OMADRMGroupIDBox *ptr = (GF_OMADRMGroupIDBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->GroupID) gf_free(ptr->GroupID);
-	if (ptr->GroupKey) gf_free(ptr->GroupKey);
+	gf_free(ptr->GroupID);
+	gf_free(ptr->GroupKey);
 	gf_free(ptr);
 }
 
@@ -662,7 +662,7 @@ GF_Box *odrb_box_new()
 void odrb_box_del(GF_Box *s)
 {
 	GF_OMADRMRightsObjectBox *ptr = (GF_OMADRMRightsObjectBox*)s;
-	if (ptr->oma_ro) gf_free(ptr->oma_ro);
+	gf_free(ptr->oma_ro);
 	gf_free(ptr);
 }
 
@@ -761,8 +761,8 @@ void pssh_box_del(GF_Box *s)
 {
 	GF_ProtectionSystemHeaderBox *ptr = (GF_ProtectionSystemHeaderBox*)s;
 	if (ptr == NULL) return;
-	if (ptr->private_data) gf_free(ptr->private_data);
-	if (ptr->KIDs) gf_free(ptr->KIDs);
+	gf_free(ptr->private_data);
+	gf_free(ptr->KIDs);
 	gf_free(ptr);
 }
 
@@ -1191,7 +1191,7 @@ GF_Box *piff_pssh_box_new()
 void piff_pssh_box_del(GF_Box *s)
 {
 	GF_PIFFProtectionSystemHeaderBox *ptr = (GF_PIFFProtectionSystemHeaderBox*)s;
-	if (ptr->private_data) gf_free(ptr->private_data);
+	gf_free(ptr->private_data);
 	gf_free(s);
 }
 
@@ -1725,7 +1725,7 @@ void aeib_box_del(GF_Box *s)
 {
 	GF_AdobeEncryptionInfoBox *ptr = (GF_AdobeEncryptionInfoBox*)s;
 	if (!ptr) return;
-	if (ptr->enc_algo) gf_free(ptr->enc_algo);
+	gf_free(ptr->enc_algo);
 	gf_free(ptr);
 }
 
@@ -1832,8 +1832,7 @@ void flxs_box_del(GF_Box *s)
 {
 	GF_AdobeFlashAccessParamsBox *ptr = (GF_AdobeFlashAccessParamsBox*)s;
 	if (!ptr) return;
-	if (ptr->metadata)
-		gf_free(ptr->metadata);
+	gf_free(ptr->metadata);
 	gf_free(ptr);
 }
 

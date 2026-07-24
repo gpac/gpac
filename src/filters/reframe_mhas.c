@@ -838,8 +838,8 @@ static void mhas_dmx_finalize(GF_Filter *filter)
 {
 	GF_MHASDmxCtx *ctx = (GF_MHASDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
-	if (ctx->indexes) gf_free(ctx->indexes);
-	if (ctx->mhas_buffer) gf_free(ctx->mhas_buffer);
+	gf_free(ctx->indexes);
+	gf_free(ctx->mhas_buffer);
 	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 }
 

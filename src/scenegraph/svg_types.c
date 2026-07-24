@@ -125,7 +125,7 @@ void gf_svg_node_del(GF_Node *node)
 			gf_smil_timing_delete_runtime_info((GF_Node *)tap, tap->timingp->runtime);
 			gf_free(tap->timingp);
 		}
-		if (tap->xlinkp)	gf_free(tap->xlinkp);
+		gf_free(tap->xlinkp);
 	}
 
 	gf_node_delete_attributes(node);
@@ -320,7 +320,7 @@ void gf_smil_delete_times(GF_List *list)
 	count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
 		SMIL_Time *v = (SMIL_Time *)gf_list_get(list, i);
-		if (v->element_id) gf_free(v->element_id);
+		gf_free(v->element_id);
 		gf_free(v);
 	}
 	gf_list_del(list);
@@ -351,7 +351,7 @@ void gf_svg_delete_coordinates(GF_List *list)
 void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI *iri)
 {
 	if (!iri) return;
-	if (iri->string) gf_free(iri->string);
+	gf_free(iri->string);
 	gf_node_unregister_iri(sg, iri);
 }
 
@@ -437,12 +437,12 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	case DOM_String_datatype:
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
-		if (*(SVG_String *)value) gf_free(*(SVG_String *)value);
+		gf_free(*(SVG_String *)value);
 		gf_free(value);
 		break;
 	case SVG_StrokeDashArray_datatype:
-		if (((SVG_StrokeDashArray*)value)->array.vals) gf_free(((SVG_StrokeDashArray*)value)->array.vals);
-		if (((SVG_StrokeDashArray*)value)->array.units) gf_free(((SVG_StrokeDashArray*)value)->array.units);
+		gf_free(((SVG_StrokeDashArray*)value)->array.vals);
+		gf_free(((SVG_StrokeDashArray*)value)->array.units);
 		gf_free(value);
 		break;
 	case SMIL_KeyTimes_datatype:
@@ -463,14 +463,14 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	case SVG_FontFamily_datatype:
 	{
 		SVG_FontFamily *ff = (SVG_FontFamily *)value;
-		if (ff->value) gf_free(ff->value);
+		gf_free(ff->value);
 		gf_free(value);
 	}
 	break;
 	case SMIL_AttributeName_datatype:
 	{
 		SMIL_AttributeName *an = (SMIL_AttributeName *)value;
-		if (an->name) gf_free(an->name);
+		gf_free(an->name);
 		gf_free(value);
 	}
 	break;
@@ -501,7 +501,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		while (gf_list_count(l)) {
 			XMLRI *r = (XMLRI *)gf_list_last(l);
 			gf_list_rem_last(l);
-			if (r->string) gf_free(r->string);
+			gf_free(r->string);
 			gf_free(r);
 		}
 		gf_list_del(l);
@@ -509,7 +509,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		break;
 
 	case SVG_Unknown_datatype:
-		if (*(SVG_String *)value) gf_free(*(SVG_String *)value);
+		gf_free(*(SVG_String *)value);
 		gf_free(value);
 		break;
 	case SVG_NodeList_datatype:

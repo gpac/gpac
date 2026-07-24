@@ -131,7 +131,7 @@ void gf_mixer_del(GF_AudioMixer *am)
 	gf_mixer_remove_all(am);
 	gf_list_del(am->sources);
 	gf_mx_del(am->mx);
-	if (am->output) gf_free(am->output);
+	gf_free(am->output);
 	gf_free(am);
 }
 
@@ -143,7 +143,7 @@ void gf_mixer_remove_all(GF_AudioMixer *am)
 		MixerInput *in = (MixerInput *)gf_list_get(am->sources, 0);
 		gf_list_rem(am->sources, 0);
 		for (j=0; j<GF_AUDIO_MIXER_MAX_CHANNELS; j++) {
-			if (in->ch_buf[j]) gf_free(in->ch_buf[j]);
+			gf_free(in->ch_buf[j]);
 		}
 		gf_free(in);
 	}
@@ -240,7 +240,7 @@ void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src)
 		if (in->src != src) continue;
 		gf_list_rem(am->sources, i);
 		for (j=0; j<GF_AUDIO_MIXER_MAX_CHANNELS; j++) {
-			if (in->ch_buf[j]) gf_free(in->ch_buf[j]);
+			gf_free(in->ch_buf[j]);
 		}
 		gf_free(in);
 		break;

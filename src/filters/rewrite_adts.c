@@ -210,7 +210,7 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (!ctx->acfg.chan_cfg && ctx->acfg.program_config_element_present) {
 		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_m4a_write_program_config_element_bs(bs, &ctx->acfg);
-		if (ctx->pce) gf_free(ctx->pce);
+		gf_free(ctx->pce);
 		ctx->pce = NULL;
 		gf_bs_get_content(bs, &ctx->pce, &ctx->pce_size);
 		gf_bs_del(bs);
@@ -399,7 +399,7 @@ static void adtsmx_finalize(GF_Filter *filter)
 	GF_ADTSMxCtx *ctx = (GF_ADTSMxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (ctx->pce) gf_free(ctx->pce);
+	gf_free(ctx->pce);
 #endif
 }
 

@@ -649,8 +649,8 @@ static void proresdmx_finalize(GF_Filter *filter)
 {
 	GF_ProResDmxCtx *ctx = (GF_ProResDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
-	if (ctx->frame_sizes) gf_free(ctx->frame_sizes);
-	if (ctx->buffer) gf_free(ctx->buffer);
+	gf_free(ctx->frame_sizes);
+	gf_free(ctx->buffer);
 }
 
 static const char * proresdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)

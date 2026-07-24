@@ -3809,7 +3809,7 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 				}
 			}
 		}
-		if (utf16Line) gf_free(utf16Line);
+		gf_free(utf16Line);
 	}
 
 	if (box_dump) {
@@ -7755,7 +7755,7 @@ void dump_element(JSContext *ctx, FILE *trace, const char *name, JSValue obj, Bo
 		JS_FreeValue(ctx, par);
 	}
 
-	if (elem_name) gf_free(elem_name);
+	gf_free(elem_name);
 	if (has_child) {
 		if (box)
 			gf_isom_box_dump_done(name, box, trace);

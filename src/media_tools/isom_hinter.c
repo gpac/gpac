@@ -989,7 +989,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 			e = gf_isom_text_get_encoded_tx3g(tkHint->file, tkHint->TrackNum, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
 			if (e) {
 				if (i) continue;
-				if (sdp_line) gf_free(sdp_line);
+				gf_free(sdp_line);
 				return GF_ISOM_INVALID_FILE;
 			}
 			len = gf_base64_encode(tx3g, tx3g_len, (u8*)buffer, 2000);
@@ -1039,14 +1039,14 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		}
 		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 		if (e) {
-			if (sdp) gf_free(sdp);
+			gf_free(sdp);
 			return e;
 		}
 		if (tkHint->rtp_p->slMap.IV_length) {
 			const char *kms;
 			e = gf_isom_get_ismacryp_info(tkHint->file, tkHint->TrackNum, 1, NULL, NULL, NULL, NULL, &kms, NULL, NULL, NULL);
 			if (e || !kms) {
-				if (sdp) gf_free(sdp);
+				gf_free(sdp);
 				return e;
 			}
 			if (!strnicmp(kms, "(key)", 5) || !strnicmp(kms, "(ipmp)", 6) || !strnicmp(kms, "(uri)", 5)) {
@@ -1057,7 +1057,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 			gf_dynstrcat(&sdp, kms, NULL);
 		}
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdp);
-		if (sdp) gf_free(sdp);
+		gf_free(sdp);
 	}
 	/*MPEG-4 Audio LATM*/
 	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_LATM) {
@@ -1094,7 +1094,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, &sdp, config_bytes, config_size);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdp);
 		gf_free(config_bytes);
-		if (sdp) gf_free(sdp);
+		gf_free(sdp);
 	}
 #if GPAC_ENABLE_3GPP_DIMS_RTP
 	/*3GPP DIMS*/
@@ -1128,7 +1128,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 			gf_dynstrcat(&sdp, dims.contentEncoding, NULL);
 		}
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdp);
-		if (sdp) gf_free(sdp);
+		gf_free(sdp);
 	}
 #endif
 	/*extensions for some mobile phones*/

@@ -40,7 +40,7 @@ void gf_isom_ismacryp_delete_sample(GF_ISMASample *samp)
 {
 	if (!samp) return;
 	if (samp->data && samp->dataLength) gf_free(samp->data);
-	if (samp->key_indicator) gf_free(samp->key_indicator);
+	gf_free(samp->key_indicator);
 	gf_free(samp);
 }
 
@@ -121,7 +121,7 @@ GF_Err gf_isom_ismacryp_sample_to_sample(const GF_ISMASample *s, GF_ISOSample *d
 		if (s->KI_length) gf_bs_write_data(bs,s->key_indicator, s->KI_length);
 	}
 	gf_bs_write_data(bs, s->data, s->dataLength);
-	if (dest->data) gf_free(dest->data);
+	gf_free(dest->data);
 	dest->data = NULL;
 	dest->dataLength = 0;
 	gf_bs_get_content(bs, &dest->data, &dest->dataLength);
@@ -1365,7 +1365,7 @@ GF_EXPORT
 void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp)
 {
 	if (!samp) return;
-	if (samp->cenc_data) gf_free(samp->cenc_data);
+	gf_free(samp->cenc_data);
 	gf_free(samp);
 }
 

@@ -41,7 +41,7 @@ void gf_void_del(void *p)
 void gf_filterpacket_del(void *p)
 {
 	GF_FilterPacket *pck=(GF_FilterPacket *)p;
-	if (pck->data) gf_free(pck->data);
+	gf_free(pck->data);
 	gf_free(p);
 }
 
@@ -691,7 +691,7 @@ void gf_filter_del(GF_Filter *filter)
 	gf_fq_del(filter->pending_pids, NULL);
 
 	reset_filter_args(filter);
-	if (filter->src_args) gf_free(filter->src_args);
+	gf_free(filter->src_args);
 
 	if (filter->pcks_shared_reservoir)
 		gf_fq_del(filter->pcks_shared_reservoir, gf_void_del);
@@ -704,17 +704,17 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->tasks_mx)
 		gf_mx_del(filter->tasks_mx);
 
-	if (filter->id) gf_free(filter->id);
-	if (filter->source_ids) gf_free(filter->source_ids);
-	if (filter->dynamic_source_ids) gf_free(filter->dynamic_source_ids);
-	if (filter->filter_udta) gf_free(filter->filter_udta);
-	if (filter->orig_args) gf_free(filter->orig_args);
-	if (filter->dst_args) gf_free(filter->dst_args);
-	if (filter->name) gf_free(filter->name);
-	if (filter->status_str) gf_free(filter->status_str);
-	if (filter->restricted_source_id) gf_free(filter->restricted_source_id);
-	if (filter->tag) gf_free(filter->tag);
-	if (filter->itag) gf_free(filter->itag);
+	gf_free(filter->id);
+	gf_free(filter->source_ids);
+	gf_free(filter->dynamic_source_ids);
+	gf_free(filter->filter_udta);
+	gf_free(filter->orig_args);
+	gf_free(filter->dst_args);
+	gf_free(filter->name);
+	gf_free(filter->status_str);
+	gf_free(filter->restricted_source_id);
+	gf_free(filter->tag);
+	gf_free(filter->itag);
 
 	if (!filter->session->in_final_flush && !filter->session->run_status) {
 		u32 i, count;
@@ -750,33 +750,26 @@ void gf_filter_del(GF_Filter *filter)
 		gf_props_reset_single(&prop);
 	}
 
-	if (filter->instance_description)
-		gf_free(filter->instance_description);
-	if (filter->instance_version)
-		gf_free(filter->instance_version);
-	if (filter->instance_author)
-		gf_free(filter->instance_author);
-	if (filter->instance_help)
-		gf_free(filter->instance_help);
+	gf_free(filter->instance_description);
+	gf_free(filter->instance_version);
+	gf_free(filter->instance_author);
+	gf_free(filter->instance_help);
 
-	if (filter->meta_instances)
-		gf_free(filter->meta_instances);
+	gf_free(filter->meta_instances);
 
-	if (filter->netcap_id)
-		gf_free(filter->netcap_id);
+	gf_free(filter->netcap_id);
 
 #ifndef GPAC_DISABLE_LOG
 	if (filter->logs) {
 		gf_log_pop_extra(filter->logs);
-		if (filter->logs->tools) gf_free(filter->logs->tools);
-		if (filter->logs->levels) gf_free(filter->logs->levels);
+		gf_free(filter->logs->tools);
+		gf_free(filter->logs->levels);
 		gf_free(filter->logs);
 	}
 #endif
 
 #ifdef GPAC_HAS_QJS
-	if (filter->iname)
-		gf_free(filter->iname);
+	gf_free(filter->iname);
 #endif
 
 #ifndef GPAC_DISABLE_THREADS
@@ -792,13 +785,13 @@ void gf_filter_del(GF_Filter *filter)
 			u32 i;
 			for (i=0; i<filter->nb_forced_caps; i++) {
 				if (filter->forced_caps[i].name)
-					gf_free((char *) filter->forced_caps[i].name);
+					gf_free((void*)filter->forced_caps[i].name);
 				gf_props_reset_single( (GF_PropertyValue *) & filter->forced_caps[i].val);
 			}
 			gf_free( (void *) filter->forced_caps);
 		}
 		gf_filter_sess_reset_graph(filter->session, filter->freg);
-		gf_free( (char *) filter->freg->name);
+		gf_free((void*)filter->freg->name);
 		gf_free( (void *) filter->freg);
 	}
 	gf_free(filter);
@@ -826,7 +819,7 @@ void gf_filter_set_name(GF_Filter *filter, const char *name)
 {
 	gf_assert(filter);
 
-	if (filter->name) gf_free(filter->name);
+	gf_free(filter->name);
 	filter->name = gf_strdup(name ? name : filter->freg->name);
 }
 
@@ -834,7 +827,7 @@ void gf_filter_set_id(GF_Filter *filter, const char *ID)
 {
 	gf_assert(filter);
 
-	if (filter->id) gf_free(filter->id);
+	gf_free(filter->id);
 	filter->id = ID ? gf_strdup(ID) : NULL;
 }
 
@@ -871,7 +864,7 @@ static void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 	gf_mx_p(filter->session->filters_mx);
 
 	if (!sources_ID) {
-		if (filter->source_ids) gf_free(filter->source_ids);
+		gf_free(filter->source_ids);
 		filter->source_ids = NULL;
 	} else if (!filter->source_ids) {
 		filter->source_ids = gf_strdup(sources_ID);
@@ -981,7 +974,7 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
 		if (a->offset_in_private + sizeof(char *) <= filter->freg->private_size) {
-			if (*(char **)ptr) gf_free( * (char **)ptr);
+			gf_free( * (char **)ptr);
 			//we don't strdup since we don't free the string at the caller side
 			*(char **)ptr = argv->value.string;
 			res = GF_TRUE;
@@ -997,7 +990,7 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 	case GF_PROP_CONST_DATA:
 		if (a->offset_in_private + sizeof(GF_PropData) <= filter->freg->private_size) {
 			GF_PropData *pd = (GF_PropData *) ptr;
-			if ((argv->type!=GF_PROP_CONST_DATA) && pd->ptr) gf_free(pd->ptr);
+			if (argv->type!=GF_PROP_CONST_DATA) gf_free(pd->ptr);
 			//we don't free/alloc since we don't free the string at the caller side
 			pd->size = argv->value.data.size;
 			pd->ptr = argv->value.data.ptr;
@@ -1017,7 +1010,7 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 			for (k=0; k<l->nb_items; k++) {
 				gf_free(l->vals[k]);
 			}
-			if (l->vals) gf_free(l->vals);
+			gf_free(l->vals);
 			//we don't clone since we don't free the string at the caller side
 			*l = argv->value.string_list;
 			res = GF_TRUE;
@@ -1030,7 +1023,7 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 		//use uint_list as base type for lists
 		if (a->offset_in_private + sizeof(void *) <= filter->freg->private_size) {
 			GF_PropUIntList *l = (GF_PropUIntList *)ptr;
-			if (l->vals) gf_free(l->vals);
+			gf_free(l->vals);
 			*l = argv->value.uint_list;
 			res = GF_TRUE;
 		}
@@ -1336,8 +1329,8 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 void filter_parse_logs(GF_Filter *filter, const char *_logs)
 {
 	if (filter->logs) {
-		if (filter->logs->tools) gf_free(filter->logs->tools);
-		if (filter->logs->levels) gf_free(filter->logs->levels);
+		gf_free(filter->logs->tools);
+		gf_free(filter->logs->levels);
 		gf_log_pop_extra(filter->logs);
 		gf_free(filter->logs);
 	}
@@ -1686,8 +1679,13 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 	const GF_FilterArgs *save_a;
 	GF_Filter *meta_filter;
 
-	if (args)
+	if (args) {
 		szArg = (char *)gf_malloc(1024);
+		if (!szArg) {
+			filter->session->last_connect_error = GF_OUT_OF_MEM;
+			return;
+		}
+	}
 
 	//by default always force a remux
 	if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK)
@@ -2241,7 +2239,7 @@ skip_date:
 			//filter tag
 			else if (!strcmp("TAG", szArg)) {
 				if (! filter->dynamic_filter) {
-					if (filter->tag) gf_free(filter->tag);
+					gf_free(filter->tag);
 					filter->tag = value ? gf_strdup(value) : NULL;
 				}
 				found = GF_TRUE;
@@ -2249,7 +2247,7 @@ skip_date:
 			}
 			//filter itag
 			else if (!strcmp("ITAG", szArg)) {
-				if (filter->itag) gf_free(filter->itag);
+				gf_free(filter->itag);
 				filter->itag = value ? gf_strdup(value) : NULL;
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
@@ -2274,7 +2272,7 @@ skip_date:
 				internal_arg = GF_TRUE;
 			}
 			else if (!strcmp("NCID", szArg)) {
-				if (filter->netcap_id) gf_free(filter->netcap_id);
+				gf_free(filter->netcap_id);
 				filter->netcap_id = value ? gf_strdup(value) : NULL;
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
@@ -2341,7 +2339,7 @@ skip_date:
 					gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 					e = filter->freg->update_arg(filter, szArg, &argv);
 					gf_logs_thread_untag(filter);
-					if (argv.value.string) gf_free(argv.value.string);
+					gf_free(argv.value.string);
 					//opaque arg not found for meta, report it
 					if ((e==GF_NOT_FOUND) && opaque_arg) {
 						opaque_arg = GF_FALSE;
@@ -2371,7 +2369,7 @@ skip_arg:
 		}
 		if (args && !args[0]) break;
 	}
-	if (szArg) gf_free(szArg);
+	gf_free(szArg);
 }
 
 
@@ -4203,7 +4201,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 	}
 
 	gf_fs_load_source_dest_internal(filter->session, src_url, src_args, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit, NULL, NULL);
-	if (src_args) gf_free(src_args);
+	gf_free(src_args);
 
 	//we manage to reassign an input registry
 	if (e==GF_OK) {
@@ -4402,7 +4400,7 @@ GF_Filter *gf_filter_connect_source_internal(GF_Filter *filter, const char *url,
 	} else {
 		filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, is_src_add ? NULL : filter, GF_TRUE, is_src_add ? GF_FALSE : GF_TRUE, NULL, NULL);
 	}
-	if (full_args) gf_free(full_args);
+	gf_free(full_args);
 
 	if (!filter_src) return NULL;
 
@@ -4584,8 +4582,7 @@ GF_Err gf_filter_set_source_restricted(GF_Filter *filter, GF_Filter *link_from, 
 {
 	GF_Err e =  gf_filter_set_source(filter, link_from, link_ext);
 	if (e) return e;
-	if (link_from->restricted_source_id)
-		gf_free(link_from->restricted_source_id);
+	gf_free(link_from->restricted_source_id);
 
 	link_from->restricted_source_id = gf_strdup(link_from->id);
 	return GF_OK;
@@ -5353,8 +5350,7 @@ void gf_filter_report_meta_option(GF_Filter *filter, const char *arg, Bool was_f
 GF_Err gf_filter_set_description(GF_Filter *filter, const char *new_desc)
 {
 	if (!filter) return GF_BAD_PARAM;
-	if (filter->instance_description)
-		gf_free(filter->instance_description);
+	gf_free(filter->instance_description);
 
 	filter->instance_description = new_desc ? gf_strdup(new_desc) : NULL;
 	return GF_OK;
@@ -5379,8 +5375,7 @@ GF_ClassTypeHint gf_filter_get_class_hint(GF_Filter *filter)
 GF_Err gf_filter_set_version(GF_Filter *filter, const char *new_desc)
 {
 	if (!filter) return GF_BAD_PARAM;
-	if (filter->instance_version)
-		gf_free(filter->instance_version);
+	gf_free(filter->instance_version);
 
 	filter->instance_version = new_desc ? gf_strdup(new_desc) : NULL;
 	return GF_OK;
@@ -5394,8 +5389,7 @@ const char *gf_filter_get_version(GF_Filter *filter)
 GF_Err gf_filter_set_author(GF_Filter *filter, const char *new_desc)
 {
 	if (!filter) return GF_BAD_PARAM;
-	if (filter->instance_author)
-		gf_free(filter->instance_author);
+	gf_free(filter->instance_author);
 
 	filter->instance_author = new_desc ? gf_strdup(new_desc) : NULL;
 	return GF_OK;
@@ -5409,8 +5403,7 @@ const char *gf_filter_get_author(GF_Filter *filter)
 GF_Err gf_filter_set_help(GF_Filter *filter, const char *new_desc)
 {
 	if (!filter) return GF_BAD_PARAM;
-	if (filter->instance_help)
-		gf_free(filter->instance_help);
+	gf_free(filter->instance_help);
 
 	filter->instance_help = new_desc ? gf_strdup(new_desc) : NULL;
 	return GF_OK;
@@ -5863,7 +5856,7 @@ GF_EXPORT
 void gf_filter_meta_set_instances(GF_Filter *filter, const char *instance_names_list)
 {
 	if (!filter) return;
-	if (filter->meta_instances) gf_free(filter->meta_instances);
+	gf_free(filter->meta_instances);
 	filter->meta_instances = gf_strdup(instance_names_list);
 }
 

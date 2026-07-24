@@ -123,7 +123,7 @@ static void clear_headers(char ***_hdrs, u32 *nb_hdrs)
 	if (hdrs) {
 		u32 i=0;
 		for (i=0; i<*nb_hdrs; i++) {
-			if (hdrs[i]) gf_free(hdrs[i]);
+			gf_free(hdrs[i]);
 		}
 		gf_free(hdrs);
 		*_hdrs = NULL;
@@ -136,10 +136,10 @@ void cache_blob_del(GF_CacheBlob *b)
 	if (!b) return;
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[Downloader] Removing cache entry of %s (%s - range " LLU "-" LLU ")\n", b->url, b->cache_name, b->start_range, b->end_range));
 	gf_blob_unregister(&b->blob);
-	if (b->blob.data) gf_free(b->blob.data);
-	if (b->url) gf_free(b->url);
-	if (b->cache_name) gf_free(b->cache_name);
-	if (b->mime) gf_free(b->mime);
+	gf_free(b->blob.data);
+	gf_free(b->url);
+	gf_free(b->cache_name);
+	gf_free(b->mime);
 	gf_free(b);
 }
 
@@ -148,15 +148,15 @@ static void gf_dm_sess_reset(GF_DownloadSession *sess)
 	if (!sess) return;
 	clear_headers(&sess->req_hdrs, &sess->nb_req_hdrs);
 	clear_headers(&sess->rsp_hdrs, &sess->nb_rsp_hdrs);
-	if (sess->req_body) gf_free(sess->req_body);
+	gf_free(sess->req_body);
 	sess->req_body = NULL;
 
 	if (sess->state==1) {
 		dm_fetch_cancel(EM_CAST_PTR sess);
 	}
-	if (sess->req_url) gf_free(sess->req_url);
+	gf_free(sess->req_url);
 	sess->req_url = NULL;
-	if (sess->rsp_url) gf_free(sess->rsp_url);
+	gf_free(sess->rsp_url);
 	sess->rsp_url = NULL;
 	sess->mime = NULL;
 	sess->state = 0;
@@ -780,7 +780,7 @@ void gf_dm_sess_async_reply(GF_DownloadSession *sess, int rsp_code, const char *
 	sess->last_error = e;
 
 	if (final_url) {
-		if (sess->rsp_url) gf_free(sess->rsp_url);
+		gf_free(sess->rsp_url);
 		sess->rsp_url = final_url ? gf_strdup(final_url) : NULL;
 	}
 }

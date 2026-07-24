@@ -115,8 +115,7 @@ void SDL_DeleteAudio(void *ifce) {
 	ctx = (SDLAudCtx *)dr->opaque;
 	if (!ctx)
 		return;
-	if (ctx->audioBuff)
-		gf_free(ctx->audioBuff);
+	gf_free(ctx->audioBuff);
 	ctx->audioBuff = NULL;
 	gf_free( ctx );
 	dr->opaque = NULL;

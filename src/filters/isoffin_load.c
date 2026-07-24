@@ -685,8 +685,7 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 			break;
 		}
 
-		if (dyname)
-			gf_free(dyname);
+		gf_free(dyname);
 	}
 
 	if (gf_sys_old_arch_compat()) {
@@ -773,18 +772,19 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 	kinds.value.string_list.nb_items = nb_udta = gf_isom_get_user_data_count(read->mov, ch->track, GF_ISOM_BOX_TYPE_KIND, NULL);
 	if (nb_udta) {
 		kinds.value.string_list.vals = (char **)gf_malloc(sizeof(char*)*nb_udta);
-		memset(kinds.value.string_list.vals, 0, sizeof(char*)*nb_udta);
-		for (i=0; i<nb_udta; i++) {
-			char *scheme=NULL, *val=NULL;
-			gf_isom_get_track_kind(read->mov, ch->track, i, &scheme, &val);
-			if (scheme) gf_dynstrcat(&kinds.value.string_list.vals[i], scheme, NULL);
-			gf_dynstrcat(&kinds.value.string_list.vals[i], val ? val : "", scheme ? ":" : NULL);
-			if (scheme) gf_free(scheme);
-			if (val) gf_free(val);
+		if (kinds.value.string_list.vals) {
+			memset(kinds.value.string_list.vals, 0, sizeof(char*)*nb_udta);
+			for (i=0; i<nb_udta; i++) {
+				char *scheme=NULL, *val=NULL;
+				gf_isom_get_track_kind(read->mov, ch->track, i, &scheme, &val);
+				if (scheme) gf_dynstrcat(&kinds.value.string_list.vals[i], scheme, NULL);
+				gf_dynstrcat(&kinds.value.string_list.vals[i], val ? val : "", scheme ? ":" : NULL);
+				gf_free(scheme);
+				gf_free(val);
+			}
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ROLE, &kinds);
 		}
-		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ROLE, &kinds);
 	}
-
 
 	//delcare track groups
 	idx=0;
@@ -1091,7 +1091,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			if (!base_tile_track) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] VVC subpicture track ID %d with no base VVC track referencing it, ignoring\n", esid));
 				if (lang_desc) gf_odf_desc_del((GF_Descriptor *)lang_desc);
-				if (dsi) gf_free(dsi);
+				gf_free(dsi);
 				return;
 			}
 			codec_id = GF_CODECID_VVC_SUBPIC;
@@ -1238,10 +1238,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 	}
 	if (!streamtype || !codec_id) {
-		if (udesc) gf_free(udesc);
+		gf_free(udesc);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Failed to %s pid for track %d, could not extract codec/streamtype info\n", ch ? "update" : "create", track));
 		if (lang_desc) gf_odf_desc_del((GF_Descriptor *)lang_desc);
-		if (dsi) gf_free(dsi);
+		gf_free(dsi);
 		return;
 	}
 
@@ -1304,7 +1304,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT((s32) srd_x, (s32) srd_y) );
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT((s32) srd_w, (s32) srd_h) );
 			}
-			if (srdg) gf_free(srdg);
+			gf_free(srdg);
 		}
 	}
 
@@ -1329,7 +1329,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			GF_HEVCConfig *lhcc = gf_isom_lhvc_config_get(read->mov, track, stsd_idx);
 
 			if (hvcc || lhcc) {
-				if (dsi) gf_free(dsi);
+				gf_free(dsi);
 				dsi = NULL;
 				//no base layer config
 				if (!hvcc) signal_lhv = GF_TRUE;
@@ -1368,7 +1368,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			}
 
 			if (avcc || svcc) {
-				if (dsi) gf_free(dsi);
+				gf_free(dsi);
 				dsi = NULL;
 				//no base layer config
 				if (!avcc) signal_svc = GF_TRUE;
@@ -1430,7 +1430,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 		m_subtype = 0;
 		if (udesc) {
-			if (udesc->extension_buf) gf_free(udesc->extension_buf);
+			gf_free(udesc->extension_buf);
 			gf_free(udesc);
 			udesc = NULL;
 		}

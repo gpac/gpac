@@ -1169,7 +1169,7 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 	if (mov->editFileMap) {
 		gf_isom_datamap_del(mov->editFileMap);
 	}
-	if (mov->finalName) gf_free(mov->finalName);
+	gf_free(mov->finalName);
 #endif
 
 	gf_isom_box_array_del(mov->TopBoxes);
@@ -1177,24 +1177,21 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 	gf_isom_box_array_del(mov->moof_list);
 	if (mov->mfra)
 		gf_isom_box_del((GF_Box*)mov->mfra);
-	if (mov->sidx_pts_store)
-		gf_free(mov->sidx_pts_store);
-	if (mov->sidx_pts_next_store)
-		gf_free(mov->sidx_pts_next_store);
+	gf_free(mov->sidx_pts_store);
+	gf_free(mov->sidx_pts_next_store);
 
 	if (mov->main_sidx)
 		gf_isom_box_del((GF_Box*)mov->main_sidx);
 
-	if (mov->block_buffer)
-		gf_free(mov->block_buffer);
+	gf_free(mov->block_buffer);
 
 	if (mov->emsgs)
 		gf_isom_box_array_del(mov->emsgs);
 #endif
 	if (mov->last_producer_ref_time)
 		gf_isom_box_del((GF_Box *) mov->last_producer_ref_time);
-	if (mov->fileName) gf_free(mov->fileName);
-	if (mov->override_dref_url) gf_free(mov->override_dref_url);
+	gf_free(mov->fileName);
+	gf_free(mov->override_dref_url);
 	gf_free(mov);
 }
 

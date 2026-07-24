@@ -81,7 +81,7 @@ GF_GenericSubtitleSample *gf_isom_new_xml_subtitle_sample()
 GF_Err gf_isom_xml_subtitle_reset(GF_GenericSubtitleSample *samp)
 {
 	if (!samp) return GF_BAD_PARAM;
-	if (samp->text) gf_free(samp->text);
+	gf_free(samp->text);
 	samp->text = NULL;
 	samp->len = 0;
 	return GF_OK;

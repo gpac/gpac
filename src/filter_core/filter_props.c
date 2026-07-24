@@ -1069,8 +1069,7 @@ void gf_props_del_property(GF_PropertyEntry *it)
 		}
 		//use uint_list as base type for list
 		else if ((it->prop.type==GF_PROP_UINT_LIST) || (it->prop.type==GF_PROP_4CC_LIST) || (it->prop.type==GF_PROP_SINT_LIST) || (it->prop.type==GF_PROP_VEC2I_LIST)) {
-			if (it->prop.value.uint_list.vals)
-				gf_free(it->prop.value.uint_list.vals);
+			gf_free(it->prop.value.uint_list.vals);
 			it->prop.value.uint_list.nb_items = 0;
 			it->prop.value.uint_list.vals = NULL;
 		}
@@ -1078,7 +1077,7 @@ void gf_props_del_property(GF_PropertyEntry *it)
 		if (it->alloc_size) {
 			gf_assert(it->prop.type==GF_PROP_DATA);
 			if (gf_fq_res_add(it->session->prop_maps_entry_data_alloc_reservoir, it)) {
-				if (it->prop.value.data.ptr) gf_free(it->prop.value.data.ptr);
+				gf_free(it->prop.value.data.ptr);
 				gf_free(it);
 			}
 		} else {

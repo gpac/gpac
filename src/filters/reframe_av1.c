@@ -665,7 +665,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		//first or config changed, compute dsi
 		while (gf_list_count(ctx->state.config->obu_array)) {
 			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*) gf_list_pop_back(ctx->state.config->obu_array);
-			if (a->obu) gf_free(a->obu);
+			gf_free(a->obu);
 			gf_free(a);
 		}
 		dsi = NULL;
@@ -694,7 +694,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		//Clear any old configOBUs - these will be repopulated from the descriptor OBUs below.
 		while (gf_list_count(ctx->iamfstate.config->configOBUs)) {
 			GF_IamfObu *a = (GF_IamfObu*) gf_list_pop_back(ctx->iamfstate.config->configOBUs);
-			if (a->raw_obu_bytes) gf_free(a->raw_obu_bytes);
+			gf_free(a->raw_obu_bytes);
 			gf_free(a);
 		}
 		ctx->iamfstate.config->configOBUs_size = 0;
@@ -1414,20 +1414,20 @@ static void av1dmx_finalize(GF_Filter *filter)
 {
 	GF_AV1DmxCtx *ctx = (GF_AV1DmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
-	if (ctx->indexes) gf_free(ctx->indexes);
+	gf_free(ctx->indexes);
 
 	gf_av1_reset_state(&ctx->state, GF_TRUE);
 	if (ctx->state.config) gf_odf_av1_cfg_del(ctx->state.config);
 	if (ctx->state.bs) gf_bs_del(ctx->state.bs);
-	if (ctx->state.frame_obus) gf_free(ctx->state.frame_obus);
-	if (ctx->buffer) gf_free(ctx->buffer);
+	gf_free(ctx->state.frame_obus);
+	gf_free(ctx->buffer);
 
 	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
 
 	gf_iamf_reset_state(&ctx->iamfstate, GF_TRUE);
 	if (ctx->iamfstate.config) gf_odf_iamf_cfg_del(ctx->iamfstate.config);
 	if (ctx->iamfstate.bs) gf_bs_del(ctx->iamfstate.bs);
-	if (ctx->iamfstate.temporal_unit_obus) gf_free(ctx->iamfstate.temporal_unit_obus);
+	gf_free(ctx->iamfstate.temporal_unit_obus);
 	if (ctx->sei_loader)
 		gf_sei_loader_del(ctx->sei_loader);
 }

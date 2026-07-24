@@ -36055,7 +36055,7 @@ static void CacheTexture_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->image);
 	gf_sg_sfstring_del(p->cacheURL);
 	gf_sg_mfurl_del(p->cacheOD);
-	if (p->data) gf_free(p->data);
+	gf_free(p->data);
 	gf_node_free((GF_Node *) p);
 }
 

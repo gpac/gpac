@@ -295,7 +295,7 @@ exit:
 static void ttmlconv_finalize(GF_Filter *filter)
 {
 	TTMLConvCtx *ctx = (TTMLConvCtx *)gf_filter_get_udta(filter);
-	if (ctx->buf) gf_free(ctx->buf);
+	gf_free(ctx->buf);
 }
 
 static const GF_FilterCapability TTMLConvCaps[] =

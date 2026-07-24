@@ -317,14 +317,12 @@ static GF_Err oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *
 	st->parse_headers = st->info.num_init_headers;
 	switch (st->info.type) {
 	case GF_CODECID_VORBIS:
-		if (st->vorbis_parser)
-			gf_free(st->vorbis_parser);
+		gf_free(st->vorbis_parser);
 		GF_SAFEALLOC(st->vorbis_parser, GF_VorbisParser);
 		if (!st->vorbis_parser) return GF_OUT_OF_MEM;
 		break;
 	case GF_CODECID_OPUS:
-		if (st->opus_cfg)
-			gf_free(st->opus_cfg);
+		gf_free(st->opus_cfg);
 		GF_SAFEALLOC(st->opus_cfg, GF_OpusConfig);
 		if (!st->opus_cfg) return GF_OUT_OF_MEM;
 		break;
@@ -933,8 +931,8 @@ static void oggdmx_finalize(GF_Filter *filter)
 		gf_list_rem(ctx->streams, 0);
 		ogg_stream_clear(&st->os);
 		if (st->dsi_bs) gf_bs_del(st->dsi_bs);
-		if (st->vorbis_parser) gf_free(st->vorbis_parser);
-		if (st->opus_cfg) gf_free(st->opus_cfg);
+		gf_free(st->vorbis_parser);
+		gf_free(st->opus_cfg);
 		gf_free(st);
 	}
 	gf_list_del(ctx->streams);

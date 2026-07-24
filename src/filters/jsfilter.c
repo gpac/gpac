@@ -278,28 +278,28 @@ static JSClassID jsf_event_class_id;
 static void jsf_event_reset(GF_FilterEvent *evt)
 {
 	if (evt->base.type == GF_FEVT_SOURCE_SWITCH) {
-		if (evt->seek.source_switch) gf_free((char *)evt->seek.source_switch);
+		gf_free((void*)evt->seek.source_switch);
 		evt->seek.source_switch = NULL;
 	}
 	else if (evt->base.type == GF_FEVT_SEGMENT_SIZE) {
-		if (evt->seg_size.seg_url) gf_free((char *)evt->seg_size.seg_url);
+		gf_free((void*)evt->seg_size.seg_url);
 		evt->seg_size.seg_url = NULL;
 	}
 	else if (evt->base.type == GF_FEVT_DASH_QUALITY_SELECT) {
-		if (evt->dash_select.period_id) gf_free((char *)evt->dash_select.period_id);
+		gf_free((void*)evt->dash_select.period_id);
 		evt->dash_select.period_id = NULL;
-		if (evt->dash_select.rep_id) gf_free((char *)evt->dash_select.rep_id);
+		gf_free((void*)evt->dash_select.rep_id);
 		evt->dash_select.period_id = NULL;
 	}
 	else if (evt->base.type==GF_FEVT_USER) {
 		if (evt->user_event.event.type==GF_EVENT_SET_CAPTION) {
-			if (evt->user_event.event.caption.caption) gf_free((char*)evt->user_event.event.caption.caption);
+			gf_free((void*)evt->user_event.event.caption.caption);
 			evt->user_event.event.caption.caption = NULL;
 		}
 		if ((evt->user_event.event.type==GF_EVENT_PASTE_TEXT)
 			|| (evt->user_event.event.type==GF_EVENT_COPY_TEXT)
 		) {
-			if (evt->user_event.event.clipboard.text) gf_free((char*)evt->user_event.event.clipboard.text);
+			gf_free((void*)evt->user_event.event.clipboard.text);
 			evt->user_event.event.clipboard.text = NULL;
 		}
 	}
@@ -1012,7 +1012,7 @@ static JSValue jsf_filter_prop_set(JSContext *ctx, JSValueConst this_val, JSValu
 	case JSF_FILTER_INAME:
 	{
 		const char *val = JS_ToCString(ctx, value);
-		if (jsf->filter->iname) gf_free(jsf->filter->iname);
+		gf_free(jsf->filter->iname);
 		if (val)
 			jsf->filter->iname = gf_strdup(val);
 		else
@@ -1078,7 +1078,7 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
 	case JSF_FILTER_DST_NAME:
 		str = gf_filter_get_dst_name(jsf->filter);
 		res = str ? JS_NewString(jsf->ctx, str) : JS_NULL;
-		if (str) gf_free(str);
+		gf_free(str);
 		return res;
 	case JSF_FILTER_SINKS_DONE:
 		return JS_NewBool(jsf->ctx, gf_filter_all_sinks_done(jsf->filter) );
@@ -1407,7 +1407,7 @@ static JSValue jsf_filter_set_name(JSContext *ctx, JSValueConst this_val, int ar
 {
 	GF_JSFilterCtx *jsf = (GF_JSFilterCtx *)JS_GetOpaque(this_val, jsf_filter_class_id);
 	if (!jsf) return GF_JS_EXCEPTION(ctx);
-	if (jsf->log_name) gf_free(jsf->log_name);
+	gf_free(jsf->log_name);
 	jsf->log_name = NULL;
 	if (argc) {
 		JSValue global;
@@ -2065,7 +2065,7 @@ static JSValue jsf_filter_inst_prop_set(JSContext *ctx, JSValueConst this_val, J
 
 	case JSFI_INAME:
 		str = JS_ToCString(ctx, value);
-		if (f_inst->filter->iname) gf_free(f_inst->filter->iname);
+		gf_free(f_inst->filter->iname);
 		f_inst->filter->iname = str ? gf_strdup(str) : NULL;
 		JS_FreeCString(ctx, str);
 		break;
@@ -3419,7 +3419,7 @@ static void to_event_string(JSContext *ctx, JSValue value, char **ptr)
 	const char *str_src = JS_ToCString(ctx, value);
 	char *str = gf_strdup(str_src ? str_src : "");
 	if (str_src) JS_FreeCString(ctx, str_src);
-	if (*ptr) gf_free(*ptr);
+	gf_free(*ptr);
 	*ptr = str;
 }
 
@@ -5058,7 +5058,7 @@ static void jsfilter_finalize(GF_Filter *filter)
 	}
 	gf_list_del(jsf->pids);
 
-	if (jsf->log_name) gf_free(jsf->log_name);
+	gf_free(jsf->log_name);
 
 	while (gf_list_count(jsf->pck_res)) {
 		GF_JSPckCtx *pck = (GF_JSPckCtx *)gf_list_pop_back(jsf->pck_res);
@@ -5069,18 +5069,18 @@ static void jsfilter_finalize(GF_Filter *filter)
 	if (jsf->args) {
 		for (i=0; i<jsf->nb_args; i++) {
 			if (jsf->args[i].arg_default_val)
-				gf_free((char *) jsf->args[i].arg_default_val);
+				gf_free((void*)jsf->args[i].arg_default_val);
 			if (jsf->args[i].arg_desc)
-				gf_free((char *) jsf->args[i].arg_desc);
+				gf_free((void*)jsf->args[i].arg_desc);
 			if (jsf->args[i].arg_name)
-				gf_free((char *) jsf->args[i].arg_name);
+				gf_free((void*)jsf->args[i].arg_name);
 			if (jsf->args[i].min_max_enum)
-				gf_free((char *) jsf->args[i].min_max_enum);
+				gf_free((void*)jsf->args[i].min_max_enum);
 		}
 		gf_free(jsf->args);
 	}
 
-	if (jsf->caps) gf_free(jsf->caps);
+	gf_free(jsf->caps);
 }
 
 

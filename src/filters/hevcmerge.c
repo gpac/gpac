@@ -612,7 +612,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] Cannot merge tiles with both relative explicit positioning and absolute explicit positioning, not supported\n"));
 		return GF_BAD_PARAM;
 	}
-	if (ctx->grid) gf_free(ctx->grid);
+	gf_free(ctx->grid);
 	ctx->grid = NULL;
 
 	if (min_rel_pos_x == (u32)-1) min_rel_pos_x=0;
@@ -1171,8 +1171,8 @@ static GF_Err hevcmerge_check_sps_pps(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *pid_
 		CHECK_PPS_VAL(log2_parallel_merge_level_minus2)
 	}
 
-	if (src_base) gf_free(src_base);
-	if (src_o) gf_free(src_o);
+	gf_free(src_base);
+	gf_free(src_o);
 	if (all_ok || !ctx->strict) return GF_OK;
 	return GF_BAD_PARAM;
 }
@@ -1606,15 +1606,15 @@ static void hevcmerge_finalize(GF_Filter *filter)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[HEVCMerge] hevcmerge_finalize.\n"));
 	GF_HEVCMergeCtx *ctx = (GF_HEVCMergeCtx *)gf_filter_get_udta(filter);
-	if (ctx->buffer_nal) gf_free(ctx->buffer_nal);
-	if (ctx->buffer_nal_no_epb) gf_free(ctx->buffer_nal_no_epb);
-	if (ctx->buffer_nal_in_no_epb) gf_free(ctx->buffer_nal_in_no_epb);
+	gf_free(ctx->buffer_nal);
+	gf_free(ctx->buffer_nal_no_epb);
+	gf_free(ctx->buffer_nal_in_no_epb);
 	gf_bs_del(ctx->bs_au_in);
 	gf_bs_del(ctx->bs_nal_in);
 	if (ctx->bs_nal_out)
 		gf_bs_del(ctx->bs_nal_out);
 
-	if (ctx->grid) gf_free(ctx->grid);
+	gf_free(ctx->grid);
 	while (gf_list_count(ctx->pids)) {
 		HEVCTilePidCtx *pctx = (HEVCTilePidCtx *)gf_list_pop_back(ctx->pids);
 		gf_free(pctx);
@@ -1622,7 +1622,7 @@ static void hevcmerge_finalize(GF_Filter *filter)
 	gf_list_del(ctx->pids);
 	gf_list_del(ctx->ordered_pids);
 
-	if (ctx->sei_suffix_buf) gf_free(ctx->sei_suffix_buf);
+	gf_free(ctx->sei_suffix_buf);
 
 }
 

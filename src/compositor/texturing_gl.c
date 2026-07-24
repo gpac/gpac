@@ -151,10 +151,10 @@ static void release_txio(struct __texture_wrapper *tx_io)
 	}
 #endif
 
-	if (tx_io->conv_data) gf_free(tx_io->conv_data);
+	gf_free(tx_io->conv_data);
 
 #ifdef GF_SR_USE_DEPTH
-	if (tx_io->depth_data) gf_free(tx_io->depth_data);
+	gf_free(tx_io->depth_data);
 #endif
 
 	gf_free(tx_io);
@@ -996,7 +996,10 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 
 #ifndef GPAC_USE_GLES1X
 		/*obtain depthmap*/
-		if (!txh->tx_io->depth_data) txh->tx_io->depth_data = (char*)gf_malloc(txh->width*txh->height);
+		if (!txh->tx_io->depth_data) {
+			txh->tx_io->depth_data = (char*)gf_malloc(txh->width*txh->height);
+			if (!txh->tx_io->depth_data) return;
+		}
 		glReadPixels(0, 0, txh->width, txh->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, txh->tx_io->depth_data);
 		/*	depth = alpha & 0xfe
 		    shape = plan alpha & 0x01 */

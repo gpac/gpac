@@ -139,7 +139,7 @@ void OD_ParseBinData(u8 *val, u8 **out_data, u32 *out_data_size)
 	u32 i, c;
 	char s[3];
 	u32 len = (u32) strlen((char*)val) / 3;
-	if (*out_data) gf_free(*out_data);
+	gf_free(*out_data);
 	*out_data_size = len;
 	*out_data = (u8*)gf_malloc(len);
 	if (! *out_data) {
@@ -575,6 +575,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			/*check if we need a new entry*/
 			if (!sd->font_count) {
 				sd->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
+				if (!sd->fonts) return GF_OUT_OF_MEM;
 				sd->font_count = 1;
 				sd->fonts[0].fontID = 0;
 				sd->fonts[0].fontName = NULL;

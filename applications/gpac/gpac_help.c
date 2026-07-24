@@ -2438,7 +2438,7 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 			}
 		}
 	}
-	if (l_fname) gf_free(l_fname);
+	gf_free(l_fname);
 
 
 	if (found) return GF_TRUE;
@@ -3261,7 +3261,7 @@ void dump_all_formats(GF_SysArgMode argmode)
 	while (gf_list_count(all_fmts)) {
 		FMTHandler *hdl = (FMTHandler *)gf_list_pop_back(all_fmts);
 		gf_free(hdl->ext);
-		if (hdl->mime) gf_free(hdl->mime);
+		gf_free(hdl->mime);
 		gf_list_del(hdl->demuxers);
 		gf_list_del(hdl->muxers);
 		gf_free(hdl);

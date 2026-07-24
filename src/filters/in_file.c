@@ -274,7 +274,7 @@ static void filein_finalize(GF_Filter *filter)
 #ifdef GPAC_HAS_FD
 	if (ctx->fd>=0) close(ctx->fd);
 #endif
-	if (ctx->block) gf_free(ctx->block);
+	gf_free(ctx->block);
 }
 
 static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_type)

@@ -956,7 +956,7 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 			char *str = gf_bt_get_string(parser, delim);
 			if (!str)
 				goto err;
-			if (((SFString *)info->far_ptr)->buffer) gf_free(((SFString *)info->far_ptr)->buffer);
+			gf_free(((SFString *)info->far_ptr)->buffer);
 			((SFString *)info->far_ptr)->buffer = NULL;
 			if (strlen(str))
 				((SFString *)info->far_ptr)->buffer = str;
@@ -980,7 +980,7 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 			SFURL *url = (SFURL *)info->far_ptr;
 			char *str = gf_bt_get_string(parser, delim);
 			if (!str) goto err;
-			if (url->url) gf_free(url->url);
+			gf_free(url->url);
 			url->url = NULL;
 			url->OD_ID = 0;
 			if (strchr(str, '#')) {
@@ -1036,7 +1036,7 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		if (parser->last_error) return;
 		img->numComponents = v;
 		size = img->width * img->height * img->numComponents;
-		if (img->pixels) gf_free(img->pixels);
+		gf_free(img->pixels);
 		img->pixels = (u8 *)gf_malloc(size);
 		if (!img->pixels) {
 			img->width = img->height = 0;
@@ -1354,7 +1354,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 			gf_list_add(parser->undef_nodes, node);
 		}
 		gf_node_register(node, parent);
-		if (name) gf_free(name);
+		gf_free(name);
 		return node;
 	}
 	proto = NULL;
@@ -1370,7 +1370,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 		if (!proto) {
 			/*locate proto*/
 			gf_bt_report(parser, GF_BAD_PARAM, "%s: not a valid/supported node", str);
-			if (name) gf_free(name);
+			gf_free(name);
 			return NULL;
 		}
 		tag = TAG_ProtoNode;
@@ -1396,7 +1396,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 
 	if (!node) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
-		if (name) gf_free(name);
+		gf_free(name);
 		return NULL;
 	}
 	if (register_def) gf_list_add(parser->def_nodes, node);
@@ -1620,7 +1620,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 
 err:
 	gf_node_unregister(node, parent);
-	if (name) gf_free(name);
+	gf_free(name);
 	return NULL;
 }
 /*
@@ -3557,7 +3557,7 @@ void load_bt_done(GF_SceneLoader *load)
 	gf_list_del(parser->scripts);
 
 	if (parser->gz_in) gf_gzclose(parser->gz_in);
-	if (parser->line_buffer) gf_free(parser->line_buffer);
+	gf_free(parser->line_buffer);
 	gf_free(parser);
 	load->loader_priv = NULL;
 }

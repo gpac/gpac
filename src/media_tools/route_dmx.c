@@ -289,28 +289,28 @@ static void gf_route_route_session_del(GF_ROUTEDmx *routedmx, GF_ROUTESession *r
 	while (gf_list_count(rs->channels)) {
 		GF_ROUTELCTChannel *lc = (GF_ROUTELCTChannel *)gf_list_pop_back(rs->channels);
 		gf_route_static_files_del(lc->static_files);
-		if (lc->toi_template) gf_free(lc->toi_template);
-		if (lc->toi_prefix) gf_free(lc->toi_prefix);
-		if (lc->toi_suffix) gf_free(lc->toi_suffix);
-		if (lc->dash_period_id) gf_free(lc->dash_period_id);
-		if (lc->dash_rep_id) gf_free(lc->dash_rep_id);
+		gf_free(lc->toi_template);
+		gf_free(lc->toi_prefix);
+		gf_free(lc->toi_suffix);
+		gf_free(lc->dash_period_id);
+		gf_free(lc->dash_rep_id);
 		gf_free(lc);
 	}
-	if (rs->mcast_addr) gf_free(rs->mcast_addr);
+	gf_free(rs->mcast_addr);
 	gf_list_del(rs->channels);
 	gf_free(rs);
 }
 
 static void gf_route_lct_obj_del(GF_LCTObject *o)
 {
-	if (o->frags) gf_free(o->frags);
-	if (o->payload) gf_free(o->payload);
+	gf_free(o->frags);
+	gf_free(o->payload);
 	if (o->rlct_file && (o->rlct_file->fdt_tsi || o->rlct_file->can_remove)) {
-		if (o->rlct_file->filename) gf_free(o->rlct_file->filename);
+		gf_free(o->rlct_file->filename);
 		gf_free(o->rlct_file);
 	}
 
-	if (o->ll_map) gf_free(o->ll_map);
+	gf_free(o->ll_map);
 	gf_free(o);
 }
 
@@ -332,11 +332,11 @@ static void gf_route_service_del(GF_ROUTEDmx *routedmx, GF_ROUTEService *s)
 	}
 	gf_list_del(s->route_sessions);
 
-	if (s->dst_ip) gf_free(s->dst_ip);
-	if (s->log_name) gf_free(s->log_name);
-	if (s->service_identifier) gf_free(s->service_identifier);
-	if (s->repair_uri_base) gf_free(s->repair_uri_base);
-	if (s->repair_server) gf_free(s->repair_server);
+	gf_free(s->dst_ip);
+	gf_free(s->log_name);
+	gf_free(s->service_identifier);
+	gf_free(s->repair_uri_base);
+	gf_free(s->repair_server);
 	gf_list_del_item(routedmx->services, s);
 	gf_free(s);
 }
@@ -346,8 +346,8 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx)
 {
 	if (!routedmx) return;
 
-	if (routedmx->buffer) gf_free(routedmx->buffer);
-	if (routedmx->unz_buffer) gf_free(routedmx->unz_buffer);
+	gf_free(routedmx->buffer);
+	gf_free(routedmx->unz_buffer);
 	if (routedmx->atsc_sock) gf_sk_del(routedmx->atsc_sock);
 	if (routedmx->dom) gf_xml_dom_del(routedmx->dom);
 	if (routedmx->blob_mx) gf_mx_del(routedmx->blob_mx);
@@ -835,7 +835,7 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 	obj->rlct = NULL;
 	//flute rlct file, delete
 	if (obj->rlct_file && (obj->rlct_file->fdt_tsi || obj->rlct_file->can_remove)) {
-		if (obj->rlct_file->filename) gf_free(obj->rlct_file->filename);
+		gf_free(obj->rlct_file->filename);
 		gf_free(obj->rlct_file);
 	}
 	obj->rlct_file = NULL;
@@ -910,11 +910,11 @@ static void gf_route_lct_removed(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_R
 		}
 	}
 	gf_route_static_files_del(lc->static_files);
-	if (lc->toi_template) gf_free(lc->toi_template);
-	if (lc->toi_prefix) gf_free(lc->toi_prefix);
-	if (lc->toi_suffix) gf_free(lc->toi_suffix);
-	if (lc->dash_period_id) gf_free(lc->dash_period_id);
-	if (lc->dash_rep_id) gf_free(lc->dash_rep_id);
+	gf_free(lc->toi_template);
+	gf_free(lc->toi_prefix);
+	gf_free(lc->toi_suffix);
+	gf_free(lc->dash_period_id);
+	gf_free(lc->dash_rep_id);
 	gf_free(lc);
 }
 
@@ -1274,7 +1274,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 				obj->frags = (GF_LCTFragInfo *)gf_malloc(sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
 			}
 			if (!obj || !obj->frags) {
-				if (obj) gf_free(obj);
+				gf_free(obj);
 				if (query_sep) query_sep[0] = 0;
 				else if (frag_sep) frag_sep[0] = 0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to allocate LCT object TSI %u TOI %u\n", s->log_name, toi, tsi ));
@@ -1587,7 +1587,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			trp = _xml_get_child(tr_sess, "UnicastRepairParameters");
 			if (trp) {
 				const char *uriBase = _xml_get_attr(trp, "transportObjectBaseURI");
-				if (new_service->repair_uri_base) gf_free(new_service->repair_uri_base);
+				gf_free(new_service->repair_uri_base);
 				new_service->repair_uri_base = uriBase ? gf_strdup(uriBase) : NULL;
 				u32 b_idx=0;
 				const char *b_url=NULL;
@@ -1605,7 +1605,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 						b_url = _xml_get_child_text(burl, NULL);
 					}
 				}
-				if (new_service->repair_server) gf_free(new_service->repair_server);
+				gf_free(new_service->repair_server);
 				new_service->repair_server = b_url ? gf_strdup(b_url) : NULL;
 			}
 
@@ -1649,7 +1649,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 						e = routedmx_setup_socket(routedmx, new_service->log_name, rsess->sock, dst_add, dst_port);
 						if (e) {
 							gf_list_del(rsess->channels);
-							if (rsess->mcast_addr) gf_free(rsess->mcast_addr);
+							gf_free(rsess->mcast_addr);
 							gf_free(rsess);
 							gf_list_del(old_sessions);
 							goto exit;
@@ -1712,7 +1712,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			trp = _xml_get_child(tr_sess, "ServiceComponentIdentifier");
 			const char *trp_attr = _xml_get_attr(trp, "mediaPlaylistLocator");
 			if (trp_attr) {
-				if (rlct->dash_rep_id) gf_free(rlct->dash_rep_id);
+				gf_free(rlct->dash_rep_id);
 				rlct->dash_rep_id = gf_strdup(trp_attr);
 				u32 i, count=gf_list_count(parent_s->objects);
 				for (i=0;i<count; i++) {
@@ -1732,14 +1732,14 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 					}
 				}
 			} else {
-				if (rlct->dash_period_id) gf_free(rlct->dash_period_id);
+				gf_free(rlct->dash_period_id);
 				trp_attr = _xml_get_attr(trp, "periodIdentifier");
 				rlct->dash_period_id = trp_attr ? gf_strdup(trp_attr) : NULL;
 
 				trp_attr = _xml_get_attr(trp, "adaptationSetIdentifier");
 				rlct->dash_as_id = trp_attr ? atoi(trp_attr) : 1;
 
-				if (rlct->dash_rep_id) gf_free(rlct->dash_rep_id);
+				gf_free(rlct->dash_rep_id);
 				trp_attr = _xml_get_attr(trp, "representationIdentifier");
 				rlct->dash_rep_id = trp_attr ? gf_strdup(trp_attr) : NULL;
 			}
@@ -2081,7 +2081,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 				obj->frags = (GF_LCTFragInfo *)gf_malloc(sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
 			}
 			if (!obj || !obj->frags) {
-				if (obj) gf_free(obj);
+				gf_free(obj);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to allocate LCT object TSI %u TOI %u\n", s->log_name, toi, tsi ));
 				return GF_OUT_OF_MEM;
 			}
@@ -2549,7 +2549,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			GF_SAFEALLOC(rsess, GF_ROUTESession);
 			if (rsess) rsess->channels = gf_list_new();
 			if (!rsess || !rsess->channels) {
-				if (rsess) gf_free(rsess);
+				gf_free(rsess);
 				gf_list_del(remove_sessions);
 				gf_list_del(remove_channels);
 				return GF_OUT_OF_MEM;
@@ -2573,7 +2573,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 						gf_list_del_item(s->route_sessions, rsess);
 						gf_list_del(remove_sessions);
 						gf_list_del(remove_channels);
-						if (rsess->mcast_addr) gf_free(rsess->mcast_addr);
+						gf_free(rsess->mcast_addr);
 						gf_free(rsess);
 						return e;
 					}
@@ -2773,7 +2773,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				fdt_file->filename = gf_strdup(location);
 				fdt_file->toi = toi;
 				if (strstr(location, ".m3u8")) {
-					if (rlct->dash_rep_id) gf_free(rlct->dash_rep_id);
+					gf_free(rlct->dash_rep_id);
 					rlct->dash_rep_id = gf_strdup(location);
 				}
 				gf_list_add(rlct->static_files, fdt_file);
@@ -2793,7 +2793,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 					}
 				}
 				//delete file
-				if (old_fdt->filename) gf_free(old_fdt->filename);
+				gf_free(old_fdt->filename);
 				gf_free(old_fdt);
 			}
 			gf_list_del(purge_rlct);
@@ -2811,11 +2811,11 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			}
 
 
-			if (rlct->toi_template) gf_free(rlct->toi_template);
+			gf_free(rlct->toi_template);
 			rlct->toi_template = NULL;
-			if (rlct->toi_prefix) gf_free(rlct->toi_prefix);
+			gf_free(rlct->toi_prefix);
 			rlct->toi_prefix = NULL;
-			if (rlct->toi_suffix) gf_free(rlct->toi_suffix);
+			gf_free(rlct->toi_suffix);
 			rlct->toi_suffix = NULL;
 
 			if (file_template) {
@@ -2890,7 +2890,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 					if (n) {
 						const char *rep = _xml_get_attr(n, "repId");
 						if (rep) {
-							if (rlct->dash_rep_id) gf_free(rlct->dash_rep_id);
+							gf_free(rlct->dash_rep_id);
 							rlct->dash_rep_id = gf_strdup(rep);
 						}
 					}

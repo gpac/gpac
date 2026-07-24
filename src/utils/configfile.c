@@ -56,13 +56,13 @@ static void DelSection(IniSection *ptr)
 		u32 i, count=gf_list_count(ptr->keys);
 		for (i=0;i<count;i++) {
 			IniKey *k = (IniKey *) gf_list_get(ptr->keys, i);
-			if (k->value) gf_free(k->value);
-			if (k->name) gf_free(k->name);
+			gf_free(k->value);
+			gf_free(k->name);
 			gf_free(k);
 		}
 		gf_list_del(ptr->keys);
 	}
-	if (ptr->section_name) gf_free(ptr->section_name);
+	gf_free(ptr->section_name);
 	gf_free(ptr);
 }
 
@@ -81,8 +81,7 @@ static void gf_cfg_clear(GF_Config * iniFile)
 		}
 		gf_list_del(iniFile->sections);
 	}
-	if (iniFile->fileName)
-		gf_free(iniFile->fileName);
+	gf_free(iniFile->fileName);
 	memset((void *)iniFile, 0, sizeof(GF_Config));
 }
 
@@ -267,7 +266,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			u32 asize = (l1 + l2 + 1 + nb_empty_lines) ;
 			k->value = (char*)gf_realloc(k->value, asize);
 			if (!k->value) {
-				if (line) gf_free(line);
+				gf_free(line);
 				gf_fclose(file);
 				return GF_OUT_OF_MEM;
 			}
@@ -287,7 +286,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			k = NULL;
 		}
 	}
-	if (line) gf_free(line);
+	gf_free(line);
 	gf_fclose(file);
 	return GF_OK;
 }
@@ -488,8 +487,8 @@ get_key:
 set_value:
 	if (!keyValue) {
 		gf_list_del_item(sec->keys, key);
-		if (key->name) gf_free(key->name);
-		if (key->value) gf_free(key->value);
+		gf_free(key->name);
+		gf_free(key->value);
 		gf_free(key);
 		if (has_changed)
 			iniFile->hasChanged = GF_TRUE;
@@ -499,7 +498,7 @@ set_value:
 	/* same value, don't update */
 	if (!strcmp(key->value, keyValue)) return GF_OK;
 
-	if (key->value) gf_free(key->value);
+	gf_free(key->value);
 	key->value = gf_strdup(keyValue);
 	if (has_changed)
 		iniFile->hasChanged = GF_TRUE;
@@ -632,7 +631,7 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
 GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName)
 {
 	if (!fileName) return GF_OK;
-	if (iniFile->fileName) gf_free(iniFile->fileName);
+	gf_free(iniFile->fileName);
 	iniFile->fileName = gf_strdup(fileName);
 	return iniFile->fileName ? GF_OK : GF_OUT_OF_MEM;
 }

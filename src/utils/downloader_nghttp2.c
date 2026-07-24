@@ -487,7 +487,7 @@ GF_Err h2_submit_request(GF_DownloadSession *sess, char *req_name, const char *u
 
 	gf_free(hdrs);
 	gf_free(hostport);
-	if (path) gf_free(path);
+	gf_free(path);
 
 	if (sess->hmux_stream_id < 0) {
 		return GF_IP_NETWORK_FAILURE;

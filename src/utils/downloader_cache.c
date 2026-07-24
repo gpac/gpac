@@ -199,7 +199,7 @@ static Bool gather_cache_files(void *cbck, char *item_name, char *item_path, GF_
 	GF_SAFEALLOC(ci, CacheInfo);
 	if (ci) ci->name = gf_strdup(item_path);
 	if (!ci || !ci->name) {
-		if (ci) gf_free(ci);
+		gf_free(ci);
 		gf_cfg_del(file);
 		return GF_FALSE;
 	}
@@ -316,8 +316,7 @@ Bool gf_cache_are_headers_processed(const DownloadedCacheEntry entry)
 GF_Err gf_cache_set_etag_on_server(const DownloadedCacheEntry entry, const char * eTag ) {
 	if (!entry)
 		return GF_BAD_PARAM;
-	if (entry->serverETag)
-		gf_free(entry->serverETag);
+	gf_free(entry->serverETag);
 	entry->serverETag = eTag ? gf_strdup(eTag) : NULL;
 	return GF_OK;
 }
@@ -325,8 +324,7 @@ GF_Err gf_cache_set_etag_on_server(const DownloadedCacheEntry entry, const char 
 GF_Err gf_cache_set_etag_on_disk(const DownloadedCacheEntry entry, const char * eTag ) {
 	if (!entry)
 		return GF_BAD_PARAM;
-	if (entry->diskETag)
-		gf_free(entry->diskETag);
+	gf_free(entry->diskETag);
 	entry->diskETag = eTag ? gf_strdup(eTag) : NULL;
 	return GF_OK;
 }
@@ -334,8 +332,7 @@ GF_Err gf_cache_set_etag_on_disk(const DownloadedCacheEntry entry, const char * 
 GF_Err gf_cache_set_mime_type(const DownloadedCacheEntry entry, const char * mime_type ) {
 	if (!entry)
 		return GF_BAD_PARAM;
-	if (entry->mimeType)
-		gf_free(entry->mimeType);
+	gf_free(entry->mimeType);
 	entry->mimeType = mime_type? gf_strdup( mime_type) : NULL;
 	return GF_OK;
 }
@@ -364,8 +361,7 @@ GF_Err gf_cache_set_last_modified_on_server ( const DownloadedCacheEntry entry, 
 {
 	if (!entry)
 		return GF_BAD_PARAM;
-	if (entry->serverLastModified)
-		gf_free(entry->serverLastModified);
+	gf_free(entry->serverLastModified);
 	entry->serverLastModified = newLastModified ? gf_strdup(newLastModified) : NULL;
 	return GF_OK;
 }
@@ -374,8 +370,7 @@ GF_Err gf_cache_set_last_modified_on_disk ( const DownloadedCacheEntry entry, co
 {
 	if (!entry)
 		return GF_BAD_PARAM;
-	if (entry->diskLastModified)
-		gf_free(entry->diskLastModified);
+	gf_free(entry->diskLastModified);
 	entry->diskLastModified = newLastModified ? gf_strdup(newLastModified) : NULL;
 	return GF_OK;
 }
@@ -953,17 +948,18 @@ void gf_cache_delete_entry( const DownloadedCacheEntry entry )
 			gf_file_delete(entry->cfg_filename);
 		}
 	}
-	if (entry->cfg_filename) gf_free(entry->cfg_filename);
-	if (entry->cache_filename) gf_free(entry->cache_filename);
-	if (entry->serverETag) gf_free(entry->serverETag);
-	if (entry->diskETag) gf_free(entry->diskETag);
-	if (entry->serverLastModified) gf_free(entry->serverLastModified);
-	if (entry->diskLastModified) gf_free(entry->diskLastModified);
-	if (entry->hash) gf_free(entry->hash);
-	if (entry->url) gf_free(entry->url);
-	if (entry->mimeType) gf_free(entry->mimeType);
-	if (entry->mem_storage && entry->mem_allocated) gf_free(entry->mem_storage);
-	if (entry->forced_headers) gf_free(entry->forced_headers);
+	gf_free(entry->cfg_filename);
+	gf_free(entry->cache_filename);
+	gf_free(entry->serverETag);
+	gf_free(entry->diskETag);
+	gf_free(entry->serverLastModified);
+	gf_free(entry->diskLastModified);
+	gf_free(entry->hash);
+	gf_free(entry->url);
+	gf_free(entry->mimeType);
+	//if mem_allocated is not set we don't own the memory
+	if (entry->mem_allocated) gf_free(entry->mem_storage);
+	gf_free(entry->forced_headers);
 
 
 	if (entry->sessions) {
@@ -1069,7 +1065,7 @@ Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry)
 Bool gf_cache_set_mime(const DownloadedCacheEntry entry, const char *mime)
 {
 	if (!entry || !entry->memory_stored) return GF_FALSE;
-	if (entry->mimeType) gf_free(entry->mimeType);
+	gf_free(entry->mimeType);
 	entry->mimeType = gf_strdup(mime);
 	return GF_TRUE;
 }
@@ -1087,7 +1083,7 @@ Bool gf_cache_set_range(const DownloadedCacheEntry entry, u64 size, u64 start_ra
 Bool gf_cache_set_headers(const DownloadedCacheEntry entry, const char *headers)
 {
 	if (!entry || !entry->memory_stored) return GF_FALSE;
-	if (entry->forced_headers) gf_free(entry->forced_headers);
+	gf_free(entry->forced_headers);
 	entry->forced_headers = headers ? gf_strdup(headers) : NULL;
 	return GF_TRUE;
 }
@@ -1188,6 +1184,7 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
 		gf_mx_p(blob->mx);
 
 	if (!copy) {
+		//if mem_allocated is not set we don't own the memory
 		if (entry->mem_allocated) gf_free(entry->mem_storage);
 		entry->mem_storage = (u8 *) blob->data;
 		if (!entry->written_in_cache) {

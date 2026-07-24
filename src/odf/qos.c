@@ -82,7 +82,7 @@ void gf_odf_delete_qos_qual(GF_QoS_Default *qos)
 	default:
 		if ( ((GF_QoS_Private *)qos)->Data)
 			gf_free(((GF_QoS_Private *)qos)->Data);
-		gf_free( (GF_QoS_Private *) qos);
+		gf_free(qos);
 		return;
 	}
 }

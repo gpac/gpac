@@ -656,7 +656,7 @@ void dvblin_finalize(GF_Filter *filter)
 {
 	GF_DVBLinuxCtx *ctx = (GF_DVBLinuxCtx *) gf_filter_get_udta(filter);
 	dvblin_stop(ctx);
-	if (ctx->block) gf_free(ctx->block);
+	gf_free(ctx->block);
 }
 
 static Bool dvblin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -844,7 +844,7 @@ GF_FilterRegister DVBLinuxRegister = {
 #if !defined(GPAC_DISABLE_DOC)
 void dvbin_cleanreg(GF_FilterSession *session, GF_FilterRegister *freg)
 {
-	gf_free((char*)freg->help);
+	gf_free((void*)freg->help);
 }
 #endif
 

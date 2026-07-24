@@ -884,8 +884,8 @@ static GF_Err ttml_embed_data(GF_XMLNode *node, const u8 *aux_data, u32 aux_data
 
 		//remove src attribute
 		gf_list_del_item(node->attributes, att);
-		if (att->name) gf_free(att->name);
-		if (att->value) gf_free(att->value);
+		gf_free(att->name);
+		gf_free(att->value);
 		gf_free(att);
 
 		//create a source node
@@ -1172,7 +1172,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, const u8 *data, u32 data_si
 	}
 
 exit:
-	if (ttml_text) gf_free(ttml_text);
+	gf_free(ttml_text);
 	gf_xml_dom_del(dom);
 	return e;
 }
@@ -1508,8 +1508,7 @@ GF_Err writegen_process(GF_Filter *filter)
 		if (ctx->split)
 			ctx->is_y4m=1;
 
-		if (y4m_hdr)
-			gf_free(y4m_hdr);
+		gf_free(y4m_hdr);
 
 	} else if (ctx->is_wav && ctx->first) {
 		u8 * output;
@@ -2174,7 +2173,7 @@ void writegen_finalize(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = (GF_GenDumpCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
-	if (ctx->write_buf) gf_free(ctx->write_buf);
+	gf_free(ctx->write_buf);
 	if (ctx->ttml_root)
 		gf_xml_dom_node_del(ctx->ttml_root);
 

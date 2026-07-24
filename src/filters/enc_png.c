@@ -135,7 +135,7 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 static void pngenc_finalize(GF_Filter *filter)
 {
 	GF_PNGEncCtx *ctx = (GF_PNGEncCtx *) gf_filter_get_udta(filter);
-	if (ctx->row_pointers) gf_free(ctx->row_pointers);
+	gf_free(ctx->row_pointers);
 }
 
 #define PNG_BLOCK_SIZE	4096

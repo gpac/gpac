@@ -1258,8 +1258,8 @@ static void mpgviddmx_finalize(GF_Filter *filter)
 	GF_MPGVidDmxCtx *ctx = (GF_MPGVidDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->vparser) gf_m4v_parser_del_no_bs(ctx->vparser);
-	if (ctx->indexes) gf_free(ctx->indexes);
-	if (ctx->hdr_store) gf_free(ctx->hdr_store);
+	gf_free(ctx->indexes);
+	gf_free(ctx->hdr_store);
 	if (ctx->pck_queue) {
 		while (gf_list_count(ctx->pck_queue)) {
 			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->pck_queue);

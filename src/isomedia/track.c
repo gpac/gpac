@@ -1066,7 +1066,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			}
 		}
 
-		if (new_idx) gf_free(new_idx);
+		gf_free(new_idx);
 	}
 
 	u32 samples_in_traf = trak->Media->information->sampleTable->SampleSize->sampleCount - num_first_sample_in_traf;
@@ -1323,15 +1323,14 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			max_end = offset;
 
 		}
-		if (sai) gf_free(sai);
+		gf_free(sai);
 	}
 	//signal max offset from what we could gather - this is just an estimation, as there could be hidden data at the end of
 	//the containing mdat
 	if (trak->moov->mov->signal_frag_bounds && !(trak->moov->mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
 		gf_isom_push_mdat_end(trak->moov->mov, max_end, GF_TRUE);
 	}
-	if (moof_template)
-		gf_free(moof_template);
+	gf_free(moof_template);
 	return GF_OK;
 }
 

@@ -407,7 +407,7 @@ error:
 	}
 
 	gf_filter_pck_unref(vpck);
-	if (cc) gf_free(cc);
+	gf_free(cc);
 }
 
 static void ccenc_forward_video(GF_Filter *filter, GF_FilterPacket *vpck)
@@ -603,7 +603,7 @@ static void ccenc_finalize(GF_Filter *filter)
 		u32 pos = 0;
 		CCItem *cc = NULL;
 		while ((cc = (CCItem *)gf_list_enum(ctx->cc_queue, &pos))) {
-			if (cc->text) gf_free(cc->text);
+			gf_free(cc->text);
 			gf_free(cc);
 		}
 	}
@@ -619,7 +619,7 @@ static void ccenc_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->frame_queue);
 
-	if (ctx->ccframe) gf_free(ctx->ccframe);
+	gf_free(ctx->ccframe);
 	if (ctx->sei) {
 		sei_free(ctx->sei);
 		gf_free(ctx->sei);

@@ -786,7 +786,7 @@ static JSValue jsfs_f_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 	switch (magic) {
 	case JSFF_INAME:
 		s_val = JS_ToCString(ctx, value);
-		if (f->iname) gf_free(f->iname);
+		gf_free(f->iname);
 		f->iname = s_val ? gf_strdup(s_val) : NULL;
 		JS_FreeCString(ctx, s_val);
 		break;
@@ -1129,7 +1129,7 @@ static Bool jsfs_get_filter_args(JSContext *ctx, GF_FilterSession *fs, GF_Filter
 		} else {
 			new_f = gf_fs_load_filter(fs, fdesc, &e);
 		}
-		if (fdesc) gf_free(fdesc);
+		gf_free(fdesc);
 
 		if (!new_f) {
 			gf_fs_lock_filters(fs, GF_FALSE);
@@ -2269,7 +2269,7 @@ void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 		JSValue fsobj = JS_GetPropertyStr(c, global_obj, "session");
 		//detach since GC is likely not done now
 		JSFS_FilterSession *jsfs = (JSFS_FilterSession *)JS_GetOpaque(fsobj, fs_class_id);
-		if (jsfs) gf_free(jsfs);
+		gf_free(jsfs);
 		JS_SetOpaque(fsobj, NULL);
 		JS_SetPropertyStr(c, global_obj, "session", JS_NULL);
 		JS_FreeValue(c, global_obj);

@@ -369,8 +369,9 @@ void *gf_mem_calloc_tracker(size_t num, size_t size_of, const char *filename, in
 
 void gf_mem_free_tracker(void *ptr, const char *filename, int line)
 {
-	int size_prev;
-	if (ptr && (size_prev=unregister_address(ptr, filename, line))) {
+	if (!ptr) return;
+	int size_prev = unregister_address(ptr, filename, line);
+	if (size_prev) {
 		gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] free   %3d bytes at %p in:\n", size_prev, ptr);
 		gf_memory_log(GF_MEMORY_DEBUG, "             file %s at line %d\n" , filename, line);
 		FREE(ptr);

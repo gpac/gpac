@@ -114,7 +114,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 	and signal a text content change in the focus node */
 	if (final_flush) {
 		GF_FieldInfo info;
-		if (compositor->sel_buffer) gf_free(compositor->sel_buffer);
+		gf_free(compositor->sel_buffer);
 		compositor->sel_buffer = NULL;
 		compositor->sel_buffer_len = compositor->sel_buffer_alloc = 0;
 		compositor->edited_text = NULL;
@@ -1140,9 +1140,9 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 
 			compositor->store_text_state = GF_SC_TSEL_RELEASED;
 			compositor->text_selection = NULL;
-			if (compositor->selected_text) gf_free(compositor->selected_text);
+			gf_free(compositor->selected_text);
 			compositor->selected_text = NULL;
-			if (compositor->sel_buffer) gf_free(compositor->sel_buffer);
+			gf_free(compositor->sel_buffer);
 			compositor->sel_buffer = NULL;
 			compositor->sel_buffer_alloc = 0;
 			compositor->sel_buffer_len = 0;

@@ -625,7 +625,7 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 		if ( !r ) {
 			GF_SAFEALLOC(r, GF_RouteToScript)
 			if (!r) {
-				if (fun_name_dup) gf_free(fun_name_dup);
+				gf_free(fun_name_dup);
 				return JS_FALSE;
 			}
 			r->script_route = 1;
@@ -652,7 +652,7 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 				GF_SAFEALLOC(n1->sgprivate->interact, struct _node_interactive_ext);
 				if (!n1->sgprivate->interact) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create interact storage\n"));
-					if (fun_name_dup) gf_free(fun_name_dup);
+					gf_free(fun_name_dup);
 					gf_free(r);
 					return GF_JS_EXCEPTION(c);
 				}
@@ -1065,7 +1065,7 @@ static JSValue field_toString(JSContext *c, JSValueConst this_val, int argc, JSV
 		gf_dynstrcat(&str, "]", NULL);
 	}
 	item = JS_NewString(c, str ? str : "");
-	if (str) gf_free(str);
+	gf_free(str);
 	return item;
 }
 
@@ -1478,7 +1478,7 @@ static JSValue image_setProperty(JSContext *c, JSValueConst obj, JSValueConst va
 		sf = (GF_JSField *) JS_GetOpaque(value, MFInt32Class.class_id);
 		if (!sf) return GF_JS_EXCEPTION(c);
 		pixels = (MFInt32 *) sf->field.far_ptr;
-		if (sfi->pixels) gf_free(sfi->pixels);
+		gf_free(sfi->pixels);
 		len = sfi->width*sfi->height*sfi->numComponents;
 		sfi->pixels = (u8 *) gf_malloc(len);
 		if (sfi->pixels) {
@@ -3005,7 +3005,7 @@ void gf_sg_script_to_node_field(JSContext *c, JSValue val, GF_FieldInfo *field, 
 
 		/*we do filter strings since rebuilding a text is quite slow, so let's avoid killing the compositors*/
 		if (!s->buffer || strcmp(sval, s->buffer)) {
-			if ( s->buffer) gf_free(s->buffer);
+			gf_free(s->buffer);
 			s->buffer = gf_strdup(sval);
 			Script_FieldChanged(c, owner, parent, field);
 		}
@@ -3014,7 +3014,7 @@ void gf_sg_script_to_node_field(JSContext *c, JSValue val, GF_FieldInfo *field, 
 	}
 	case GF_SG_VRML_SFURL:
 		str_val = JS_ToCString(c, val);
-		if (((SFURL*)field->far_ptr)->url) gf_free(((SFURL*)field->far_ptr)->url);
+		gf_free(((SFURL*)field->far_ptr)->url);
 		((SFURL*)field->far_ptr)->url = gf_strdup(str_val);
 		((SFURL*)field->far_ptr)->OD_ID = 0;
 		Script_FieldChanged(c, owner, parent, field);
@@ -3182,7 +3182,7 @@ void gf_sg_script_to_node_field(JSContext *c, JSValue val, GF_FieldInfo *field, 
 			MFString *mfs = (MFString *) field->far_ptr;
 			str_val = JS_ToCString(c, item);
 			if (!mfs->vals[i] || strcmp(str_val, mfs->vals[i]) ) {
-				if (mfs->vals[i]) gf_free(mfs->vals[i]);
+				gf_free(mfs->vals[i]);
 				mfs->vals[i] = gf_strdup(str_val);
 				changed = GF_TRUE;
 			}
@@ -3192,7 +3192,7 @@ void gf_sg_script_to_node_field(JSContext *c, JSValue val, GF_FieldInfo *field, 
 		case GF_SG_VRML_MFURL:
 		{
 			MFURL *mfu = (MFURL *) field->far_ptr;
-			if (mfu->vals[i].url) gf_free(mfu->vals[i].url);
+			gf_free(mfu->vals[i].url);
 			str_val = JS_ToCString(c, item);
 			mfu->vals[i].url = gf_strdup(str_val);
 			mfu->vals[i].OD_ID = 0;

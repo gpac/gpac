@@ -76,7 +76,7 @@ void mesh_reset(GF_Mesh *mesh)
 	memset(&mesh->bounds.max_edge, 0, sizeof(SFVec3f));
 	if (mesh->aabb_root) del_aabb_node(mesh->aabb_root);
 	mesh->aabb_root = NULL;
-	if (mesh->aabb_indices) gf_free(mesh->aabb_indices);
+	gf_free(mesh->aabb_indices);
 	mesh->aabb_indices = NULL;
 
 
@@ -92,11 +92,11 @@ void mesh_reset(GF_Mesh *mesh)
 
 void mesh_free(GF_Mesh *mesh)
 {
-	if (mesh->vertices) gf_free(mesh->vertices);
-	if (mesh->indices) gf_free(mesh->indices);
+	gf_free(mesh->vertices);
+	gf_free(mesh->indices);
 	if (mesh->aabb_root) del_aabb_node(mesh->aabb_root);
 	mesh->aabb_root = NULL;
-	if (mesh->aabb_indices) gf_free(mesh->aabb_indices);
+	gf_free(mesh->aabb_indices);
 	gf_free(mesh);
 }
 
@@ -110,8 +110,8 @@ GF_Mesh *new_mesh()
 		mesh->vertices = (GF_Vertex*)gf_malloc(sizeof(GF_Vertex)*mesh->v_alloc);
 		mesh->indices = (IDX_TYPE*)gf_malloc(sizeof(IDX_TYPE)*mesh->i_alloc);
 		if (!mesh->vertices || !mesh->indices) {
-			if (mesh->vertices) gf_free(mesh->vertices);
-			if (mesh->indices) gf_free(mesh->indices);
+			gf_free(mesh->vertices);
+			gf_free(mesh->indices);
 			gf_free(mesh);
 			return NULL;
 		}
@@ -198,7 +198,7 @@ GF_Err mesh_clone(GF_Mesh *dest, GF_Mesh *orig)
 	/*and reset AABB*/
 	if (dest->aabb_root) del_aabb_node(dest->aabb_root);
 	dest->aabb_root = NULL;
-	if (dest->aabb_indices) gf_free(dest->aabb_indices);
+	gf_free(dest->aabb_indices);
 	dest->aabb_indices = NULL;
 	return GF_OK;
 }
@@ -1767,11 +1767,11 @@ GF_Err mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 			}
 
 			if (faces_info) {
-				for (i=0; i<face_count; i++) if (faces_info[i].idx) gf_free(faces_info[i].idx);
+				for (i=0; i<face_count; i++) gf_free(faces_info[i].idx);
 				gf_free(faces_info);
 			}
 			if (pts_info) {
-				for (i=0; i<c_count; i++) if (pts_info[i].faces) gf_free(pts_info[i].faces);
+				for (i=0; i<c_count; i++) gf_free(pts_info[i].faces);
 				gf_free(pts_info);
 			}
 			mesh->flags |= MESH_IS_SMOOTHED;
@@ -2054,11 +2054,11 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 		}
 
 		if (faces_info) {
-			for (i=0; i<face_count; i++) if (faces_info[i].idx) gf_free(faces_info[i].idx);
+			for (i=0; i<face_count; i++) gf_free(faces_info[i].idx);
 			gf_free(faces_info);
 		}
 		if (pts_info) {
-			for (i=0; i<pt_count; i++) if (pts_info[i].faces) gf_free(pts_info[i].faces);
+			for (i=0; i<pt_count; i++) gf_free(pts_info[i].faces);
 			gf_free(pts_info);
 		}
 		mesh->flags |= MESH_IS_SMOOTHED;
@@ -2667,11 +2667,11 @@ static GF_Err mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *th
 		}
 
 		if (faces_info) {
-			for (i=0; i<face_count; i++) if (faces_info[i].idx) gf_free(faces_info[i].idx);
+			for (i=0; i<face_count; i++) gf_free(faces_info[i].idx);
 			gf_free(faces_info);
 		}
 		if (pts_info) {
-			for (i=0; i<pt_count; i++) if (pts_info[i].faces) gf_free(pts_info[i].faces);
+			for (i=0; i<pt_count; i++) gf_free(pts_info[i].faces);
 			gf_free(pts_info);
 		}
 		mesh->flags |= MESH_IS_SMOOTHED;
@@ -2698,6 +2698,7 @@ static GF_Err mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *th
 		if (path->n_contours>1) {
 #ifdef GPAC_HAS_GLU
 			u32 *ptsPerFace = (u32 *)gf_malloc(sizeof(u32)*path->n_contours);
+			if (!ptsPerFace) return GF_OUT_OF_MEM;
 			/*we reversed begin cap!!!*/
 			cur = 0;
 			for (i=0; i<path->n_contours; i++) {
@@ -2717,6 +2718,7 @@ static GF_Err mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *th
 		if (path->n_contours>1) {
 #ifdef GPAC_HAS_GLU
 			u32 *ptsPerFace = (u32 *)gf_malloc(sizeof(u32)*path->n_contours);
+			if (!ptsPerFace) return GF_OUT_OF_MEM;
 			cur = 0;
 			for (i=0; i<path->n_contours; i++) {
 				nb_pts = 1+path->contours[i] - cur;

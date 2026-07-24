@@ -243,8 +243,10 @@ setup_done:
 	if (cgi_par) cgi_par[0] = '?';
 
 	ctx->is_first = GF_TRUE;
-	if (!ctx->buffer)
+	if (!ctx->buffer) {
 		ctx->buffer = (u8 *)gf_malloc(ctx->block_size +1);
+		if (!ctx->buffer) return GF_OUT_OF_MEM;
+	}
 
 	gf_filter_post_process_task(filter);
 
@@ -270,7 +272,7 @@ static void pipein_finalize(GF_Filter *filter)
 		if (ctx->owns_pipe)
 			gf_file_delete(ctx->src);
 	}
-	if (ctx->buffer) gf_free(ctx->buffer);
+	gf_free(ctx->buffer);
 
 }
 

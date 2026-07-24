@@ -71,7 +71,7 @@ static void ALSA_Shutdown(GF_AudioOutput*dr)
 		snd_pcm_close(ctx->playback_handle);
 		ctx->playback_handle = NULL;
 	}
-	if (ctx->wav_buf) gf_free(ctx->wav_buf);
+	gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
 }
 
@@ -90,7 +90,7 @@ static GF_Err ALSA_Configure(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels
 		snd_pcm_close(ctx->playback_handle);
 		ctx->playback_handle = NULL;
 	}
-	if (ctx->wav_buf) gf_free(ctx->wav_buf);
+	gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
 
 	err = snd_pcm_open(&ctx->playback_handle, ctx->dev_name, SND_PCM_STREAM_PLAYBACK, 0/*SND_PCM_NONBLOCK*/);

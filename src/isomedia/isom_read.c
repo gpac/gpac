@@ -3259,7 +3259,7 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_sampl
 		for (i=0; i<stbl->traf_map->nb_entries; i++) {
 			GF_TrafMapEntry *tmap_ent = &stbl->traf_map->frag_starts[i];
 			if (tmap_ent->sample_num <= nb_samples) {
-				if (tmap_ent->moof_template) gf_free(tmap_ent->moof_template);
+				gf_free(tmap_ent->moof_template);
 				memmove(&stbl->traf_map->frag_starts[i],
 					&stbl->traf_map->frag_starts[i+1],
 					sizeof(GF_TrafMapEntry) * (stbl->traf_map->nb_entries-1)
@@ -3286,7 +3286,7 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_sampl
 		}
 		if (stbl->SampleRefs) {
 			GF_SampleRefEntry *ent = (GF_SampleRefEntry *)gf_list_pop_front(stbl->SampleRefs->entries);
-			if (ent->sample_refs) gf_free(ent->sample_refs);
+			gf_free(ent->sample_refs);
 			gf_free(ent);
 		}
 		nb_samples--;
@@ -3398,8 +3398,7 @@ static void gf_isom_recreate_tables(GF_TrackBox *trak)
 
 	if (stbl->traf_map) {
 		for (j=0; j<stbl->traf_map->nb_entries; j++) {
-			if (stbl->traf_map->frag_starts[j].moof_template)
-				gf_free(stbl->traf_map->frag_starts[j].moof_template);
+			gf_free(stbl->traf_map->frag_starts[j].moof_template);
 		}
 		memset(stbl->traf_map->frag_starts, 0, sizeof(GF_TrafMapEntry)*stbl->traf_map->nb_alloc);
 		stbl->traf_map->nb_entries = 0;
@@ -6761,7 +6760,7 @@ GF_EXPORT
 GF_Err gf_isom_override_dref_url(GF_ISOFile *the_file, const char *dref_url)
 {
 	if (!the_file) return GF_BAD_PARAM;
-	if (the_file->override_dref_url) gf_free(the_file->override_dref_url);
+	gf_free(the_file->override_dref_url);
 	the_file->override_dref_url = dref_url ? gf_strdup(dref_url) : NULL;
 	if (dref_url && !the_file->override_dref_url) return GF_OUT_OF_MEM;
 	return GF_OK;

@@ -421,7 +421,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 	while (gf_list_count(cfg->sequenceParameterSets)) {
 		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(cfg->sequenceParameterSets, 0);
 		gf_list_rem(cfg->sequenceParameterSets, 0);
-		if (sl->data) gf_free(sl->data);
+		gf_free(sl->data);
 		gf_free(sl);
 	}
 	gf_list_del(cfg->sequenceParameterSets);
@@ -430,7 +430,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 	while (gf_list_count(cfg->pictureParameterSets)) {
 		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(cfg->pictureParameterSets, 0);
 		gf_list_rem(cfg->pictureParameterSets, 0);
-		if (sl->data) gf_free(sl->data);
+		gf_free(sl->data);
 		gf_free(sl);
 	}
 	gf_list_del(cfg->pictureParameterSets);
@@ -440,7 +440,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 		while (gf_list_count(cfg->sequenceParameterSetExtensions)) {
 			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(cfg->sequenceParameterSetExtensions, 0);
 			gf_list_rem(cfg->sequenceParameterSetExtensions, 0);
-			if (sl->data) gf_free(sl->data);
+			gf_free(sl->data);
 			gf_free(sl);
 		}
 		gf_list_del(cfg->sequenceParameterSetExtensions);
@@ -650,7 +650,7 @@ GF_Err gf_odf_del_tx3g(GF_TextSampleDescriptor *sd)
 {
 	u32 i;
 	for (i=0; i<sd->font_count; i++)
-		if (sd->fonts[i].fontName) gf_free(sd->fonts[i].fontName);
+		gf_free(sd->fonts[i].fontName);
 	gf_free(sd->fonts);
 	gf_free(sd);
 	return GF_OK;
@@ -900,7 +900,7 @@ void gf_odf_hevc_cfg_del(GF_HEVCConfig *cfg)
 		while (gf_list_count(pa->nalus)) {
 			GF_NALUFFParam *n = (GF_NALUFFParam*)gf_list_get(pa->nalus, 0);
 			gf_list_rem(pa->nalus, 0);
-			if (n->data) gf_free(n->data);
+			gf_free(n->data);
 			gf_free(n);
 		}
 		gf_list_del(pa->nalus);
@@ -1078,7 +1078,7 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 			GF_SAFEALLOC(sl, GF_NALUFFParam );
 			if (sl) sl->data = (u8 *)gf_malloc(size);
 			if (!sl || !sl->data) {
-				if (sl) gf_free(sl);
+				gf_free(sl);
 				gf_odf_hevc_cfg_del(cfg);
 				return NULL;
 			}
@@ -1124,17 +1124,15 @@ void gf_odf_vvc_cfg_del(GF_VVCConfig *cfg)
 		while (gf_list_count(pa->nalus)) {
 			GF_NALUFFParam *n = (GF_NALUFFParam*)gf_list_get(pa->nalus, 0);
 			gf_list_rem(pa->nalus, 0);
-			if (n->data) gf_free(n->data);
+			gf_free(n->data);
 			gf_free(n);
 		}
 		gf_list_del(pa->nalus);
 		gf_free(pa);
 	}
 	gf_list_del(cfg->param_array);
-	if (cfg->general_constraint_info)
-		gf_free(cfg->general_constraint_info);
-	if (cfg->sub_profiles_idc)
-		gf_free(cfg->sub_profiles_idc);
+	gf_free(cfg->general_constraint_info);
+	gf_free(cfg->sub_profiles_idc);
 	gf_free(cfg);
 }
 
@@ -1428,7 +1426,7 @@ void gf_odf_av1_cfg_del(GF_AV1Config *cfg)
 	if (!cfg) return;
 	while (gf_list_count(cfg->obu_array)) {
 		GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_get(cfg->obu_array, 0);
-		if (a->obu) gf_free(a->obu);
+		gf_free(a->obu);
 		gf_list_rem(cfg->obu_array, 0);
 		gf_free(a);
 	}
@@ -1700,7 +1698,7 @@ GF_EXPORT
 void gf_odf_avs3v_cfg_del(GF_AVS3VConfig *cfg)
 {
 	if (!cfg) return;
-	if (cfg->sequence_header) gf_free(cfg->sequence_header);
+	gf_free(cfg->sequence_header);
 	gf_free(cfg);
 }
 
@@ -2697,7 +2695,7 @@ void gf_odf_iamf_cfg_del(GF_IAConfig *cfg)
 	if (!cfg) return;
 	while (gf_list_count(cfg->configOBUs)) {
 		GF_IamfObu *configOBU = (GF_IamfObu*)gf_list_get(cfg->configOBUs, 0);
-		if (configOBU->raw_obu_bytes) gf_free(configOBU->raw_obu_bytes);
+		gf_free(configOBU->raw_obu_bytes);
 		gf_list_rem(cfg->configOBUs, 0);
 		gf_free(configOBU);
 	}

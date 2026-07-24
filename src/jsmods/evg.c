@@ -458,13 +458,11 @@ static JSValue canvas_constructor_internal(JSContext *c, JSValueConst new_target
 	}
 
 	if (!gf_pixel_get_size_info(pf, width, height, &osize, &stride, &stride_uv, NULL, NULL)) {
-		if (canvas)
-			gf_free(canvas);
+		gf_free(canvas);
 		return GF_JS_EXCEPTION(c);
 	}
 	if (data && (data_size<osize)) {
-		if (the_canvas)
-			gf_free(the_canvas);
+		gf_free(the_canvas);
 		return GF_JS_EXCEPTION(c);
 	}
 	canvas = canvas_reconfig ? canvas_reconfig : the_canvas;
@@ -491,8 +489,7 @@ static JSValue canvas_constructor_internal(JSContext *c, JSValueConst new_target
 	} else {
 		canvas->data = (u8 *)gf_malloc(osize);
 		if (!canvas->data) {
-			if (the_canvas)
-				gf_free(the_canvas);
+			gf_free(the_canvas);
 			return GF_JS_EXCEPTION(c);
 		}
 		canvas->owns_data = GF_TRUE;
@@ -2946,7 +2943,7 @@ parse_right_val:
 			JSValue ret = js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid right-operand value, undefined variable %s", val_name);
 			JS_FreeCString(ctx, val_name);
 			shader->invalid = GF_TRUE;
-			if (uni_name) gf_free(uni_name);
+			gf_free(uni_name);
 			return ret;
 		}
 		if (sep) {
@@ -2987,7 +2984,7 @@ parse_right_val:
 			right_op_idx = VAR_VA;
 		} else {
 			shader->invalid = GF_TRUE;
-			if (uni_name) gf_free(uni_name);
+			gf_free(uni_name);
 			return js_throw_err_msg(ctx, GF_BAD_PARAM, "unknown object type for right operand");
 		}
 	}
@@ -3024,7 +3021,7 @@ parse_right_val:
 			JSValue ret = js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid second right-operand value, only local variable allowed");
 			JS_FreeCString(ctx, val_name);
 			shader->invalid = GF_TRUE;
-			if (uni_name) gf_free(uni_name);
+			gf_free(uni_name);
 			return ret;
 		}
 	}
@@ -3033,13 +3030,13 @@ op_parsed:
 
 	if (dual_right_val && !right_op2_idx) {
 		shader->invalid = GF_TRUE;
-		if (uni_name) gf_free(uni_name);
+		gf_free(uni_name);
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "invalid second right-operand value, only local variable allowed");
 	}
 	new_op.op_type = op_type;
 	if (!new_op.op_type) {
 		shader->invalid = GF_TRUE;
-		if (uni_name) gf_free(uni_name);
+		gf_free(uni_name);
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "unknown operation type");
 	}
 	new_op.cond_type = cond_type;
@@ -4843,7 +4840,7 @@ static JSValue path_outline(JSContext *c, JSValueConst obj, int argc, JSValueCon
 
 
 	outline = gf_path_get_outline(gp, pen);
-	if (dash.dashes) gf_free(dash.dashes);
+	gf_free(dash.dashes);
 
 	if (!outline) return GF_JS_EXCEPTION(c);
 	v = JS_NewObjectClass(c, path_class_id);
@@ -5443,9 +5440,7 @@ static void texture_finalize(JSRuntime *rt, JSValue obj)
 	JS_FreeValueRT(rt, tx->par_obj);
 
 #ifndef GPAC_DISABLE_3D
-	if (tx->named_tx) {
-		gf_free(tx->named_tx);
-	}
+	gf_free(tx->named_tx);
 #endif
 
 #ifdef GPAC_HAS_FFMPEG
@@ -6179,7 +6174,7 @@ static GF_Err texture_load_data(JSContext *c, GF_JSTexture *tx, u8 *data, u32 si
 			}
 		}
 	}
-	if (dsi) gf_free(dsi);
+	gf_free(dsi);
 
 	if (e != GF_OK) {
 		return e;
@@ -6214,10 +6209,10 @@ static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *file
 		fileName = szPath;
 	}
 	if (!gf_file_exists(fileName) || (gf_file_load_data(fileName, &data, &size) != GF_OK)) {
-		if (full_url) gf_free(full_url);
+		gf_free(full_url);
 		return GF_URL_ERROR;
 	}
-	if (full_url) gf_free(full_url);
+	gf_free(full_url);
 	e = texture_load_data(c, tx, data, size);
 	gf_free(data);
 	return e;
@@ -6265,7 +6260,7 @@ static JSValue texture_set_named(JSContext *c, JSValueConst obj, int argc, JSVal
 
 #ifndef GPAC_DISABLE_3D
 	const char *str = JS_ToCString(c, argv[0]);
-	if (tx->named_tx) gf_free(tx->named_tx);
+	gf_free(tx->named_tx);
 	tx->named_tx = str ? gf_strdup(str) : NULL;
 	JS_FreeCString(c, str);
 #endif
@@ -7259,7 +7254,7 @@ enum
 static void mx_finalize(JSRuntime *rt, JSValue obj)
 {
 	GF_Matrix *mx = (GF_Matrix *)JS_GetOpaque(obj, matrix_class_id);
-	if (mx) gf_free(mx);
+	gf_free(mx);
 }
 
 JSClassDef matrix_class = {
@@ -7530,7 +7525,7 @@ static JSValue mx_add(JSContext *ctx, JSValueConst this_val, int argc, JSValueCo
 	} else {
 		gf_mx_add_matrix(mx, mx2);
 	}
-	if (_mx2) gf_free(_mx2);
+	gf_free(_mx2);
 
 	return JS_DupValue(ctx, this_val);
 }

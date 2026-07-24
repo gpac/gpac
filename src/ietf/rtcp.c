@@ -571,7 +571,7 @@ enum
 };
 
 
-#define RTCP_SAFE_FREE(p) if (p) gf_free(p);	\
+#define RTCP_SAFE_FREE(p) gf_free(p);	\
 					p = NULL;
 
 GF_Err gf_rtp_set_info_rtcp(GF_RTPChannel *ch, u32 InfoCode, char *info_string)

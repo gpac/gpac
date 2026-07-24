@@ -85,7 +85,7 @@ static void DestroyGradient(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		GradientStack *st = (GradientStack *) gf_node_get_private(node);
 		gf_sc_texture_destroy(&st->txh);
-		if (st->tx_data) gf_free(st->tx_data);
+		gf_free(st->tx_data);
 		gf_free(st);
 	}
 }

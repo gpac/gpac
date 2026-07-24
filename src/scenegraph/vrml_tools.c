@@ -646,7 +646,7 @@ void gf_sg_sfimage_del(SFImage im) {
 	gf_free(im.pixels);
 }
 void gf_sg_sfstring_del(SFString par) {
-	if (par.buffer) gf_free(par.buffer);
+	gf_free(par.buffer);
 }
 
 void gf_sg_sfcommand_del(SFCommandBuffer cb)
@@ -657,7 +657,7 @@ void gf_sg_sfcommand_del(SFCommandBuffer cb)
 		gf_sg_command_del(com);
 	}
 	gf_list_del(cb.commandList);
-	if (cb.buffer) gf_free(cb.buffer);
+	gf_free(cb.buffer);
 }
 
 GF_EXPORT
@@ -681,7 +681,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 	case GF_SG_VRML_SFATTRREF:
 		break;
 	case GF_SG_VRML_SFSTRING:
-		if ( ((SFString *)field)->buffer) gf_free(((SFString *)field)->buffer);
+		gf_free(((SFString *)field)->buffer);
 		break;
 	case GF_SG_VRML_SFIMAGE:
 		gf_sg_sfimage_del(* ((SFImage *)field));
@@ -915,7 +915,7 @@ u32 gf_sg_field_type_by_name(const char *fieldType)
 #endif
 
 void gf_sg_sfurl_del(SFURL url) {
-	if (url.url) gf_free(url.url);
+	gf_free(url.url);
 }
 
 GF_EXPORT
@@ -930,7 +930,7 @@ void gf_sg_mfstring_del(MFString par)
 {
 	u32 i;
 	for (i=0; i<par.count; i++) {
-		if (par.vals[i]) gf_free(par.vals[i]);
+		gf_free(par.vals[i]);
 	}
 	gf_free(par.vals);
 }
@@ -949,7 +949,7 @@ void gf_sg_mfscript_del(MFScript sc)
 {
 	u32 i;
 	for (i=0; i<sc.count; i++) {
-		if (sc.vals[i].script_text) gf_free(sc.vals[i].script_text);
+		gf_free(sc.vals[i].script_text);
 	}
 	gf_free(sc.vals);
 }
@@ -1119,7 +1119,7 @@ GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertA
 
 	//first item ever
 	if (!mffield->count || !mffield->array) {
-		if (mffield->array) gf_free(mffield->array);
+		gf_free(mffield->array);
 		mffield->array = (u8 *)gf_malloc(FieldSize);
 		if (!mffield->array) return GF_OUT_OF_MEM;
 		memset(mffield->array, 0, sizeof(char)*FieldSize);
@@ -1181,7 +1181,7 @@ GF_Err gf_sg_vrml_mf_reset(void *mf, u32 FieldType)
 		gf_sg_mfscript_del( * ((MFScript *) mf));
 		break;
 	default:
-		if (mffield->array) gf_free(mffield->array);
+		gf_free(mffield->array);
 		break;
 	}
 
@@ -1213,6 +1213,7 @@ GF_Err gf_sg_vrml_mf_alloc(void *mf, u32 FieldType, u32 NbItems)
 	gf_sg_vrml_mf_reset(mf, FieldType);
 	if (NbItems) {
 		mffield->array = (u8 *)gf_malloc(FieldSize*NbItems);
+		if (!mffield->array) return GF_OUT_OF_MEM;
 		memset(mffield->array, 0, sizeof(char)*FieldSize*NbItems);
 	}
 	mffield->count = NbItems;
@@ -1304,16 +1305,16 @@ void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_fiel
 			if (url->OD_ID>0) {
 				char tmp[50];
 				sprintf(tmp, "%d", url->OD_ID);
-				if ( ((SFString*)dest)->buffer) gf_free(((SFString*)dest)->buffer);
+				gf_free(((SFString*)dest)->buffer);
 				((SFString*)dest)->buffer = gf_strdup(tmp);
 			} else {
-				if ( ((SFString*)dest)->buffer) gf_free(((SFString*)dest)->buffer);
+				gf_free(((SFString*)dest)->buffer);
 				((SFString*)dest)->buffer = url->url ? gf_strdup(url->url) : NULL;
 			}
 		}
 		/*for SFString to MFString cast*/
 		else if (ori_field_type == GF_SG_VRML_SFSTRING) {
-			if ( ((SFString*)dest)->buffer) gf_free(((SFString*)dest)->buffer);
+			gf_free(((SFString*)dest)->buffer);
 			((SFString*)dest)->buffer = ((SFString*)orig)->buffer ? gf_strdup(((SFString*)orig)->buffer) : NULL;
 		}
 		return;
@@ -1321,7 +1322,7 @@ void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_fiel
 		if (ori_field_type != GF_SG_VRML_SFSTRING) return;
 		url = ((SFURL *)dest);
 		url->OD_ID = 0;
-		if (url->url) gf_free(url->url);
+		gf_free(url->url);
 		if ( ((SFString*)orig)->buffer)
 			url->url = gf_strdup(((SFString*)orig)->buffer);
 		else
@@ -1394,14 +1395,14 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 		memcpy(dest, orig, sizeof(SFAttrRef));
 		break;
 	case GF_SG_VRML_SFSTRING:
-		if ( ((SFString*)dest)->buffer) gf_free(((SFString*)dest)->buffer);
+		gf_free(((SFString*)dest)->buffer);
 		if ( ((SFString*)orig)->buffer )
 			((SFString*)dest)->buffer = gf_strdup(((SFString*)orig)->buffer);
 		else
 			((SFString*)dest)->buffer = NULL;
 		break;
 	case GF_SG_VRML_SFURL:
-		if ( ((SFURL *)dest)->url ) gf_free( ((SFURL *)dest)->url );
+		gf_free( ((SFURL *)dest)->url );
 		((SFURL *)dest)->OD_ID = ((SFURL *)orig)->OD_ID;
 		if (((SFURL *)orig)->url)
 			((SFURL *)dest)->url = gf_strdup(((SFURL *)orig)->url);
@@ -1409,7 +1410,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 			((SFURL *)dest)->url = NULL;
 		break;
 	case GF_SG_VRML_SFIMAGE:
-		if (((SFImage *)dest)->pixels) gf_free(((SFImage *)dest)->pixels);
+		gf_free(((SFImage *)dest)->pixels);
 		((SFImage *)dest)->width = ((SFImage *)orig)->width;
 		((SFImage *)dest)->height = ((SFImage *)orig)->height;
 		((SFImage *)dest)->numComponents  = ((SFImage *)orig)->numComponents;
@@ -1436,7 +1437,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 			memcpy(cb_dst->buffer, cb_src->buffer, sizeof(char)*cb_src->bufferSize);
 		} else {
 			u32 j, c2;
-			if (cb_dst->buffer) gf_free(cb_dst->buffer);
+			gf_free(cb_dst->buffer);
 			cb_dst->buffer = NULL;
 			/*clone command list*/
 			c2 = gf_list_count(cb_src->commandList);
@@ -1451,7 +1452,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 
 	/*simply copy text string*/
 	case GF_SG_VRML_SFSCRIPT:
-		if (((SFScript*)dest)->script_text) gf_free(((SFScript*)dest)->script_text);
+		gf_free(((SFScript*)dest)->script_text);
 		((SFScript*)dest)->script_text = NULL;
 		if ( ((SFScript*)orig)->script_text)
 			((SFScript *)dest)->script_text = (char *)gf_strdup( (char*) ((SFScript*)orig)->script_text );

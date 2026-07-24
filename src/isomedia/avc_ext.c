@@ -782,6 +782,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	if (!mdia->tmp_nal_copy_buffer) {
 		mdia->tmp_nal_copy_buffer = (u8*)gf_malloc(4096);
+		if (!mdia->tmp_nal_copy_buffer) return GF_OUT_OF_MEM;
 		mdia->tmp_nal_copy_buffer_alloc = 4096;
 	}
 
@@ -1423,7 +1424,7 @@ static GF_Err gf_isom_check_mvc(GF_ISOFile *the_file, GF_TrackBox *trak, GF_MPEG
 		vwid = (GF_ViewIdentifierBox *)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_VWID);
 		if (!mvcg) return GF_OUT_OF_MEM;
 	}
-	if (vwid->views) gf_free(vwid->views);
+	gf_free(vwid->views);
 	vwid->num_views = mvcg->num_entries;
 	vwid->views = (ViewIDEntry *)gf_malloc(sizeof(ViewIDEntry)*vwid->num_views);
 	if (!vwid->views) return GF_OUT_OF_MEM;
@@ -1493,7 +1494,7 @@ static GF_IAConfig* IAMF_DuplicateConfig(GF_IAConfig const * const cfg)
 		GF_SAFEALLOC(dst, GF_IamfObu);
 		if (dst) dst->raw_obu_bytes = (u8 *)gf_malloc(src->obu_length);
 		if (!dst || !dst->raw_obu_bytes) {
-			if (dst) gf_free(dst);
+			gf_free(dst);
 			gf_odf_iamf_cfg_del(out);
 			return NULL;
 		}
@@ -1740,21 +1741,21 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 				while (gf_list_count(a_cfg->config->sequenceParameterSets)) {
 					GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(a_cfg->config->sequenceParameterSets, 0);
 					gf_list_rem(a_cfg->config->sequenceParameterSets, 0);
-					if (sl->data) gf_free(sl->data);
+					gf_free(sl->data);
 					gf_free(sl);
 				}
 
 				while (gf_list_count(a_cfg->config->pictureParameterSets)) {
 					GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(a_cfg->config->pictureParameterSets, 0);
 					gf_list_rem(a_cfg->config->pictureParameterSets, 0);
-					if (sl->data) gf_free(sl->data);
+					gf_free(sl->data);
 					gf_free(sl);
 				}
 
 				while (gf_list_count(a_cfg->config->sequenceParameterSetExtensions)) {
 					GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(a_cfg->config->sequenceParameterSetExtensions, 0);
 					gf_list_rem(a_cfg->config->sequenceParameterSetExtensions, 0);
-					if (sl->data) gf_free(sl->data);
+					gf_free(sl->data);
 					gf_free(sl);
 				}
 			}
@@ -2202,7 +2203,7 @@ static Bool nalu_cleanup_config(GF_List *param_array, Bool set_inband, Bool keep
 			while (gf_list_count(ar->nalus)) {
 				GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(ar->nalus, 0);
 				gf_list_rem(ar->nalus, 0);
-				if (sl->data) gf_free(sl->data);
+				gf_free(sl->data);
 				gf_free(sl);
 			}
 			gf_list_del(ar->nalus);
@@ -2500,8 +2501,7 @@ GF_Box *gf_isom_clone_config_box(GF_Box *box)
 		e = gf_isom_box_parse(&clone, bs);
 		gf_bs_del(bs);
 	}
-	if (data)
-		gf_free(data);
+	gf_free(data);
 	if (e) {
 		if (clone)
 			gf_isom_box_del(clone);
@@ -2850,7 +2850,7 @@ GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 void btrt_box_del(GF_Box *s)
 {
 	GF_BitRateBox *ptr = (GF_BitRateBox *)s;
-	if (ptr) gf_free(ptr);
+	gf_free(ptr);
 }
 GF_Err btrt_box_read(GF_Box *s, GF_BitStream *bs)
 {

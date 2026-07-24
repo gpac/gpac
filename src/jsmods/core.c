@@ -167,8 +167,8 @@ void gf_js_delete_runtime()
 		qjs_uninit_runtime_libc(js_rt->js_runtime);
 		JS_FreeRuntime(js_rt->js_runtime);
 		gf_list_del(js_rt->allocated_contexts);
-		if (js_rt->js_orig_logs) gf_free(js_rt->js_orig_logs);
-		if (js_rt->js_log_buf) gf_free(js_rt->js_log_buf);
+		gf_free(js_rt->js_orig_logs);
+		gf_free(js_rt->js_log_buf);
 		gf_mx_del(js_rt->mx);
 		gf_free(js_rt);
 		js_rt = NULL;
@@ -1765,7 +1765,7 @@ static JSValue js_sys_enum_directory(JSContext *ctx, JSValueConst this_val, int 
 		if (JS_IsException(cbk.array)) return cbk.array;
 		cbk.is_dir = GF_TRUE;
 		gf_enum_directory("/", GF_TRUE, js_enum_dir_fct, &cbk, NULL);
-		if (url) gf_free(url);
+		gf_free(url);
 		JS_FreeCString(ctx, dir);
 		JS_FreeCString(ctx, filter);
 		return cbk.array;
@@ -1797,7 +1797,7 @@ static JSValue js_sys_enum_directory(JSContext *ctx, JSValueConst this_val, int 
 		if (err) return GF_JS_EXCEPTION(ctx);
 	}
 
-	if (url) gf_free(url);
+	gf_free(url);
 	JS_FreeCString(ctx, dir);
 	JS_FreeCString(ctx, filter);
 	return cbk.array;
@@ -2122,8 +2122,7 @@ static JSValue js_sys_file_data(JSContext *ctx, JSValueConst this_val, int argc,
 		} else {
 			res = js_throw_err_msg(ctx, GF_NON_COMPLIANT_BITSTREAM, "Invalid UTF8 data in file %s", filename);
 		}
-		if (data)
-			gf_free(data);
+		gf_free(data);
 	} else {
 		res = JS_NewArrayBuffer(ctx, data, data_size, js_gpac_free, NULL, 0);
 	}
@@ -2164,7 +2163,7 @@ static JSValue js_sys_load_script(JSContext *ctx, JSValueConst this_val, int arg
 	} else {
 		res = JS_UNDEFINED;
 	}
-	if (data) gf_free(data);
+	gf_free(data);
 
 	if (full_url)
 		gf_free(full_url);
@@ -2556,7 +2555,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 				gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE_NO_BASE, 0, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
 
 				JS_SetPropertyStr(ctx, repo, "template", seg_url ? JS_NewString(ctx, seg_url) : JS_NULL );
-				if (seg_url) gf_free(seg_url);
+				gf_free(seg_url);
 
 				u64 seg_idx = 0;
 				if (seg_duration) {
@@ -3300,9 +3299,9 @@ static void js_amix_finalize(JSRuntime *rt, JSValue obj)
 	AMixCtx *mix = (AMixCtx *)JS_GetOpaque(obj, amix_class_id);
 	if (!mix) return;
 
-	if (mix->chan_buf) gf_free(mix->chan_buf);
-	if (mix->inputs) gf_free(mix->inputs);
-	if (mix->in_chan_buf) gf_free(mix->in_chan_buf);
+	gf_free(mix->chan_buf);
+	gf_free(mix->inputs);
+	gf_free(mix->in_chan_buf);
 	gf_free(mix);
 }
 
@@ -4222,7 +4221,7 @@ static GF_FileIO *jsfio_open(GF_FileIO *fileio_ref, const char *url, const char 
 
 	JS_FreeValue(ctx, args[0]);
 	JS_FreeValue(ctx, args[1]);
-	if (path) gf_free(path);
+	gf_free(path);
 
 	if (JS_IsBool(res) && JS_ToBool(ctx, res) ) {
 		ioctx_ref->factory->all_refs++;
@@ -4611,7 +4610,7 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 		} else {
 			e = GF_URL_ERROR;
 		}
-		if (url) gf_free(url);
+		gf_free(url);
 
 		if (e != GF_OK) {
 			JS_ThrowReferenceError(ctx, "could not load module filename '%s': %s", module_name, gf_error_to_string(e) );

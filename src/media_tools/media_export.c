@@ -1224,7 +1224,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				e = gf_dynstrcat(&args, ":dynext", NULL);
 		} else if (dumper->trackID && strlen(szExt) && !e) {
 			if (!no_ext && !gf_file_ext_start(dumper->out_name)) {
-				if (args) gf_free(args);
+				gf_free(args);
 				args=NULL;
 				e = gf_dynstrcat(&args, "fout:dst=", NULL);
 				if (!e)
@@ -1242,7 +1242,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load arguments for output file dumper\n"));
-			if (args) gf_free(args);
+			gf_free(args);
 			gf_fs_del(fsess);
 			return e;
 		}
@@ -1255,12 +1255,12 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 		if (!file_out) {
 			gf_fs_del(fsess);
-			if (args) gf_free(args);
+			gf_free(args);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load output file dumper\n"));
 			return e;
 		}
 	}
-	if (args) gf_free(args);
+	gf_free(args);
 	args = NULL;
 
 	//raw sample frame, force loading filter generic write in frame mode
@@ -1274,7 +1274,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (!remux || e) {
 			gf_fs_del(fsess);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load stream->file filter\n"));
-			if (args) gf_free(args);
+			gf_free(args);
 			return e ? e : GF_FILTER_NOT_FOUND;
 		}
 	}
@@ -1299,7 +1299,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		remux = e ? NULL : gf_fs_load_filter(fsess, args, &e);
 		if (!remux || e) {
 			gf_fs_del(fsess);
-			if (args) gf_free(args);
+			gf_free(args);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load NHML write filter\n"));
 			return e ? e : GF_FILTER_NOT_FOUND;
 		}
@@ -1315,12 +1315,12 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		remux = e ? NULL : gf_fs_load_filter(fsess, args, &e);
 		if (!remux) {
 			gf_fs_del(fsess);
-			if (args) gf_free(args);
+			gf_free(args);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load stream->file filter\n"));
 			return e;
 		}
 	}
-	if (args) gf_free(args);
+	gf_free(args);
 	args = NULL;
 
 	//force a reframer filter, connected to our input
@@ -1339,11 +1339,11 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	reframer = gf_fs_load_filter(fsess, args, &e);
 	if (!reframer || e) {
 		gf_fs_del(fsess);
-		if (args) gf_free(args);
+		gf_free(args);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load reframer filter\n"));
 		return e ? e : GF_FILTER_NOT_FOUND;
 	}
-	if (args) gf_free(args);
+	gf_free(args);
 	args = NULL;
 
 	//we already have the file loaded, directly load the mp4dmx filter with this file

@@ -529,7 +529,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_ESID, stream->mpeg4_es_id ? &PROP_UINT(stream->mpeg4_es_id) : NULL);
 
 	if (m4sys_stream) {
-		if (stream->slcfg) gf_free(stream->slcfg);
+		gf_free(stream->slcfg);
 
 		stream->slcfg = esd->slConfig;
 		esd->slConfig = NULL;

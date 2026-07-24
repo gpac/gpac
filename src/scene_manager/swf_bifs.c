@@ -871,7 +871,7 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 			gf_sg_vrml_mf_append(&f->justify, GF_SG_VRML_MFSTRING, &ptr);
 			((SFString*)ptr)->buffer = gf_strdup("BEGIN");
 
-			if (f->style.buffer) gf_free(f->style.buffer);
+			gf_free(f->style.buffer);
 			if (ft->is_italic && ft->is_bold) f->style.buffer = gf_strdup("BOLDITALIC");
 			else if (ft->is_bold) f->style.buffer = gf_strdup("BOLD");
 			else if (ft->is_italic) f->style.buffer = gf_strdup("ITALIC");
@@ -1029,7 +1029,7 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 	if (!text->read_only) gf_strcat(styles, "EDITABLE");
 	if (text->password) gf_strcat(styles, "PASSWORD");
 
-	if (f->style.buffer) gf_free(f->style.buffer);
+	gf_free(f->style.buffer);
 	f->style.buffer = gf_strdup(styles);
 
 	if (text->init_value) {

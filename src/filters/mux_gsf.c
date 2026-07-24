@@ -1239,7 +1239,7 @@ static void gsfmx_finalize(GF_Filter *filter)
 	gf_list_del(ctx->streams);
 
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
-	if (ctx->buffer) gf_free(ctx->buffer);
+	gf_free(ctx->buffer);
 #ifndef GPAC_DISABLE_CRYPTO
 	if (ctx->crypt) gf_crypt_close(ctx->crypt);
 #endif

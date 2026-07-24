@@ -67,8 +67,8 @@ static void webgl_finalize(JSRuntime *rt, JSValue obj)
 	glDeleteTextures(1, &glctx->tex_id);
 	glDeleteRenderbuffers(1, &glctx->depth_id);
 	glDeleteFramebuffers(1, &glctx->fbo_id);
-	if (glctx->pix_data) gf_free(glctx->pix_data);
-	if (glctx->pix_line) gf_free(glctx->pix_line);
+	gf_free(glctx->pix_data);
+	gf_free(glctx->pix_line);
 	gf_free(glctx);
 }
 
@@ -175,7 +175,7 @@ static void NamedTexture_finalize(JSRuntime *rt, JSValue obj)
 	}
 
 	if (named_tx->tx.nb_textures) glDeleteTextures(named_tx->tx.nb_textures, named_tx->tx.textures);
-	if (named_tx->tx_name) gf_free(named_tx->tx_name);
+	gf_free(named_tx->tx_name);
 	gf_free(named_tx);
 }
 JSClassDef NamedTexture_class =
@@ -204,6 +204,7 @@ Bool WGL_LOAD_INT32_VEC(JSContext *ctx, JSValue val, s32 **values, u32 *v_size, 
 	}
 	if (! *values) {
 		*values = (s32 *)gf_malloc(sizeof(s32) * len);
+		if (!*values) return GF_FALSE;
 		*v_size = len;
 	} else {
 		if (len>dim) len=dim;
@@ -239,6 +240,7 @@ Bool WGL_LOAD_FLOAT_VEC(JSContext *ctx, JSValue val, Float **values, u32 *v_size
 
 	if (! *values) {
 		*values = (Float *)gf_malloc(sizeof(Float) * len);
+		if (!*values) return GF_FALSE;
 		if (is_matrix)
 			*v_size = len/dim/dim;
 		else
@@ -1228,8 +1230,8 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 	glShaderSource(shader, 1, &final_source, &len);
 
 	JS_FreeCString(ctx, source);
-	if (gf_source) gf_free(gf_source);
-	if (patch_precision) gf_free(patch_precision);
+	gf_free(gf_source);
+	gf_free(patch_precision);
 	return JS_UNDEFINED;
 }
 

@@ -203,8 +203,8 @@ extern "C" {
 	static GF_Err Dektec_resize(GF_VideoOutput *dr, u32 w, u32 h)
 	{
 		DtContext *dtc = (DtContext*)dr->opaque;
-		if (dtc->pixels) gf_free(dtc->pixels);
-		if (dtc->pixels_UYVY) gf_free(dtc->pixels_UYVY);
+		gf_free(dtc->pixels);
+		gf_free(dtc->pixels_UYVY);
 		dtc->width = w;
 		dtc->height = h;
 		dtc->pixels = (char*)gf_malloc(dtc->bpp * w * h);

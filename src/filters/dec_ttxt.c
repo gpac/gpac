@@ -770,8 +770,8 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 					gf_sg_vrml_mf_append(&text->string, GF_SG_VRML_MFSTRING, (void **) &st);
 					st->buffer = gf_strdup(szLine);
 				}
-				if (szLine) gf_free(szLine);
-				if (wsChunk) gf_free(wsChunk);
+				gf_free(szLine);
+				gf_free(wsChunk);
 			}
 			start_char = i+1;
 			if (new_line) {
@@ -1498,7 +1498,7 @@ void ttd_finalize(GF_Filter *filter)
 	if (ctx->cfg) gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
 	gf_bs_del(ctx->bs_r);
 
-	if (ctx->static_text) gf_free(ctx->static_text);
+	gf_free(ctx->static_text);
 }
 
 

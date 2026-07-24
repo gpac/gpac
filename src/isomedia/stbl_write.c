@@ -1274,7 +1274,7 @@ GF_Err stbl_RemoveSize(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples
 	if ((nb_samples>1) && (sampleNumber>1)) return GF_BAD_PARAM;
 	//last sample
 	if (stsz->sampleCount == 1) {
-		if (stsz->sizes) gf_free(stsz->sizes);
+		gf_free(stsz->sizes);
 		stsz->sizes = NULL;
 		stsz->sampleCount = 0;
 		return GF_OK;
@@ -1918,8 +1918,7 @@ GF_Err stbl_AppendTrafMap(GF_ISOFile *mov, GF_SampleTableBox *stbl, Bool is_seg_
 	if (tmap->nb_entries >= stbl->SampleSize->sampleCount) {
 		u32 i;
 		for (i=0; i<tmap->nb_entries; i++) {
-			if (tmap->frag_starts[i].moof_template)
-				gf_free(tmap->frag_starts[i].moof_template);
+			gf_free(tmap->frag_starts[i].moof_template);
 		}
 		memset(tmap->frag_starts, 0, sizeof(GF_TrafMapEntry)*tmap->nb_alloc);
 		tmap->nb_entries = 0;

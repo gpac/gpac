@@ -438,7 +438,10 @@ void gf_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 		builder->force_flush = (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) ? GF_FALSE : GF_TRUE;
 
 		if (!builder->key_indicator) builder->key_indicator = (u8 *) gf_malloc(builder->slMap.KI_length);
-		memcpy(builder->key_indicator, key_indicator, sizeof(u8)*builder->slMap.KI_length);
+		if (!builder->key_indicator)
+			memcpy(builder->key_indicator, key_indicator, sizeof(u8)*builder->slMap.KI_length);
+		else
+			builder->slMap.KI_length = 0;
 	}
 	if (builder->IV != IV) {
 		builder->IV = IV;

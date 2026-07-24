@@ -50,11 +50,11 @@ static GF_Err evg_raster_ctx_init(EVGRasterCtx *raster_ctx, GF_EVGSurface *surf)
 
 static void evg_raster_ctx_uninit(EVGRasterCtx *raster_ctx)
 {
-	if (raster_ctx->gray_spans) gf_free(raster_ctx->gray_spans);
-	if (raster_ctx->stencil_pix_run) gf_free(raster_ctx->stencil_pix_run);
-	if (raster_ctx->stencil_pix_run2) gf_free(raster_ctx->stencil_pix_run2);
-	if (raster_ctx->stencil_pix_run3) gf_free(raster_ctx->stencil_pix_run3);
-	if (raster_ctx->uv_alpha) gf_free(raster_ctx->uv_alpha);
+	gf_free(raster_ctx->gray_spans);
+	gf_free(raster_ctx->stencil_pix_run);
+	gf_free(raster_ctx->stencil_pix_run2);
+	gf_free(raster_ctx->stencil_pix_run3);
+	gf_free(raster_ctx->uv_alpha);
 }
 
 GF_EXPORT
@@ -174,18 +174,15 @@ void gf_evg_surface_delete(GF_EVGSurface *surf)
 
 	for (i=0; i<surf->max_lines; i++) {
 		gf_free(surf->scanlines[i].cells);
-		if (surf->scanlines[i].pixels)
-			gf_free(surf->scanlines[i].pixels);
+		gf_free(surf->scanlines[i].pixels);
 	}
 	gf_free(surf->scanlines);
 
-	if (surf->internal_mask) gf_free(surf->internal_mask);
+	gf_free(surf->internal_mask);
 
 	evg_raster_ctx_uninit(&surf->raster_ctx);
 
-	if (surf->ext3d) {
-		gf_free(surf->ext3d);
-	}
+	gf_free(surf->ext3d);
 #ifndef GPAC_DISABLE_THREADS
 	if (surf->nb_threads) {
 		for (i=0; i<surf->nb_threads; i++) {

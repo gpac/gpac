@@ -57,20 +57,20 @@ void gf_rtp_del(GF_RTPChannel *ch)
 	if (!ch) return;
 	if (ch->rtp) gf_sk_del(ch->rtp);
 	if (ch->rtcp) gf_sk_del(ch->rtcp);
-	if (ch->net_info.source) gf_free(ch->net_info.source);
-	if (ch->net_info.destination) gf_free(ch->net_info.destination);
-	if (ch->net_info.Profile) gf_free(ch->net_info.Profile);
+	gf_free(ch->net_info.source);
+	gf_free(ch->net_info.destination);
+	gf_free(ch->net_info.Profile);
 	if (ch->po) gf_rtp_reorderer_del(ch->po);
-	if (ch->send_buffer) gf_free(ch->send_buffer);
+	gf_free(ch->send_buffer);
 
-	if (ch->CName) gf_free(ch->CName);
-	if (ch->s_name) gf_free(ch->s_name);
-	if (ch->s_email) gf_free(ch->s_email);
-	if (ch->s_location) gf_free(ch->s_location);
-	if (ch->s_phone) gf_free(ch->s_phone);
-	if (ch->s_tool) gf_free(ch->s_tool);
-	if (ch->s_note) gf_free(ch->s_note);
-	if (ch->s_priv) gf_free(ch->s_priv);
+	gf_free(ch->CName);
+	gf_free(ch->s_name);
+	gf_free(ch->s_email);
+	gf_free(ch->s_location);
+	gf_free(ch->s_phone);
+	gf_free(ch->s_tool);
+	gf_free(ch->s_note);
+	gf_free(ch->s_priv);
 	if (ch->bs_r) gf_bs_del(ch->bs_r);
 	if (ch->bs_w) gf_bs_del(ch->bs_w);
 	memset(ch, 0, sizeof(GF_RTPChannel));
@@ -85,11 +85,11 @@ GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, c
 	//assert we have at least ONE source ID
 	if (!trans_info->source && !remote_address) return GF_BAD_PARAM;
 
-	if (ch->net_info.destination) gf_free(ch->net_info.destination);
+	gf_free(ch->net_info.destination);
 	ch->net_info.destination = NULL;
-	if (ch->net_info.Profile) gf_free(ch->net_info.Profile);
+	gf_free(ch->net_info.Profile);
 	ch->net_info.Profile = NULL;
-	if (ch->net_info.source) gf_free(ch->net_info.source);
+	gf_free(ch->net_info.source);
 	ch->net_info.source = NULL;
 	memcpy(&ch->net_info, trans_info, sizeof(GF_RTSPTransport));
 
@@ -306,7 +306,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 	}
 
 	if (IsSource) {
-		if (ch->send_buffer) gf_free(ch->send_buffer);
+		gf_free(ch->send_buffer);
 		ch->send_buffer_size = PathMTU + 12;
 		ch->send_buffer = (u8 *) gf_malloc(ch->send_buffer_size);
 		if (!ch->send_buffer) return GF_OUT_OF_MEM;

@@ -139,7 +139,7 @@ static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		}
 
 		visual_del(st->visual);
-		if (st->txh.data) gf_free(st->txh.data);
+		gf_free(st->txh.data);
 		/*destroy texture*/
 		gf_sc_texture_destroy(&st->txh);
 #ifdef GPAC_USE_TINYGL
@@ -354,7 +354,7 @@ static void composite_update(GF_TextureHandler *txh)
 			if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
 #endif
 			gf_sc_texture_release(txh);
-			if (txh->data) gf_free(txh->data);
+			gf_free(txh->data);
 			txh->data = NULL;
 			txh->width = txh->height = txh->stride = 0;
 		}
@@ -374,8 +374,7 @@ static void composite_update(GF_TextureHandler *txh)
 			if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
 #endif
 			gf_sc_texture_release(txh);
-			if (txh->data)
-				gf_free(txh->data);
+			gf_free(txh->data);
 			txh->data = NULL;
 		}
 
@@ -446,6 +445,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 		if (needs_stencil) {
 			txh->data = (u8 *)gf_malloc(txh->stride * txh->height);
+			if (!txh->data) return;
 			memset(txh->data, 0, sizeof(unsigned char) * txh->stride * txh->height);
 
 			/*set stencil texture - we don't check error as an image could not be supported by the rasterizer

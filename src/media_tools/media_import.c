@@ -245,7 +245,7 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	import->esd->slConfig->timestampResolution = 1000;
 
 	if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-	if (import->esd->decoderConfig->decoderSpecificInfo->data) gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
+	gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
 	import->esd->decoderConfig->decoderSpecificInfo->data = dsi;
 	import->esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_len;
 
@@ -824,7 +824,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	gf_isom_update_duration(import->dest);
 
 exit:
-	if (sai_buffer) gf_free(sai_buffer);
+	gf_free(sai_buffer);
 	if (origin_esd) gf_odf_desc_del((GF_Descriptor *) origin_esd);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, cur_extract_mode);
 	return e;

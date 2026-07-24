@@ -227,7 +227,7 @@ static void ohevcdec_create_inband(GF_HEVCStream *stream, u32 nal_unit_size, GF_
 	if (vps) ohevcdec_write_ps_list(bs, vps, nal_unit_size);
 	if (sps) ohevcdec_write_ps_list(bs, sps, nal_unit_size);
 	if (pps) ohevcdec_write_ps_list(bs, pps, nal_unit_size);
-	if (stream->inject_hdr) gf_free(stream->inject_hdr);
+	gf_free(stream->inject_hdr);
 	gf_bs_get_content(bs, &stream->inject_hdr, &stream->inject_hdr_size);
 	gf_bs_del(bs);
 }
@@ -695,7 +695,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
 	}
 
-	if (patched_dsi) gf_free(patched_dsi);
+	gf_free(patched_dsi);
 
 	//in case we don't have a config record
 	if (!ctx->chroma_format_idc) ctx->chroma_format_idc = 1;
@@ -1384,8 +1384,8 @@ static void ohevcdec_finalize(GF_Filter *filter)
 		if (!ctx->decoder_started) oh_start(ctx->codec);
 		oh_close(ctx->codec);
 	}
-	if (ctx->reaggregation_buffer) gf_free(ctx->reaggregation_buffer);
-	if (ctx->inject_buffer) gf_free(ctx->inject_buffer);
+	gf_free(ctx->reaggregation_buffer);
+	gf_free(ctx->inject_buffer);
 
 	while (gf_list_count(ctx->src_packets)) {
 		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);

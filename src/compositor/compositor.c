@@ -1000,8 +1000,8 @@ void gf_sc_unload(GF_Compositor *compositor)
 		gf_node_unregister(compositor->focus_highlight->node, NULL);
 		drawable_del_ex(compositor->focus_highlight, compositor, GF_FALSE);
 	}
-	if (compositor->selected_text) gf_free(compositor->selected_text);
-	if (compositor->sel_buffer) gf_free(compositor->sel_buffer);
+	gf_free(compositor->selected_text);
+	gf_free(compositor->sel_buffer);
 
 	if (compositor->visual) visual_del(compositor->visual);
 	if (compositor->sensors) gf_list_del(compositor->sensors);
@@ -1027,10 +1027,10 @@ void gf_sc_unload(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 	if (compositor->unit_bbox) mesh_free(compositor->unit_bbox);
 
-	if (compositor->screen_buffer) gf_free(compositor->screen_buffer);
-	if (compositor->line_buffer) gf_free(compositor->line_buffer);
+	gf_free(compositor->screen_buffer);
+	gf_free(compositor->line_buffer);
 #endif
-	if (compositor->framebuffer) gf_free(compositor->framebuffer);
+	gf_free(compositor->framebuffer);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Unloading visual compositor module\n"));
 
@@ -1095,7 +1095,7 @@ void gf_sc_unload(GF_Compositor *compositor)
 
 	gf_sc_lock(compositor, GF_FALSE);
 	gf_mx_del(compositor->mx);
-	if (compositor->reload_url) gf_free(compositor->reload_url);
+	gf_free(compositor->reload_url);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Destroyed\n"));
 }
 
@@ -4016,7 +4016,7 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 	if (compositor->sel_buffer) compositor->sel_buffer[compositor->sel_buffer_len]=0;
 	srcp = compositor->sel_buffer;
 
-	if (compositor->selected_text) gf_free(compositor->selected_text);
+	gf_free(compositor->selected_text);
 	compositor->selected_text = (u8 *)gf_malloc(2*compositor->sel_buffer_len);
 	if (!compositor->selected_text) return NULL;
 	len = gf_utf8_wcstombs((char *) compositor->selected_text, 2*compositor->sel_buffer_len, &srcp);
@@ -4522,7 +4522,7 @@ void gf_sc_navigate_to(GF_Compositor *compositor, const char *toURL)
 	if (!compositor) return;
 	if (!toURL && !compositor->root_scene) return;
 
-	if (compositor->reload_url) gf_free(compositor->reload_url);
+	gf_free(compositor->reload_url);
 	compositor->reload_url = NULL;
 
 	if (toURL) {

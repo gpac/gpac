@@ -349,7 +349,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 		size -= fsize;
 	}
 	gf_bs_del(bs);
-	if (_buf) gf_free(_buf);
+	gf_free(_buf);
 }
 static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 {
@@ -777,9 +777,9 @@ static void mp3_dmx_finalize(GF_Filter *filter)
 {
 	GF_MP3DmxCtx *ctx = (GF_MP3DmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
-	if (ctx->indexes) gf_free(ctx->indexes);
-	if (ctx->mp3_buffer) gf_free(ctx->mp3_buffer);
-	if (ctx->id3_buffer) gf_free(ctx->id3_buffer);
+	gf_free(ctx->indexes);
+	gf_free(ctx->mp3_buffer);
+	gf_free(ctx->id3_buffer);
 	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 }
 

@@ -964,8 +964,8 @@ static void ffsws_finalize(GF_Filter *filter)
 {
 	GF_FFSWScaleCtx *ctx = (GF_FFSWScaleCtx *)gf_filter_get_udta(filter);
 	if (ctx->swscaler) sws_freeContext(ctx->swscaler);
-	if (ctx->unpack_buf) gf_free(ctx->unpack_buf);
-	if (ctx->repack_buf) gf_free(ctx->repack_buf);
+	gf_free(ctx->unpack_buf);
+	gf_free(ctx->repack_buf);
 #ifndef GPAC_DISABLE_EVG
 	gf_evg_surface_delete(ctx->surf);
 	gf_evg_stencil_delete(ctx->tx);

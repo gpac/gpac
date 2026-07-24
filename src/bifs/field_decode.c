@@ -127,19 +127,19 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		if (node && (node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
 			M_CacheTexture *ct = (M_CacheTexture *) node;
 			ct->data_len = length;
-			if (ct->data) gf_free(ct->data);
+			gf_free(ct->data);
 			ct->data = (u8*)gf_malloc(length);
 			if (!ct->data) return GF_OUT_OF_MEM;
 			gf_bs_read_data(bs, ct->data, length);
 		} else if (node && (node->sgprivate->tag==TAG_MPEG4_BitWrapper) ) {
 			M_BitWrapper *bw = (M_BitWrapper*) node;
-			if (bw->buffer.buffer) gf_free(bw->buffer.buffer);
+			gf_free(bw->buffer.buffer);
 			bw->buffer_len = length;
 			bw->buffer.buffer = (char*)gf_malloc(length);
 			if (!bw->buffer.buffer) return GF_OUT_OF_MEM;
 			gf_bs_read_data(bs, (u8*)bw->buffer.buffer, length);
 		} else {
-			if ( ((SFString *)field->far_ptr)->buffer ) gf_free( ((SFString *)field->far_ptr)->buffer);
+			gf_free( ((SFString *)field->far_ptr)->buffer);
 			((SFString *)field->far_ptr)->buffer = (char *)gf_malloc(length+1);
 			if (! ((SFString *)field->far_ptr)->buffer ) return GF_OUT_OF_MEM;
 			memset(((SFString *)field->far_ptr)->buffer , 0, length+1);
@@ -153,7 +153,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		SFURL *url = (SFURL *) field->far_ptr;
 		size = gf_bs_read_int(bs, 1);
 		if (size) {
-			if (url->url) gf_free(url->url );
+			gf_free(url->url);
 			url->url = NULL;
 			length = gf_bs_read_int(bs, 10);
 			url->OD_ID = length;
@@ -165,10 +165,11 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			buffer = NULL;
 			if (length) {
 				buffer = (char *)gf_malloc(length+1);
+				if (!buffer) return GF_OUT_OF_MEM;
 				memset(buffer, 0, length+1);
 				for (i=0; i<length; i++) buffer[i] = gf_bs_read_int(bs, 8);
 			}
-			if (url->url) gf_free( url->url);
+			gf_free(url->url);
 			/*if URL is empty set it to NULL*/
 			if (buffer && strlen(buffer)) {
 				url->url = buffer;
@@ -224,6 +225,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		sfcb->bufferSize = length;
 		if (length) {
 			sfcb->buffer = (u8 *)gf_malloc(length);
+			if (!sfcb->buffer) return GF_OUT_OF_MEM;
 			//WARNING Buffers are NOT ALIGNED IN THE BITSTREAM
 			for (i=0; i<length; i++) {
 				sfcb->buffer[i] = gf_bs_read_int(bs, 8);
@@ -239,6 +241,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		*/
 		if (codec->dec_memory_mode || (node->sgprivate->tag==TAG_MPEG4_InputSensor)) {
 			CommandBufferItem *cbi = (CommandBufferItem *)gf_malloc(sizeof(CommandBufferItem));
+			if (!cbi) return GF_OUT_OF_MEM;
 			cbi->node = node;
 			gf_node_register(cbi->node, NULL);
 			cbi->cb = sfcb;

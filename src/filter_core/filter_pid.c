@@ -810,7 +810,8 @@ void task_canceled(GF_FSTask *task)
 	}
 	else if (task->class_type==TASK_TYPE_USER) {
 		gf_free(task->udta);
-		gf_free((char *)task->log_name);
+		//log_name is a memdup for user tasks
+		gf_free((void*)task->log_name);
 		task->log_name = NULL;
 	}
 }
@@ -1656,7 +1657,7 @@ void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to assign name %s to input PID %s in filter %s - ignoring\n", name, pid->pid->name, pid->pid->filter->name));
 	} else if (name) {
 		if (pid->name && !strcmp(pid->name, name)) return;
-		if (pid->name) gf_free(pid->name);
+		gf_free(pid->name);
 		pid->name = gf_strdup(name);
 	}
 }
@@ -2175,7 +2176,7 @@ sourceid_reassign:
 							gf_free(resolved_source_ids);
 						}
 						resolved_source_ids = new_source_ids;
-						if (frag_clone) gf_free(frag_clone);
+						gf_free(frag_clone);
 						goto sourceid_reassign;
 
 					}
@@ -2199,7 +2200,7 @@ sourceid_reassign:
 			next_frag[0] = src_pid->filter->session->sep_frag;
 			frag_name = next_frag+1;
 		}
-		if (frag_clone) gf_free(frag_clone);
+		gf_free(frag_clone);
 		if (all_matched) {
 			//exact match on one or more properties, don't look any further
 			if (!all_frags_not_found) {
@@ -2221,7 +2222,7 @@ sourceid_reassign:
 	}
 
 	if (!result) {
-		if (resolved_source_ids) gf_free(resolved_source_ids);
+		gf_free(resolved_source_ids);
 		if (dst_filter && dst_filter->dynamic_source_ids && first_pass) {
 			first_pass = GF_FALSE;
 			goto sourceid_reassign;
@@ -2593,9 +2594,9 @@ static void cache_bundle_free(GF_BundleDesc *b)
 		u32 i;
 		for (i=0; i<b->alloc_caps;i++) {
 			GF_CapBundleDesc *cap = &b->caps[i];
-			if (cap->vals) gf_free((GF_FilterCapability **)cap->vals);
+			gf_free(cap->vals);
 		}
-		if (b->caps) gf_free(b->caps);
+		gf_free(b->caps);
 	}
 	gf_free(b);
 }
@@ -6147,7 +6148,7 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 			gf_props_del(pid->infos);
 		}
 	}
-	if (pid->name) gf_free(pid->name);
+	gf_free(pid->name);
 	gf_free(pid);
 }
 

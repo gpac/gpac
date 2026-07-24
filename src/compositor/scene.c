@@ -331,7 +331,7 @@ GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene)
 
 static void gf_scene_reset_urls(GF_Scene *scene)
 {
-#define SFURL_RESET(__url) if (__url.url) gf_free(__url.url);\
+#define SFURL_RESET(__url) gf_free(__url.url);\
 	memset(&__url, 0, sizeof(SFURL));
 
 	SFURL_RESET(scene->audio_url);
@@ -382,8 +382,8 @@ void gf_scene_del(GF_Scene *scene)
 
 	gf_scene_reset_urls(scene);
 
-	if (scene->fragment_uri) gf_free(scene->fragment_uri);
-	if (scene->redirect_xml_base) gf_free(scene->redirect_xml_base);
+	gf_free(scene->fragment_uri);
+	gf_free(scene->redirect_xml_base);
 
 	if (scene->namespaces) {
 		while (gf_list_count(scene->namespaces)) {
@@ -2015,7 +2015,7 @@ static Bool check_odm_deactivate(SFURL *url, GF_ObjectManager *odm, GF_Node *n)
 	if ((url->OD_ID!=GF_MEDIA_EXTERNAL_ID) && mfurl->count && (mfurl->vals[0].OD_ID==url->OD_ID))
 		return GF_TRUE;
 
-	if (url->url) gf_free(url->url);
+	gf_free(url->url);
 	url->url = NULL;
 	url->OD_ID = 0;
 
@@ -2197,7 +2197,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	if (odm->type == GF_STREAM_AUDIO) {
 		M_AudioClip *ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO1");
 		if (!ac) return;
-		if (scene->audio_url.url) gf_free(scene->audio_url.url);
+		gf_free(scene->audio_url.url);
 		scene->audio_url.url = NULL;
 		scene->audio_url.OD_ID = odm->ID;
 		if (!ac->url.count) gf_sg_vrml_mf_alloc(&ac->url, GF_SG_VRML_MFURL, 1);
@@ -2219,12 +2219,12 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	if (odm->type == GF_STREAM_VISUAL) {
 		M_MovieTexture *mt = (M_MovieTexture*) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1");
 		if (!mt) return;
-		if (scene->visual_url.url) gf_free(scene->visual_url.url);
+		gf_free(scene->visual_url.url);
 		scene->visual_url.url = NULL;
 		scene->visual_url.OD_ID = odm->ID;
 		if (!mt->url.count) gf_sg_vrml_mf_alloc(&mt->url, GF_SG_VRML_MFURL, 1);
 		mt->url.vals[0].OD_ID = odm->ID;
-		if (mt->url.vals[0].url) gf_free(mt->url.vals[0].url);
+		gf_free(mt->url.vals[0].url);
 		url = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
 		if (url) {
 			scene->visual_url.url = gf_strdup(url);
@@ -2240,12 +2240,12 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	if (odm->type == GF_STREAM_TEXT) {
 		M_AnimationStream *as = (M_AnimationStream*) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
 		if (!as) return;
-		if (scene->text_url.url) gf_free(scene->text_url.url);
+		gf_free(scene->text_url.url);
 		scene->text_url.url = NULL;
 		scene->text_url.OD_ID = odm->ID;
 		if (!as->url.count) gf_sg_vrml_mf_alloc(&as->url, GF_SG_VRML_MFURL, 1);
 		as->url.vals[0].OD_ID = odm->ID;
-		if (as->url.vals[0].url) gf_free(as->url.vals[0].url);
+		gf_free(as->url.vals[0].url);
 		url = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
 		if (url) {
 			scene->text_url.url = gf_strdup(url);
@@ -3049,7 +3049,7 @@ void gf_scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)
 		}
 	}
 
-	if (addon->url) gf_free(addon->url);
+	gf_free(addon->url);
 	gf_free(addon);
 }
 

@@ -2066,7 +2066,7 @@ static void vtbdec_finalize(GF_Filter *filter)
 	if (ctx->nal_bs) gf_bs_del(ctx->nal_bs);
 	if (ctx->ps_bs) gf_bs_del(ctx->ps_bs);
 	if (ctx->nalu_rewrite_bs) gf_bs_del(ctx->nalu_rewrite_bs);
-	if (ctx->nalu_buffer) gf_free(ctx->nalu_buffer);
+	gf_free(ctx->nalu_buffer);
 	gf_mx_del(ctx->mx);
 }
 

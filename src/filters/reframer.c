@@ -3099,10 +3099,8 @@ static void reframer_finalize(GF_Filter *filter)
 		reframer_reset_stream(ctx, st, GF_TRUE);
 	}
 	gf_list_del(ctx->streams);
-	if (ctx->cur_start_tc)
-		gf_free(ctx->cur_start_tc);
-	if (ctx->cur_end_tc)
-		gf_free(ctx->cur_end_tc);
+	gf_free(ctx->cur_start_tc);
+	gf_free(ctx->cur_end_tc);
 }
 
 static GF_Err reframer_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)

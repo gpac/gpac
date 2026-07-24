@@ -468,8 +468,8 @@ static GF_Err vflip_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 void vflip_finalize(GF_Filter *filter)
 {
 	GF_VFlipCtx *ctx = (GF_VFlipCtx *)gf_filter_get_udta(filter);
-	if (ctx->line_buffer_vf) gf_free(ctx->line_buffer_vf);
-	if (ctx->line_buffer_hf) gf_free(ctx->line_buffer_hf);
+	gf_free(ctx->line_buffer_vf);
+	gf_free(ctx->line_buffer_hf);
 }
 
 

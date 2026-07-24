@@ -305,7 +305,7 @@ check_mx:
 	}
 
 	if (stream->width) {
-		if (ctx->avi_out->extradata) gf_free(ctx->avi_out->extradata);
+		gf_free(ctx->avi_out->extradata);
 		ctx->avi_out->extradata = NULL;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		if (p) {
@@ -338,7 +338,7 @@ static void avimux_finalize(GF_Filter *filter)
 		gf_free(st);
 	}
 	gf_list_del(ctx->streams);
-	if (ctx->buf_tmp) gf_free(ctx->buf_tmp);
+	gf_free(ctx->buf_tmp);
 }
 
 static GF_Err avimux_process(GF_Filter *filter)

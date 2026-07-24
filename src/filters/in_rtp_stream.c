@@ -96,9 +96,9 @@ void rtpin_stream_del(GF_RTPInStream *stream)
 
 	if (stream->depacketizer) gf_rtp_depacketizer_del(stream->depacketizer);
 	if (stream->rtp_ch) gf_rtp_del(stream->rtp_ch);
-	if (stream->control) gf_free(stream->control);
-	if (stream->session_id) gf_free(stream->session_id);
-	if (stream->buffer) gf_free(stream->buffer);
+	gf_free(stream->control);
+	gf_free(stream->session_id);
+	gf_free(stream->buffer);
 	if (stream->pck_queue) {
 		rtpin_stream_reset_queue(stream);
 		gf_list_del(stream->pck_queue);

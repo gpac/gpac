@@ -147,11 +147,11 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				}
 			}
 			else if (!stricmp(att->name, "kms_URI") || !stricmp(att->name, "rightsIssuerURL")) {
-				if (tkc->KMS_URI) gf_free(tkc->KMS_URI);
+				gf_free(tkc->KMS_URI);
 				tkc->KMS_URI = gf_strdup(att->value);
 			}
 			else if (!stricmp(att->name, "scheme_URI") || !stricmp(att->name, "contentID")) {
-				if (tkc->Scheme_URI) gf_free(tkc->Scheme_URI);
+				gf_free(tkc->Scheme_URI);
 				tkc->Scheme_URI = gf_strdup(att->value);
 			}
 			else if (!stricmp(att->name, "selectiveType")) {
@@ -353,7 +353,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 					char *sep = strchr(val, ';');
 					if (sep) sep[0] = 0;
 					if (!strncmp(val, "subs=", 5)) {
-						if (tkc->subs_crypt) gf_free(tkc->subs_crypt);
+						gf_free(tkc->subs_crypt);
 						tkc->subs_crypt = gf_strdup(val+4);
 					}
 					else if (!strncmp(val, "rand", 4)) {
@@ -382,7 +382,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 							tkc->mkey_roll_plus_one = 1 + atoi(val+5);
 						}
 						else if (!strncmp(val, "subs=", 5)) {
-							if (tkc->mkey_subs) gf_free(tkc->mkey_subs);
+							gf_free(tkc->mkey_subs);
 							tkc->mkey_subs = gf_strdup(val+5);
 						}
 						else {
@@ -477,7 +477,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 					info->last_parse_error = GF_BAD_PARAM;
 					return;
 				}
-				if (tkc->keys[tkc->nb_keys].hls_info) gf_free(tkc->keys[tkc->nb_keys].hls_info);
+				gf_free(tkc->keys[tkc->nb_keys].hls_info);
 				tkc->keys[tkc->nb_keys].hls_info = gf_strdup(att->value);
 			}
 			else if (!stricmp(att->name, "IV_size")) {
@@ -500,11 +500,11 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				}
 			}
 			else if (!stricmp(att->name, "rep")) {
-				if (tkc->keys[tkc->nb_keys].repID) gf_free(tkc->keys[tkc->nb_keys].repID);
+				gf_free(tkc->keys[tkc->nb_keys].repID);
 				tkc->keys[tkc->nb_keys].repID = gf_strdup(att->value);
 			}
 			else if (!stricmp(att->name, "period")) {
-				if (tkc->keys[tkc->nb_keys].periodID) gf_free(tkc->keys[tkc->nb_keys].periodID);
+				gf_free(tkc->keys[tkc->nb_keys].periodID);
 				tkc->keys[tkc->nb_keys].periodID = gf_strdup(att->value);
 			}
 			else if (!stricmp(att->name, "as")) {
@@ -565,20 +565,17 @@ void gf_crypt_info_del(GF_CryptInfo *info)
 		u32 i;
 		GF_TrackCryptInfo *tci = (GF_TrackCryptInfo *)gf_list_last(info->tcis);
 		for (i=0; i<tci->nb_keys; i++) {
-			if (tci->keys[i].hls_info)
-				gf_free(tci->keys[i].hls_info);
-			if (tci->keys[i].repID)
-				gf_free(tci->keys[i].repID);
-			if (tci->keys[i].periodID)
-				gf_free(tci->keys[i].periodID);
+			gf_free(tci->keys[i].hls_info);
+			gf_free(tci->keys[i].repID);
+			gf_free(tci->keys[i].periodID);
 		}
-		if (tci->keys) gf_free(tci->keys);
-		if (tci->metadata) gf_free(tci->metadata);
-		if (tci->KMS_URI) gf_free(tci->KMS_URI);
-		if (tci->Scheme_URI) gf_free(tci->Scheme_URI);
-		if (tci->TextualHeaders) gf_free(tci->TextualHeaders);
-		if (tci->subs_crypt) gf_free(tci->subs_crypt);
-		if (tci->mkey_subs) gf_free(tci->mkey_subs);
+		gf_free(tci->keys);
+		gf_free(tci->metadata);
+		gf_free(tci->KMS_URI);
+		gf_free(tci->Scheme_URI);
+		gf_free(tci->TextualHeaders);
+		gf_free(tci->subs_crypt);
+		gf_free(tci->mkey_subs);
 		gf_list_rem_last(info->tcis);
 		gf_free(tci);
 	}

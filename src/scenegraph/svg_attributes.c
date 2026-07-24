@@ -2626,7 +2626,7 @@ err:
 	len = gf_list_count(values);
 	while (len) {
 		SMIL_Time *v = (SMIL_Time*)gf_list_get(values, 0);
-		if (v->element_id) gf_free(v->element_id);
+		gf_free(v->element_id);
 		gf_list_rem(values, 0);
 		gf_free(v);
 		len--;
@@ -3142,7 +3142,7 @@ static void svg_parse_transformbehavior(SVG_TransformBehavior *tb, const char *a
 
 static void svg_parse_focus(GF_Node *e,  SVG_Focus *o, const char *attribute_content, GF_Err *out_e)
 {
-	if (o->target.string) gf_free(o->target.string);
+	gf_free(o->target.string);
 	o->target.string = NULL;
 	o->target.target = NULL;
 
@@ -3161,7 +3161,7 @@ static void svg_parse_focus(GF_Node *e,  SVG_Focus *o, const char *attribute_con
 
 static void svg_parse_clippath(GF_Node *e, SVG_ClipPath *o, const char *attribute_content, GF_Err *out_e)
 {
-	if (o->target.string) gf_free(o->target.string);
+	gf_free(o->target.string);
 	o->target.string = NULL;
 	o->target.target = NULL;
 
@@ -3564,8 +3564,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, const char *attrib
 	case DOM_String_datatype:
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
-		if (*(SVG_String *)info->far_ptr) gf_free(*(SVG_String *)info->far_ptr);
-
+		gf_free(*(SVG_String *)info->far_ptr);
 		*(SVG_String *)info->far_ptr = gf_strdup(attribute_content);
 		break;
 
@@ -3620,14 +3619,14 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, const char *attrib
 		svg_parse_clock_value(attribute_content, (SVG_Clock*)info->far_ptr);
 		break;
 	case SVG_Unknown_datatype:
-		if (*(SVG_String *)info->far_ptr) gf_free(*(SVG_String *)info->far_ptr);
+		gf_free(*(SVG_String *)info->far_ptr);
 		*(SVG_String *)info->far_ptr = gf_strdup(attribute_content);
 		break;
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] Cannot parse attribute \"%s\"\n", info->name ? info->name : ""));
 		break;
 	}
-	if (attribute_content_loc) gf_free(attribute_content_loc);
+	gf_free(attribute_content_loc);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot parse attribute \"%s\" value %s: %s\n", info->name ? info->name : "", attribute_content, gf_error_to_string(e)));
 		//continue parsing if not test mode
@@ -5762,26 +5761,29 @@ static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
 	if (!b)
 		return GF_BAD_PARAM;
 
-	if (a->contours) gf_free(a->contours);
-	if (a->points) gf_free(a->points);
-	if (a->tags) gf_free(a->tags);
+	gf_free(a->contours);
+	gf_free(a->points);
+	gf_free(a->tags);
 
 	memset(a, 0, sizeof(SVG_PathData));
 
 	if (b->contours && b->n_contours) {
 		a->contours = (u32 *)gf_malloc(sizeof(u32)*b->n_contours);
+		if (!a->contours) return GF_OUT_OF_MEM;
 		memcpy(a->contours, b->contours, sizeof(u32)*b->n_contours);
 		a->n_contours = b->n_contours;
 	}
 
 	if (b->points && b->n_points) {
 		a->points = (GF_Point2D *) gf_malloc(sizeof(GF_Point2D)*b->n_points);
+		if (!a->points) return GF_OUT_OF_MEM;
 		memcpy(a->points, b->points, sizeof(GF_Point2D)*b->n_points);
 		a->n_alloc_points = a->n_points = b->n_points;
 	}
 
 	if (b->tags && b->n_points) {
 		a->tags = (u8 *) gf_malloc(b->n_points);
+		if (!a->tags) return GF_OUT_OF_MEM;
 		memcpy(a->tags, b->tags, sizeof(u8)*b->n_points);
 	}
 
@@ -6148,7 +6150,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 			memcpy(res+len_a, *s_b, len_b);
 		res[len-1] = 0;
 		s_a = (SVG_String*)c->far_ptr;
-		if (*s_a) gf_free(*s_a);
+		gf_free(*s_a);
 		*s_a = res;
 	}
 	break;
@@ -6363,20 +6365,20 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SVG_LanguageID_datatype:
 	case SVG_ContentType_datatype:
 	case DOM_String_datatype:
-		if (* (SVG_String *)a->far_ptr) gf_free(* (SVG_String *)a->far_ptr);
+		gf_free(* (SVG_String *)a->far_ptr);
 		* (SVG_String *)a->far_ptr = *(SVG_String *)b->far_ptr ? gf_strdup(*(SVG_String *)b->far_ptr) : NULL;
 		return GF_OK;
 
 	case SVG_FontFamily_datatype:
 		((SVG_FontFamily *)a->far_ptr)->type = ((SVG_FontFamily *)b->far_ptr)->type;
-		if ( ((SVG_FontFamily *)a->far_ptr)->value) gf_free( ((SVG_FontFamily *)a->far_ptr)->value );
+		gf_free( ((SVG_FontFamily *)a->far_ptr)->value );
 		((SVG_FontFamily *)a->far_ptr)->value = (((SVG_FontFamily *)b->far_ptr)->value ? gf_strdup(((SVG_FontFamily *)b->far_ptr)->value) : NULL );
 		return GF_OK;
 
 	case XMLRI_datatype:
 	case XML_IDREF_datatype:
 		((XMLRI *)a->far_ptr)->type = ((XMLRI *)b->far_ptr)->type;
-		if (((XMLRI *)a->far_ptr)->string) gf_free(((XMLRI *)a->far_ptr)->string);
+		gf_free(((XMLRI *)a->far_ptr)->string);
 		if (((XMLRI *)b->far_ptr)->string) {
 			((XMLRI *)a->far_ptr)->string = gf_strdup(((XMLRI *)b->far_ptr)->string);
 		} else {
@@ -6394,8 +6396,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	{
 		((SVG_Focus *)a->far_ptr)->type = ((SVG_Focus *)b->far_ptr)->type;
 		if ( ((SVG_Focus *)b->far_ptr)->target.string) {
-			if ( ((SVG_Focus *)a->far_ptr)->target.string)
-				gf_free( ((SVG_Focus *)a->far_ptr)->target.string);
+			gf_free( ((SVG_Focus *)a->far_ptr)->target.string);
 			((SVG_Focus *)a->far_ptr)->target.string = gf_strdup( ((SVG_Focus *)b->far_ptr)->target.string);
 		}
 	}
@@ -6403,8 +6404,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 
 	case SVG_ClipPath_datatype:
 		if ( ((SVG_ClipPath *)b->far_ptr)->target.string) {
-			if (((SVG_ClipPath *)a->far_ptr)->target.string)
-				gf_free(((SVG_ClipPath *)a->far_ptr)->target.string);
+			gf_free(((SVG_ClipPath *)a->far_ptr)->target.string);
 			((SVG_ClipPath *)a->far_ptr)->target.string = gf_strdup( ((SVG_ClipPath *)b->far_ptr)->target.string);
 		}
 		return GF_OK;

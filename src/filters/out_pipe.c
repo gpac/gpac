@@ -198,7 +198,7 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 	if (e) {
 		return e;
 	}
-	if (ctx->szFileName) gf_free(ctx->szFileName);
+	gf_free(ctx->szFileName);
 	ctx->szFileName = gf_strdup(szFinalName);
 	return GF_OK;
 }

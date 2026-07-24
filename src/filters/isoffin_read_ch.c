@@ -49,7 +49,7 @@ void isor_reset_reader(ISOMChannel *ch)
 	ch->to_init = 1;
 	ch->playing = 0;
 	ch->nb_empty_retry = 0;
-	if (ch->sai_buffer) gf_free(ch->sai_buffer);
+	gf_free(ch->sai_buffer);
 	ch->sai_buffer = NULL;
 	ch->sai_alloc_size = 0;
 	ch->dts = ch->cts = 0;

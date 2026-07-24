@@ -801,7 +801,7 @@ JSValue gf_sg_js_event_add_listener(JSContext *c, JSValueConst obj, int argc, JS
 	}
 
 err_exit:
-	if (callback) gf_free(callback);
+	gf_free(callback);
 	if (e)
 		return js_throw_err(c, GF_DOM_EXC_SYNTAX_ERR);
 	return JS_UNDEFINED;
@@ -875,7 +875,7 @@ JSValue gf_sg_js_event_remove_listener(JSContext *c, JSValueConst obj, int argc,
 #endif
 
 err_exit:
-	if (callback) gf_free(callback);
+	gf_free(callback);
 	return JS_UNDEFINED;
 }
 
@@ -1328,7 +1328,7 @@ static JSValue dom_node_getProperty(JSContext *c, JSValueConst obj, int magic)
 		if (!sg)  {
 			char *res = gf_dom_flatten_textContent(n);
 			JSValue ret = JS_NewString(c, res ? res : "");
-			if (res) gf_free(res);
+			gf_free(res);
 			return ret;
 		}
 		return JS_NewString(c, "");
@@ -1393,7 +1393,7 @@ static JSValue dom_node_setProperty(JSContext *c, JSValueConst obj, JSValueConst
 		if ((tag==TAG_DOMText) && JS_CHECK_STRING(value)) {
 			const char *str;
 			GF_DOMText *txt = (GF_DOMText *)n;
-			if (txt->textContent) gf_free(txt->textContent);
+			gf_free(txt->textContent);
 			str = JS_ToCString(c, value);
 			txt->textContent = str ? gf_strdup(str) : NULL;
 			JS_FreeCString(c, str);
@@ -1732,7 +1732,7 @@ static JSValue xml_element_get_attribute(JSContext *c, JSValueConst obj, int arg
 		if (gf_node_get_attribute_by_name(n, (char *) name, ns_code, GF_FALSE, GF_FALSE, &info)==GF_OK) {
 			char *szAtt = gf_svg_dump_attribute(n, &info);
 			ret = JS_NewString(c, szAtt);
-			if (szAtt) gf_free(szAtt);
+			gf_free(szAtt);
 			goto exit;
 		}
 	}
@@ -1843,7 +1843,7 @@ static JSValue xml_element_remove_attribute(JSContext *c, JSValueConst obj, int 
 				if (prev) prev->next = att->next;
 				else node->attributes = att->next;
 				s = (DOM_String *) att->data;
-				if (*s) gf_free(*s);
+				gf_free(*s);
 				gf_free(s);
 				gf_free(att->name);
 				gf_free(att);
@@ -1890,7 +1890,7 @@ static void gf_dom_add_handler_listener(GF_Node *n, GF_EventType evtType, char *
 		handler = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 		text = (GF_DOMText*)handler->children->node;
 		if (text->sgprivate->tag==TAG_DOMText) {
-			if (text->textContent) gf_free(text->textContent);
+			gf_free(text->textContent);
 			text->textContent = gf_strdup(handlerCode);
 		}
 		return;
@@ -1910,7 +1910,7 @@ static void gf_dom_full_set_attribute(GF_DOMFullNode *node, char *attribute_name
 			if ((att->data_type == DOM_String_datatype) && att->data) {
 				DOM_String *s;
 				s = (DOM_String *) att->data;
-				if ( *s ) gf_free( *s);
+				gf_free( *s);
 				*s = gf_strdup(attribute_content);
 				dom_node_changed((GF_Node *)node, GF_FALSE, NULL);
 			} else {
@@ -2268,7 +2268,7 @@ static JSValue dom_text_setProperty(JSContext *c, JSValueConst obj, JSValueConst
 
 	switch (magic) {
 	case TEXT_JSPROPERTY_DATA:
-		if (txt->textContent) gf_free(txt->textContent);
+		gf_free(txt->textContent);
 		txt->textContent = NULL;
 		if (JS_CHECK_STRING(value)) {
 			const char *str = JS_ToCString(c, value);
@@ -2901,7 +2901,7 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 		if (node->ns && name_space && strcmp(gf_sg_get_namespace(node->sgprivate->scenegraph, node->ns), name_space)) same_node = GF_FALSE;
 
 		if (!same_node) {
-			if (node->name) gf_free(node->name);
+			gf_free(node->name);
 			node->name = gf_strdup(node_name);
 			node->ns = 0;
 			if (name_space) {
@@ -2979,8 +2979,8 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 		GF_DOMFullAttribute *tmp, *att;
 		att = (GF_DOMFullAttribute *)node->attributes;
 		while (att) {
-			if (att->name) gf_free(att->name);
-			if (att->data) gf_free(att->data);
+			gf_free(att->name);
+			gf_free(att->data);
 			tmp = att;
 			att = (GF_DOMFullAttribute *)att->next;
 			gf_free(tmp);
@@ -3051,7 +3051,7 @@ static void xml_reload_text_content(void *sax_cbck, const char *content, Bool is
 			txt = (GF_DOMText *)child->node;
 			if (!strcmp(txt->textContent, content) && ((txt->type==GF_DOM_TEXT_REGULAR) || is_cdata))
 				return;
-			if (txt->textContent) gf_free(txt->textContent);
+			gf_free(txt->textContent);
 			txt->textContent = gf_strdup(content);
 			txt->type = is_cdata ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
 			break;

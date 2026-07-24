@@ -433,8 +433,8 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 				url1 = gf_url_concatenate(pl->mo->odm->scene_ns->url, lib_url->vals[0].url);
 				url2 = gf_url_concatenate(scene->root_od->scene_ns->url, lib_url->vals[0].url);
 				if (url1 && url2 && !strcmp(url1, url2)) ok=GF_TRUE;
-				if (url1) gf_free(url1);
-				if (url2) gf_free(url2);
+				gf_free(url1);
+				gf_free(url2);
 
 				if (!ok) continue;
 				if (!pl->mo->odm || !pl->mo->odm->subscene) return NULL;
@@ -560,7 +560,7 @@ static void storage_parse_sf(void *ptr, u32 fieldType, char *opt)
 		((SFVec3f*)ptr)->z = FLT2FIX(v3);
 		break;
 	case GF_SG_VRML_SFSTRING:
-		if ( ((SFString *)ptr)->buffer) gf_free(((SFString *)ptr)->buffer);
+		gf_free(((SFString *)ptr)->buffer);
 		((SFString *)ptr)->buffer = gf_strdup(opt);
 		break;
 	default:

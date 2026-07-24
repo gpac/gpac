@@ -472,7 +472,7 @@ static GF_Err ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStr
 		}
 		if (do_reset) gf_props_reset_single(&p);
 	}
-	if (obuf) gf_free(obuf);
+	gf_free(obuf);
 
 	for (i=1; i<gf_list_count(st->opids); i++) {
 		GF_FilterPid *a_opid = (struct __gf_filter_pid *)gf_list_get(st->opids, i);
@@ -1283,13 +1283,13 @@ void ghi_dmx_finalize(GF_Filter *filter)
 		}
 #endif
 		gf_list_del(st->opids);
-		if (st->rep_id) gf_free(st->rep_id);
-		if (st->res_url) gf_free(st->res_url);
-		if (st->check_res_url) gf_free(st->check_res_url);
+		gf_free(st->rep_id);
+		gf_free(st->res_url);
+		gf_free(st->check_res_url);
 		gf_free(st);
 	}
 	gf_list_del(ctx->streams);
-	if (ctx->segment_template) gf_free(ctx->segment_template);
+	gf_free(ctx->segment_template);
 
 }
 

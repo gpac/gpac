@@ -709,7 +709,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			HEVCTilePid  *tpid;
 			opid = gf_filter_get_opid(filter, i);
 			tpid = (HEVCTilePid *)gf_filter_pid_get_udta(opid);
-			if (tpid) gf_free(tpid);
+			gf_free(tpid);
 			if (opid) {
 				gf_filter_pid_set_udta(opid, NULL);
 				gf_filter_pid_remove(opid);
@@ -962,9 +962,9 @@ static void hevcsplit_finalize(GF_Filter *filter)
 {
 	u32 i, count;
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx *) gf_filter_get_udta(filter);
-	if (ctx->buffer_nal) gf_free(ctx->buffer_nal);
-	if (ctx->output_no_epb) gf_free(ctx->output_no_epb);
-	if (ctx->input_no_epb) gf_free(ctx->input_no_epb);
+	gf_free(ctx->buffer_nal);
+	gf_free(ctx->output_no_epb);
+	gf_free(ctx->input_no_epb);
 
 	gf_bs_del(ctx->bs_au_in);
 	gf_bs_del(ctx->bs_nal_in);

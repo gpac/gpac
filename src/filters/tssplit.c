@@ -278,7 +278,7 @@ GF_Err m2tssplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		while (gf_list_count(ctx->streams) ) {
 			GF_M2TSSplit_SPTS *st = (GF_M2TSSplit_SPTS *)gf_list_pop_back(ctx->streams);
 			if (st->opid) gf_filter_pid_remove(st->opid);
-			if (st->pck_buffer) gf_free(st->pck_buffer);
+			gf_free(st->pck_buffer);
 			gf_free(st);
 		}
 		return GF_OK;
@@ -294,8 +294,13 @@ GF_Err m2tssplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		GF_M2TSSplit_SPTS *stream;
 		GF_SAFEALLOC(stream, GF_M2TSSplit_SPTS);
 		if (!stream) return GF_OUT_OF_MEM;
-		if (ctx->nb_pack)
+		if (ctx->nb_pack) {
 			stream->pck_buffer = (u8 *)gf_malloc(ctx->nb_pack * (ctx->dmx->prefix_present ? 192 : 188) );
+			if (!stream->pck_buffer) {
+				gf_free(stream);
+				return GF_OUT_OF_MEM;
+			}
+		}
 
 		gf_list_add(ctx->streams, stream);
 
@@ -448,8 +453,13 @@ static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *pa
 				stream->pmt_pid = prog->pmt_pid;
 				first_pck = GF_TRUE;
 				prog->user = stream;
-				if (ctx->nb_pack)
+				if (ctx->nb_pack) {
 					stream->pck_buffer = (u8 *)gf_malloc(ctx->nb_pack * (ctx->dmx->prefix_present ? 192 : 188) );
+					if (!stream->pck_buffer) {
+						gf_free(stream);
+						return;
+					}
+				}
 
 				gf_list_add(ctx->streams, stream);
 
@@ -706,7 +716,7 @@ void m2tssplit_finalize(GF_Filter *filter)
 
 	while (gf_list_count(ctx->streams)) {
 		GF_M2TSSplit_SPTS *st = (GF_M2TSSplit_SPTS *)gf_list_pop_back(ctx->streams);
-		if (st->pck_buffer) gf_free(st->pck_buffer);
+		gf_free(st->pck_buffer);
 		gf_free(st);
 	}
 	gf_list_del(ctx->streams);

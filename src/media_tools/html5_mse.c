@@ -74,7 +74,7 @@ void gf_mse_mediasource_del(GF_HTML_MediaSource *ms, Bool del_js)
 			gf_list_del(ms->sourceBuffers.list);
 			/* all source buffer should have been deleted in the deletion of sourceBuffers */
 			gf_list_del(ms->activeSourceBuffers.list);
-			if (ms->blobURI) gf_free(ms->blobURI);
+			gf_free(ms->blobURI);
 			gf_free(ms->evt_target);
 			gf_free(ms);
 		}

@@ -538,8 +538,8 @@ static void ac4dmx_finalize(GF_Filter *filter)
 {
 	GF_AC4DmxCtx *ctx = (GF_AC4DmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
-	if (ctx->ac4_buffer) gf_free(ctx->ac4_buffer);
-	if (ctx->indexes) gf_free(ctx->indexes);
+	gf_free(ctx->ac4_buffer);
+	gf_free(ctx->indexes);
 	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 
 	gf_odf_ac4_cfg_clean_list(&(ctx->hdr));

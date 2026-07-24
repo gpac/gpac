@@ -1766,14 +1766,13 @@ int AVI_close(avi_t *AVI)
 	/* Even if there happened an error, we first clean up */
 
 	gf_fclose(AVI->fdes);
-	if(AVI->idx) gf_free(AVI->idx);
-	if(AVI->video_index) gf_free(AVI->video_index);
+	gf_free(AVI->idx);
+	gf_free(AVI->video_index);
 	if(AVI->video_superindex) {
-		if(AVI->video_superindex->aIndex) gf_free(AVI->video_superindex->aIndex);
+		gf_free(AVI->video_superindex->aIndex);
 		if (AVI->video_superindex->stdindex) {
 			for (j=0; j < NR_IXNN_CHUNKS; j++) {
-				if (AVI->video_superindex->stdindex[j]->aIndex)
-					gf_free(AVI->video_superindex->stdindex[j]->aIndex);
+				gf_free(AVI->video_superindex->stdindex[j]->aIndex);
 				gf_free(AVI->video_superindex->stdindex[j]);
 			}
 			gf_free(AVI->video_superindex->stdindex);
@@ -1782,15 +1781,14 @@ int AVI_close(avi_t *AVI)
 	}
 	for (j=0; j<AVI->anum; j++)
 	{
-		if(AVI->track[j].audio_index) gf_free(AVI->track[j].audio_index);
+		gf_free(AVI->track[j].audio_index);
 		if(AVI->track[j].audio_superindex) {
 			avisuperindex_chunk *asi = AVI->track[j].audio_superindex;
-			if (asi && asi->aIndex) gf_free(asi->aIndex);
+			if (asi) gf_free(asi->aIndex);
 
 			if (asi && asi->stdindex) {
 				for (j=0; j < NR_IXNN_CHUNKS; j++) {
-					if (asi->stdindex[j]->aIndex)
-						gf_free(asi->stdindex[j]->aIndex);
+					gf_free(asi->stdindex[j]->aIndex);
 					gf_free(asi->stdindex[j]);
 				}
 				gf_free(asi->stdindex);
@@ -1799,13 +1797,10 @@ int AVI_close(avi_t *AVI)
 		}
 	}
 
-	if (AVI->bitmap_info_header)
-		gf_free(AVI->bitmap_info_header);
+	gf_free(AVI->bitmap_info_header);
 	for (j = 0; j < AVI->anum; j++)
-		if (AVI->wave_format_ex[j])
-			gf_free(AVI->wave_format_ex[j]);
-	if (AVI->extradata)
-		gf_free(AVI->extradata);
+		gf_free(AVI->wave_format_ex[j]);
+	gf_free(AVI->extradata);
 
 	gf_free(AVI);
 	return ret;
@@ -1814,7 +1809,7 @@ int AVI_close(avi_t *AVI)
 
 #define ERR_EXIT(x) \
 { \
-   if (hdrl_data) { gf_free(hdrl_data); hdrl_data=NULL; }\
+   gf_free(hdrl_data); hdrl_data=NULL;\
    AVI_close(AVI); \
    AVI_errno = x; \
    return 0; \
@@ -1952,8 +1947,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			{
 				if (n>0xFFFFFFFF) ERR_EXIT(AVI_ERR_READ)
 				hdrl_len = (u32) n;
-				if (hdrl_data)
-					gf_free(hdrl_data);
+				gf_free(hdrl_data);
 				hdrl_data = (unsigned char *) gf_malloc((u32)n);
 				if (!hdrl_data) ERR_EXIT(AVI_ERR_NO_MEM);
 
@@ -1978,7 +1972,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			   break if this is not the case */
 
 			AVI->n_idx = AVI->max_idx = (u32) (n/16);
-			if (AVI->idx) gf_free(AVI->idx);
+			gf_free(AVI->idx);
 			AVI->idx = (u8((*)[16]) ) gf_malloc((u32)n);
 			if(AVI->idx==0) {
 				ERR_EXIT(AVI_ERR_NO_MEM)
@@ -2115,8 +2109,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 						if (i + bih.bi_size > hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
-						if (AVI->bitmap_info_header)
-							gf_free(AVI->bitmap_info_header);
+						gf_free(AVI->bitmap_info_header);
 						AVI->bitmap_info_header = (alBITMAPINFOHEADER *) gf_malloc(bih.bi_size);
 						if (AVI->bitmap_info_header != NULL)
 							memcpy(AVI->bitmap_info_header, hdrl_data + i, bih.bi_size);
@@ -2171,8 +2164,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 									gf_fseek(AVI->fdes, lpos, SEEK_SET);
 								}
 							}
-							if (AVI->wave_format_ex[AVI->aptr])
-								gf_free(AVI->wave_format_ex[AVI->aptr]);
+							gf_free(AVI->wave_format_ex[AVI->aptr]);
 
 							AVI->wave_format_ex[AVI->aptr] = wfe;
 						}
@@ -2203,6 +2195,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						if (avail<32) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->video_superindex = (avisuperindex_chunk *) gf_malloc (sizeof (avisuperindex_chunk));
+						if (!AVI->video_superindex) ERR_EXIT(AVI_ERR_NO_MEM)
 						memset(AVI->video_superindex, 0, sizeof (avisuperindex_chunk));
 						memcpy (AVI->video_superindex->fcc, a, 4);
 						a += 4;
@@ -2240,6 +2233,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						}
 
 						AVI->video_superindex->aIndex = (avisuperindex_entry*) gf_malloc(AVI->video_superindex->wLongsPerEntry * AVI->video_superindex->nEntriesInUse * sizeof(u32));
+						if (!AVI->video_superindex->aIndex) ERR_EXIT(AVI_ERR_NO_MEM)
 
 						// position of ix## chunks
 						for (j=0; j<AVI->video_superindex->nEntriesInUse; ++j) {
@@ -2325,6 +2319,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 							AVI->track[AVI->aptr].audio_superindex->aIndex = (avisuperindex_entry*) gf_malloc (AVI->track[AVI->aptr].audio_superindex->wLongsPerEntry *
 						                   AVI->track[AVI->aptr].audio_superindex->nEntriesInUse * sizeof (u32));
+						                   
+							if (!AVI->track[AVI->aptr].audio_superindex->aIndex) ERR_EXIT(AVI_ERR_NO_MEM)
 						}
 						else {
 							AVI->track[AVI->aptr].audio_superindex->aIndex = NULL;
@@ -2708,7 +2704,7 @@ multiple_riff:
 
 		for(j=0; j<AVI->anum; ++j) {
 			if(AVI->track[j].audio_chunks) {
-				if (AVI->track[j].audio_index) gf_free(AVI->track[j].audio_index);
+				gf_free(AVI->track[j].audio_index);
 				AVI->track[j].audio_index = (audio_index_entry *) gf_malloc((nai[j]+1)*sizeof(audio_index_entry));
 				if (!AVI->track[j].audio_index) ERR_EXIT(AVI_ERR_NO_MEM);
 				memset(AVI->track[j].audio_index, 0, (nai[j]+1)*(sizeof(audio_index_entry)));
@@ -2830,7 +2826,7 @@ multiple_riff:
 
 		for(j=0; j<AVI->anum; ++j) {
 			if(AVI->track[j].audio_chunks) {
-				if (AVI->track[j].audio_index) gf_free(AVI->track[j].audio_index);
+				gf_free(AVI->track[j].audio_index);
 				AVI->track[j].audio_index = (audio_index_entry *) gf_malloc((nai[j]+1)*sizeof(audio_index_entry));
 				if (!AVI->track[j].audio_index) ERR_EXIT(AVI_ERR_NO_MEM);
 				memset(AVI->track[j].audio_index, 0, (nai[j]+1)*(sizeof(audio_index_entry)));

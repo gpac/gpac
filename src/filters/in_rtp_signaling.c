@@ -103,7 +103,7 @@ void rtpin_rtsp_setup_send(GF_RTPInStream *stream)
 		trans->IsUnicast = GF_FALSE;
 		trans->destination = gf_strdup(stream->rtpin->force_mcast);
 		trans->TTL = stream->rtpin->ttl;
-		if (trans->Profile) gf_free(trans->Profile);
+		gf_free(trans->Profile);
 		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP);
 		if (!(stream->rtsp->flags & RTSP_DSS_SERVER) ) {
 			trans->port_first = trans->client_port_first;
@@ -116,7 +116,7 @@ void rtpin_rtsp_setup_send(GF_RTPInStream *stream)
 	}
 	/*2: RTP over RTSP forced*/
 	else if (stream->rtsp->flags & RTSP_FORCE_INTER) {
-		if (trans->Profile) gf_free(trans->Profile);
+		gf_free(trans->Profile);
 		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP_TCP);
 		//some servers expect the interleaved to be set during the setup request
 		trans->IsInterleaved = GF_TRUE;
@@ -319,7 +319,7 @@ Bool rtpin_rtsp_describe_preprocess(GF_RTPInRTSP *sess, GF_RTSPCommand *com)
 	/*channel has been described already, skip describe and send setup directly*/
 	rtpin_stream_setup(stream, ch_desc);
 
-	if (ch_desc->esd_url) gf_free(ch_desc->esd_url);
+	gf_free(ch_desc->esd_url);
 	gf_free(ch_desc);
 	return GF_FALSE;
 }
@@ -395,7 +395,7 @@ exit:
 			gf_filter_setup_failure(sess->rtpin->filter, e);
 		}
 	}
-	if (ch_desc) gf_free(ch_desc);
+	gf_free(ch_desc);
 	return GF_OK;
 }
 
@@ -425,7 +425,7 @@ void rtpin_rtsp_describe_send(GF_RTPInRTSP *sess, char *esd_url, GF_FilterPid *o
 				ch_desc->opid = opid;
 				rtpin_stream_setup(stream, ch_desc);
 
-				if (esd_url) gf_free(ch_desc->esd_url);
+				gf_free(ch_desc->esd_url);
 				gf_free(ch_desc);
 			}
 			return;
@@ -948,10 +948,10 @@ void rtpin_rtsp_teardown_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err
 {
 	GF_RTPInStream *stream = (GF_RTPInStream *)com->user_data;
 	if (stream) {
-		if (stream->session_id) gf_free(stream->session_id);
+		gf_free(stream->session_id);
 		stream->session_id = NULL;
 	} else {
-		if (sess->session_id) gf_free(sess->session_id);
+		gf_free(sess->session_id);
 		sess->session_id = NULL;
 	}
 	//reset all pending commands

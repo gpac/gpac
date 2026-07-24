@@ -1031,7 +1031,7 @@ GF_Err dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, 
 		fprintf(dump, "\n\n");
 		gf_set_progress("Dumping track timing", count, count);
 	}
-	if (timings) gf_free(timings);
+	gf_free(timings);
 
 	if (inName) gf_fclose(dump);
 	if (has_ctts_error) {
@@ -1383,14 +1383,14 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 	}
 	fprintf(dump, " </NALUSamples>\n");
 	fprintf(dump, "</NALUTrack>\n");
-	if (sai_buffer) gf_free(sai_buffer);
+	gf_free(sai_buffer);
 
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (hevc_state) gf_free(hevc_state);
-	if (vvc_state) gf_free(vvc_state);
-	if (avc_state) gf_free(avc_state);
+	gf_free(hevc_state);
+	gf_free(vvc_state);
+	gf_free(avc_state);
 #endif
 
 	return e;
@@ -1662,7 +1662,7 @@ static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump,
 	}
 	fprintf(dump, " </OBUSamples>\n");
 	fprintf(dump, "</OBUTrack>\n");
-	if (sai_buffer) gf_free(sai_buffer);
+	gf_free(sai_buffer);
 
 	if (av1_state->config) gf_odf_av1_cfg_del(av1_state->config);
 	gf_av1_reset_state(av1_state, GF_TRUE);
@@ -2837,11 +2837,11 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 					w_dsisize = (u32) gf_bs_available(bs);
 					gf_bs_del(bs);
 				}
-				if (gdesc->extension_buf) gf_free(gdesc->extension_buf);
+				gf_free(gdesc->extension_buf);
 				gf_free(gdesc);
 			}
 			fprintf(stderr, "Media Type: %s:%s (GPAC wrapper for %s)\n", gf_4cc_to_str(mtype), gf_4cc_to_str(stsd_type), w_codec_str ? w_codec_str : gf_4cc_to_str(w_codec_id) );
-			if (w_codec_str) gf_free(w_codec_str);
+			gf_free(w_codec_str);
 		} else {
 			fprintf(stderr, "Media Type: %s:%s\n", gf_4cc_to_str(mtype), gf_4cc_to_str(stsd_type));
 		}
@@ -3531,7 +3531,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 			gf_odf_vvc_cfg_del(vvccfg);
 		}
 #if !defined(GPAC_DISABLE_AV_PARSERS)
-		if (vvc_state) gf_free(vvc_state);
+		gf_free(vvc_state);
 #endif
 	} else if ((msub_type == GF_ISOM_SUBTYPE_MH3D_MHA1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHA2)
 			|| (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM2)
@@ -3817,7 +3817,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	gf_isom_get_media_language(file, trackNum, &lang);
 	if (lang && strcmp(lang, "und"))
 		fprintf(stderr, "Media Language: %s (%s)\n", GetLanguage(lang), lang );
-	if (lang) gf_free(lang);
+	gf_free(lang);
 
 	if (is_extk) {
 		mtype = extk_type;
@@ -3863,8 +3863,8 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		char *kind_scheme, *kind_value;
 		gf_isom_get_track_kind(file, trackNum, i, &kind_scheme, &kind_value);
 		fprintf(stderr, "Kind: %s - %s\n", kind_scheme ? kind_scheme : "null", kind_value ? kind_value : "null");
-		if (kind_scheme) gf_free(kind_scheme);
-		if (kind_value) gf_free(kind_value);
+		gf_free(kind_scheme);
+		gf_free(kind_value);
 	}
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -4925,7 +4925,7 @@ GF_Err rip_mpd(const char *mpd_src, const char *output_dir)
 
 				} else if (out_range_start || out_range_end || !seg_url) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("byte range rip not yet implemented\n"));
-					if (seg_url) gf_free(seg_url);
+					gf_free(seg_url);
 					e = GF_NOT_SUPPORTED;
 					goto err_exit;
 				}
@@ -4955,7 +4955,7 @@ GF_Err rip_mpd(const char *mpd_src, const char *output_dir)
 
 					if (out_range_start || out_range_end || !seg_url) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("byte range rip not yet implemented\n"));
-						if (seg_url) gf_free(seg_url);
+						gf_free(seg_url);
 						break;
 					}
 					fprintf(stderr, "Downloading %s\n", seg_url);

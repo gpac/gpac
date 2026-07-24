@@ -338,11 +338,11 @@ GF_HTML_Track *gf_html_media_track_new(GF_HTML_TrackType type, const char *mime,
 
 void gf_html_track_del(GF_HTML_Track *track)
 {
-	if (track->id)          gf_free(track->id);
-	if (track->kind)        gf_free(track->kind);
-	if (track->label)       gf_free(track->label);
-	if (track->language)    gf_free(track->language);
-	if (track->mime)        gf_free(track->mime);
+	gf_free(track->id);
+	gf_free(track->kind);
+	gf_free(track->label);
+	gf_free(track->language);
+	gf_free(track->mime);
 
 	if (track->buffer_mutex) {
 		gf_mx_p(track->buffer_mutex);
@@ -379,8 +379,8 @@ GF_HTML_MediaElement *gf_html_media_element_new(GF_Node *media_node, GF_HTML_Med
 
 void gf_html_media_element_del(GF_HTML_MediaElement *me)
 {
-	if (me->startDate) gf_free(me->startDate);
-	if (me->currentSrc) gf_free(me->currentSrc);
+	gf_free(me->startDate);
+	gf_free(me->currentSrc);
 	gf_html_tracklist_del(&me->audioTracks);
 	gf_html_tracklist_del(&me->videoTracks);
 	gf_html_tracklist_del(&me->textTracks);

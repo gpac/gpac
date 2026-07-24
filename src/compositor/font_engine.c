@@ -454,10 +454,10 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, cons
 	return span;
 
 err_exit:
-	if (span->glyphs) gf_free(span->glyphs);
-	if (span->dx) gf_free(span->dx);
-	if (span->dy) gf_free(span->dy);
-	if (span->rot) gf_free(span->rot);
+	gf_free(span->glyphs);
+	gf_free(span->dx);
+	gf_free(span->dy);
+	gf_free(span->rot);
 	gf_free(span);
 	return NULL;
 }
@@ -492,9 +492,9 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 	if (span->user && span->font->spans) gf_list_del_item(span->font->spans, span);
 
 	gf_free(span->glyphs);
-	if (span->dx) gf_free(span->dx);
-	if (span->dy) gf_free(span->dy);
-	if (span->rot) gf_free(span->rot);
+	gf_free(span->dx);
+	gf_free(span->dy);
+	gf_free(span->rot);
 
 #ifndef GPAC_DISABLE_COMPOSITOR
 	if (span->ext) {
@@ -506,7 +506,7 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 #endif
 		if (span->ext->txh) {
 			gf_sc_texture_destroy(span->ext->txh);
-			if (span->ext->txh->data) gf_free(span->ext->txh->data);
+			gf_free(span->ext->txh->data);
 			gf_free(span->ext->txh);
 		}
 		gf_free(span->ext);
@@ -750,7 +750,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 
 	if (span->ext->txh) {
 		gf_sc_texture_destroy(span->ext->txh);
-		if (span->ext->txh->data) gf_free(span->ext->txh->data);
+		gf_free(span->ext->txh->data);
 		gf_free(span->ext->txh);
 	}
 	GF_SAFEALLOC(span->ext->txh, GF_TextureHandler);

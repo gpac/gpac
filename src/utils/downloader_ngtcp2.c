@@ -294,7 +294,7 @@ static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 	if (is_destroy) {
 		if (sess->hmux_priv) {
 			GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
-			if (qr->second_local_buf) gf_free(qr->second_local_buf);
+			gf_free(qr->second_local_buf);
 			gf_free(sess->hmux_priv);
 			sess->hmux_priv = NULL;
 		}
@@ -304,7 +304,7 @@ static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 	if (!sess->hmux_priv) {
 		GF_SAFEALLOC(sess->hmux_priv, GF_QuicDataRead);
 		if (!sess->hmux_priv) return GF_OUT_OF_MEM;
-		if (sess->log_name) gf_free(sess->log_name);
+		gf_free(sess->log_name);
 		sess->log_name = gf_strdup("HTTP/3");
 	}
 	GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
@@ -787,7 +787,7 @@ static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const 
 
 	gf_free(hdrs);
 	gf_free(hostport);
-	if (path) gf_free(path);
+	gf_free(path);
 
 	if (e)
 		return e;
@@ -1098,8 +1098,8 @@ static void h3_destroy(struct _http_mux_session *hmux)
 	if (qc->http_conn)
 		nghttp3_conn_del(qc->http_conn);
 	ngtcp2_conn_del(qc->conn);
-	if (qc->path.local.addr) gf_free(qc->path.local.addr);
-	if (qc->path.remote.addr) gf_free(qc->path.remote.addr);
+	gf_free(qc->path.local.addr);
+	gf_free(qc->path.remote.addr);
 	if (qc->serv_conn) {
 		gf_list_del_item(qc->serv_conn->server->connections, qc->serv_conn);
 		gf_free(qc->serv_conn);
@@ -1425,8 +1425,8 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 			e = gf_sk_connect_ex(sess->sock, (char *) server, server_port, NULL, GF_TRUE);
 		}
 		if (e) {
-			if (src) gf_free(src);
-			if (dst) gf_free(dst);
+			gf_free(src);
+			gf_free(dst);
 			goto err;
 		}
 
@@ -1629,8 +1629,8 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 err:
 	gf_free(sess->hmux_sess);
 	sess->hmux_sess = NULL;
-	if (ng_quic->path.local.addr) gf_free(ng_quic->path.local.addr);
-	if (ng_quic->path.remote.addr) gf_free(ng_quic->path.remote.addr);
+	gf_free(ng_quic->path.local.addr);
+	gf_free(ng_quic->path.remote.addr);
 	gf_free(ng_quic);
 	return e;
 }
@@ -1712,7 +1712,7 @@ GF_Err gf_dm_quic_server_new(GF_DownloadManager *dm, void *ssl_ctx, GF_QuicServe
 void gf_dm_quic_server_del(GF_QuicServer *qs)
 {
 	gf_list_del(qs->connections);
-	if (qs->local_add) gf_free(qs->local_add);
+	gf_free(qs->local_add);
 	gf_sk_del(qs->sock);
 	gf_free(qs);
 }

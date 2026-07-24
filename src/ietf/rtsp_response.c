@@ -43,7 +43,7 @@ GF_RTSPResponse *gf_rtsp_response_new()
 }
 
 
-#define RSP_FREE_CLEAN(hdr)		if (rsp->hdr) gf_free(rsp->hdr);	\
+#define RSP_FREE_CLEAN(hdr)	gf_free(rsp->hdr);	\
 								rsp->hdr = NULL;
 
 GF_EXPORT
@@ -94,7 +94,7 @@ void gf_rtsp_response_reset(GF_RTSPResponse *rsp)
 
 	rsp->Bandwidth = rsp->Blocksize = rsp->ResponseCode = rsp->Content_Length = rsp->CSeq = 0;
 	rsp->Scale = rsp->Speed = 0.0;
-	if (rsp->Range) gf_free(rsp->Range);
+	gf_free(rsp->Range);
 	rsp->Range = NULL;
 
 	rsp->SessionTimeOut = 0;
@@ -108,7 +108,7 @@ void gf_rtsp_response_reset(GF_RTSPResponse *rsp)
 	while (gf_list_count(rsp->RTP_Infos)) {
 		GF_RTPInfo *inf = (GF_RTPInfo*) gf_list_get(rsp->RTP_Infos, 0);
 		gf_list_rem(rsp->RTP_Infos, 0);
-		if (inf->url) gf_free(inf->url);
+		gf_free(inf->url);
 		gf_free(inf);
 	}
 	while (gf_list_count(rsp->Xtensions)) {
@@ -154,9 +154,9 @@ GF_EXPORT
 void gf_rtsp_transport_del(GF_RTSPTransport *transp)
 {
 	if (!transp) return;
-	if (transp->destination) gf_free(transp->destination);
-	if (transp->Profile) gf_free(transp->Profile);
-	if (transp->source) gf_free(transp->source);
+	gf_free(transp->destination);
+	gf_free(transp->Profile);
+	gf_free(transp->source);
 	gf_free(transp);
 }
 
@@ -301,10 +301,12 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 	//check for extended attributes
 	else if (!strnicmp(Header, "x-", 2)) {
 		x_Att = (GF_X_Attribute*)gf_malloc(sizeof(GF_X_Attribute));
-		x_Att->Name = gf_strdup(Header+2);
-		x_Att->Value = NULL;
-		if (Value && strlen(Value)) x_Att->Value = gf_strdup(Value);
-		gf_list_add(rsp->Xtensions, x_Att);
+		if (x_Att) {
+			x_Att->Name = gf_strdup(Header+2);
+			x_Att->Value = NULL;
+			if (Value && strlen(Value)) x_Att->Value = gf_strdup(Value);
+			gf_list_add(rsp->Xtensions, x_Att);
+		}
 	}
 	//unknown field - skip it
 }
@@ -716,7 +718,7 @@ GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 		//send buffer
 		e = gf_rtsp_send_data(sess, buffer, size);
 	}
-	if (buffer) gf_free(buffer);
+	gf_free(buffer);
 	return e;
 }
 

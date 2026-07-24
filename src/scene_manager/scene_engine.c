@@ -463,8 +463,8 @@ start:
 	gf_bs_del(bs);
 
 exit:
-	if (base_name) gf_free(base_name);
-	if (buffer) gf_free(buffer);
+	gf_free(base_name);
+	gf_free(buffer);
 	return e;
 }
 

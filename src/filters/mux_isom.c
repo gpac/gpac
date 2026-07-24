@@ -529,10 +529,10 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw, Bool
 {
 	GF_BitStream *bs;
 	if (for_non_rap) {
-		if (tkw->inband_hdr_non_rap) gf_free(tkw->inband_hdr_non_rap);
+		gf_free(tkw->inband_hdr_non_rap);
 		tkw->inband_hdr_non_rap = NULL;
 	} else {
-		if (tkw->inband_hdr) gf_free(tkw->inband_hdr);
+		gf_free(tkw->inband_hdr);
 		tkw->inband_hdr = NULL;
 	}
 
@@ -644,9 +644,9 @@ static void mp4_mux_track_writer_del(TrackWriter *tkw)
 	if (tkw->hvcc) gf_odf_hevc_cfg_del(tkw->hvcc);
 	if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
 	if (tkw->vvcc) gf_odf_vvc_cfg_del(tkw->vvcc);
-	if (tkw->inband_hdr) gf_free(tkw->inband_hdr);
-	if (tkw->inband_hdr_non_rap) gf_free(tkw->inband_hdr_non_rap);
-	if (tkw->dyn_pssh) gf_free(tkw->dyn_pssh);
+	gf_free(tkw->inband_hdr);
+	gf_free(tkw->inband_hdr_non_rap);
+	gf_free(tkw->dyn_pssh);
 	if (tkw->dgl_copy) gf_filter_pck_discard(tkw->dgl_copy);
 	gf_free(tkw);
 }
@@ -3345,7 +3345,7 @@ sample_entry_setup:
 		}
 
 		e = gf_isom_new_generic_sample_description(ctx->file, tkw->track_num, (char *)src_url, NULL, &udesc, &tkw->stsd_idx);
-		if (gpac_meta_dsi) gf_free(gpac_meta_dsi);
+		gf_free(gpac_meta_dsi);
 
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
@@ -4080,7 +4080,7 @@ sample_entry_done:
 #endif
 
 	}
-	if (txt_font) gf_free(txt_font);
+	gf_free(txt_font);
 	if (!tkw->xps_inband || tkw->is_item) {
 		if (tkw->svcc) {
 			gf_odf_avc_cfg_del(tkw->svcc);
@@ -4414,14 +4414,14 @@ static GF_Err mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, cons
 		gf_isom_cenc_set_pssh(ctx->file, sysID, version, kid_count, keyIDs, data, len, mode);
 		gf_bs_skip_bytes(ctx->bs_r, len);
 		if (gf_bs_is_overflow(ctx->bs_r)) {
-			if (keyIDs) gf_free(keyIDs);
+			gf_free(keyIDs);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
-	if (keyIDs) gf_free(keyIDs);
+	gf_free(keyIDs);
 
 	if (pssh) {
-		if (tkw->dyn_pssh) gf_free(tkw->dyn_pssh);
+		gf_free(tkw->dyn_pssh);
 		tkw->dyn_pssh = (u8 *)gf_malloc(pssh->value.data.size);
 		if (!tkw->dyn_pssh) return GF_OUT_OF_MEM;
 		memcpy(tkw->dyn_pssh, pssh->value.data.ptr, sizeof(u8) * pssh->value.data.size);
@@ -4792,7 +4792,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, NULL, GF_FALSE, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
 		}
 	}
-	if (fake_sai) gf_free(fake_sai);
+	gf_free(fake_sai);
 	return e;
 }
 
@@ -5999,7 +5999,7 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 		ctx->frag_size = 0;
 		ctx->frag_num = 0;
 		ctx->frag_has_intra = GF_FALSE;
-		if (base64_init) gf_free(base64_init);
+		gf_free(base64_init);
 
 		//changing file
 		if (ctx->seg_name) {
@@ -6987,12 +6987,12 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 					//get file name prop if any - only send on one pid for muxed content
 					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 					if (p && p->value.string) {
-						if (ctx->seg_name) gf_free(ctx->seg_name);
+						gf_free(ctx->seg_name);
 						ctx->seg_name = gf_strdup(p->value.string);
 					}
 					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
 					if (p && p->value.string) {
-						if (ctx->llhas_template) gf_free(ctx->llhas_template);
+						gf_free(ctx->llhas_template);
 						ctx->llhas_template = gf_strdup(p->value.string);
 					}
 					//store PRFT only for reference track at segment start
@@ -7790,7 +7790,7 @@ void mp4_mux_format_report(GF_MP4MuxCtx *ctx, u64 done, u64 total)
 	if (status_changed) {
 		gf_filter_update_status(ctx->filter, total_pc, status);
 	}
-	if (status) gf_free(status);
+	gf_free(status);
 }
 
 static void mp4_mux_flush_seg_events(GF_MP4MuxCtx *ctx);
@@ -8723,12 +8723,12 @@ static void mp4_mux_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->scte35_pending_events);
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
-	if (ctx->seg_name) gf_free(ctx->seg_name);
-	if (ctx->llhas_template) gf_free(ctx->llhas_template);
+	gf_free(ctx->seg_name);
+	gf_free(ctx->llhas_template);
 	if (ctx->tmp_store) gf_fclose(ctx->tmp_store);
-	if (ctx->seg_sizes) gf_free(ctx->seg_sizes);
+	gf_free(ctx->seg_sizes);
 
-	if (ctx->cur_file_suffix) gf_free(ctx->cur_file_suffix);
+	gf_free(ctx->cur_file_suffix);
 }
 
 static const GF_FilterCapability MP4MuxCaps[] =

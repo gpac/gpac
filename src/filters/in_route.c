@@ -48,14 +48,14 @@ static void routein_finalize(GF_Filter *filter)
 		gf_route_dmx_purge_objects(ctx->route_dmx, 1);
 #endif
 
-	if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
+	gf_free(ctx->clock_init_seg);
 	if (ctx->route_dmx) gf_route_dmx_del(ctx->route_dmx);
 
 	if (ctx->tsi_outs) {
 		while (gf_list_count(ctx->tsi_outs)) {
 			TSI_Output *tsio = (TSI_Output *)gf_list_pop_back(ctx->tsi_outs);
 			gf_list_del(tsio->pending_repairs);
-			if (tsio->dash_rep_id) gf_free(tsio->dash_rep_id);
+			gf_free(tsio->dash_rep_id);
 			gf_free(tsio);
 		}
 		gf_list_del(ctx->tsi_outs);
@@ -64,7 +64,7 @@ static void routein_finalize(GF_Filter *filter)
 		while (gf_list_count(ctx->received_seg_names)) {
 			if (ctx->odir) {
 				char *filedel = (char *)gf_list_pop_back(ctx->received_seg_names);
-				if (filedel) gf_free(filedel);
+				gf_free(filedel);
 			} else {
 				SegInfo *si = (SegInfo *)gf_list_pop_back(ctx->received_seg_names);
 				gf_free(si->seg_name);
@@ -79,7 +79,7 @@ static void routein_finalize(GF_Filter *filter)
 	gf_list_del(ctx->seg_repair_queue);
 	while (gf_list_count(ctx->repair_servers)) {
 		RouteRepairServer *tmp = (RouteRepairServer *)gf_list_pop_back(ctx->repair_servers);
-		if (tmp->service_id) gf_free(tmp->url);
+		gf_free(tmp->url);
 		gf_free(tmp);
 	}
 	gf_list_del(ctx->repair_servers);
@@ -89,7 +89,7 @@ static void routein_finalize(GF_Filter *filter)
 			ctx->seg_range_reservoir = gf_list_new();
 		gf_list_transfer(ctx->seg_range_reservoir, rsi->ranges);
 		gf_list_del(rsi->ranges);
-		if (rsi->filename) gf_free(rsi->filename);
+		gf_free(rsi->filename);
 		gf_free(rsi);
 	}
 	gf_list_del(ctx->seg_repair_reservoir);
@@ -102,7 +102,7 @@ static void routein_finalize(GF_Filter *filter)
 
 	while (gf_list_count(ctx->sample_deps_reservoir)) {
 		SampleDepInfo *sr = (SampleDepInfo *)gf_list_pop_back(ctx->sample_deps_reservoir);
-		if (sr->refs) gf_free(sr->refs);
+		gf_free(sr->refs);
 		gf_free(sr);
 	}
 	gf_list_del(ctx->sample_deps_reservoir);
@@ -520,7 +520,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 				gf_route_dmx_purge_objects(ctx->route_dmx, evt_param);
 				is_loop = GF_TRUE;
 				if (cache_entry) {
-					if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
+					gf_free(ctx->clock_init_seg);
 					ctx->clock_init_seg = gf_strdup(finfo->filename);
 					sprintf(szPath, "x-mcast: yes\r\nx-mcast-first-seg: %s\r\nx-mcast-loop: yes\r\n", ctx->clock_init_seg);
 					gf_dm_force_headers(ctx->dm, cache_entry, szPath);
@@ -651,7 +651,7 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 		ctx->tune_service_id = sid;
 		ctx->sync_tsi = 0;
 		ctx->last_toi = 0;
-		if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
+		gf_free(ctx->clock_init_seg);
 		ctx->clock_init_seg = NULL;
 		gf_route_atsc3_tune_in(ctx->route_dmx, sid, GF_TRUE);
 	} else {

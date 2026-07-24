@@ -216,7 +216,7 @@ static void gf_m2ts_reset_sections(GF_List *sections)
 	while (count) {
 		GF_M2TS_Section *section = (GF_M2TS_Section *)gf_list_get(sections, 0);
 		gf_list_rem(sections, 0);
-		if (section->data) gf_free(section->data);
+		gf_free(section->data);
 		gf_free(section);
 		count--;
 	}
@@ -250,9 +250,9 @@ static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
 static void gf_m2ts_metadata_descriptor_del(GF_M2TS_MetadataDescriptor *metad)
 {
 	if (metad) {
-		if (metad->service_id_record) gf_free(metad->service_id_record);
-		if (metad->decoder_config) gf_free(metad->decoder_config);
-		if (metad->decoder_config_id) gf_free(metad->decoder_config_id);
+		gf_free(metad->service_id_record);
+		gf_free(metad->decoder_config);
+		gf_free(metad->decoder_config_id);
 		gf_free(metad);
 	}
 }
@@ -278,15 +278,15 @@ static void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 		if ((pes->flags & GF_M2TS_INHERIT_PCR) && ts->ess[es->program->pcr_pid]==es)
 			ts->ess[es->program->pcr_pid] = NULL;
 
-		if (pes->pck_data) gf_free(pes->pck_data);
-		if (pes->prev_data) gf_free(pes->prev_data);
-		if (pes->temi_tc_desc) gf_free(pes->temi_tc_desc);
+		gf_free(pes->pck_data);
+		gf_free(pes->prev_data);
+		gf_free(pes->temi_tc_desc);
 
 		if (pes->metadata_descriptor) gf_m2ts_metadata_descriptor_del(pes->metadata_descriptor);
-		if (pes->gpac_meta_dsi) gf_free(pes->gpac_meta_dsi);
+		gf_free(pes->gpac_meta_dsi);
 
 	}
-	if (es->slcfg) gf_free(es->slcfg);
+	gf_free(es->slcfg);
 	for (u32 i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 		if (ts->ess[i]==es) {
 			ts->ess[i] = NULL;
@@ -300,8 +300,8 @@ static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 	while (gf_list_count(ts->SDTs)) {
 		GF_M2TS_SDT *sdt = (GF_M2TS_SDT *)gf_list_last(ts->SDTs);
 		gf_list_rem_last(ts->SDTs);
-		if (sdt->provider) gf_free(sdt->provider);
-		if (sdt->service) gf_free(sdt->service);
+		gf_free(sdt->provider);
+		gf_free(sdt->service);
 		gf_free(sdt);
 	}
 }
@@ -322,7 +322,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 	//seek mode, only process PAT and PMT
 	if (ts->seek_mode && (sec->section[0] != GF_M2TS_TABLE_ID_PAT) && (sec->section[0] != GF_M2TS_TABLE_ID_PMT)) {
 		/*clean-up (including broken sections)*/
-		if (sec->section) gf_free(sec->section);
+		gf_free(sec->section);
 		sec->section = NULL;
 		sec->length = sec->received = 0;
 		return;
@@ -554,7 +554,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		}
 	}
 	/*clean-up (including broken sections)*/
-	if (sec->section) gf_free(sec->section);
+	gf_free(sec->section);
 	sec->section = NULL;
 	sec->length = sec->received = 0;
 }
@@ -643,7 +643,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 
 aggregated_section:
 
-		if (sec->section) gf_free(sec->section);
+		gf_free(sec->section);
 		sec->length = sec->received = 0;
 		sec->section = (u8 *)gf_malloc(data_size);
 		if (sec->section) {
@@ -653,7 +653,7 @@ aggregated_section:
 			sec->received = 0;
 		}
 	} else if (disc) {
-		if (sec->section) gf_free(sec->section);
+		gf_free(sec->section);
 		sec->section = NULL;
 		sec->received = sec->length = 0;
 		return;
@@ -769,9 +769,9 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 
 			switch (d_tag) {
 			case GF_M2TS_DVB_SERVICE_DESCRIPTOR:
-				if (sdt->provider) gf_free(sdt->provider);
+				gf_free(sdt->provider);
 				sdt->provider = NULL;
-				if (sdt->service) gf_free(sdt->service);
+				gf_free(sdt->service);
 				sdt->service = NULL;
 
 				d_pos+=2;
@@ -970,7 +970,7 @@ See annex C of DVB-SI ETSI EN 300468 */
 
 	switch (table_id) {
 	case GF_M2TS_TABLE_ID_TDT:
-		if (ts->TDT_time) gf_free(ts->TDT_time);
+		gf_free(ts->TDT_time);
 		ts->TDT_time = time_table;
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TDT, time_table);
 		break;
@@ -1023,7 +1023,7 @@ See annex C of DVB-SI ETSI EN 300468 */
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted %s table (CRC32 failed)\n", table_name));
 		goto error_exit;
 	}
-	if (ts->TDT_time) gf_free(ts->TDT_time);
+	gf_free(ts->TDT_time);
 	ts->TDT_time = time_table;
 	if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TOT, time_table);
 	break;
@@ -1085,7 +1085,7 @@ static GF_M2TS_MetadataPointerDescriptor *gf_m2ts_read_metadata_pointer_descript
 		d->data_size = length-size;
 		d->data = (u8 *)gf_malloc(d->data_size);
 		if (! d->data) {
-			if (d->locator_data) gf_free(d->locator_data);
+			gf_free(d->locator_data);
 			gf_free(d);
 			return NULL;
 		}
@@ -1097,8 +1097,8 @@ static GF_M2TS_MetadataPointerDescriptor *gf_m2ts_read_metadata_pointer_descript
 static void gf_m2ts_metadata_pointer_descriptor_del(GF_M2TS_MetadataPointerDescriptor *metapd)
 {
 	if (metapd) {
-		if (metapd->locator_data) gf_free(metapd->locator_data);
-		if (metapd->data) gf_free(metapd->data);
+		gf_free(metapd->locator_data);
+		gf_free(metapd->data);
 		gf_free(metapd);
 	}
 }
@@ -1140,7 +1140,7 @@ static GF_M2TS_MetadataDescriptor *gf_m2ts_read_metadata_descriptor(GF_BitStream
 		d->decoder_config_length = gf_bs_read_u8(bs);
 		d->decoder_config = (u8 *)gf_malloc(d->decoder_config_length);
 		if (!d->decoder_config) {
-			if (d->service_id_record) gf_free(d->service_id_record);
+			gf_free(d->service_id_record);
 			gf_free(d);
 			return NULL;
 		}
@@ -1151,8 +1151,8 @@ static GF_M2TS_MetadataDescriptor *gf_m2ts_read_metadata_descriptor(GF_BitStream
 		d->decoder_config_id_length = gf_bs_read_u8(bs);
 		d->decoder_config_id = (u8 *)gf_malloc(d->decoder_config_id_length);
 		if (!d->decoder_config_id) {
-			if (d->decoder_config) gf_free(d->decoder_config);
-			if (d->service_id_record) gf_free(d->service_id_record);
+			gf_free(d->decoder_config);
+			gf_free(d->service_id_record);
 			gf_free(d);
 			return NULL;
 		}
@@ -2322,14 +2322,16 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 			}
 
 			//CLEANUP alloc stuff
-			if (pes->prev_data) gf_free(pes->prev_data);
+			gf_free(pes->prev_data);
 			pes->prev_data = NULL;
 			pes->prev_data_len = 0;
 			if (remain) {
 				pes->prev_data = (u8 *)gf_malloc(remain);
-				if (pes->pck_data_len >= remain)
-					memcpy(pes->prev_data, pes->pck_data + pes->pck_data_len - remain, remain);
-				pes->prev_data_len = remain;
+				if (pes->prev_data) {
+					if (pes->pck_data_len >= remain)
+						memcpy(pes->prev_data, pes->pck_data + pes->pck_data_len - remain, remain);
+					pes->prev_data_len = remain;
+				}
 			}
 		}
 	} else if (pes->pck_data_len < 4) {
@@ -3112,14 +3114,14 @@ static void gf_m2ts_reset_parsers_for_program_ex(GF_M2TS_Demuxer *ts, GF_M2TS_Pr
 			if (pes->pid==pes->program->pmt_pid) continue;
 			pes->cc = -1;
 			pes->pck_data_len = 0;
-			if (pes->prev_data) gf_free(pes->prev_data);
+			gf_free(pes->prev_data);
 			pes->prev_data = NULL;
 			pes->prev_data_len = 0;
 			pes->PTS = pes->DTS = 0;
 //			pes->prev_PTS = 0;
 //			pes->first_dts = 0;
 			pes->pes_len = pes->pes_end_packet_number = pes->pes_start_packet_number = 0;
-			if (pes->temi_tc_desc) gf_free(pes->temi_tc_desc);
+			gf_free(pes->temi_tc_desc);
 			pes->temi_tc_desc = NULL;
 			pes->temi_tc_desc_len = pes->temi_tc_desc_alloc_size = 0;
 
@@ -3325,7 +3327,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 			gf_m2ts_es_del(ts->ess[i], ts);
 		}
 	}
-	if (ts->buffer) gf_free(ts->buffer);
+	gf_free(ts->buffer);
 	while (gf_list_count(ts->programs)) {
 		GF_M2TS_Program *p = (GF_M2TS_Program *)gf_list_last(ts->programs);
 		gf_list_rem_last(ts->programs);
@@ -3349,7 +3351,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	}
 	gf_list_del(ts->programs);
 
-	if (ts->TDT_time) gf_free(ts->TDT_time);
+	gf_free(ts->TDT_time);
 	gf_m2ts_reset_sdt(ts);
 	if (ts->tdt_tot)
 		gf_list_del(ts->SDTs);

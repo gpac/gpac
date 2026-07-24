@@ -809,8 +809,9 @@ const char *gf_hevc_get_profile_name(u8 profile_idc);
 \param height set to the height of the image
 \param dsi set to a buffer containing the decoder config of the image if any (in whihc case this buffer shall be freed by the caller)
 \param dsi_len set to the allocated buffer size
+\return error if any
 */
-void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **dsi, u32 *dsi_len);
+GF_Err gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **dsi, u32 *dsi_len);
 
 /*! decodes a JPEG image in a preallocated buffer
 \param jpg the JPEG buffer

@@ -387,7 +387,7 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 
 	if (ctx->tx_back_buffer) SDL_DestroyTexture(ctx->tx_back_buffer);
 	ctx->tx_back_buffer = NULL;
-	if (ctx->back_buffer_pixels) gf_free(ctx->back_buffer_pixels);
+	gf_free(ctx->back_buffer_pixels);
 	ctx->back_buffer_pixels = NULL;
 
 #else
@@ -1449,7 +1449,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 
 
 	if (ctx->tx_back_buffer) SDL_DestroyTexture(ctx->tx_back_buffer);
-	if (ctx->back_buffer_pixels) gf_free(ctx->back_buffer_pixels);
+	gf_free(ctx->back_buffer_pixels);
 
 	ctx->tx_back_buffer = SDL_CreateTexture(ctx->renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, newWidth, newHeight);
 	ctx->back_buffer_pixels = (u8 *)gf_malloc(3*newWidth*newHeight);

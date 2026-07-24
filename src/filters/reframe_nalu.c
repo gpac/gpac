@@ -569,9 +569,9 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 	stream = gf_fopen_ex(filepath, NULL, "rb", GF_TRUE);
 	if (!stream) {
-		if (hevc_state) gf_free(hevc_state);
-		if (vvc_state) gf_free(vvc_state);
-		if (avc_state) gf_free(avc_state);
+		gf_free(hevc_state);
+		gf_free(vvc_state);
+		gf_free(avc_state);
 		if (gf_fileio_is_main_thread(filepath)) {
 			ctx->duration.num = 1;
 			ctx->file_loaded = GF_TRUE;
@@ -588,8 +588,8 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 	nal_start = naludmx_next_start_code(bs, 0, filesize, &start_code_size);
 	if (!nal_start) {
-		if (hevc_state) gf_free(hevc_state);
-		if (avc_state) gf_free(avc_state);
+		gf_free(hevc_state);
+		gf_free(avc_state);
 		gf_bs_del(bs);
 		gf_fclose(stream);
 		ctx->duration.num = 1;
@@ -728,9 +728,9 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 	gf_bs_del(bs);
 	gf_fclose(stream);
-	if (hevc_state) gf_free(hevc_state);
-	if (vvc_state) gf_free(vvc_state);
-	if (avc_state) gf_free(avc_state);
+	gf_free(hevc_state);
+	gf_free(vvc_state);
+	gf_free(avc_state);
 
 	if (!ctx->duration.num || (ctx->duration.num  * ctx->cur_fps.num != duration * ctx->duration.den)) {
 		if (probe_size) {
@@ -1369,7 +1369,7 @@ static Bool naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 				cfg->ptl_frame_only_constraint = vps->ptl[0].frame_only_constraint ? GF_TRUE : GF_FALSE;
 				cfg->ptl_multilayer_enabled = vps->ptl[0].multilayer_enabled ? GF_TRUE : GF_FALSE;
 
-				if (cfg->general_constraint_info) gf_free(cfg->general_constraint_info);
+				gf_free(cfg->general_constraint_info);
 				cfg->general_constraint_info = (u8 *)gf_malloc(cfg->num_constraint_info);
 				if (cfg->general_constraint_info)
 					memcpy(cfg->general_constraint_info, vps->ptl[0].gci, cfg->num_constraint_info);
@@ -1866,8 +1866,8 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	if (dsi_enh) crc_cfg_enh = gf_crc_32(dsi_enh, dsi_enh_size);
 
 	if (!ctx->analyze && (!w || !h)) {
-		if (dsi) gf_free(dsi);
-		if (dsi_enh) gf_free(dsi_enh);
+		gf_free(dsi);
+		gf_free(dsi_enh);
 		return;
 	}
 
@@ -1883,8 +1883,8 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 		&& (ctx->width==w) && (ctx->height==h)
 		&& (ctx->sar.num * sar.den == ctx->sar.den * sar.num)
 	) {
-		if (dsi) gf_free(dsi);
-		if (dsi_enh) gf_free(dsi_enh);
+		gf_free(dsi);
+		gf_free(dsi_enh);
 		return;
 	}
 
@@ -4137,7 +4137,7 @@ static void naludmx_del_param_list(GF_List *ps, Bool do_free)
 	if (!ps) return;
 	while (gf_list_count(ps)) {
 		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_pop_back(ps);
-		if (sl->data) gf_free(sl->data);
+		gf_free(sl->data);
 		gf_free(sl);
 	}
 
@@ -4218,8 +4218,8 @@ static void naludmx_finalize(GF_Filter *filter)
 
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
-	if (ctx->indexes) gf_free(ctx->indexes);
-	if (ctx->nal_store) gf_free(ctx->nal_store);
+	gf_free(ctx->indexes);
+	gf_free(ctx->nal_store);
 	if (ctx->pck_queue) {
 		while (gf_list_count(ctx->pck_queue)) {
 			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->pck_queue);
@@ -4227,18 +4227,18 @@ static void naludmx_finalize(GF_Filter *filter)
 		}
 		gf_list_del(ctx->pck_queue);
 	}
-	if (ctx->sei_buffer) gf_free(ctx->sei_buffer);
-	if (ctx->svc_prefix_buffer) gf_free(ctx->svc_prefix_buffer);
-	if (ctx->subsamp_buffer) gf_free(ctx->subsamp_buffer);
+	gf_free(ctx->sei_buffer);
+	gf_free(ctx->svc_prefix_buffer);
+	gf_free(ctx->subsamp_buffer);
 
 	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 	ctx->src_pck = NULL;
 
 	naludmx_reset_param_sets(ctx, GF_TRUE);
 
-	if (ctx->avc_state) gf_free(ctx->avc_state);
-	if (ctx->hevc_state) gf_free(ctx->hevc_state);
-	if (ctx->vvc_state) gf_free(ctx->vvc_state);
+	gf_free(ctx->avc_state);
+	gf_free(ctx->hevc_state);
+	gf_free(ctx->vvc_state);
 	gf_sei_loader_del(ctx->sei_loader);
 }
 

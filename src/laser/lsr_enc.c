@@ -67,7 +67,7 @@ void gf_laser_encoder_del(GF_LASeRCodec *codec)
 		gf_list_rem_last(codec->streamInfo);
 	}
 	gf_list_del(codec->streamInfo);
-	if (codec->col_table) gf_free(codec->col_table);
+	gf_free(codec->col_table);
 	while (gf_list_count(codec->font_table)) {
 		char *ft = (char *)gf_list_last(codec->font_table);
 		gf_free(ft);
@@ -4362,7 +4362,7 @@ static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool r
 	/*clean all tables*/
 	if (reset_encoding_context) {
 		lsr->nb_cols = 0;
-		if (lsr->col_table) gf_free(lsr->col_table);
+		gf_free(lsr->col_table);
 		lsr->col_table = NULL;
 		while (gf_list_count(lsr->font_table)) {
 			char *ft = (char *)gf_list_last(lsr->font_table);

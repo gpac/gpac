@@ -168,7 +168,7 @@ GF_EXPORT
 void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, const char *dash_utc_start_date)
 {
 	if (!dasher) return;
-	if (dasher->utc_start_date) gf_free(dasher->utc_start_date);
+	gf_free(dasher->utc_start_date);
 	dasher->utc_start_date = dash_utc_start_date ? gf_strdup(dash_utc_start_date) : NULL;
 }
 
@@ -186,17 +186,17 @@ void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher)
 GF_EXPORT
 void gf_dasher_del(GF_DASHSegmenter *dasher)
 {
-	if (dasher->seg_rad_name) gf_free(dasher->seg_rad_name);
+	gf_free(dasher->seg_rad_name);
 	gf_dasher_clean_inputs(dasher);
 	gf_free(dasher->mpd_name);
-	if (dasher->title) gf_free(dasher->title);
-	if (dasher->moreInfoURL) gf_free(dasher->moreInfoURL);
-	if (dasher->sourceInfo) gf_free(dasher->sourceInfo);
-	if (dasher->copyright) gf_free(dasher->copyright);
-	if (dasher->lang) gf_free(dasher->lang);
-	if (dasher->locations) gf_free(dasher->locations);
-	if (dasher->base_urls) gf_free(dasher->base_urls);
-	if (dasher->utc_start_date) gf_free(dasher->utc_start_date);
+	gf_free(dasher->title);
+	gf_free(dasher->moreInfoURL);
+	gf_free(dasher->sourceInfo);
+	gf_free(dasher->copyright);
+	gf_free(dasher->lang);
+	gf_free(dasher->locations);
+	gf_free(dasher->base_urls);
+	gf_free(dasher->utc_start_date);
 	gf_list_del(dasher->inputs);
 	gf_free(dasher);
 }
@@ -207,7 +207,7 @@ GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const cha
 	if (!dasher) return GF_BAD_PARAM;
 
 #define DOSET(_field) \
-	if (dasher->_field) gf_free(dasher->_field);\
+	gf_free(dasher->_field);\
 	dasher->_field = _field ? gf_strdup(_field) : NULL;\
 
 	DOSET(title)
@@ -238,7 +238,7 @@ GF_Err gf_dasher_add_base_url(GF_DASHSegmenter *dasher, const char *base_url)
 
 static void dasher_format_seg_name(GF_DASHSegmenter *dasher, const char *inName)
 {
-	if (dasher->seg_rad_name) gf_free(dasher->seg_rad_name);
+	gf_free(dasher->seg_rad_name);
 	dasher->seg_rad_name = NULL;
 	if (inName) dasher->seg_rad_name = gf_strdup(inName);
 }
@@ -885,13 +885,13 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Instantiating dasher filter for dst %s with args %s\n", dasher->mpd_name, args));
 
 	if (e) {
-		if (args) gf_free(args);
+		gf_free(args);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to setup DASH filter arguments\n"));
 		return e;
 	}
 	dasher->output = gf_fs_load_destination(dasher->fsess, dasher->mpd_name, args, NULL, &e);
 
-	if (args) gf_free(args);
+	gf_free(args);
 
 	if (o_sep_ext) {
 		o_sep_ext[0] = ':';
@@ -1129,14 +1129,14 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to setup source arguments for %s\n", di->file_name));
 			if (frag) frag[0] = '#';
-			if (args) gf_free(args);
+			gf_free(args);
 			return e;
 		}
 
 		if (!url) url = "null";
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Instantiating dasher source %s with args %s\n", url, args));
 		src = gf_fs_load_source(dasher->fsess, url, args, NULL, &e);
-		if (args) gf_free(args);
+		gf_free(args);
 		if (frag) frag[0] = '#';
 
 		if (!src) {

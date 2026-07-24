@@ -139,7 +139,7 @@ GF_Err gf_odf_del_esd(GF_ESD *esd)
 {
 	GF_Err e;
 	if (!esd) return GF_BAD_PARAM;
-	if (esd->URLString)	gf_free(esd->URLString);
+	gf_free(esd->URLString);
 
 	if (esd->decoderConfig)	{
 		e = gf_odf_delete_descriptor((GF_Descriptor *) esd->decoderConfig);
@@ -429,7 +429,7 @@ GF_Err gf_odf_del_iod(GF_InitialObjectDescriptor *iod)
 {
 	GF_Err e;
 	if (!iod) return GF_BAD_PARAM;
-	if (iod->URLString)	gf_free(iod->URLString);
+	gf_free(iod->URLString);
 	e = gf_odf_delete_descriptor_list(iod->ESDescriptors);
 	if (e) return e;
 	e = gf_odf_delete_descriptor_list(iod->OCIDescriptors);
@@ -605,7 +605,7 @@ GF_Err gf_odf_del_od(GF_ObjectDescriptor *od)
 {
 	GF_Err e;
 	if (!od) return GF_BAD_PARAM;
-	if (od->URLString)	gf_free(od->URLString);
+	gf_free(od->URLString);
 	e = gf_odf_delete_descriptor_list(od->ESDescriptors);
 	if (e) return e;
 	e = gf_odf_delete_descriptor_list(od->OCIDescriptors);
@@ -760,7 +760,7 @@ GF_Err gf_odf_del_isom_iod(GF_IsomInitialObjectDescriptor *iod)
 {
 	GF_Err e;
 	if (!iod) return GF_BAD_PARAM;
-	if (iod->URLString)	gf_free(iod->URLString);
+	gf_free(iod->URLString);
 	e = gf_odf_delete_descriptor_list(iod->ES_ID_IncDescriptors);
 	if (e) return e;
 	e = gf_odf_delete_descriptor_list(iod->ES_ID_RefDescriptors);
@@ -954,7 +954,7 @@ GF_Err gf_odf_del_isom_od(GF_IsomObjectDescriptor *od)
 {
 	GF_Err e;
 	if (!od) return GF_BAD_PARAM;
-	if (od->URLString)	gf_free(od->URLString);
+	gf_free(od->URLString);
 	e = gf_odf_delete_descriptor_list(od->ES_ID_IncDescriptors);
 	if (e) return e;
 	e = gf_odf_delete_descriptor_list(od->ES_ID_RefDescriptors);
@@ -1270,7 +1270,7 @@ GF_Err gf_odf_del_default(GF_DefaultDescriptor *dd)
 {
 	if (!dd) return GF_BAD_PARAM;
 
-	if (dd->data) gf_free(dd->data);
+	gf_free(dd->data);
 	gf_free(dd);
 	return GF_OK;
 }
@@ -1430,7 +1430,7 @@ GF_Err gf_odf_del_segment(GF_Segment *sd)
 {
 	if (!sd) return GF_BAD_PARAM;
 
-	if (sd->SegmentName) gf_free(sd->SegmentName);
+	gf_free(sd->SegmentName);
 	gf_free(sd);
 	return GF_OK;
 }
@@ -1498,7 +1498,7 @@ GF_Descriptor *gf_odf_new_lang()
 GF_Err gf_odf_del_lang(GF_Language *ld)
 {
 	if (!ld) return GF_BAD_PARAM;
-	if (ld->full_lang_code) gf_free(ld->full_lang_code);
+	gf_free(ld->full_lang_code);
 	gf_free(ld);
 	return GF_OK;
 }
@@ -1642,11 +1642,11 @@ GF_Descriptor *gf_odf_new_muxinfo()
 GF_Err gf_odf_del_muxinfo(GF_MuxInfo *mi)
 {
 	if (!mi) return GF_BAD_PARAM;
-	if (mi->file_name) gf_free(mi->file_name);
-	if (mi->src_url) gf_free(mi->src_url);
-	if (mi->streamFormat) gf_free(mi->streamFormat);
-	if (mi->textNode) gf_free(mi->textNode);
-	if (mi->fontNode) gf_free(mi->fontNode);
+	gf_free(mi->file_name);
+	gf_free(mi->src_url);
+	gf_free(mi->streamFormat);
+	gf_free(mi->textNode);
+	gf_free(mi->fontNode);
 	gf_free(mi);
 	return GF_OK;
 }
@@ -1672,7 +1672,7 @@ GF_Descriptor *gf_odf_New_ElemMask()
 
 GF_Err gf_odf_del_ElemMask(GF_ElementaryMask *desc)
 {
-	if (desc->node_name) gf_free(desc->node_name);
+	gf_free(desc->node_name);
 	gf_free(desc);
 	return GF_OK;
 }
@@ -1692,7 +1692,7 @@ GF_Err gf_odf_del_bifs_cfg(GF_BIFSConfig *desc)
 		u32 i, count = gf_list_count(desc->elementaryMasks);
 		for (i=0; i<count; i++) {
 			GF_ElementaryMask *tmp = (GF_ElementaryMask *)gf_list_get(desc->elementaryMasks, i);
-			if (tmp->node_name) gf_free(tmp->node_name);
+			gf_free(tmp->node_name);
 			gf_free(tmp);
 		}
 		gf_list_del(desc->elementaryMasks);
@@ -1727,8 +1727,8 @@ GF_Descriptor *gf_odf_new_ui_cfg()
 
 GF_Err gf_odf_del_ui_cfg(GF_UIConfig *desc)
 {
-	if (desc->deviceName) gf_free(desc->deviceName);
-	if (desc->ui_data) gf_free(desc->ui_data);
+	gf_free(desc->deviceName);
+	gf_free(desc->ui_data);
 	gf_free(desc);
 	return GF_OK;
 }
@@ -1791,7 +1791,7 @@ GF_Descriptor *gf_odf_new_cc()
 GF_Err gf_odf_del_cc(GF_CCDescriptor *ccd)
 {
 	if (!ccd) return GF_BAD_PARAM;
-	if (ccd->contentClassificationData) gf_free(ccd->contentClassificationData);
+	gf_free(ccd->contentClassificationData);
 	gf_free(ccd);
 	return GF_OK;
 }
@@ -1911,7 +1911,7 @@ GF_Err gf_odf_del_cc_name(GF_CC_Name *cnd)
 
 	i=0;
 	while ((tmp = (GF_ContentCreatorInfo *)gf_list_enum(cnd->ContentCreators, &i))) {
-		if (tmp->contentCreatorName) gf_free(tmp->contentCreatorName);
+		gf_free(tmp->contentCreatorName);
 		gf_free(tmp);
 	}
 	gf_list_del(cnd->ContentCreators);
@@ -2008,7 +2008,7 @@ GF_Err gf_odf_del_ci(GF_CIDesc *cid)
 {
 	if (!cid) return GF_BAD_PARAM;
 
-	if (cid->contentIdentifier) gf_free(cid->contentIdentifier);
+	gf_free(cid->contentIdentifier);
 	gf_free(cid);
 	return GF_OK;
 }
@@ -2115,7 +2115,7 @@ GF_Err gf_odf_del_exp_text(GF_ExpandedTextual *etd)
 	while (gf_list_count(etd->itemDescriptionList)) {
 		GF_ETD_ItemText *tmp = (GF_ETD_ItemText*)gf_list_get(etd->itemDescriptionList, 0);
 		if (tmp) {
-			if (tmp->text) gf_free(tmp->text);
+			gf_free(tmp->text);
 			gf_free(tmp);
 		}
 		gf_list_rem(etd->itemDescriptionList, 0);
@@ -2125,14 +2125,14 @@ GF_Err gf_odf_del_exp_text(GF_ExpandedTextual *etd)
 	while (gf_list_count(etd->itemTextList)) {
 		GF_ETD_ItemText *tmp = (GF_ETD_ItemText*)gf_list_get(etd->itemTextList, 0);
 		if (tmp) {
-			if (tmp->text) gf_free(tmp->text);
+			gf_free(tmp->text);
 			gf_free(tmp);
 		}
 		gf_list_rem(etd->itemTextList, 0);
 	}
 	gf_list_del(etd->itemTextList);
 
-	if (etd->NonItemText) gf_free(etd->NonItemText);
+	gf_free(etd->NonItemText);
 	gf_free(etd);
 	return GF_OK;
 }
@@ -2412,7 +2412,7 @@ GF_Descriptor *gf_odf_new_ipmp()
 GF_Err gf_odf_del_ipmp(GF_IPMP_Descriptor *ipmp)
 {
 	if (!ipmp) return GF_BAD_PARAM;
-	if (ipmp->opaque_data) gf_free(ipmp->opaque_data);
+	gf_free(ipmp->opaque_data);
 	gf_free(ipmp);
 	return GF_OK;
 }
@@ -2565,7 +2565,7 @@ GF_Err gf_odf_del_kw(GF_KeyWord *kwd)
 	while (gf_list_count(kwd->keyWordsList)) {
 		GF_KeyWordItem *tmp = (GF_KeyWordItem*)gf_list_get(kwd->keyWordsList, 0);
 		if (tmp) {
-			if (tmp->keyWord) gf_free(tmp->keyWord);
+			gf_free(tmp->keyWord);
 			tmp->keyWord = NULL;
 			gf_list_rem(kwd->keyWordsList, 0);
 			gf_free(tmp);
@@ -2593,7 +2593,7 @@ GF_Err gf_odf_read_kw(GF_BitStream *bs, GF_KeyWord *kwd, u32 DescSize)
 		if (! tmp) return GF_OUT_OF_MEM;
 		e = OD_ReadUTF8String(bs, & tmp->keyWord, kwd->isUTF8, &len);
 		if (e) {
-			if (tmp->keyWord) gf_free(tmp->keyWord);
+			gf_free(tmp->keyWord);
 			gf_free(tmp);
 			return e;
 		}
@@ -2605,7 +2605,7 @@ GF_Err gf_odf_read_kw(GF_BitStream *bs, GF_KeyWord *kwd, u32 DescSize)
 		}
 		e = gf_list_add(kwd->keyWordsList, tmp);
 		if (e) {
-			if (tmp) gf_free(tmp);
+			gf_free(tmp);
 			return e;
 		}
 	}
@@ -2720,7 +2720,7 @@ GF_Err gf_odf_del_oci_name(GF_OCICreators *ocn)
 
 	i=0;
 	while ((tmp = (GF_OCICreator_item *)gf_list_enum(ocn->OCICreators, &i))) {
-		if (tmp->OCICreatorName) gf_free(tmp->OCICreatorName);
+		gf_free(tmp->OCICreatorName);
 		gf_free(tmp);
 	}
 	gf_list_del(ocn->OCICreators);
@@ -2860,7 +2860,7 @@ GF_Err gf_odf_del_rating(GF_Rating *rd)
 {
 	if (!rd) return GF_BAD_PARAM;
 
-	if (rd->ratingInfo) gf_free(rd->ratingInfo);
+	gf_free(rd->ratingInfo);
 	gf_free(rd);
 	return GF_OK;
 }
@@ -2923,7 +2923,7 @@ GF_Err gf_odf_del_reg(GF_Registration *reg)
 {
 	if (!reg) return GF_BAD_PARAM;
 
-	if (reg->additionalIdentificationInfo) gf_free(reg->additionalIdentificationInfo);
+	gf_free(reg->additionalIdentificationInfo);
 	gf_free(reg);
 	return GF_OK;
 }
@@ -2986,8 +2986,8 @@ GF_Err gf_odf_del_short_text(GF_ShortTextual *std)
 {
 	if (!std) return GF_BAD_PARAM;
 
-	if (std->eventName) gf_free(std->eventName);
-	if (std->eventText) gf_free(std->eventText);
+	gf_free(std->eventName);
+	gf_free(std->eventText);
 	gf_free(std);
 	return GF_OK;
 }
@@ -3135,8 +3135,8 @@ GF_Err gf_odf_del_sup_cid(GF_SCIDesc *scid)
 {
 	if (!scid) return GF_BAD_PARAM;
 
-	if (scid->supplContentIdentifierTitle) gf_free(scid->supplContentIdentifierTitle);
-	if (scid->supplContentIdentifierValue) gf_free(scid->supplContentIdentifierValue);
+	gf_free(scid->supplContentIdentifierTitle);
+	gf_free(scid->supplContentIdentifierValue);
 	gf_free(scid);
 	return GF_OK;
 }

@@ -765,7 +765,7 @@ static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *r
 
 #if !defined(GPAC_DISABLE_DOC)
 	if (ffregext->free_help)
-		gf_free((char *)reg->help);
+		gf_free((void*)reg->help);
 #endif
 	gf_free(ffregext);
 	reg->udta = NULL;
@@ -781,12 +781,12 @@ static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *r
 				GF_FilterArgs *arg = (GF_FilterArgs *) &f->args[i];
 				if (!arg || !arg->arg_name) break;
 				i++;
-				if (arg->arg_default_val) gf_free((void *) arg->arg_default_val);
-				if (arg->min_max_enum) gf_free((void *) arg->min_max_enum);
+				gf_free((void *) arg->arg_default_val);
+				gf_free((void *) arg->min_max_enum);
 				if (arg->flags & GF_FS_ARG_META_ALLOC) gf_free((void *) arg->arg_desc);
 			}
 			gf_free((void *) f->args);
-			gf_free((char*) f->name);
+			gf_free((void*)f->name);
 			gf_fs_remove_filter_register(session, f);
 			gf_free(f);
 		}
@@ -797,11 +797,11 @@ static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *r
 		GF_FilterArgs *arg = (GF_FilterArgs *) &reg->args[i];
 		if (!arg || !arg->arg_name) break;
 		i++;
-		if (arg->arg_default_val) gf_free((void *) arg->arg_default_val);
-		if (arg->min_max_enum) gf_free((void *) arg->min_max_enum);
+		gf_free((void *) arg->arg_default_val);
+		gf_free((void *) arg->min_max_enum);
 		if (arg->flags & GF_FS_ARG_META_ALLOC) gf_free((void *) arg->arg_desc);
 	}
-	if (reg->args) gf_free((void *) reg->args);
+	gf_free((void *) reg->args);
 	gf_free(reg);
 }
 
@@ -1670,11 +1670,11 @@ GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterReg
 						par_arg->flags |= GF_FS_ARG_META_ALLOC;
 						/*trash default values and min_max_enum for flags*/
 						if (par_arg->arg_default_val) {
-							gf_free((char *) par_arg->arg_default_val);
+							gf_free((void*)par_arg->arg_default_val);
 							par_arg->arg_default_val = NULL;
 						}
 						if (par_arg->min_max_enum) {
-							gf_free((char *) par_arg->min_max_enum);
+							gf_free((void*)par_arg->min_max_enum);
 							par_arg->min_max_enum = NULL;
 						}
 					}

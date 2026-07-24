@@ -796,8 +796,8 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 	if (len == GF_UTF8_FAIL) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)\n", ctx->curLine));
 		ctx->state = 0;
-		if (uniLine) gf_free(uniLine);
-		if (uniText) gf_free(uniText);
+		gf_free(uniLine);
+		gf_free(uniText);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -1016,8 +1016,8 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 	if (ctx->forced_sub) gf_isom_text_set_forced(ctx->samp, GF_TRUE);
 	*char_l += char_line;
 
-	if (uniLine) gf_free(uniLine);
-	if (uniText) gf_free(uniText);
+	gf_free(uniLine);
+	gf_free(uniText);
 	return GF_OK;
 }
 
@@ -3510,8 +3510,8 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPack
 					else if (!strcmp(att->name, "URLToolTip")) url_tt = gf_strdup(att->value);
 				}
 				gf_isom_text_add_hyperlink(samp, url, url_tt, start, end);
-				if (url) gf_free(url);
-				if (url_tt) gf_free(url_tt);
+				gf_free(url);
+				gf_free(url_tt);
 			}
 			else if (!stricmp(ext->name, "Karaoke")) {
 				u32 startTime;
@@ -4051,8 +4051,8 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 									else if (!strcmp(att->name, "URLToolTip") || !strcmp(att->name, "altString")) url_tt = gf_strdup(att->value);
 						}
 						gf_isom_text_add_hyperlink(samp, url, url_tt, start, end);
-						if (url) gf_free(url);
-						if (url_tt) gf_free(url_tt);
+						gf_free(url);
+						gf_free(url_tt);
 					}
 					else if (!stricmp(sub->name, "karaoke")) {
 						u32 time = 0;
@@ -4434,7 +4434,7 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			fevt.base.on_pid = ctx->ipid;
 			fevt.play.full_file_only = src ? GF_TRUE : GF_FALSE;
 			gf_filter_pid_send_event(ctx->ipid, &fevt);
-			if (ctx->file_name) gf_free(ctx->file_name);
+			gf_free(ctx->file_name);
 			ctx->file_name = src ? gf_strdup(src) : NULL;
 
 			if (!src) gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
@@ -4451,7 +4451,7 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 			ttxtin_reset(ctx);
 			ctx->is_setup = GF_FALSE;
-			if (ctx->file_name) gf_free(ctx->file_name);
+			gf_free(ctx->file_name);
 			ctx->file_name = gf_strdup(src);
 		}
 		ctx->is_loaded = GF_FALSE;
@@ -4682,9 +4682,9 @@ void txtin_finalize(GF_Filter *filter)
 	if (ctx->div_nodes_list)
 		gf_list_del(ctx->div_nodes_list);
 
-	if (ctx->file_name) gf_free(ctx->file_name);
-	if (ctx->tmp_blob.data) gf_free(ctx->tmp_blob.data);
-	if (ctx->blob_name) gf_free(ctx->blob_name);
+	gf_free(ctx->file_name);
+	gf_free(ctx->tmp_blob.data);
+	gf_free(ctx->blob_name);
 }
 
 
@@ -4708,7 +4708,7 @@ static const char *txtin_probe_data(const u8 *_data, u32 data_size, GF_FilterPro
 
 #define PROBE_OK(_score, _mime) \
 		*score = _score;\
-		if (dst) gf_free(dst);\
+		gf_free(dst);\
 		return _mime; \
 
 
@@ -4731,7 +4731,7 @@ static const char *txtin_probe_data(const u8 *_data, u32 data_size, GF_FilterPro
 	}
 	/*XML formats*/
 	if (!gf_strmemstr(data, res_size, "?>") ) {
-		if (dst) gf_free(dst);
+		gf_free(dst);
 		return NULL;
 	}
 
@@ -4746,7 +4746,7 @@ static const char *txtin_probe_data(const u8 *_data, u32 data_size, GF_FilterPro
 	}
 
 exit:
-	if (dst) gf_free(dst);
+	gf_free(dst);
 	return NULL;
 }
 

@@ -616,7 +616,7 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		iopid->timescale_splice = iopid->timescale;
 		iopid->splice_delay = iopid->delay;
 
-		if (ctx->dyn_period_id) gf_free(ctx->dyn_period_id);
+		gf_free(ctx->dyn_period_id);
 		p = gf_filter_pid_get_property(opid, GF_PROP_PID_PERIOD_ID);
 		if (p && p->value.string) {
 			ctx->dyn_period_id = gf_strdup(p->value.string);
@@ -761,23 +761,22 @@ static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 	}
 
 	if (ctx->sigfrag_mode) {
-		if (ctx->rel_url) gf_free(ctx->rel_url);
+		gf_free(ctx->rel_url);
 		ctx->rel_url = gf_strdup(o_url);
 		char *sep2 = (char*)gf_url_colon_suffix(ctx->rel_url, '=');
 		if (sep2) sep2[0] = 0;
 		if (ctx->sigfrag_mode==1) {
-			if (ctx->init_url) gf_free(ctx->init_url);
+			gf_free(ctx->init_url);
 			ctx->init_url = ctx->rel_url;
 			ctx->rel_url = NULL;
 		}
 
-		if (ctx->abs_url) gf_free(ctx->abs_url);
+		gf_free(ctx->abs_url);
 		ctx->abs_url = gf_strdup(szURL);
 	}
 
 	if (sep) sep[0] = ':';
-	if (res_url)
-		gf_free(res_url);
+	gf_free(res_url);
 }
 
 static void filelist_parse_splice_time(char *aval, GF_Fraction64 *frac, u32 *flags)
@@ -1045,7 +1044,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 				} else if (!strcmp(args, "floop")) {
 					ctx->floop = aval ? atoi(aval) : 0;
 				} else if (!strcmp(args, "props")) {
-					if (ctx->pid_props) gf_free(ctx->pid_props);
+					gf_free(ctx->pid_props);
 					ctx->pid_props = aval ? gf_strdup(aval) : NULL;
 				} else if (!strcmp(args, "out")) {
 					filelist_parse_splice_time(aval, &splice_start, &start_flags);
@@ -1058,14 +1057,14 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 				} else if (!strcmp(args, "nosync")) {
 					no_sync = GF_TRUE;
 				} else if (!strcmp(args, "sprops")) {
-					if (ctx->splice_props) gf_free(ctx->splice_props);
+					gf_free(ctx->splice_props);
 					ctx->splice_props = aval ? gf_strdup(aval) : NULL;
 				} else if (!strcmp(args, "chap") && aval) {
 					if (aval) {
 						gf_strcpy(chap_name, aval);
 					}
 				} else if (!strcmp(args, "base_url")) {
-					if (ctx->temp_base_url) gf_free(ctx->temp_base_url);
+					gf_free(ctx->temp_base_url);
 					ctx->temp_base_url = aval && aval[0] ? gf_strdup(aval) : NULL;
 				} else if (!strcmp(args, "replace") || !strcmp(args, "purge")) {
 				} else {
@@ -1457,8 +1456,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 			evt.seek.start_offset = ctx->start_range;
 			evt.seek.end_offset = ctx->end_range;
 			gf_filter_send_event(fsrc, &evt, GF_FALSE);
-			if (f_url)
-				gf_free(f_url);
+			gf_free(f_url);
 		} else {
 			GF_Filter *f = NULL;
 			if (is_filter_chain) {
@@ -2064,7 +2062,7 @@ restart:
 				//full replacement
 				if (data && (size>=8) && !memcmp(data, "#replace", 8)) {
 					replace = GF_TRUE;
-					if (ctx->dyn_pl_data) gf_free(ctx->dyn_pl_data);
+					gf_free(ctx->dyn_pl_data);
 					ctx->dyn_pl_data = NULL;
 				}
 				//look for #purge in existing playlist
@@ -2094,7 +2092,7 @@ restart:
 
 				if (ctx->fio) gf_fclose((FILE*) ctx->fio);
 				ctx->fio = gf_fileio_from_mem(p ? p->value.string : NULL, (u8*)ctx->dyn_pl_data, size);
-				if (ctx->file_path) gf_free(ctx->file_path);
+				gf_free(ctx->file_path);
 				ctx->file_path = gf_strdup( gf_fileio_url(ctx->fio) );
 				p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_URL);
 
@@ -2557,7 +2555,7 @@ restart:
 		ctx->splice_nb_repeat = 0;
 
 		//reset props pushed by splice
-		if (ctx->pid_props) gf_free(ctx->pid_props);
+		gf_free(ctx->pid_props);
 		ctx->pid_props = ctx->splice_pid_props;
 		ctx->splice_pid_props = NULL;
 		ctx->skip_sync = GF_FALSE;
@@ -3065,26 +3063,26 @@ static void filelist_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->io_pids);
 	gf_list_del(ctx->filter_srcs);
-	if (ctx->file_path) gf_free(ctx->file_path);
-	if (ctx->frag_url) gf_free(ctx->frag_url);
-	if (ctx->unknown_params) gf_free(ctx->unknown_params);
-	if (ctx->pid_props) gf_free(ctx->pid_props);
-	if (ctx->dyn_period_id) gf_free(ctx->dyn_period_id);
-	if (ctx->splice_props) gf_free(ctx->splice_props);
-	if (ctx->splice_pid_props) gf_free(ctx->splice_pid_props);
-	if (ctx->init_url) gf_free(ctx->init_url);
-	if (ctx->rel_url) gf_free(ctx->rel_url);
-	if (ctx->abs_url) gf_free(ctx->abs_url);
+	gf_free(ctx->file_path);
+	gf_free(ctx->frag_url);
+	gf_free(ctx->unknown_params);
+	gf_free(ctx->pid_props);
+	gf_free(ctx->dyn_period_id);
+	gf_free(ctx->splice_props);
+	gf_free(ctx->splice_pid_props);
+	gf_free(ctx->init_url);
+	gf_free(ctx->rel_url);
+	gf_free(ctx->abs_url);
 
-	if (ctx->chap_times.vals) gf_free(ctx->chap_times.vals);
+	gf_free(ctx->chap_times.vals);
 	GF_PropertyValue p;
 	p.type = GF_PROP_STRING_LIST;
 	p.value.string_list = ctx->chap_names;
 	gf_props_reset_single(&p);
 
 	if (ctx->fio) gf_fclose((FILE*) ctx->fio);
-	if (ctx->dyn_pl_data) gf_free(ctx->dyn_pl_data);
-	if (ctx->temp_base_url) gf_free(ctx->temp_base_url);
+	gf_free(ctx->dyn_pl_data);
+	gf_free(ctx->temp_base_url);
 
 }
 

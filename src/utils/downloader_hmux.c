@@ -109,7 +109,7 @@ GF_DownloadSession *hmux_get_session(void *user_data, s64 stream_id, Bool can_re
 		first_not_assigned->status = GF_NETIO_CONNECTED;
 		first_not_assigned->total_size = first_not_assigned->bytes_done = 0;
 		first_not_assigned->hmux_data_done = 0;
-		if (first_not_assigned->remote_path) gf_free(first_not_assigned->remote_path);
+		gf_free(first_not_assigned->remote_path);
 		first_not_assigned->remote_path = NULL;
 		//reset internal reaggregation buffer
 		first_not_assigned->hmux_buf.size = 0;

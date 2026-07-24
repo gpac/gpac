@@ -255,8 +255,7 @@ DeletePulseAudioOutput (void *ifce)
 	GF_AudioOutput *dr = (GF_AudioOutput *) ifce;
 	free_pulseaudio_resources (dr);
 	if (dr != NULL) {
-		if (dr->opaque)
-			gf_free(dr->opaque);
+		gf_free(dr->opaque);
 		dr->opaque = NULL;
 		gf_free(dr);
 	}

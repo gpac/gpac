@@ -235,8 +235,8 @@ static void ffenc_finalize(GF_Filter *filter)
 	GF_FFEncodeCtx *ctx = (GF_FFEncodeCtx *) gf_filter_get_udta(filter);
 	if (ctx->options) av_dict_free(&ctx->options);
 	if (ctx->frame) av_frame_free(&ctx->frame);
-	if (ctx->enc_buffer) gf_free(ctx->enc_buffer);
-	if (ctx->audio_buffer) gf_free(ctx->audio_buffer);
+	gf_free(ctx->enc_buffer);
+	gf_free(ctx->audio_buffer);
 
 	while (gf_list_count(ctx->src_packets)) {
 		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
@@ -254,8 +254,7 @@ static void ffenc_finalize(GF_Filter *filter)
 	}
 
 	if (ctx->encoder) {
-		if (ctx->encoder->stats_in)
-			gf_free(ctx->encoder->stats_in);
+		gf_free(ctx->encoder->stats_in);
 		avcodec_free_context(&ctx->encoder);
 	}
 	if (ctx->sdbs) gf_bs_del(ctx->sdbs);
@@ -2184,7 +2183,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				}
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Error reading log file %s for pass-2 encoding: %s\n", szLogFile, gf_error_to_string(e) ));
-					if (ctx->encoder->stats_in) gf_free(ctx->encoder->stats_in);
+					gf_free(ctx->encoder->stats_in);
 					return e;
 				}
 			}
@@ -2215,7 +2214,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	ctx->premul_timescale = ctx->timescale;
 	ctx->premul_timescale *= ctx->encoder->time_base.num;
 
-	if (ctx->c) gf_free(ctx->c);
+	gf_free(ctx->c);
 	ctx->c = gf_strdup(codec->name);
 
 	{

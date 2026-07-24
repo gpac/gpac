@@ -252,7 +252,7 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 				gf_opts_del_section(section);
 			}
 
-			if (txh->data) gf_free(txh->data);
+			gf_free(txh->data);
 			txh->data = NULL;
 		}
 		gf_sc_texture_destroy(txh);
@@ -297,7 +297,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				char *par = (char *) gf_scene_get_service_url( gf_node_get_graph(txh->owner ) );
 				char *src_url = gf_url_concatenate(par, ct->image.buffer);
 
-				if (ct->data) gf_free(ct->data);
+				gf_free(ct->data);
 				ct->data = NULL;
 				ct->data_len = 0;
 
@@ -305,9 +305,9 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load CacheTexture data from file %s: %s\n", src_url ? src_url : ct->image.buffer, gf_error_to_string(e) ) );
 				}
-				if (ct->image.buffer) gf_free(ct->image.buffer);
+				gf_free(ct->image.buffer);
 				ct->image.buffer = NULL;
-				if (src_url) gf_free(src_url);
+				gf_free(src_url);
 			}
 
 			/*BIFS decoded playback*/
@@ -403,7 +403,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 			}
 
 			/*done with image, destroy buffer*/
-			if (ct->data) gf_free(ct->data);
+			gf_free(ct->data);
 			ct->data = NULL;
 			ct->data_len = 0;
 		}
@@ -501,7 +501,7 @@ static void pixeltexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
 		PixelTextureStack *st = (PixelTextureStack *) gf_node_get_private(node);
-		if (st->pixels) gf_free(st->pixels);
+		gf_free(st->pixels);
 		gf_sc_texture_destroy(&st->txh);
 		gf_free(st);
 	}
@@ -549,7 +549,7 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 		if (!txh->tx_io) return;
 	}
 
-	if (st->pixels) gf_free(st->pixels);
+	gf_free(st->pixels);
 	st->pixels = (char*)gf_malloc(stride * pt->image.height);
 	if (!st->pixels) return;
 

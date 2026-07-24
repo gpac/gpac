@@ -1101,13 +1101,12 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 				gf_list_add(ctx->hls_variants_names, gf_strdup(manifest_name ? manifest_name : "manifest.mpd") );
 
 			} else {
-				if (ctx->manifest_payload) gf_free(ctx->manifest_payload);
+				gf_free(ctx->manifest_payload);
 				ctx->manifest_payload = (char *) manifest_payload;
 				manifest_payload = NULL;
 			}
 		}
-		if (manifest_payload)
-			gf_free(manifest_payload);
+		gf_free(manifest_payload);
 	}
 }
 
@@ -1275,8 +1274,8 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 				gf_filter_remove_src(ctx->filter, group->seg_filter_src);
 				group->seg_filter_src = NULL;
 			}
-			if (group->base_template) gf_free(group->base_template);
-			if (group->current_url) gf_free(group->current_url);
+			gf_free(group->base_template);
+			gf_free(group->current_url);
 			gf_free(group);
 			gf_dash_set_group_udta(ctx->dash, i, NULL);
 		}
@@ -2092,7 +2091,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		frag = strchr(p->value.string, '#');
 		if (frag) {
-			if (ctx->frag_url) gf_free(ctx->frag_url);
+			gf_free(ctx->frag_url);
 			ctx->frag_url = gf_strdup(frag+1);
 		}
 		if (gf_dash_is_m3u8(ctx->dash) || gf_dash_is_smooth_streaming(ctx->dash))
@@ -2313,7 +2312,7 @@ static GF_Err dashdmx_initialize_js(GF_DASHDmxCtx *dashctx, char *jsfile)
 	ctx = gf_js_create_context();
 	if (!ctx) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DASHDmx] Failed to load QuickJS context\n"));
-		if (buf) gf_free(buf);
+		gf_free(buf);
 		return GF_IO_ERR;
 	}
 	JS_SetContextOpaque(ctx, dashctx);
@@ -2565,11 +2564,9 @@ static void dashdmx_finalize(GF_Filter *filter)
 	if (ctx->dash)
 		gf_dash_del(ctx->dash);
 
-	if (ctx->frag_url)
-		gf_free(ctx->frag_url);
+	gf_free(ctx->frag_url);
 
-	if (ctx->manifest_payload)
-		gf_free(ctx->manifest_payload);
+	gf_free(ctx->manifest_payload);
 
 	if (ctx->hls_variants) {
 		while (gf_list_count(ctx->hls_variants))
@@ -2892,7 +2889,7 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 				deps_sel.value.sint_list.vals[k] = sel;
 			}
 			gf_filter_pid_set_property_str(opid, "has:deps_selected", &deps_sel);
-			if (deps_sel.value.sint_list.vals) gf_free(deps_sel.value.sint_list.vals);
+			gf_free(deps_sel.value.sint_list.vals);
 		}
 
 		//setup some info for consuming filters
@@ -2914,7 +2911,7 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 				if (q.codec)
 					gf_filter_pid_set_property(opid, GF_PROP_PID_CODEC, &PROP_STRING(q.codec));
 			}
-			if (group->base_template) gf_free(group->base_template);
+			gf_free(group->base_template);
 			group->base_template = gf_dash_group_get_template(ctx->dash, group->idx, &segment_timeline_timescale, &init_seg, &hls_variant);
 			if (!group->base_template) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Cannot extract template string for %s\n", dash_url ));
@@ -3166,7 +3163,7 @@ fetch_next:
 		evt.seek.is_init_segment = GF_TRUE;
 		evt.seek.skip_cache_expiration = GF_TRUE;
 		if (ctx->forward) {
-			if (group->current_url) gf_free(group->current_url);
+			gf_free(group->current_url);
 			group->current_url = gf_strdup(next_url_init_or_switch_segment);
 		}
 

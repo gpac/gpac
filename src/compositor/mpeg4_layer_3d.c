@@ -64,7 +64,7 @@ static void DestroyLayer3D(GF_Node *node)
 	if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
 #endif
 
-	if (st->txh.data) gf_free(st->txh.data);
+	gf_free(st->txh.data);
 	/*destroy texture*/
 	gf_sc_texture_destroy(&st->txh);
 

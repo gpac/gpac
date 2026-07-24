@@ -55,8 +55,8 @@ void gf_sdp_fmtp_del(GF_SDP_FMTP *fmtp)
 	while (gf_list_count(fmtp->Attributes)) {
 		GF_X_Attribute *att = (GF_X_Attribute*)gf_list_get(fmtp->Attributes, 0);
 		gf_list_rem(fmtp->Attributes, 0);
-		if (att->Name) gf_free(att->Name);
-		if (att->Value) gf_free(att->Value);
+		gf_free(att->Name);
+		gf_free(att->Value);
 		gf_free(att);
 	}
 	gf_list_del(fmtp->Attributes);
@@ -261,7 +261,6 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 
 
 
-#define SDPM_DESTROY(p) if (media->p) gf_free(media->p)
 GF_EXPORT
 void gf_sdp_media_del(GF_SDPMedia *media)
 {
@@ -277,8 +276,8 @@ void gf_sdp_media_del(GF_SDPMedia *media)
 	while (gf_list_count(media->Attributes)) {
 		GF_X_Attribute *att = (GF_X_Attribute*)gf_list_get(media->Attributes, 0);
 		gf_list_rem(media->Attributes, 0);
-		if (att->Name) gf_free(att->Name);
-		if (att->Value) gf_free(att->Value);
+		gf_free(att->Name);
+		gf_free(att->Value);
 		gf_free(att);
 	}
 	gf_list_del(media->Attributes);
@@ -301,18 +300,18 @@ void gf_sdp_media_del(GF_SDPMedia *media)
 	while (gf_list_count(media->Bandwidths)) {
 		GF_SDPBandwidth *bw = (GF_SDPBandwidth*)gf_list_get(media->Bandwidths, 0);
 		gf_list_rem(media->Bandwidths, 0);
-		if (bw->name) gf_free(bw->name);
+		gf_free(bw->name);
 		gf_free(bw);
 	}
 	gf_list_del(media->Bandwidths);
 
-	SDPM_DESTROY(orientation);
-	SDPM_DESTROY(sdplang);
-	SDPM_DESTROY(lang);
-	SDPM_DESTROY(Profile);
-	SDPM_DESTROY(fmt_list);
-	SDPM_DESTROY(k_method);
-	SDPM_DESTROY(k_key);
+	gf_free(media->orientation);
+	gf_free(media->sdplang);
+	gf_free(media->lang);
+	gf_free(media->Profile);
+	gf_free(media->fmt_list);
+	gf_free(media->k_method);
+	gf_free(media->k_key);
 	gf_free(media);
 }
 
@@ -330,9 +329,9 @@ GF_SDPConnection *gf_sdp_conn_new()
 GF_EXPORT
 void gf_sdp_conn_del(GF_SDPConnection *conn)
 {
-	if (conn->add_type) gf_free(conn->add_type);
-	if (conn->host) gf_free(conn->host);
-	if (conn->net_type) gf_free(conn->net_type);
+	gf_free(conn->add_type);
+	gf_free(conn->host);
+	gf_free(conn->net_type);
 	gf_free(conn);
 }
 
@@ -364,7 +363,7 @@ GF_SDPInfo *gf_sdp_info_new()
 	return sdp;
 }
 
-#define SDP_DESTROY(p) if (sdp->p) { gf_free(sdp->p); sdp->p = NULL; }
+#define SDP_DESTROY(p) { gf_free(sdp->p); sdp->p = NULL; }
 
 
 GF_EXPORT
@@ -380,14 +379,14 @@ void gf_sdp_info_reset(GF_SDPInfo *sdp)
 	while (gf_list_count(sdp->Attributes)) {
 		GF_X_Attribute *att = (GF_X_Attribute*)gf_list_get(sdp->Attributes, 0);
 		gf_list_rem(sdp->Attributes, 0);
-		if (att->Name) gf_free(att->Name);
-		if (att->Value) gf_free(att->Value);
+		gf_free(att->Name);
+		gf_free(att->Value);
 		gf_free(att);
 	}
 	while (gf_list_count(sdp->b_bandwidth)) {
 		GF_SDPBandwidth *bw = (GF_SDPBandwidth*)gf_list_get(sdp->b_bandwidth, 0);
 		gf_list_rem(sdp->b_bandwidth, 0);
-		if (bw->name) gf_free(bw->name);
+		gf_free(bw->name);
 		gf_free(bw);
 	}
 	while (gf_list_count(sdp->Timing)) {

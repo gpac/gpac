@@ -278,10 +278,8 @@ static void rtspout_del_session(GF_Filter *filter, GF_RTSPOutSession *sess)
 	}
 	gf_list_del(sess->streams);
 
-	if (sess->service_name)
-		gf_free(sess->service_name);
-	if (sess->sessionID)
-		gf_free(sess->sessionID);
+	gf_free(sess->service_name);
+	gf_free(sess->sessionID);
 
 	if (filter) {
 		while (gf_list_count(sess->filter_srcs)) {
@@ -297,8 +295,8 @@ static void rtspout_del_session(GF_Filter *filter, GF_RTSPOutSession *sess)
 	if (sess->ctx->quit && !gf_list_count(sess->ctx->sessions))
 		sess->ctx->done = GF_TRUE;
 
-	if (sess->multicast_ip) gf_free(sess->multicast_ip);
-	if (sess->setup_ctrl) gf_free(sess->setup_ctrl);
+	gf_free(sess->multicast_ip);
+	gf_free(sess->setup_ctrl);
 	gf_free(sess);
 }
 
@@ -662,7 +660,7 @@ static void rtspout_finalize(GF_Filter *filter)
 	gf_list_del(ctx->sessions);
 
 	if (ctx->server_sock) gf_sk_del(ctx->server_sock);
-	if (ctx->ip) gf_free(ctx->ip);
+	gf_free(ctx->ip);
 
 #ifdef GPAC_HAS_SSL
 	if (ctx->ssl_ctx) {
@@ -673,10 +671,10 @@ static void rtspout_finalize(GF_Filter *filter)
 	while (gf_list_count(ctx->directories)) {
 		RTSP_DIRInfo *di = (RTSP_DIRInfo *)gf_list_pop_back(ctx->directories);
 		gf_free(di->path);
-		if (di->name) gf_free(di->name);
-		if (di->ru) gf_free(di->ru);
-		if (di->rg) gf_free(di->rg);
-		if (di->mcast) gf_free(di->mcast);
+		gf_free(di->name);
+		gf_free(di->ru);
+		gf_free(di->rg);
+		gf_free(di->mcast);
 		gf_free(di);
 	}
 	gf_list_del(ctx->directories);
@@ -1059,7 +1057,7 @@ static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path, GF_R
 	*err_code = NC_RTSP_Unauthorized;
 
 	if (!com->Authorization) {
-		if (src_url) gf_free(src_url);
+		gf_free(src_url);
 		return NULL;
 	}
 	if (!strncmp(com->Authorization, "Basic ", 6)) {
@@ -1068,7 +1066,7 @@ static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path, GF_R
 		char *sep = strchr(szUsrPass, ':');
 		if (!sep) {
 			*err_code = NC_RTSP_Bad_Request;
-			if (src_url) gf_free(src_url);
+			gf_free(src_url);
 			return NULL;
 		}
 		pass = sep+1;
@@ -1076,7 +1074,7 @@ static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path, GF_R
 		user = szUsrPass;
 		creds_ok = gf_creds_check_password(user, pass);
 	} else {
-		if (src_url) gf_free(src_url);
+		gf_free(src_url);
 		return NULL;
 	}
 	//return unauthorized, so that we get a user name
@@ -1085,14 +1083,14 @@ static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path, GF_R
 	if (di->ru || di->rg) {
 		if (!gf_creds_check_membership(user, di->ru, di->rg)) {
 			*err_code = NC_RTSP_Forbidden;
-			if (src_url) gf_free(src_url);
+			gf_free(src_url);
 			return NULL;
 		}
 	}
 	//if wrong creds - return forbidden if invalid user name
 	if (creds_ok) {
 		if (creds_ok==GF_NOT_FOUND) *err_code = NC_RTSP_Forbidden;
-		if (src_url) gf_free(src_url);
+		gf_free(src_url);
 		return NULL;
 	}
 	*err_code = NC_RTSP_OK;
@@ -1200,7 +1198,7 @@ static GF_Err rtspout_process_setup(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess,
 				rsp_code = NC_RTSP_Forbidden;
 
 			if (ctx->dst && (strstr(ctx->dst, "://127.0.0.1") || strstr(ctx->dst, "://localhost") || strstr(ctx->dst, "://::1/128") ) ) {
-				if (!reset_transport_dest && transport->destination) gf_free(transport->destination);
+				if (!reset_transport_dest) gf_free(transport->destination);
 				transport->destination = (char *) "127.0.0.1";
 				reset_transport_dest = GF_TRUE;
 			}
@@ -1266,7 +1264,7 @@ static GF_Err rtspout_process_setup(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess,
 			sess->response->Session = sess->sessionID;
 			if (!enable_multicast) {
 				gf_rtsp_get_session_ip(sess->rtsp, remoteIP);
-				if (!reset_transport_dest && transport->destination) gf_free(transport->destination);
+				if (!reset_transport_dest) gf_free(transport->destination);
 				transport->destination = NULL;
 				transport->source = remoteIP;
 			}
@@ -1550,7 +1548,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 			}
 		}
 
-		if (sess->service_name) gf_free(sess->service_name);
+		gf_free(sess->service_name);
 		sess->service_name = gf_strdup(sess->command->service_name);
 
 		if (rsp_code != NC_RTSP_OK) {

@@ -572,7 +572,7 @@ static GF_Err amrdmx_initialize(GF_Filter *filter)
 static void amrdmx_finalize(GF_Filter *filter)
 {
 	GF_AMRDmxCtx *ctx = (GF_AMRDmxCtx *)gf_filter_get_udta(filter);
-	if (ctx->indexes) gf_free(ctx->indexes);
+	gf_free(ctx->indexes);
 }
 
 static const char * amrdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)

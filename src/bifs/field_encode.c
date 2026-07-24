@@ -105,7 +105,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[BIFS] Cannot open source file %s for encoding CacheTexture\n", res_src ? res_src : src));
 				return GF_URL_ERROR;
 			}
-			if (res_src) gf_free(res_src);
+			gf_free(res_src);
 			size = (u32) gf_fsize(f);
 			val = gf_get_bit_size(size);
 			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
@@ -187,7 +187,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 	{
 		SFCommandBuffer *cb = (SFCommandBuffer *) field->far_ptr;
-		if (cb->buffer) gf_free(cb->buffer);
+		gf_free(cb->buffer);
 		cb->buffer = NULL;
 		cb->bufferSize = 0;
 		if (gf_list_count(cb->commandList)) {

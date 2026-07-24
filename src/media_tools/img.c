@@ -51,11 +51,12 @@
 #endif	/*GPAC_HAS_JPEG*/
 
 GF_EXPORT
-void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **dsi, u32 *dsi_len)
+GF_Err gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **dsi, u32 *dsi_len)
 {
 	u8 b1, b2, b3;
 	u32 size, type;
 	u64 pos;
+	GF_Err e = GF_OK;
 	pos = gf_bs_get_position(bs);
 	gf_bs_seek(bs, 0);
 
@@ -129,11 +130,19 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **
 	else if ((b1==0x89) && (b2==0x50) && (b3==0x4E)) {
 		/*check for PNG sig*/
 		if ( (gf_bs_read_u8(bs) != 0x47) || (gf_bs_read_u8(bs) != 0x0D) || (gf_bs_read_u8(bs) != 0x0A)
-		        || (gf_bs_read_u8(bs) != 0x1A) || (gf_bs_read_u8(bs) != 0x0A) ) goto exit;
+		        || (gf_bs_read_u8(bs) != 0x1A) || (gf_bs_read_u8(bs) != 0x0A)
+		) {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			goto exit;
+		}
 		gf_bs_read_u32(bs);
 		/*check for PNG IHDR*/
 		if ( (gf_bs_read_u8(bs) != 'I') || (gf_bs_read_u8(bs) != 'H')
-		        || (gf_bs_read_u8(bs) != 'D') || (gf_bs_read_u8(bs) != 'R')) goto exit;
+		        || (gf_bs_read_u8(bs) != 'D') || (gf_bs_read_u8(bs) != 'R')
+		) {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			goto exit;
+		}
 
 		*width = gf_bs_read_u32(bs);
 		*height = gf_bs_read_u32(bs);
@@ -154,8 +163,10 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **
 			}
 
 			type = gf_bs_read_u32(bs);
-			if (type!=0x0D0A870A) goto exit;
-
+			if (type!=0x0D0A870A) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
 			*codecid = GF_CODECID_J2K;
 
 			while (gf_bs_available(bs)) {
@@ -179,6 +190,10 @@ j2k_restart:
 					*/
 					if (dsi && jp2h_size) {
 						*dsi = (u8 *)gf_malloc(jp2h_size);
+						if (! *dsi) {
+							e = GF_OUT_OF_MEM;
+							goto exit;
+						}
 						gf_bs_seek(bs, jp2h_start);
 						gf_bs_read_data(bs, *dsi, jp2h_size);
 						*dsi_len = jp2h_size;
@@ -212,6 +227,7 @@ j2k_restart:
 
 exit:
 	gf_bs_seek(bs, pos);
+	return e;
 }
 
 #ifdef GPAC_HAS_JPEG
@@ -492,7 +508,7 @@ GF_Err gf_img_png_dec(const u8 *png, u32 png_size, u32 *width, u32 *height, u32 
 	if (setjmp(png_jmpbuf(png_ptr))) {
 		png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
 		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-		if (udta.rows) gf_free(udta.rows);
+		gf_free(udta.rows);
 		return GF_IO_ERR;
 	}
 	png_set_read_fn(png_ptr, &udta, (png_rw_ptr) gf_png_user_read_data);

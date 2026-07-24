@@ -311,7 +311,7 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *code
 			elng = (GF_ExtendedLanguageBox *)gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_ELNG);
 			if (!elng) return GF_OUT_OF_MEM;
 		}
-		if (elng->extended_language) gf_free(elng->extended_language);
+		gf_free(elng->extended_language);
 		elng->extended_language = gf_strdup(code);
 
 		if (!movie->keep_utc)
@@ -359,9 +359,7 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *code
 			if (!elng) return GF_OUT_OF_MEM;
 		}
 		if (elng) {
-			if (elng->extended_language) {
-				gf_free(elng->extended_language);
-			}
+			gf_free(elng->extended_language);
 			elng->extended_language = gf_strdup(code);
 		}
 	}
@@ -641,11 +639,11 @@ GF_Err gf_isom_set_root_od_url(GF_ISOFile *movie, const char *url_string)
 
 	switch (movie->moov->iods->descriptor->tag) {
 	case GF_ODF_ISOM_OD_TAG:
-		if (((GF_IsomObjectDescriptor *)movie->moov->iods->descriptor)->URLString) gf_free(((GF_IsomObjectDescriptor *)movie->moov->iods->descriptor)->URLString);
+		gf_free(((GF_IsomObjectDescriptor *)movie->moov->iods->descriptor)->URLString);
 		((GF_IsomObjectDescriptor *)movie->moov->iods->descriptor)->URLString = url_string ? gf_strdup(url_string) : NULL;
 		break;
 	case GF_ODF_ISOM_IOD_TAG:
-		if (((GF_IsomInitialObjectDescriptor *)movie->moov->iods->descriptor)->URLString) gf_free(((GF_IsomInitialObjectDescriptor *)movie->moov->iods->descriptor)->URLString);
+		gf_free(((GF_IsomInitialObjectDescriptor *)movie->moov->iods->descriptor)->URLString);
 		((GF_IsomInitialObjectDescriptor *)movie->moov->iods->descriptor)->URLString = url_string ? gf_strdup(url_string) : NULL;
 		break;
 	default:
@@ -1681,7 +1679,7 @@ GF_Err gf_isom_set_final_name(GF_ISOFile *movie, char *filename)
 		if ( (movie->openMode == GF_ISOM_OPEN_EDIT)
 		        && movie->fileName && !strcmp(filename, movie->fileName))
 			return GF_BAD_PARAM;
-		if (movie->finalName) gf_free(movie->finalName);
+		gf_free(movie->finalName);
 		movie->finalName = gf_strdup(filename);
 		if (!movie->finalName) return GF_OUT_OF_MEM;
 		gf_isom_disable_inplace_rewrite(movie);
@@ -1997,7 +1995,7 @@ GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 Str
 	clr->transfer_characteristics = transfer_characteristics;
 	clr->matrix_coefficients = matrix_coefficients;
 	clr->full_range_flag = full_range_flag;
-	if (clr->opaque) gf_free(clr->opaque);
+	gf_free(clr->opaque);
 	clr->opaque = NULL;
 	clr->opaque_size = 0;
 	if ((colour_type==GF_ISOM_SUBTYPE_RICC) || (colour_type==GF_ISOM_SUBTYPE_PROF)) {
@@ -3225,7 +3223,7 @@ GF_Err gf_isom_set_copyright(GF_ISOFile *movie, const char *threeCharCode, char 
 		for (i=0; i<count; i++) {
 			ptr = (GF_CopyrightBox*)gf_list_get(map->boxes, i);
 			if (!strcmp(threeCharCode, (const char *) ptr->packedLanguageCode)) {
-				if (ptr->notice) gf_free(ptr->notice);
+				gf_free(ptr->notice);
 				ptr->notice = (char*)gf_strdup(notice);
 				if (!ptr->notice) return GF_OUT_OF_MEM;
 				return GF_OK;
@@ -3285,7 +3283,7 @@ GF_Err gf_isom_add_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *sc
 					return GF_OK;
 				}
 				if (!strcmp(kb->schemeURI, schemeURI)) {
-					if (kb->value) gf_free(kb->value);
+					gf_free(kb->value);
 					kb->value = value ? gf_strdup(value) : NULL;
 					return GF_OK;
 				}
@@ -3405,7 +3403,7 @@ GF_Err gf_isom_add_chapter(GF_ISOFile *movie, u32 trackNumber, u64 timestamp, ch
 	for (i=0; i<count; i++) {
 		GF_ChapterEntry *ace = (GF_ChapterEntry *)gf_list_get(ptr->list, i);
 		if (ace->start_time == ce->start_time) {
-			if (ace->name) gf_free(ace->name);
+			gf_free(ace->name);
 			ace->name = ce->name;
 			gf_free(ce);
 			return GF_OK;
@@ -3448,13 +3446,13 @@ GF_Err gf_isom_remove_chapter(GF_ISOFile *movie, u32 trackNumber, u32 index)
 	if (index) {
 		ce = (GF_ChapterEntry *)gf_list_get(ptr->list, index-1);
 		if (!ce) return GF_BAD_PARAM;
-		if (ce->name) gf_free(ce->name);
+		gf_free(ce->name);
 		gf_free(ce);
 		gf_list_rem(ptr->list, index-1);
 	} else {
 		while (gf_list_count(ptr->list)) {
 			ce = (GF_ChapterEntry *)gf_list_get(ptr->list, 0);
-			if (ce->name) gf_free(ce->name);
+			gf_free(ce->name);
 			gf_free(ce);
 			gf_list_rem(ptr->list, 0);
 		}
@@ -3492,7 +3490,7 @@ GF_Err gf_isom_remove_copyright(GF_ISOFile *movie, u32 index)
 	ptr = (GF_CopyrightBox*)gf_list_get(map->boxes, index-1);
 	if (ptr) {
 		gf_list_rem(map->boxes, index-1);
-		if (ptr->notice) gf_free(ptr->notice);
+		gf_free(ptr->notice);
 		gf_free(ptr);
 	}
 	/*last copyright, remove*/
@@ -3616,7 +3614,7 @@ GF_Err gf_isom_use_compact_size(GF_ISOFile *movie, u32 trackNumber, Bool Compact
 	//at write time if all samples are of same size
 	if (stsz->sampleSize && stsz->sampleCount) {
 		//this is a weird table indeed ;)
-		if (stsz->sizes) gf_free(stsz->sizes);
+		gf_free(stsz->sizes);
 		stsz->sizes = (u32*) gf_malloc(sizeof(u32)*stsz->sampleCount);
 		if (!stsz->sizes) return GF_OUT_OF_MEM;
 		memset(stsz->sizes, stsz->sampleSize, sizeof(u32));
@@ -4051,12 +4049,12 @@ GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst)
 	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
 	if (e) {
-		if (data) gf_free(data);
+		gf_free(data);
 		return e;
 	}
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	if (!bs) {
-		if (data) gf_free(data);
+		gf_free(data);
 		return GF_OUT_OF_MEM;
 	}
 	e = gf_isom_box_parse(dst, bs);
@@ -5006,7 +5004,7 @@ GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNum
 		entry->horiz_res = udesc->h_res ? udesc->h_res : 0x00480000;
 		entry->vert_res = udesc->v_res ? udesc->v_res : 0x00480000;
 		entry->bit_depth = udesc->depth ? udesc->depth : 0x18;
-		if (entry->data) gf_free(entry->data);
+		gf_free(entry->data);
 		entry->data = NULL;
 		entry->data_size = 0;
 		if (udesc->extension_buf && udesc->extension_buf_size) {
@@ -5028,7 +5026,7 @@ GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNum
 		gena->channel_count = udesc->nb_channels ? udesc->nb_channels : 2;
 		gena->samplerate_hi = udesc->samplerate;
 		gena->samplerate_lo = 0;
-		if (gena->data) gf_free(gena->data);
+		gf_free(gena->data);
 		gena->data = NULL;
 		gena->data_size = 0;
 
@@ -5044,7 +5042,7 @@ GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNum
 		return GF_OK;
 	} else if (entry->type == GF_ISOM_BOX_TYPE_GNRM) {
 		GF_GenericSampleEntryBox *genm = (GF_GenericSampleEntryBox *)entry;
-		if (genm->data) gf_free(genm->data);
+		gf_free(genm->data);
 		genm->data = NULL;
 		genm->data_size = 0;
 
@@ -6191,7 +6189,7 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_box(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
-	if (trak->Media->handler->nameUTF8) gf_free(trak->Media->handler->nameUTF8);
+	gf_free(trak->Media->handler->nameUTF8);
 	trak->Media->handler->nameUTF8 = NULL;
 
 	if (!nameUTF8) return GF_OK;
@@ -6555,8 +6553,8 @@ GF_Err gf_isom_apple_set_tag_ex(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *
 	if (!data && data_len) {
 		if (!gf_list_count(ilst->child_boxes) )
 			gf_isom_box_del_parent(&meta->child_boxes, (GF_Box *) ilst);
-		if (cust_mean) gf_free(cust_mean);
-		if (cust_name) gf_free(cust_name);
+		gf_free(cust_mean);
+		gf_free(cust_name);
 		return GF_OK;
 	}
 
@@ -6568,16 +6566,16 @@ GF_Err gf_isom_apple_set_tag_ex(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *
 		info = (GF_ListItemBox *)gf_isom_box_new(btype);
 	}
 	if (info == NULL) {
-		if (cust_mean) gf_free(cust_mean);
-		if (cust_name) gf_free(cust_name);
+		gf_free(cust_mean);
+		gf_free(cust_name);
 		return GF_OUT_OF_MEM;
 	}
 
 	dbox = (GF_DataBox *)gf_isom_box_new_parent(&info->child_boxes, GF_ISOM_BOX_TYPE_DATA);
 	if (!dbox) {
 		gf_isom_box_del((GF_Box *)info);
-		if (cust_mean) gf_free(cust_mean);
-		if (cust_name) gf_free(cust_name);
+		gf_free(cust_mean);
+		gf_free(cust_name);
 		return GF_OUT_OF_MEM;
 	}
 	dbox->locale = locale;
@@ -6751,7 +6749,7 @@ GF_Err gf_isom_wma_set_tag(GF_ISOFile *mov, char *name, char *value)
 		if (!value) {
 			gf_list_rem(xtra->tags, i);
 			gf_free(tag->name);
-			if (tag->prop_value) gf_free(tag->prop_value);
+			gf_free(tag->prop_value);
 			gf_free(tag);
 			return GF_OK;
 		}
@@ -6866,7 +6864,7 @@ GF_Err gf_isom_set_qt_key(GF_ISOFile *movie, GF_QT_UDTAKey *key)
 
 	if (key->type==GF_QT_KEY_REMOVE) {
 		gf_list_del_item(keys->keys, o_key);
-		if (o_key->data) gf_free(o_key->data);
+		gf_free(o_key->data);
 		gf_free(o_key);
 		for (i=0; i<gf_list_count(ilst->child_boxes); i++) {
 			info = (GF_UnknownBox *)gf_list_get(ilst->child_boxes, i);
@@ -6986,7 +6984,7 @@ GF_Err gf_isom_set_qt_key(GF_ISOFile *movie, GF_QT_UDTAKey *key)
 	}
 	//write extra 0 at end, not serialized
 	gf_bs_write_u8(bs, 0);
-	if (dbox->data) gf_free(dbox->data);
+	gf_free(dbox->data);
 
 	gf_bs_get_content(bs, &dbox->data, &i);
 	if (i) i--;
@@ -7102,7 +7100,7 @@ GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u3
 
 		tsel->switchGroup = *switchGroupID;
 		tsel->attributeListCount = criteriaListCount;
-		if (tsel->attributeList) gf_free(tsel->attributeList);
+		gf_free(tsel->attributeList);
 		tsel->attributeList = (u32*)gf_malloc(sizeof(u32)*criteriaListCount);
 		if (!tsel->attributeList) return GF_OUT_OF_MEM;
 		memcpy(tsel->attributeList, criteriaList, sizeof(u32)*criteriaListCount);
@@ -9080,7 +9078,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 err_exit:
 
 	gf_xml_dom_del(dom);
-	if (box_data) gf_free(box_data);
+	gf_free(box_data);
 	return e;
 }
 
@@ -9226,7 +9224,7 @@ GF_Err gf_isom_set_y3d_info(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescri
 	//svhd mandatory
 	GF_SphericalVideoInfoBox *svhd = (GF_SphericalVideoInfoBox *) gf_isom_box_find_child(sv3d->child_boxes, GF_ISOM_BOX_TYPE_SVHD);
 	if (svhd) {
-		if (svhd->string) gf_free(svhd->string);
+		gf_free(svhd->string);
 	} else {
 		svhd = (GF_SphericalVideoInfoBox *) gf_isom_box_new_parent(&sv3d->child_boxes, GF_ISOM_BOX_TYPE_SVHD);
 		if (!svhd) return GF_OUT_OF_MEM;
@@ -9484,7 +9482,7 @@ GF_Err gf_isom_set_mpegh_compatible_profiles(GF_ISOFile *movie, u32 trackNumber,
 		gf_isom_box_del_parent(&ent->child_boxes, (GF_Box*)mhap);
 		return GF_OK;
 	}
-	if (mhap->compat_profiles) gf_free(mhap->compat_profiles);
+	gf_free(mhap->compat_profiles);
 	mhap->compat_profiles = (u8 *) gf_malloc(nb_compat_profiles);
 	if (!mhap->compat_profiles) return GF_OUT_OF_MEM;
 	for (i=0; i<nb_compat_profiles; i++) {

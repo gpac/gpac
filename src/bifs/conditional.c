@@ -45,7 +45,7 @@ void Conditional_PreDestroy(GF_Node *n, void *eff, Bool is_destroy)
 		ConditionalStack *priv = (ConditionalStack*)gf_node_get_private(n);
 		if (priv->codec)
 			gf_list_del_item(priv->codec->conditional_nodes, &priv->codec);
-		if (priv) gf_free(priv);
+		gf_free(priv);
 	}
 }
 

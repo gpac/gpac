@@ -49,8 +49,8 @@
 	if (_elem->x_attributes) {\
 		while (gf_list_count(_elem->x_attributes)) {\
 			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_pop_back(_elem->x_attributes); \
-			if (att->name) gf_free(att->name);\
-			if (att->value) gf_free(att->value);\
+			gf_free(att->name);\
+			gf_free(att->value);\
 			gf_free(att);\
 		}\
 		gf_list_del(_elem->x_attributes);\
@@ -756,11 +756,11 @@ static void gf_mpd_parse_common_representation_attr(GF_MPD *mpd, GF_MPD_CommonAt
 	else if (!strcmp(att->name, "width")) com->width = gf_mpd_parse_int(att->value);
 	else if (!strcmp(att->name, "height")) com->height = gf_mpd_parse_int(att->value);
 	else if (!strcmp(att->name, "sar")) {
-		if (com->sar) gf_free(com->sar);
+		gf_free(com->sar);
 		com->sar = gf_mpd_parse_frac(att->value, ':', NULL);
 	}
 	else if (!strcmp(att->name, "frameRate")) {
-		if (com->framerate) gf_free(com->framerate);
+		gf_free(com->framerate);
 		com->framerate = gf_mpd_parse_frac(att->value, '/', NULL);
 	}
 	else if (!strcmp(att->name, "audioSamplingRate")) com->samplerate = gf_mpd_parse_int(att->value);
@@ -1032,7 +1032,7 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 		else if (!strcmp(att->name, "lang")) set->lang = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "contentType")) set->content_type = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "par")) {
-			if (set->par) gf_free(set->par);
+			gf_free(set->par);
 			set->par = gf_mpd_parse_frac(att->value, ':', NULL);
 		}
 		else if (!strcmp(att->name, "minBandwidth")) set->min_bandwidth = gf_mpd_parse_int(att->value);
@@ -1215,44 +1215,44 @@ void gf_mpd_del_list(GF_List *list, void (*__destructor)(void *), Bool reset_onl
 void gf_mpd_base_url_free(void *_item)
 {
 	GF_MPD_BaseURL *base_url = (GF_MPD_BaseURL *)_item;
-	if (base_url->service_location) gf_free(base_url->service_location);
-	if (base_url->URL) gf_free(base_url->URL);
-	if (base_url->redirection) gf_free(base_url->redirection);
+	gf_free(base_url->service_location);
+	gf_free(base_url->URL);
+	gf_free(base_url->redirection);
 	gf_free(base_url);
 }
 
 void gf_mpd_url_free(void *_item)
 {
 	GF_MPD_URL *ptr = (GF_MPD_URL*)_item;
-	if (ptr->sourceURL) gf_free(ptr->sourceURL);
-	if (ptr->byte_range) gf_free(ptr->byte_range);
+	gf_free(ptr->sourceURL);
+	gf_free(ptr->byte_range);
 	gf_free(ptr);
 }
 void gf_mpd_string_free(void *_item)
 {
-	if (_item) gf_free(_item);
+	gf_free(_item);
 }
 
 void gf_mpd_prog_info_free(void *_item)
 {
 	GF_MPD_ProgramInfo *ptr = (GF_MPD_ProgramInfo *)_item;
-	if (ptr->lang) gf_free(ptr->lang);
-	if (ptr->title) gf_free(ptr->title);
-	if (ptr->source) gf_free(ptr->source);
-	if (ptr->copyright) gf_free(ptr->copyright);
-	if (ptr->more_info_url) gf_free(ptr->more_info_url);
+	gf_free(ptr->lang);
+	gf_free(ptr->title);
+	gf_free(ptr->source);
+	gf_free(ptr->copyright);
+	gf_free(ptr->more_info_url);
 	MPD_FREE_EXTENSION_NODE(ptr);
 	gf_free(ptr);
 }
 void gf_mpd_segment_url_free(void *_ptr)
 {
 	GF_MPD_SegmentURL *ptr = (GF_MPD_SegmentURL *)_ptr;
-	if (ptr->index) gf_free(ptr->index);
-	if (ptr->index_range) gf_free(ptr->index_range);
-	if (ptr->media) gf_free(ptr->media);
-	if (ptr->media_range) gf_free(ptr->media_range);
-	if (ptr->key_url) gf_free(ptr->key_url);
-	if (ptr->hls_switch_uri) gf_free(ptr->hls_switch_uri);
+	gf_free(ptr->index);
+	gf_free(ptr->index_range);
+	gf_free(ptr->media);
+	gf_free(ptr->media_range);
+	gf_free(ptr->key_url);
+	gf_free(ptr->hls_switch_uri);
 	gf_free(ptr);
 }
 void gf_mpd_segment_base_free(void *_item)
@@ -1260,7 +1260,7 @@ void gf_mpd_segment_base_free(void *_item)
 	GF_MPD_SegmentBase *ptr = (GF_MPD_SegmentBase *)_item;
 	if (ptr->initialization_segment) gf_mpd_url_free(ptr->initialization_segment);
 	if (ptr->representation_index) gf_mpd_url_free(ptr->representation_index);
-	if (ptr->index_range) gf_free(ptr->index_range);
+	gf_free(ptr->index_range);
 	gf_free(ptr);
 }
 
@@ -1285,14 +1285,14 @@ void gf_mpd_segment_url_list_free(GF_List *list)
 void gf_mpd_segment_list_free(void *_item)
 {
 	GF_MPD_SegmentList *ptr = (GF_MPD_SegmentList *)_item;
-	if (ptr->xlink_href) gf_free(ptr->xlink_href);
+	gf_free(ptr->xlink_href);
 	if (ptr->initialization_segment) gf_mpd_url_free(ptr->initialization_segment);
 	if (ptr->bitstream_switching_url) gf_mpd_url_free(ptr->bitstream_switching_url);
 	if (ptr->representation_index) gf_mpd_url_free(ptr->representation_index);
 	if (ptr->segment_timeline) gf_mpd_segment_timeline_free(ptr->segment_timeline);
 	gf_mpd_del_list(ptr->segment_URLs, gf_mpd_segment_url_free, GF_FALSE);
-	if (ptr->dasher_segment_name) gf_free(ptr->dasher_segment_name);
-	if (ptr->previous_xlink_href) gf_free(ptr->previous_xlink_href);
+	gf_free(ptr->dasher_segment_name);
+	gf_free(ptr->previous_xlink_href);
 	gf_free(ptr);
 }
 
@@ -1303,10 +1303,10 @@ void gf_mpd_segment_template_free(void *_item)
 	if (ptr->bitstream_switching_url) gf_mpd_url_free(ptr->bitstream_switching_url);
 	if (ptr->representation_index) gf_mpd_url_free(ptr->representation_index);
 	if (ptr->segment_timeline) gf_mpd_segment_timeline_free(ptr->segment_timeline);
-	if (ptr->index) gf_free(ptr->index);
-	if (ptr->media) gf_free(ptr->media);
-	if (ptr->initialization) gf_free(ptr->initialization);
-	if (ptr->bitstream_switching) gf_free(ptr->bitstream_switching);
+	gf_free(ptr->index);
+	gf_free(ptr->media);
+	gf_free(ptr->initialization);
+	gf_free(ptr->bitstream_switching);
 	gf_free(ptr);
 }
 
@@ -1324,9 +1324,9 @@ GF_MPD_Descriptor *gf_mpd_descriptor_new(const char *id, const char *schemeIdUri
 void gf_mpd_descriptor_free(void *item)
 {
 	GF_MPD_Descriptor *mpd_desc = (GF_MPD_Descriptor*) item;
-	if (mpd_desc->id) gf_free(mpd_desc->id);
-	if (mpd_desc->scheme_id_uri) gf_free(mpd_desc->scheme_id_uri);
-	if (mpd_desc->value) gf_free(mpd_desc->value);
+	gf_free(mpd_desc->id);
+	gf_free(mpd_desc->scheme_id_uri);
+	gf_free(mpd_desc->value);
 	MPD_FREE_EXTENSION_NODE(mpd_desc);
 
 	gf_free(mpd_desc);
@@ -1335,35 +1335,35 @@ void gf_mpd_descriptor_free(void *item)
 void gf_mpd_content_component_free(void *item)
 {
 	GF_MPD_ContentComponent *component_descriptor=(GF_MPD_ContentComponent*) item;
-	if (component_descriptor->type) gf_free(component_descriptor->type);
-	if (component_descriptor->lang) gf_free(component_descriptor->lang);
+	gf_free(component_descriptor->type);
+	gf_free(component_descriptor->lang);
 	gf_free(item);
 }
 
 void gf_mpd_inband_event_free(void *item) {
 	GF_MPD_Inband_Event *inband_event_desc = (GF_MPD_Inband_Event *) item;
-	if (inband_event_desc->scheme_id_uri) gf_free(inband_event_desc->scheme_id_uri);
-	if (inband_event_desc->value) gf_free(inband_event_desc->value);
+	gf_free(inband_event_desc->scheme_id_uri);
+	gf_free(inband_event_desc->value);
 	gf_free(item);
 }
 
 void gf_mpd_producer_reftime_free(void *item)
 {
 	GF_MPD_ProducerReferenceTime *pref=(GF_MPD_ProducerReferenceTime*) item;
-	if (pref->scheme) gf_free(pref->scheme);
-	if (pref->wallclock) gf_free(pref->wallclock);
+	gf_free(pref->scheme);
+	gf_free(pref->wallclock);
 	if (pref->utc_timing) gf_mpd_descriptor_free(pref->utc_timing);
 	gf_free(item);
 }
 
 void gf_mpd_common_attributes_free(GF_MPD_CommonAttributes *ptr)
 {
-	if (ptr->profiles) gf_free(ptr->profiles);
-	if (ptr->sar) gf_free(ptr->sar);
-	if (ptr->framerate) gf_free(ptr->framerate);
-	if (ptr->mime_type) gf_free(ptr->mime_type);
-	if (ptr->segmentProfiles) gf_free(ptr->segmentProfiles);
-	if (ptr->codecs) gf_free(ptr->codecs);
+	gf_free(ptr->profiles);
+	gf_free(ptr->sar);
+	gf_free(ptr->framerate);
+	gf_free(ptr->mime_type);
+	gf_free(ptr->segmentProfiles);
+	gf_free(ptr->codecs);
 	gf_mpd_del_list(ptr->frame_packing, gf_mpd_descriptor_free, GF_FALSE);
 	gf_mpd_del_list(ptr->audio_channels, gf_mpd_descriptor_free, GF_FALSE);
 	gf_mpd_del_list(ptr->content_protection, gf_mpd_descriptor_free, GF_FALSE);
@@ -1376,9 +1376,9 @@ void gf_mpd_representation_free(void *_item)
 {
 	GF_MPD_Representation *ptr = (GF_MPD_Representation *)_item;
 	gf_mpd_common_attributes_free((GF_MPD_CommonAttributes *)ptr);
-	if (ptr->id) gf_free(ptr->id);
-	if (ptr->dependency_id) gf_free(ptr->dependency_id);
-	if (ptr->media_stream_structure_id) gf_free(ptr->media_stream_structure_id);
+	gf_free(ptr->id);
+	gf_free(ptr->dependency_id);
+	gf_free(ptr->media_stream_structure_id);
 
 	if (ptr->playback.cached_init_segment_url) {
 		//free blob created to hold base64 embedded data
@@ -1386,7 +1386,7 @@ void gf_mpd_representation_free(void *_item)
 			GF_Blob *mem_blob;
 			if (sscanf(ptr->playback.cached_init_segment_url, "gmem://%p", &mem_blob) == 1) {
 				gf_blob_unregister(mem_blob);
-				if (mem_blob->data) gf_free(mem_blob->data);
+				gf_free(mem_blob->data);
 				gf_free(mem_blob);
 			}
 		}
@@ -1396,7 +1396,7 @@ void gf_mpd_representation_free(void *_item)
 		gf_blob_unregister(&ptr->playback.init_segment);
 		gf_free(ptr->playback.init_segment.data);
 	}
-	if (ptr->playback.key_url) gf_free(ptr->playback.key_url);
+	gf_free(ptr->playback.key_url);
 
 	gf_mpd_del_list(ptr->base_URLs, gf_mpd_base_url_free, GF_FALSE);
 	gf_mpd_del_list(ptr->sub_representations, NULL, GF_FALSE);
@@ -1407,8 +1407,8 @@ void gf_mpd_representation_free(void *_item)
 	if (ptr->m3u8_x_attributes) {
 		while (gf_list_count(ptr->m3u8_x_attributes)) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_pop_back(ptr->m3u8_x_attributes);
-			if (att->name) gf_free(att->name);
-			if (att->value) gf_free(att->value);
+			gf_free(att->name);
+			gf_free(att->value);
 			gf_free(att);
 		}
 		gf_list_del(ptr->m3u8_x_attributes);
@@ -1416,31 +1416,30 @@ void gf_mpd_representation_free(void *_item)
 
 	if (ptr->dasher_ctx) {
 		gf_free(ptr->dasher_ctx->init_seg);
-		if (ptr->dasher_ctx->period_id)
-			gf_free(ptr->dasher_ctx->period_id);
+		gf_free(ptr->dasher_ctx->period_id);
 		gf_free(ptr->dasher_ctx->src_url);
 		gf_free(ptr->dasher_ctx->template_seg);
-		if (ptr->dasher_ctx->template_idx) gf_free(ptr->dasher_ctx->template_idx);
-		if (ptr->dasher_ctx->mux_pids) gf_free(ptr->dasher_ctx->mux_pids);
+		gf_free(ptr->dasher_ctx->template_idx);
+		gf_free(ptr->dasher_ctx->mux_pids);
 		gf_free(ptr->dasher_ctx);
 	}
 	if (ptr->state_seg_list) {
 		while (gf_list_count(ptr->state_seg_list)) {
 			GF_DASH_SegmentContext *s = (GF_DASH_SegmentContext *)gf_list_pop_back(ptr->state_seg_list);
-			if (s->filename) gf_free(s->filename);
-			if (s->filepath) gf_free(s->filepath);
-			if (s->llhas_template) gf_free(s->llhas_template);
-			if (s->frags) gf_free(s->frags);
-			if (s->hls_key_uri) gf_free(s->hls_key_uri);
+			gf_free(s->filename);
+			gf_free(s->filepath);
+			gf_free(s->llhas_template);
+			gf_free(s->frags);
+			gf_free(s->hls_key_uri);
 			gf_free(s);
 		}
 		gf_list_del(ptr->state_seg_list);
 	}
-	if (ptr->m3u8_name) gf_free(ptr->m3u8_name);
-	if (ptr->hls_single_file_name) gf_free(ptr->hls_single_file_name);
-	if (ptr->m3u8_var_name) gf_free(ptr->m3u8_var_name);
+	gf_free(ptr->m3u8_name);
+	gf_free(ptr->hls_single_file_name);
+	gf_free(ptr->m3u8_var_name);
 	if (ptr->m3u8_var_file) gf_fclose(ptr->m3u8_var_file);
-	if (ptr->res_url) gf_free(ptr->res_url);
+	gf_free(ptr->res_url);
 	gf_free(ptr);
 }
 
@@ -1448,10 +1447,10 @@ void gf_mpd_adaptation_set_free(void *_item)
 {
 	GF_MPD_AdaptationSet *ptr = (GF_MPD_AdaptationSet *)_item;
 	gf_mpd_common_attributes_free((GF_MPD_CommonAttributes *)ptr);
-	if (ptr->lang) gf_free(ptr->lang);
-	if (ptr->content_type) gf_free(ptr->content_type);
-	if (ptr->par) gf_free(ptr->par);
-	if (ptr->xlink_href) gf_free(ptr->xlink_href);
+	gf_free(ptr->lang);
+	gf_free(ptr->content_type);
+	gf_free(ptr->par);
+	gf_free(ptr->xlink_href);
 	gf_mpd_del_list(ptr->accessibility, gf_mpd_descriptor_free, GF_FALSE);
 	gf_mpd_del_list(ptr->role, gf_mpd_descriptor_free, GF_FALSE);
 	gf_mpd_del_list(ptr->rating, gf_mpd_descriptor_free, GF_FALSE);
@@ -1470,15 +1469,15 @@ void gf_mpd_adaptation_set_free(void *_item)
 static void gf_mpd_event_stream_entry_free(void *_item)
 {
 	GF_MPD_EventStreamEntry *ptr = (GF_MPD_EventStreamEntry *)_item;
-	if (ptr->xmlns) gf_free(ptr->xmlns);
-	if (ptr->message) gf_free(ptr->message);
+	gf_free(ptr->xmlns);
+	gf_free(ptr->message);
 	gf_free(ptr);
 }
 
 static void gf_mpd_event_stream_free(void *_item)
 {
 	GF_MPD_EventStream *ptr = (GF_MPD_EventStream *)_item;
-	if (ptr->scheme_id_uri) gf_free(ptr->scheme_id_uri);
+	gf_free(ptr->scheme_id_uri);
 	gf_mpd_del_list(ptr->entries, gf_mpd_event_stream_entry_free, GF_FALSE);
 	gf_free(ptr);
 }
@@ -1486,10 +1485,10 @@ static void gf_mpd_event_stream_free(void *_item)
 void gf_mpd_period_free(void *_item)
 {
 	GF_MPD_Period *ptr = (GF_MPD_Period *)_item;
-	if (ptr->ID) gf_free(ptr->ID);
-	if (ptr->origin_base_url) gf_free(ptr->origin_base_url);
-	if (ptr->broken_xlink) gf_free(ptr->broken_xlink);
-	if (ptr->xlink_href) gf_free(ptr->xlink_href);
+	gf_free(ptr->ID);
+	gf_free(ptr->origin_base_url);
+	gf_free(ptr->broken_xlink);
+	gf_free(ptr->xlink_href);
 	if (ptr->segment_base) gf_mpd_segment_base_free(ptr->segment_base);
 	if (ptr->segment_list) gf_mpd_segment_list_free(ptr->segment_list);
 	if (ptr->segment_template) gf_mpd_segment_template_free(ptr->segment_template);
@@ -1517,9 +1516,9 @@ void gf_mpd_del(GF_MPD *mpd)
 	gf_mpd_del_list(mpd->locations, gf_mpd_string_free, GF_FALSE);
 	gf_mpd_del_list(mpd->metrics, NULL, GF_FALSE);
 	gf_mpd_del_list(mpd->periods, gf_mpd_period_free, GF_FALSE);
-	if (mpd->profiles) gf_free(mpd->profiles);
-	if (mpd->ID) gf_free(mpd->ID);
-	if (mpd->segment_template) gf_free(mpd->segment_template);
+	gf_free(mpd->profiles);
+	gf_free(mpd->ID);
+	gf_free(mpd->segment_template);
 	gf_mpd_del_list(mpd->utc_timings, gf_mpd_descriptor_free, GF_FALSE);
 	gf_mpd_del_list(mpd->essential_properties, gf_mpd_descriptor_free, GF_FALSE);
 	gf_mpd_del_list(mpd->supplemental_properties, gf_mpd_descriptor_free, GF_FALSE);
@@ -1573,10 +1572,10 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 	i = 0;
 	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
 		if (!strcmp(att->name, "id")) {
-			if (mpd->ID) gf_free(mpd->ID);
+			gf_free(mpd->ID);
 			mpd->ID = gf_mpd_parse_string(att->value);
 		} else if (!strcmp(att->name, "profiles")) {
-			if (mpd->profiles) gf_free(mpd->profiles);
+			gf_free(mpd->profiles);
 			mpd->profiles = gf_mpd_parse_string(att->value);
 		} else if (!strcmp(att->name, "type")) {
 			if (!strcmp(att->value, "static")) mpd->type = GF_MPD_TYPE_STATIC;
@@ -2054,14 +2053,14 @@ retry_import:
 
 				if (!strstr(elt_url, "://") && !gf_file_exists(elt_url)) {
 					import_file = GF_FALSE;
-					if (elt_url) gf_free(elt_url);
+					gf_free(elt_url);
 					goto retry_import;
 				}
 				e = gf_media_import(import);
 
 				if (e != GF_OK) {
 					k++;
-					if (elt_url) gf_free(elt_url);
+					gf_free(elt_url);
 					gf_free(import);
 					goto try_next_segment;
 				}
@@ -2108,7 +2107,7 @@ retry_import:
 						break;
 					}
 				}
-				if (elt_url) gf_free(elt_url);
+				gf_free(elt_url);
 				gf_free(import);
 			}
 #endif
@@ -2238,8 +2237,8 @@ retry_import:
 					rep->segment_template->initialization = gf_strdup(elt->init_segment_url);
 				}
 
-				if (rel_url) gf_free(rel_url);
-				if (variant_base_url) gf_free(variant_base_url);
+				gf_free(rel_url);
+				gf_free(variant_base_url);
 
 				if (use_segment_timeline) {
 					GF_MPD_SegmentTimelineEntry *prev_e = NULL;
@@ -2288,14 +2287,14 @@ retry_import:
 				GF_MPD_BaseURL *url;
 				GF_SAFEALLOC(url, GF_MPD_BaseURL);
 				if (! url) {
-					if (rel_url) gf_free(rel_url);
-					if (variant_base_url) gf_free(variant_base_url);
+					gf_free(rel_url);
+					gf_free(variant_base_url);
 					return GF_OUT_OF_MEM;
 				}
 				e = gf_list_add(rep->base_URLs, url);
 				if (e) {
-					if (rel_url) gf_free(rel_url);
-					if (variant_base_url) gf_free(variant_base_url);
+					gf_free(rel_url);
+					gf_free(variant_base_url);
 					return GF_OUT_OF_MEM;
 				}
 				if (rel_url) {
@@ -2312,9 +2311,9 @@ retry_import:
 					url->URL = gf_strdup(elt->url);
 				}
 			}
-			if (rel_url) gf_free(rel_url);
+			gf_free(rel_url);
 			//no longer needed
-			if (variant_base_url) gf_free(variant_base_url);
+			gf_free(variant_base_url);
 
 			GF_SAFEALLOC(rep->segment_list, GF_MPD_SegmentList);
 			if (!rep->segment_list) return GF_OUT_OF_MEM;
@@ -2508,8 +2507,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				suburl = gf_url_concatenate(base_url, pe->url);
 
 			if (!suburl || !strcmp(base_url, suburl)) {
-				if (suburl)
-					gf_free(suburl);
+				gf_free(suburl);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Not downloading, programs are identical for %s...\n", pe->url));
 				continue;
 			}
@@ -2736,7 +2734,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 			if (!rep->segment_list->initialization_segment) return GF_OUT_OF_MEM;
 
 			if (strstr(pe->init_segment_url, "mp4") || strstr(pe->init_segment_url, "MP4")) {
-				if (rep->mime_type) gf_free(rep->mime_type);
+				gf_free(rep->mime_type);
 				rep->mime_type = gf_strdup("video/mp4");
 			}
 			rep->segment_list->initialization_segment->sourceURL = pe->init_segment_url;
@@ -2890,7 +2888,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 		rep->segment_list->segment_URLs = NULL;
 	}
 
-	if (rep->segment_list->previous_xlink_href) gf_free(rep->segment_list->previous_xlink_href);
+	gf_free(rep->segment_list->previous_xlink_href);
 	rep->segment_list->previous_xlink_href = rep->segment_list->xlink_href;
 	rep->segment_list->xlink_href = NULL;
 
@@ -4088,23 +4086,23 @@ re_dump:
 	}
 	//done dumping all streams
 	if (!g_id && groups_done) {
-		if (grp_codecs) gf_free(grp_codecs);
-		if (groups_done) gf_free(groups_done);
-		if (groups_subs_done) gf_free(groups_subs_done);
+		gf_free(grp_codecs);
+		gf_free(groups_done);
+		gf_free(groups_subs_done);
 		return;
 	}
 
 	//done dumping all subs streams for the secondary media
 	if (groups_subs_done && !g_id_subs) {
-		if (grp_codecs) gf_free(grp_codecs);
-		if (groups_subs_done) gf_free(groups_subs_done);
+		gf_free(grp_codecs);
+		gf_free(groups_subs_done);
 		groups_subs_done = NULL;
 		if (g_id) {
 			gf_dynstrcat(&groups_done, g_id, ",");
 			goto re_dump;
 		}
 		//if no g_id we are done
-		if (groups_done) gf_free(groups_done);
+		gf_free(groups_done);
 		return;
 	}
 
@@ -4112,7 +4110,7 @@ re_dump:
 	//if (gf_sys_is_test_mode() && !g_m_width) g_m_bandwidth = 0;
 
 	gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, grp_codecs, g_type, g_id, g_type_subs, g_id_subs, as, g_m_bandwidth, g_m_width, g_m_height, g_m_fps, hls_version, prim_group_id);
-	if (grp_codecs) gf_free(grp_codecs);
+	gf_free(grp_codecs);
 
 	//remember this subs id and redumping for the secondary media
 	if (g_id_subs) {
@@ -4121,13 +4119,13 @@ re_dump:
 	}
 	//no more subs, we are done dumping the secondary media
 	if (g_id) {
-		if (groups_subs_done) gf_free(groups_subs_done);
+		gf_free(groups_subs_done);
 		groups_subs_done = NULL;
 		gf_dynstrcat(&groups_done, g_id, ",");
 		goto re_dump;
 	}
-	if (groups_done) gf_free(groups_done);
-	if (groups_subs_done) gf_free(groups_subs_done);
+	gf_free(groups_done);
+	gf_free(groups_subs_done);
 }
 
 static const char *gf_mpd_m3u8_get_init_seg(const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, const GF_MPD_Representation *rep)
@@ -4334,7 +4332,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 						u32 frag_idx = k;
 
 						char *res = gf_mpd_resolve_subnumber(sctx->llhas_template, force_url ? force_url : sctx->filename, frag_idx);
-						if (force_url ) gf_free(force_url);
+						gf_free(force_url);
 						force_url = res;
 						next_seg_idx = k+1;
 					}
@@ -4380,7 +4378,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 
 					if (next_seg_idx) {
 						char *res = gf_mpd_resolve_subnumber(sctx->llhas_template, force_url ? force_url : sctx->filename, next_seg_idx);
-						if (force_url ) gf_free(force_url);
+						gf_free(force_url);
 						force_url = res;;
 						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s\"\n", force_url);
 					} else if (next_br_start_plus_one)
@@ -4425,7 +4423,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 								gf_dynstrcat(&par_url, o_name, NULL);
 							}
 							fprintf(out, "#EXT-X-RENDITION-REPORT:URI=\"%s\",LAST-MSN=%d,LAST-PART=%d\n", par_url ? par_url : o_name, o_sctx->seg_num, o_sctx->nb_frags);
-							if (par_url) gf_free(par_url);
+							gf_free(par_url);
 						}
 					}
 				}
@@ -4747,7 +4745,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 				} else {
 					sprintf(szVariantName, "%s_%d.m3u8",m3u8_name_rad, var_idx);
 				}
-				if (rep->m3u8_var_name) gf_free(rep->m3u8_var_name);
+				gf_free(rep->m3u8_var_name);
 				rep->m3u8_var_name = gf_strdup(szVariantName);
 			}
 			var_idx++;
@@ -6097,7 +6095,7 @@ static GF_Err smooth_replace_string(char *src_str, const char *str_match, const 
 	gf_strlcat(res, sep+strlen(str_match), len);
 	sep[0] = c;
 
-	if (*output) gf_free(*output);
+	gf_free(*output);
 	*output = res;
 	return GF_OK;
 }
@@ -6780,7 +6778,7 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 					gf_mpd_parse_adaptation_set(mpd, new_as, root);
 					gf_xml_dom_del(dom);
 					gf_free(data);
-					if (blob_add) gf_free(blob_add);
+					gf_free(blob_add);
 					gf_blob_unregister(&blob);
 					gf_fclose(f);
 				}

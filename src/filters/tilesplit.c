@@ -312,7 +312,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		sprintf(szName, "%s_tile%d", pname, i+1);
 		gf_filter_pid_set_name(tinfo->opid, szName);
 	}
-	if (dsi) gf_free(dsi);
+	gf_free(dsi);
 	ctx->nb_tiles = nb_tiles;
 	active_tiles = 0;
 	//setup tbas track ref
@@ -525,14 +525,13 @@ static void tilesplit_finalize(GF_Filter *filter)
 
 	for (i=0; i<ctx->nb_alloc_tiles; i++) {
 		TileSplitPid *tinfo = &ctx->opids[i];
-		if (tinfo->pck_buf) gf_free(tinfo->pck_buf);
+		gf_free(tinfo->pck_buf);
 		if (tinfo->pck_bs) gf_bs_del(tinfo->pck_bs);
 	}
-	if (ctx->opids)
-		gf_free(ctx->opids);
+	gf_free(ctx->opids);
 
 	if (ctx->pck_bs) gf_bs_del(ctx->pck_bs);
-	if (ctx->pck_buf) gf_free(ctx->pck_buf);
+	gf_free(ctx->pck_buf);
 }
 
 

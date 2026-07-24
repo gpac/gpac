@@ -801,7 +801,7 @@ char *gf_mem_strdup(const char *str, const char *filename, int line);
 void gf_memory_print(void); /*prints the state of current allocations*/
 u64 gf_memory_size(); /*gets memory allocated in bytes*/
 
-/*! free memory allocated with gpac*/
+/*! free memory allocated with gpac, ptr can be NULL*/
 #define gf_free(ptr) gf_mem_free(ptr, __FILE__, __LINE__)
 /*! allocates memory, shall be freed using \ref gf_free*/
 #define gf_malloc(size) gf_mem_malloc(size, __FILE__, __LINE__)
@@ -817,7 +817,7 @@ u64 gf_mem_get_stats(u32 *nb_allocs, u32 *nb_callocs, u32 *nb_reallocs, u32 *nb_
 #else
 
 /*! free memory allocated with gpac
-\param ptr same as free()
+\param ptr adress of memory to free, can be NULL
 */
 void gf_free(void *ptr);
 
@@ -850,7 +850,7 @@ void* gf_realloc_strict(void *ptr, size_t size);
 #endif
 
 /*! reallocates memory, shall be freed using \ref gf_free
-\param ptr to reallocate, must have been allocated using gf_malloc, gf_calloc or gf_realloc. This memory WILL be freed if reallocation fails
+\param ptr to reallocate, must have been allocated using gf_malloc, gf_calloc, gf_strdup or gf_realloc. This memory WILL be freed if reallocation fails
 \param size new size to allocate
 \return address of reallocated block, or NULL if error
 */

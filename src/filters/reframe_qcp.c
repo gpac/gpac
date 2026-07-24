@@ -686,9 +686,9 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 static void qcpdmx_finalize(GF_Filter *filter)
 {
 	GF_QCPDmxCtx *ctx = (GF_QCPDmxCtx *)gf_filter_get_udta(filter);
-	if (ctx->indexes) gf_free(ctx->indexes);
+	gf_free(ctx->indexes);
 	if (ctx->bs) gf_bs_del(ctx->bs);
-	if (ctx->buffer) gf_free(ctx->buffer);
+	gf_free(ctx->buffer);
 }
 
 static const char *qcpdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)

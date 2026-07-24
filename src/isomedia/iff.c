@@ -200,7 +200,7 @@ GF_Box *colr_box_new()
 void colr_box_del(GF_Box *a)
 {
 	GF_ColourInformationBox *p = (GF_ColourInformationBox *)a;
-	if (p->opaque) gf_free(p->opaque);
+	gf_free(p->opaque);
 	gf_free(p);
 }
 
@@ -318,7 +318,7 @@ GF_Box *pixi_box_new()
 void pixi_box_del(GF_Box *a)
 {
 	GF_PixelInformationPropertyBox *p = (GF_PixelInformationPropertyBox *)a;
-	if (p->bits_per_channel) gf_free(p->bits_per_channel);
+	gf_free(p->bits_per_channel);
 	gf_free(p);
 }
 
@@ -751,8 +751,8 @@ void grptype_box_del(GF_Box *s)
 {
 	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
 	if (!ptr) return;
-	if (ptr->entity_ids) gf_free(ptr->entity_ids);
-	if (ptr->data) gf_free(ptr->data);
+	gf_free(ptr->entity_ids);
+	gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -835,8 +835,8 @@ GF_Box *auxc_box_new()
 void auxc_box_del(GF_Box *a)
 {
 	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox *)a;
-	if (p->aux_urn) gf_free(p->aux_urn);
-	if (p->data) gf_free(p->data);
+	gf_free(p->aux_urn);
+	gf_free(p->data);
 	gf_free(p);
 }
 
@@ -883,8 +883,8 @@ GF_Err auxc_box_size(GF_Box *s)
 void auxi_box_del(GF_Box *s)
 {
 	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)s;
-	if (ptr->aux_track_type) gf_free(ptr->aux_track_type);
-	if (ptr) gf_free(ptr);
+	gf_free(ptr->aux_track_type);
+	gf_free(ptr);
 	return;
 }
 
@@ -1121,7 +1121,7 @@ GF_Box *ienc_box_new()
 void ienc_box_del(GF_Box *a)
 {
 	GF_ItemEncryptionPropertyBox *p = (GF_ItemEncryptionPropertyBox *)a;
-	if (p->key_info) gf_free(p->key_info);
+	gf_free(p->key_info);
 	gf_free(p);
 }
 
@@ -1249,12 +1249,9 @@ GF_Box *fnch_box_new()
 void fnch_box_del(GF_Box *a)
 {
 	GF_FontCharacteristicsPropertyBox *p = (GF_FontCharacteristicsPropertyBox *)a;
-	if (p->font_family)
-		gf_free(p->font_family);
-	if (p->font_style)
-		gf_free(p->font_style);
-	if (p->font_weight)
-		gf_free(p->font_weight);
+	gf_free(p->font_family);
+	gf_free(p->font_style);
+	gf_free(p->font_weight);
 	gf_free(p);
 }
 
@@ -1302,10 +1299,8 @@ GF_Box *txlo_box_new()
 void txlo_box_del(GF_Box *a)
 {
 	GF_TextLayoutPropertyBox *p = (GF_TextLayoutPropertyBox *)a;
-	if (p->direction)
-		gf_free(p->direction);
-	if (p->writing_mode)
-		gf_free(p->writing_mode);
+	gf_free(p->direction);
+	gf_free(p->writing_mode);
 	gf_free(p);
 }
 
@@ -1442,7 +1437,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 			if (orig_tile_mode != TILE_ITEM_SINGLE || image_props->single_tile_number == i + 1) {
 				e = gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, tile_track, tile_name, *tile_item_id, NULL, NULL);
 			}
-			if (tile_name) gf_free(tile_name);
+			gf_free(tile_name);
 			if (e) return e;
 			gf_isom_remove_track(movie, tile_track);
 			if (orig_tile_mode == TILE_ITEM_ALL_BASE) {
@@ -1461,7 +1456,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		else if (orig_tile_mode == TILE_ITEM_ALL_GRID) {
 			// TODO
 		}
-		if (tile_name) gf_free(tile_name);
+		gf_free(tile_name);
 
 		for (i = 0; i < count; i++) {
 			u32 *tile_item_id = (u32 *)gf_list_get(tile_item_ids, i);
@@ -1552,7 +1547,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 				if (e) return GF_BAD_PARAM;
 
 				e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, item_name, &item_id, item_type, NULL, NULL, image_props, data, size, NULL);
-				if (data) gf_free(data);
+				gf_free(data);
 			} else {
 				e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, item_name, &item_id, item_type, NULL, NULL, image_props, 0, ref_id);
 			}
@@ -1720,7 +1715,7 @@ import_next_sample:
 			while (gf_list_count(((GF_AV1ConfigurationBox *)config_box)->config->obu_array)) {
 				GF_AV1_OBUArrayEntry *obu = (GF_AV1_OBUArrayEntry *)gf_list_pop_back(((GF_AV1ConfigurationBox *)config_box)->config->obu_array);
 				if (obu) {
-					if (obu->obu) gf_free(obu->obu);
+					gf_free(obu->obu);
 					gf_free(obu);
 				}
 			}
@@ -1892,7 +1887,7 @@ import_next_sample:
 	}
 
 exit:
-	if (sai) gf_free(sai);
+	gf_free(sai);
 	gf_isom_sample_del(&sample);
 	if (config_box) gf_isom_box_del(config_box);
 	image_props->cenc_info = orig_ipro;
@@ -1965,7 +1960,7 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 		if (!h) h = props.height;
 
 		if ((w != props.width) || (h != props.height)) {
-			if (imgs_ids) gf_free(imgs_ids);
+			gf_free(imgs_ids);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Auto grid can only be generated for images of the same size - try using `-add-derived-image type=grid`\n"));
 			return GF_NOT_SUPPORTED;
 		}
@@ -1976,7 +1971,7 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 	}
 
 	if (!nb_imgs || !w || !h) {
-		if (imgs_ids) gf_free(imgs_ids);
+		gf_free(imgs_ids);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("No image items found\n"));
 		return GF_BAD_PARAM;
 	}

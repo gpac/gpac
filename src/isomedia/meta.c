@@ -670,7 +670,7 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 		meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
 		if (!meta->handler) return GF_OUT_OF_MEM;
 	}
-	if (meta->handler->nameUTF8) gf_free(meta->handler->nameUTF8);
+	gf_free(meta->handler->nameUTF8);
 	meta->handler->handlerType = metaType;
 	sprintf(szName, "GPAC %s Handler", gf_4cc_to_str(metaType));
 	meta->handler->nameUTF8 = gf_strdup(szName);

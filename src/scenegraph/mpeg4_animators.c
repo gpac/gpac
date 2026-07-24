@@ -98,9 +98,9 @@ static Fixed quadratic_knots[] = {0,0,0,FIX_ONE,FIX_ONE,FIX_ONE};
 
 static void anurbs_reset(anim_nurbs *nurbs)
 {
-	if (nurbs->n) gf_free(nurbs->n);
-	if (nurbs->left) gf_free(nurbs->left);
-	if (nurbs->right) gf_free(nurbs->right);
+	gf_free(nurbs->n);
+	gf_free(nurbs->left);
+	gf_free(nurbs->right);
 	nurbs->n = nurbs->left = nurbs->right = NULL;
 }
 

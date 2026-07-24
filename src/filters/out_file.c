@@ -475,8 +475,8 @@ static void fileout_finalize(GF_Filter *filter)
 		}
 		gf_list_del(ctx->past_files);
 	}
-	if (ctx->llhas_template) gf_free(ctx->llhas_template);
-	if (ctx->llhls_file_name) gf_free(ctx->llhls_file_name);
+	gf_free(ctx->llhas_template);
+	gf_free(ctx->llhls_file_name);
 }
 
 static GF_Err fileout_process(GF_Filter *filter)
@@ -670,7 +670,7 @@ restart:
 			fileout_open_close(ctx, name, ext ? ext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite, fsuf ? fsuf->value.string : NULL, GF_TRUE);
 
 			if (use_rel) {
-				gf_free((char*) name);
+				gf_free((void*)name);
 			}
 
 		} else if (!ctx->file && !ctx->noinitraw
@@ -689,7 +689,7 @@ restart:
 
 		fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
 		if (fname) {
-			if (ctx->llhas_template) gf_free(ctx->llhas_template);
+			gf_free(ctx->llhas_template);
 			ctx->llhas_template = gf_strdup(fname->value.string);
 		}
 

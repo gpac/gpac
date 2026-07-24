@@ -412,7 +412,7 @@ static void mpeg2ps_stream_destroy (mpeg2ps_stream_t *sptr)
 		file_close(sptr->m_fd);
 		sptr->m_fd = FDNULL;
 	}
-	if (sptr->pes_buffer) gf_free(sptr->pes_buffer);
+	gf_free(sptr->pes_buffer);
 	gf_free(sptr);
 }
 
@@ -1657,7 +1657,7 @@ void mpeg2ps_close (mpeg2ps_t *ps)
 		ps->audio_streams[ix] = NULL;
 	}
 
-	if (ps->filename) gf_free(ps->filename);
+	gf_free(ps->filename);
 	if (ps->fd) file_close(ps->fd);
 	gf_free(ps);
 }

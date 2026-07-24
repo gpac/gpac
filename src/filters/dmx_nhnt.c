@@ -493,7 +493,7 @@ void nhntdmx_finalize(GF_Filter *filter)
 	GF_NHNTDmxCtx *ctx = (GF_NHNTDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->mdia) gf_fclose(ctx->mdia);
 	if (ctx->bs) gf_bs_del(ctx->bs);
-	if (ctx->indexes) gf_free(ctx->indexes);
+	gf_free(ctx->indexes);
 }
 
 

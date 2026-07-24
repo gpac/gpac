@@ -2570,7 +2570,7 @@ u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value)
 }
 
 #define OBU_BLOCK_SIZE 4096
-static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List **obu_list, AV1State *state)
+static GF_Err av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List **obu_list, AV1State *state)
 {
 	u8 block[OBU_BLOCK_SIZE];
 	Bool has_size_field = GF_FALSE, obu_extension_flag = GF_FALSE;
@@ -2588,10 +2588,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 	}
 	else {
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
-		if (!a) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Failed to allocate OBU\n"));
-			return;
-		}
+		if (!a) return GF_OUT_OF_MEM;
 	}
 
 	gf_bs_seek(bs, pos);
@@ -2601,6 +2598,10 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 	if (has_size_field) {
 		if (a) {
 			a->obu = (u8 *)gf_malloc((size_t)obu_length);
+			if (!a->obu) {
+				gf_free(a);
+				return GF_OUT_OF_MEM;
+			}
 			gf_bs_read_data(bs, a->obu, (u32)obu_length);
 			a->obu_length = obu_length;
 		}
@@ -2613,7 +2614,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 				gf_bs_write_data(state->bs, block, block_size);
 				remain -= block_size;
 			}
-			return;
+			return GF_OK;
 		}
 	}
 	else {
@@ -2623,6 +2624,10 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 
 		if (a) {
 			a->obu = (u8 *)gf_malloc((size_t)obu_length + leb_size);
+			if (!a->obu) {
+				gf_free(a);
+				return GF_OUT_OF_MEM;
+			}
 			a->obu_length = obu_length + leb_size;
 			for (i = 0; i < hdr_size; ++i) {
 				a->obu[i] = gf_bs_read_u8(bs);
@@ -2662,23 +2667,24 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 				remain -= block_size;
 			}
 			gf_assert(gf_bs_get_position(bs) == pos + obu_length);
-			return;
+			return GF_OK;
 		}
 	}
 	if (!obu_list) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] internal error, no OBU list: cannot add\n"));
 		gf_free(a->obu);
 		gf_free(a);
-		return;
+		return GF_IO_ERR;
 	}
 	a->obu_type = obu_type;
 	if (! *obu_list)
 		*obu_list = gf_list_new();
-	gf_list_add(*obu_list, a);
+	return gf_list_add(*obu_list, a);
 }
 
-static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, AV1State *state)
+static GF_Err av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, AV1State *state)
 {
+	GF_Err e = GF_OK;
 	if (av1_is_obu_header(obu_type) && !(obu_type == OBU_METADATA && state->dolby_rpu_detected)) {
 		if (obu_type == OBU_METADATA) {
 			u64 cur_pos = gf_bs_get_position(bs);
@@ -2694,20 +2700,21 @@ static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_lengt
 
 			// TODO: filter out any metadata which values change
 			if (metadata_type == OBU_METADATA_TYPE_TIMECODE) {
-				return;
+				return e;
 			}
 		}
 
-		av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.header_obus, NULL);
+		e = av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.header_obus, NULL);
 	}
 	if (!state->skip_frames && av1_is_obu_frame(state, obu_type)) {
 		if (!state->mem_mode) {
-			av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.frame_obus, NULL);
+			e = av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.frame_obus, NULL);
 		}
 		else {
-			av1_add_obu_internal(bs, pos, obu_length, obu_type, NULL, state);
+			e = av1_add_obu_internal(bs, pos, obu_length, obu_type, NULL, state);
 		}
 	}
+	return e;
 }
 
 GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state)
@@ -2749,7 +2756,8 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 		first_obu = GF_FALSE;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Section5 OBU detected (size " LLU ")\n", obu_size));
-		av1_populate_state_from_obu(bs, pos, obu_size, state->obu_type, state);
+		e = av1_populate_state_from_obu(bs, pos, obu_size, state->obu_type, state);
+		if (e) return e;
 	}
 
 	return GF_OK;
@@ -4124,7 +4132,7 @@ void gf_av1_reset_state(AV1State *state, Bool is_destroy)
 	if (state->frame_state.header_obus) {
 		while (gf_list_count(state->frame_state.header_obus)) {
 			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_pop_back(state->frame_state.header_obus);
-			if (a->obu) gf_free(a->obu);
+			gf_free(a->obu);
 			gf_free(a);
 		}
 	}
@@ -4132,7 +4140,7 @@ void gf_av1_reset_state(AV1State *state, Bool is_destroy)
 	if (state->frame_state.frame_obus) {
 		while (gf_list_count(state->frame_state.frame_obus)) {
 			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*)gf_list_pop_back(state->frame_state.frame_obus);
-			if (a->obu) gf_free(a->obu);
+			gf_free(a->obu);
 			gf_free(a);
 		}
 	}
@@ -4205,8 +4213,7 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 	if (state->frame_state.descriptor_obus && (!state->frame_state.cache_descriptor_obus || is_destroy)) {
 		while (gf_list_count(state->frame_state.descriptor_obus)) {
 			GF_IamfObu *a = (GF_IamfObu *)gf_list_pop_back(state->frame_state.descriptor_obus);
-			if (a->raw_obu_bytes)
-				gf_free(a->raw_obu_bytes);
+			gf_free(a->raw_obu_bytes);
 			gf_free(a);
 		}
 	}
@@ -4214,8 +4221,7 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 	if (state->frame_state.temporal_unit_obus) {
 		while (gf_list_count(state->frame_state.temporal_unit_obus)) {
 			GF_IamfObu *a = (GF_IamfObu *)gf_list_pop_back(state->frame_state.temporal_unit_obus);
-			if (a->raw_obu_bytes)
-				gf_free(a->raw_obu_bytes);
+			gf_free(a->raw_obu_bytes);
 			gf_free(a);
 		}
 	}
@@ -4985,9 +4991,7 @@ static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfO
 		u8* content=NULL;
 		u32 bssize;
 		gf_bs_get_content(state->bs, &content, &bssize);
-		if (content) {
-			gf_free(content);
-		}
+		gf_free(content);
 		gf_bs_reassign_buffer(state->bs, state->temporal_unit_obus, state->temporal_unit_obus_alloc);
 		//make sure we don't attempt at freeing this buffer while assigned to the bitstream - cf gf_iamf_reset_state
 		state->temporal_unit_obus = NULL;
@@ -6207,6 +6211,7 @@ s32 gf_avc_read_sps(const u8 *sps_data, u32 sps_size, AVCState *avc, u32 subseq_
 	if (vui_flag_pos) {
 		/*SPS still contains emulation bytes*/
 		sps_data_without_emulation_bytes = (u8 *)gf_malloc(sps_size);
+		if (!sps_data_without_emulation_bytes) return -1;
 		sps_data_without_emulation_bytes_size = gf_media_nalu_remove_emulation_bytes(sps_data, sps_data_without_emulation_bytes, sps_size);
 		bs = gf_bs_new(sps_data_without_emulation_bytes, sps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 
@@ -6225,7 +6230,7 @@ s32 gf_avc_read_sps(const u8 *sps_data, u32 sps_size, AVCState *avc, u32 subseq_
 
 exit:
 	gf_bs_del(bs);
-	if (sps_data_without_emulation_bytes) gf_free(sps_data_without_emulation_bytes);
+	gf_free(sps_data_without_emulation_bytes);
 	return sps_id;
 }
 
@@ -9539,14 +9544,13 @@ s32 gf_hevc_read_vps_ex(u8 *data, u32 *size, HEVCState *hevc, Bool remove_extens
 		else {
 			*size = gf_media_nalu_add_emulation_bytes(new_vps, data, new_vps_size);
 		}
-		if (new_vps)
-			gf_free(new_vps);
+		gf_free(new_vps);
 	}
 
 exit:
 	if (bs)
 		gf_bs_del(bs);
-	if (data_without_emulation_bytes) gf_free(data_without_emulation_bytes);
+	gf_free(data_without_emulation_bytes);
 	return vps_id;
 }
 

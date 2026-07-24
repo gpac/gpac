@@ -847,9 +847,9 @@ void gf_net_close_capture()
 			}
 			gf_list_del(nf->rules);
 		}
-		if (nf->id) gf_free(nf->id);
-		if (nf->src) gf_free(nf->src);
-		if (nf->dst) gf_free(nf->dst);
+		gf_free(nf->id);
+		gf_free(nf->src);
+		gf_free(nf->dst);
 		gf_free(nf);
 	}
 	gf_list_del(netcap_filters);
@@ -1316,13 +1316,13 @@ GF_Err gf_netcap_setup(const char *rules)
 		rules = rsep;
 	}
 	if (!dst && !src && !rules) {
-		if (id) gf_free(id);
+		gf_free(id);
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[NetCap] Invalid netcap rule, ignoring\n"));
 		return GF_OK;
 	}
 	if (dst && src) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Invalid netcap, src and dst cannot be set at the same time\n"));
-		if (id) gf_free(id);
+		gf_free(id);
 		gf_free(src);
 		gf_free(dst);
 		return GF_BAD_PARAM;
@@ -1331,17 +1331,17 @@ GF_Err gf_netcap_setup(const char *rules)
 	GF_NetcapFilter *nf = gf_net_filter_get(id);
 	if (nf) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Several netcap filters with same IDs are not supported, ignoring\n"));
-		if (id) gf_free(id);
-		if (src) gf_free(src);
-		if (dst) gf_free(dst);
+		gf_free(id);
+		gf_free(src);
+		gf_free(dst);
 		return GF_BAD_PARAM;
 	}
 
 	GF_SAFEALLOC(nf, GF_NetcapFilter);
 	if (!nf) {
-		if (id) gf_free(id);
-		if (src) gf_free(src);
-		if (dst) gf_free(dst);
+		gf_free(id);
+		gf_free(src);
+		gf_free(dst);
 		return GF_OUT_OF_MEM;
 	}
 	nf->id = id;
@@ -1351,9 +1351,9 @@ GF_Err gf_netcap_setup(const char *rules)
 	nf->rt = cap_rt;
 	nf->rules = gf_list_new();
 	if (!nf->rules) {
-		if (id) gf_free(id);
-		if (src) gf_free(src);
-		if (dst) gf_free(dst);
+		gf_free(id);
+		gf_free(src);
+		gf_free(dst);
 		gf_free(nf);
 		return GF_OUT_OF_MEM;
 	}
@@ -2582,6 +2582,7 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 
 		if (dst_sock_addr) {
 			*dst_sock_addr = (u8*)gf_malloc(sock->dest_addr_len);
+			if (!*dst_sock_addr) return GF_OUT_OF_MEM;
 			memcpy(*dst_sock_addr, &sock->dest_addr, sock->dest_addr_len);
 			*dst_sock_addr_len = sock->dest_addr_len;
 		}
@@ -2680,6 +2681,10 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 
 		if (src_sock_addr) {
 			*src_sock_addr = (u8*)gf_malloc(res->ai_addrlen);
+			if (!*src_sock_addr) {
+				if (dst_sock_addr) gf_free(*dst_sock_addr);
+				return GF_OUT_OF_MEM;
+			}
 			memcpy(*src_sock_addr, res->ai_addr, res->ai_addrlen);
 			*src_sock_addr_len = (u32) res->ai_addrlen;
 		}
@@ -2740,6 +2745,10 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 
 	if (src_sock_addr) {
 		*src_sock_addr = (u8 *)gf_malloc(addrlen);
+		if (! *src_sock_addr) {
+			if (dst_sock_addr) gf_free(*dst_sock_addr);
+			return GF_OUT_OF_MEM;
+		}
 		memcpy(*src_sock_addr, &LocalAdd, addrlen);
 		*src_sock_addr_len = addrlen;
 	}
@@ -2787,6 +2796,10 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 
 		if (dst_sock_addr && !ret) {
 			*dst_sock_addr = (u8*)gf_malloc(sock->dest_addr_len);
+			if (!*dst_sock_addr) {
+				if (src_sock_addr) gf_free(*src_sock_addr);
+				return GF_OUT_OF_MEM;
+			}
 			memcpy(*dst_sock_addr, &sock->dest_addr, sock->dest_addr_len);
 			*dst_sock_addr_len = sock->dest_addr_len;
 		}
@@ -3216,7 +3229,7 @@ Bool gf_net_enum_interfaces(gf_net_ifce_enum do_enum, void *enum_cbk)
 					my_inet_ntop(sa_fam, ipadd->Address.lpSockaddr, szIP, 100);
 					char *name = gf_wcs_to_utf8(ifa->FriendlyName);
 					Bool res = do_enum(enum_cbk, name ? name : ifa->AdapterName, szIP[0] ? szIP : NULL, flags | ((sa_fam==AF_INET6) ? GF_NETIF_IPV6 : 0));
-					if (name) gf_free(name);
+					gf_free(name);
 					if (res) break;
 				}
 				ipadd = ipadd->Next;
@@ -3291,9 +3304,10 @@ Bool gf_net_get_adapter_ip(const char *ip_or_name, char **ipv4, char **ipv6)
 	Bool res = gf_net_enum_interfaces(get_ifce_enum, &info);
 	if (!res) return GF_FALSE;
 	if (ipv4) *ipv4 = info.res_v4;
-	else if (info.res_v4) gf_free(info.res_v4);
+	else gf_free(info.res_v4);
+	
 	if (ipv6) *ipv6 = info.res_v6;
-	else if (info.res_v6) gf_free(info.res_v6);
+	else gf_free(info.res_v6);
 	return GF_TRUE;
 }
 
@@ -3365,14 +3379,14 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 					gf_free(name);
 					break;
 				}
-				if (name) gf_free(name);
+				gf_free(name);
 				name = gf_wcs_to_utf8(ifa->Description);
 				if (!strcmp(name, ifce_ip_or_name)) {
 					M_reqV6.ipv6mr_interface = ifa->Ipv6IfIndex;
 					gf_free(name);
 					break;
 				}
-				if (name) gf_free(name);
+				gf_free(name);
 
 				//match by IP
 				IP_ADAPTER_UNICAST_ADDRESS_LH *ipadd = ifa->FirstUnicastAddress;
@@ -3749,7 +3763,7 @@ void gf_sk_group_del(GF_SockGroup *sg)
 {
 	gf_list_del(sg->sockets);
 #ifdef GPAC_HAS_POLL
-	if (sg->fds) gf_free(sg->fds);
+	gf_free(sg->fds);
 #endif
 	gf_free(sg);
 }

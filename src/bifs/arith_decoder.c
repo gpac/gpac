@@ -91,8 +91,8 @@ GF_AAModel *gp_bifs_aa_model_new()
 
 void gp_bifs_aa_model_del(GF_AAModel *model)
 {
-	if (model->cumul_freq) gf_free(model->cumul_freq);
-	if (model->freq) gf_free(model->freq);
+	gf_free(model->cumul_freq);
+	gf_free(model->freq);
 	gf_free(model);
 }
 
@@ -100,8 +100,8 @@ void gp_bifs_aa_model_init(GF_AAModel *model, u32 nbBits)
 {
 	s32 i;
 	model->nb_symb = 1<<nbBits;
-	if (model->cumul_freq) gf_free(model->cumul_freq);
-	if (model->freq) gf_free(model->freq);
+	gf_free(model->cumul_freq);
+	gf_free(model->freq);
 	model->freq = (s32*)gf_malloc(sizeof(s32) * model->nb_symb);
 	model->cumul_freq = (s32*)gf_malloc(sizeof(s32) * (model->nb_symb+1));
 	if (!model->freq || !model->cumul_freq) {

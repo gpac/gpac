@@ -408,8 +408,7 @@ void databox_box_del(GF_Box *s)
 {
 	GF_DataBox *ptr = (GF_DataBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->data)
-		gf_free(ptr->data);
+	gf_free(ptr->data);
 	gf_free(ptr);
 
 }
@@ -787,7 +786,7 @@ GF_Err tmcd_box_size(GF_Box *s)
 void tcmi_box_del(GF_Box *s)
 {
 	GF_TimeCodeMediaInformationBox *ptr = (GF_TimeCodeMediaInformationBox *)s;
-	if (ptr->font) gf_free(ptr->font);
+	gf_free(ptr->font);
 	gf_free(s);
 }
 
@@ -1015,8 +1014,8 @@ GF_Err chrm_box_size(GF_Box *s)
 void chan_box_del(GF_Box *s)
 {
 	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
-	if (ptr->audio_descs) gf_free(ptr->audio_descs);
-	if (ptr->ext_data) gf_free(ptr->ext_data);
+	gf_free(ptr->audio_descs);
+	gf_free(ptr->ext_data);
 	gf_free(s);
 }
 
@@ -1166,7 +1165,7 @@ void keys_box_del(GF_Box *s)
 	if (ptr == NULL) return;
 	while (gf_list_count(ptr->keys)) {
 		GF_MetaKey *k = (GF_MetaKey *)gf_list_pop_back(ptr->keys);
-		if (k->data) gf_free(k->data);
+		gf_free(k->data);
 		gf_free(k);
 	}
 	gf_list_del(ptr->keys);

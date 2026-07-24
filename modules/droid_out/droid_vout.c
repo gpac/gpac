@@ -156,6 +156,7 @@ static Bool compile_shader(u32 shader_id, const char *name, const char *source)
 	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
 	if (blen > 1) {
 		char* compiler_log = (char*) gf_malloc(blen);
+		if (!compiler_log) return GF_FALSE;
 		glGetShaderInfoLog(shader_id, blen, &slen, compiler_log);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[DroidVOUT] Failed to compile %s shader: %s\nShader code:\n%s\n", name, compiler_log, source));
 		gf_free (compiler_log);
@@ -765,7 +766,7 @@ void DeleteAndroidVideoOutput(void *ifce)
 	if (!ifce) return;
 	droid_Shutdown(driv);
 	rc = (AndroidContext *)driv->opaque;
-	if (rc) gf_free(rc);
+	gf_free(rc);
 	driv->opaque = NULL;
 	gf_free(driv);
 }

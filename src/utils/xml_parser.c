@@ -673,14 +673,14 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 		if (!ent && (c=='%')) {
 			parser->current_pos+=i+1;
 			parser->sax_state = SAX_STATE_SKIP_DOCTYPE;
-			if (ent_name) gf_free(ent_name);
+			gf_free(ent_name);
 			return;
 		}
 		else if (!ent && ((c=='\"') || (c=='\'')) ) {
 			GF_SAFEALLOC(ent, XML_Entity);
 			if (!ent) {
 				parser->sax_state = SAX_STATE_ALLOC_ERROR;
-				if (ent_name) gf_free(ent_name);
+				gf_free(ent_name);
 				return;
 			}
 			if (!ent_name) gf_dynstrcat(&ent_name, "", NULL);
@@ -696,7 +696,7 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 			gf_list_add(parser->entities, ent);
 			skip_chars = NULL;
 		} else if (ent && c==ent->sep) {
-			if (ent_name) gf_free(ent_name);
+			gf_free(ent_name);
 			xml_sax_store_text(parser, i);
 
 			ent->value = xml_get_current_text(parser);
@@ -715,7 +715,7 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 			i++;
 		}
 	}
-	if (ent_name) gf_free(ent_name);
+	gf_free(ent_name);
 	if (ent && !ent->value)
 		parser->sax_state = SAX_STATE_SYNTAX_ERROR;
 	xml_sax_store_text(parser, i);
@@ -1147,7 +1147,7 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, const void *string)
 	}
 
 	e = gf_xml_sax_parse_intern(parser, current);
-	if (utf_conv) gf_free(utf_conv);
+	gf_free(utf_conv);
 	return e;
 }
 
@@ -1197,11 +1197,11 @@ static void xml_sax_reset(GF_SAXParser *parser)
 		XML_Entity *ent = (XML_Entity *)gf_list_last(parser->entities);
 		if (!ent) break;
 		gf_list_rem_last(parser->entities);
-		if (ent->name) gf_free(ent->name);
-		if (ent->value) gf_free(ent->value);
+		gf_free(ent->name);
+		gf_free(ent->value);
 		gf_free(ent);
 	}
-	if (parser->buffer) gf_free(parser->buffer);
+	gf_free(parser->buffer);
 	parser->buffer = NULL;
 	parser->current_pos = 0;
 	gf_free(parser->attrs);
@@ -1632,7 +1632,7 @@ exit:
 #endif
 	}
 	if (e) {
-		if (result) gf_free(result);
+		gf_free(result);
 		return NULL;
 	}
 
@@ -1655,7 +1655,7 @@ struct _peek_type
 static void on_peek_node_start(void *cbk, const char *name, const char *ns, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	struct _peek_type *pt = (struct _peek_type*)cbk;
-	if (pt->res) gf_free(pt->res);
+	gf_free(pt->res);
 	pt->res = gf_strdup(name);
 	pt->parser->suspended = GF_TRUE;
 }
@@ -1709,8 +1709,8 @@ void gf_xml_dom_node_reset(GF_XMLNode *node, Bool reset_attribs, Bool reset_chil
 		while (gf_list_count(node->attributes)) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_last(node->attributes);
 			gf_list_rem_last(node->attributes);
-			if (att->name) gf_free(att->name);
-			if (att->value) gf_free(att->value);
+			gf_free(att->name);
+			gf_free(att->value);
 			gf_free(att);
 		}
 	}
@@ -1731,8 +1731,8 @@ void gf_xml_dom_node_del(GF_XMLNode *node)
 	gf_xml_dom_node_reset(node, GF_TRUE, GF_TRUE);
 	if (node->attributes) gf_list_del(node->attributes);
 	if (node->content) gf_list_del(node->content);
-	if (node->ns) gf_free(node->ns);
-	if (node->name) gf_free(node->name);
+	gf_free(node->ns);
+	gf_free(node->name);
 	gf_free(node);
 }
 

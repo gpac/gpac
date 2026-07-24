@@ -276,7 +276,7 @@ void gf_dm_disconnect(GF_DownloadSession *sess, HTTPCloseType close_type)
 	if (sess->connection_close) close_type = HTTP_RESET_CONN;
 	sess->connection_close = GF_FALSE;
 	sess->remaining_data_size = 0;
-	if (sess->async_req_reply) gf_free(sess->async_req_reply);
+	gf_free(sess->async_req_reply);
 	sess->async_req_reply = NULL;
 	sess->async_req_reply_size = 0;
 	sess->async_buf_size = 0;
@@ -380,16 +380,16 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	}
 
 	gf_cache_remove_entry_from_session(sess);
-	if (sess->orig_url) gf_free(sess->orig_url);
-	if (sess->orig_url_before_redirect) gf_free(sess->orig_url_before_redirect);
-	if (sess->server_name) gf_free(sess->server_name);
+	gf_free(sess->orig_url);
+	gf_free(sess->orig_url_before_redirect);
+	gf_free(sess->server_name);
 	sess->server_name = NULL;
-	if (sess->remote_path) gf_free(sess->remote_path);
+	gf_free(sess->remote_path);
 	/* Credentials are stored into the sess->dm */
 	if (sess->creds) sess->creds = NULL;
-	if (sess->init_data) gf_free(sess->init_data);
-	if (sess->remaining_data) gf_free(sess->remaining_data);
-	if (sess->async_req_reply) gf_free(sess->async_req_reply);
+	gf_free(sess->init_data);
+	gf_free(sess->remaining_data);
+	gf_free(sess->async_req_reply);
 
 	sess->orig_url = sess->server_name = sess->remote_path;
 	sess->creds = NULL;
@@ -404,17 +404,15 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 #endif
 
 #ifdef GPAC_HAS_HTTP2
-	if (sess->h2_upgrade_settings)
-		gf_free(sess->h2_upgrade_settings);
+	gf_free(sess->h2_upgrade_settings);
 #endif
 
 #if defined(GPAC_HTTPMUX) || defined(GPAC_HAS_CURL)
-	if (sess->local_buf)
-		gf_free(sess->local_buf);
+	gf_free(sess->local_buf);
 #endif
 
 	//free this once we have reassigned the session
-	if (sess->async_buf) gf_free(sess->async_buf);
+	gf_free(sess->async_buf);
 
 #ifdef GPAC_HAS_SSL
 	//in server mode SSL context is managed by caller
@@ -435,12 +433,12 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 #endif
 
 #ifndef GPAC_DISABLE_LOG
-	if (sess->log_name) gf_free(sess->log_name);
+	gf_free(sess->log_name);
 #endif
 	assert(!sess->ftask || !sess->ftask->in_task || !sess->mx);
 	gf_mx_del(sess->mx);
 
-	if (sess->http_buf) gf_free(sess->http_buf);
+	gf_free(sess->http_buf);
 
 	if (sess->ftask) {
 		sess->ftask->sess = NULL;
@@ -493,18 +491,12 @@ GF_EXPORT
 void gf_dm_url_info_del(GF_URL_Info * info) {
 	if (!info)
 		return;
-	if (info->protocol)
-		gf_free(info->protocol);
-	if (info->canonicalRepresentation)
-		gf_free(info->canonicalRepresentation);
-	if (info->password)
-		gf_free(info->password);
-	if (info->userName)
-		gf_free(info->userName);
-	if (info->remotePath)
-		gf_free(info->remotePath);
-	if (info->server_name)
-		gf_free(info->server_name);
+	gf_free(info->protocol);
+	gf_free(info->canonicalRepresentation);
+	gf_free(info->password);
+	gf_free(info->userName);
+	gf_free(info->remotePath);
+	gf_free(info->server_name);
 	gf_dm_url_info_init(info);
 }
 
@@ -652,9 +644,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 	if (tmp) {
 		info->port = atoi(tmp+1);
 		tmp[0] = 0;
-		if (info->server_name) {
-			gf_free(info->server_name);
-		}
+		gf_free(info->server_name);
 		info->server_name = gf_strdup(current_pos);
 	}
 
@@ -671,8 +661,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 	gf_dynstrcat(&info->canonicalRepresentation, info->remotePath, NULL);
 
 	gf_free(copyOfUrl);
-	if (urlConcatenateWithBaseURL)
-		gf_free(urlConcatenateWithBaseURL);
+	gf_free(urlConcatenateWithBaseURL);
 	return GF_OK;
 }
 
@@ -794,15 +783,15 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 	if (sess->server_name && info.server_name && !strcmp(sess->server_name, info.server_name)) {
 	} else {
 		socket_changed = GF_TRUE;
-		if (sess->server_name) gf_free(sess->server_name);
+		gf_free(sess->server_name);
 		sess->server_name = info.server_name ? gf_strdup(info.server_name) : NULL;
 	}
 
 	if (info.canonicalRepresentation) {
-		if (sess->orig_url) gf_free(sess->orig_url);
+		gf_free(sess->orig_url);
 		sess->orig_url = gf_strdup(info.canonicalRepresentation);
 	} else {
-		if (sess->orig_url) gf_free(sess->orig_url);
+		gf_free(sess->orig_url);
 		sess->orig_url = gf_strdup(info.protocol);
 		gf_dynstrcat(&sess->orig_url, info.server_name, "://");
 		if (info.port) {
@@ -816,7 +805,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 	if (!sess->orig_url_before_redirect)
 		sess->orig_url_before_redirect = gf_strdup(url);
 
-	if (sess->remote_path) gf_free(sess->remote_path);
+	gf_free(sess->remote_path);
 	sess->remote_path = gf_strdup(info.remotePath);
 
 	if (sess->status==GF_NETIO_STATE_ERROR)
@@ -1940,9 +1929,15 @@ retry_cache:
 	}
 	if (opt[strlen(opt)-1] != GF_PATH_SEPARATOR) {
 		dm->cache_directory = (char *) gf_malloc((strlen(opt)+2));
-		sprintf(dm->cache_directory, "%s%c", opt, GF_PATH_SEPARATOR);
+		if (dm->cache_directory)
+			sprintf(dm->cache_directory, "%s%c", opt, GF_PATH_SEPARATOR);
 	} else {
 		dm->cache_directory = gf_strdup(opt);
+	}
+	if (!dm->cache_directory) {
+		gf_mx_v( dm->cache_mx );
+		gf_dm_del(dm);
+		return NULL;
 	}
 
 	//check cache exists
@@ -2077,8 +2072,7 @@ void gf_dm_del(GF_DownloadManager *dm)
 
 	gf_list_del( dm->partial_downloads );
 	dm->partial_downloads = NULL;
-	if (dm->cache_directory)
-		gf_free(dm->cache_directory);
+	gf_free(dm->cache_directory);
 	dm->cache_directory = NULL;
 
 #ifdef GPAC_HAS_CURL
@@ -3704,7 +3698,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 			method = http_parse_method(comp);
 
 			Pos = gf_token_get(buf, Pos, " \t\r\n", comp, 400);
-			if (sess->orig_url) gf_free(sess->orig_url);
+			gf_free(sess->orig_url);
 			sess->orig_url = gf_strdup(comp);
 			/*Pos = */gf_token_get(buf, Pos, " \t\r\n", comp, 400);
 			if ((strncmp("HTTP", comp, 4) != 0)) {
@@ -3830,7 +3824,7 @@ process_reply:
 						mime = NULL;
 					}
 				}
-				if (mime) gf_free(mime);
+				gf_free(mime);
 			}
 			else if (!stricmp(hdr->name, "Content-Range")) {
 				if (!strnicmp(hdr->value, "bytes", 5)) {
@@ -4082,7 +4076,7 @@ process_reply:
 				sess->rsp_code = 200;
 			}
 			else if (!stricmp(hdr->name, ":path")) {
-				if (sess->orig_url) gf_free(sess->orig_url);
+				gf_free(sess->orig_url);
 				sess->orig_url = gf_strdup(hdr->value);
 			}
 		}
@@ -4129,7 +4123,7 @@ process_reply:
 			&& !sess->hmux_sess
 #endif
 		) {
-			if (sess->init_data) gf_free(sess->init_data);
+			gf_free(sess->init_data);
 			sess->init_data_size = 0;
 			sess->init_data = NULL;
 
@@ -4446,7 +4440,7 @@ process_reply:
 #endif
 	if (!e && (BodyStart < (s32) bytesRead)) {
 		u32 rewrite_size=0;
-		if (sess->init_data) gf_free(sess->init_data);
+		gf_free(sess->init_data);
 		sess->init_data_size = 0;
 		sess->init_data = NULL;
 

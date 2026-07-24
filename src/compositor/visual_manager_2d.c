@@ -837,7 +837,7 @@ skip_background:
 		}
 		visual->compositor->video_out->FlushRectangles(visual->compositor->video_out, dr.count ? &dr : NULL);
 		visual->compositor->skip_flush = 1;
-		if (dr.list) gf_free(dr.list);
+		gf_free(dr.list);
 	}
 
 exit:

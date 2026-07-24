@@ -444,7 +444,7 @@ void safdmx_finalize(GF_Filter *filter)
 		gf_list_rem_last(ctx->streams);
 		gf_free(st);
 	}
-	if (ctx->saf_data) gf_free(ctx->saf_data);
+	gf_free(ctx->saf_data);
 	gf_list_del(ctx->streams);
 }
 

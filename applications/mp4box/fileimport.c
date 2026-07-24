@@ -704,7 +704,7 @@ GF_Err import_file(GF_ISOFile *dest, const char *inName, u32 import_flags, GF_Fr
 	s32 tw, th, tx, ty, tz, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_auxv,do_pict, do_all, track_layout, text_layout, is_chap, is_chap_file, keep_handler, rap_only, refs_only, force_par, rewrite_bs;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc, do_disable, chap_ref;
-	const char *szLan;
+	char *szLan=NULL;
 	GF_Err e = GF_OK;
 	GF_Fraction delay;
 	u32 tmcd_track = 0, neg_ctts_mode=0;
@@ -880,10 +880,7 @@ reparse_opts:
 			import->start_time = atof(ext+7);
 		}
 		else if (!strnicmp(ext+1, "lang=", 5)) {
-			/* prevent leak if param is set twice */
-			if (szLan)
-				gf_free((char*) szLan);
-
+			gf_free(szLan);
 			szLan = gf_strdup(ext+6);
 		}
 		else if (!strnicmp(ext+1, "delay=", 6)) {
@@ -1719,7 +1716,7 @@ reparse_opts:
 
 		e = gf_media_import(import);
 		if (e) {
-			if (import->update_mux_args) gf_free(import->update_mux_args);
+			gf_free(import->update_mux_args);
 			GOTO_EXIT("importing media");
 		}
 
@@ -2251,27 +2248,27 @@ exit:
 	while (gf_list_count(kinds)) {
 		char *kind = (char *)gf_list_get(kinds, 0);
 		gf_list_rem(kinds, 0);
-		if (kind) gf_free(kind);
+		gf_free(kind);
 	}
 	if (opt_src) opt_src[0] = ':';
 	if (opt_dst) opt_dst[0] = ':';
 	if (fchain) fchain[0] = ':';
-	if (hdr_file) gf_free(hdr_file);
+	gf_free(hdr_file);
 
 	gf_list_del(kinds);
-	if (handler_name) gf_free(handler_name);
-	if (chapter_name ) gf_free(chapter_name);
-	if (import->fontName) gf_free(import->fontName);
-	if (import->streamFormat) gf_free(import->streamFormat);
-	if (import->force_ext) gf_free(import->force_ext);
-	if (rvc_config) gf_free(rvc_config);
-	if (edits) gf_free(edits);
-	if (szLan) gf_free((char *)szLan);
-	if (icc_data) gf_free(icc_data);
-	if (final_name) gf_free(final_name);
-	if (reorder_tk_ids) gf_free(reorder_tk_ids);
-	if (import) gf_free(import);
-	if (timestamp_source) gf_free(timestamp_source);
+	gf_free(handler_name);
+	gf_free(chapter_name);
+	gf_free(import->fontName);
+	gf_free(import->streamFormat);
+	gf_free(import->force_ext);
+	gf_free(rvc_config);
+	gf_free(edits);
+	gf_free(szLan);
+	gf_free(icc_data);
+	gf_free(final_name);
+	gf_free(reorder_tk_ids);
+	gf_free(import);
+	gf_free(timestamp_source);
 
 	if (!e) return GF_OK;
 	if (fail_msg) {
@@ -2761,7 +2758,7 @@ static GF_Err rewrite_nal_size_field(GF_ISOSample *samp, u32 orig_nal_len, u32 d
 exit:
 	gf_bs_del(newbs);
 	gf_bs_del(oldbs);
-	if (buffer) gf_free(buffer);
+	gf_free(buffer);
 	return e;
 }
 
@@ -4033,7 +4030,7 @@ GF_ISOFile *package_file(const char *file_name, const char *fcc, Bool make_wgt)
 			}
 
 			if (!test) {
-				if (res_url) gf_free(res_url);
+				gf_free(res_url);
 				gf_list_rem(imports, i);
 				i--;
 				count--;
@@ -4042,7 +4039,7 @@ GF_ISOFile *package_file(const char *file_name, const char *fcc, Bool make_wgt)
 			}
 			gf_fclose(test);
 			if (gf_isom_probe_file(res_url)) {
-				if (res_url) gf_free(res_url);
+				gf_free(res_url);
 				if (isom_src) {
 					M4_LOG(GF_LOG_ERROR, ("Cannot package several IsoMedia files together\n"));
 					e = GF_NOT_SUPPORTED;
@@ -4054,7 +4051,7 @@ GF_ISOFile *package_file(const char *file_name, const char *fcc, Bool make_wgt)
 				isom_src = item;
 				continue;
 			}
-			if (res_url) gf_free(res_url);
+			gf_free(res_url);
 		}
 	}
 
@@ -4132,8 +4129,8 @@ exit:
 		gf_free(item);
 	}
 	gf_list_del(imports);
-	if (isom_src) gf_free(isom_src);
-	if (type) gf_free(type);
+	gf_free(isom_src);
+	gf_free(type);
 	if (e) {
 		if (file) gf_isom_delete(file);
 		return NULL;

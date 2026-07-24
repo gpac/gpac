@@ -396,7 +396,7 @@ static void TraverseOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		gf_sc_check_focus_upon_destroy(node);
 		group_2d_destroy(node, (GroupingNode2D*)stack);
-		if (stack->positions) gf_free(stack->positions);
+		gf_free(stack->positions);
 		gf_free(stack);
 		return;
 	}
@@ -410,7 +410,7 @@ static void TraverseOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 	invalidate_backup = tr_state->invalidate_all;
 	/*check whether the OrderedGroup node has changed*/
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
-		if (stack->positions) gf_free(stack->positions);
+		gf_free(stack->positions);
 		stack->positions = NULL;
 		count = gf_node_list_get_count(og->children);
 		priorities = (struct og_pos*)gf_malloc(sizeof(struct og_pos)*count);

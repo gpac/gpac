@@ -672,7 +672,7 @@ static void h263dmx_finalize(GF_Filter *filter)
 {
 	GF_H263DmxCtx *ctx = (GF_H263DmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
-	if (ctx->indexes) gf_free(ctx->indexes);
+	gf_free(ctx->indexes);
 }
 
 static const char * h263dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)

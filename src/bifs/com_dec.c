@@ -237,6 +237,11 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 			prev=NULL;
 			while (list) {
 				cur = (GF_ChildNodeItem*)gf_malloc(sizeof(GF_ChildNodeItem));
+				if (!cur) {
+					if (previous)
+						gf_node_unregister_children(target, previous);
+					return GF_OUT_OF_MEM;
+				}
 				cur->next = NULL;
 				cur->node = list->node;
 				if (prev) {

@@ -1405,7 +1405,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		if (stream->curr_pck.data_len) {
 			/*discard packet data if we use SL over PES*/
 			if (stream->discard_data) gf_free(stream->curr_pck.data);
-			if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
+			gf_free(stream->curr_pck.mpeg2_af_descriptors);
 			/*release data*/
 			stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_RELEASE, NULL);
 		}
@@ -1529,7 +1529,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		} else {
 			/*PES has been sent, discard internal buffer*/
 			if (stream->discard_data) gf_free(stream->curr_pck.data);
-			if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
+			gf_free(stream->curr_pck.mpeg2_af_descriptors);
 			stream->curr_pck.data = NULL;
 			stream->curr_pck.data_len = 0;
 			stream->curr_pck.mpeg2_af_descriptors = NULL;
@@ -2422,7 +2422,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 		if (stream->discard_data) gf_free(stream->curr_pck.data);
 		stream->curr_pck.data = NULL;
 		stream->curr_pck.data_len = 0;
-		if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
+		gf_free(stream->curr_pck.mpeg2_af_descriptors);
 		stream->curr_pck.mpeg2_af_descriptors = NULL;
 		stream->curr_pck.mpeg2_af_descriptors_size = 0;
 		stream->pck_offset = 0;
@@ -2476,7 +2476,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 					if (stream->discard_data) gf_free(stream->curr_pck.data);
 					stream->curr_pck.data = NULL;
 					stream->curr_pck.data_len = 0;
-					if (stream->curr_pck.mpeg2_af_descriptors) gf_free(stream->curr_pck.mpeg2_af_descriptors);
+					gf_free(stream->curr_pck.mpeg2_af_descriptors);
 					stream->curr_pck.mpeg2_af_descriptors = NULL;
 					stream->curr_pck.mpeg2_af_descriptors_size = 0;
 					stream->pck_offset = 0;
@@ -3096,10 +3096,10 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 GF_EXPORT
 void gf_m2ts_mux_program_set_name(GF_M2TS_Mux_Program *program, const char *program_name, const char *provider_name)
 {
-	if (program->name) gf_free(program->name);
+	gf_free(program->name);
 	program->name = program_name ? gf_strdup(program_name) : NULL;
 
-	if (program->provider) gf_free(program->provider);
+	gf_free(program->provider);
 	program->provider = provider_name ? gf_strdup(provider_name) : NULL;
 
 	if (program->mux->sdt) program->mux->sdt->table_needs_update = GF_TRUE;
@@ -3186,14 +3186,14 @@ void gf_m2ts_mux_stream_del(GF_M2TS_Mux_Stream *st)
 		gf_free(curr_pck->data);
 		gf_free(curr_pck);
 	}
-	if (st->curr_pck.data) gf_free(st->curr_pck.data);
-	if (st->curr_pck.mpeg2_af_descriptors) gf_free(st->curr_pck.mpeg2_af_descriptors);
+	gf_free(st->curr_pck.data);
+	gf_free(st->curr_pck.mpeg2_af_descriptors);
 	if (st->mx) gf_mx_del(st->mx);
 	if (st->loop_descriptors) {
 		while (gf_list_count(st->loop_descriptors) ) {
 			GF_M2TSDescriptor *desc = (GF_M2TSDescriptor*)gf_list_last(st->loop_descriptors);
 			gf_list_rem_last(st->loop_descriptors);
-			if (desc->data) gf_free(desc->data);
+			gf_free(desc->data);
 			gf_free(desc);
 		}
 		gf_list_del(st->loop_descriptors);
@@ -3215,14 +3215,14 @@ void gf_m2ts_mux_program_del(GF_M2TS_Mux_Program *prog)
 		while (gf_list_count(prog->loop_descriptors) ) {
 			GF_M2TSDescriptor *desc = (GF_M2TSDescriptor*)gf_list_last(prog->loop_descriptors);
 			gf_list_rem_last(prog->loop_descriptors);
-			if (desc->data) gf_free(desc->data);
+			gf_free(desc->data);
 			gf_free(desc);
 		}
 		gf_list_del(prog->loop_descriptors);
 	}
 	gf_m2ts_mux_stream_del(prog->pmt);
-	if (prog->name) gf_free(prog->name);
-	if (prog->provider) gf_free(prog->provider);
+	gf_free(prog->name);
+	gf_free(prog->provider);
 	gf_free(prog);
 }
 

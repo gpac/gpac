@@ -4234,7 +4234,7 @@ static GF_Err do_compress_top_boxes(const char *inName, const char *outName)
 	}
 	dst_size = gf_bs_get_position(bs_out);
 
-	if (buf) gf_free(buf);
+	gf_free(buf);
 	gf_bs_del(bs_in);
 	gf_bs_del(bs_out);
 	gf_fclose(in);
@@ -4383,7 +4383,7 @@ static u32 convert_mpd()
 #endif
 		if (e != GF_OK) {
 			M4_LOG(GF_LOG_ERROR, ("Cannot retrieve M3U8 (%s): %s\n", inName, gf_error_to_string(e)));
-			if (mpd_base_url) gf_free(mpd_base_url);
+			gf_free(mpd_base_url);
 			return mp4box_cleanup(1);
 		}
 		remote = GF_TRUE;
@@ -4443,8 +4443,7 @@ static u32 convert_mpd()
 
 	if (mpd)
 		gf_mpd_del(mpd);
-	if (mpd_base_url)
-		gf_free(mpd_base_url);
+	gf_free(mpd_base_url);
 
 	if (remote) {
 		gf_file_delete("tmp_main.m3u8");
@@ -5957,7 +5956,7 @@ static GF_Err do_itunes_tag()
 			if (!e)
 				e = gf_isom_apple_set_tag(file, (GF_ISOiTunesTag) itag, d, tlen, 0, 0);
 
-			if (d) gf_free(d);
+			gf_free(d);
 		} else {
 			e = gf_isom_apple_set_tag(file, (GF_ISOiTunesTag) itag, (u8 *) val, tlen, 0, 0);
 		}
@@ -5975,7 +5974,7 @@ tag_done:
 			tags = NULL;
 		}
 	}
-	if (itunes_data) gf_free(itunes_data);
+	gf_free(itunes_data);
 	return GF_OK;
 #else
 	return GF_NOT_SUPPORTED;
@@ -6045,16 +6044,16 @@ static u32 mp4box_cleanup(u32 ret_code) {
 	if (metas) {
 		u32 i;
 		for (i=0; i<nb_meta_act; i++) {
-			if (metas[i].enc_type) gf_free(metas[i].enc_type);
-			if (metas[i].mime_type) gf_free(metas[i].mime_type);
-			if (metas[i].szName) gf_free(metas[i].szName);
-			if (metas[i].szPath) gf_free(metas[i].szPath);
-			if (metas[i].keep_props) gf_free(metas[i].keep_props);
+			gf_free(metas[i].enc_type);
+			gf_free(metas[i].mime_type);
+			gf_free(metas[i].szName);
+			gf_free(metas[i].szPath);
+			gf_free(metas[i].keep_props);
 			if (metas[i].image_props) {
 				GF_ImageItemProperties *iprops = metas[i].image_props;
-				if (iprops->overlay_offsets) gf_free(iprops->overlay_offsets);
-				if (iprops->aux_urn) gf_free((char *) iprops->aux_urn);
-				if (iprops->aux_data) gf_free((char *) iprops->aux_data);
+				gf_free(iprops->overlay_offsets);
+				gf_free((void*)iprops->aux_urn);
+				gf_free((void*)iprops->aux_data);
 				gf_free(iprops);
 			}
 		}
@@ -6064,16 +6063,11 @@ static u32 mp4box_cleanup(u32 ret_code) {
 	if (tracks) {
 		u32 i;
 		for (i = 0; i<nb_track_act; i++) {
-			if (tracks[i].out_name)
-				gf_free(tracks[i].out_name);
-			if (tracks[i].src_name)
-				gf_free(tracks[i].src_name);
-			if (tracks[i].string)
-				gf_free(tracks[i].string);
-			if (tracks[i].kind_scheme)
-				gf_free(tracks[i].kind_scheme);
-			if (tracks[i].kind_value)
-				gf_free(tracks[i].kind_value);
+			gf_free(tracks[i].out_name);
+			gf_free(tracks[i].src_name);
+			gf_free(tracks[i].string);
+			gf_free(tracks[i].kind_scheme);
+			gf_free(tracks[i].kind_value);
 		}
 		gf_free(tracks);
 		tracks = NULL;
@@ -6124,13 +6118,13 @@ static u32 mp4box_cleanup(u32 ret_code) {
 				}
 				gf_free(di->p_descs);
 			}
-			if (di->representationID) gf_free(di->representationID);
-			if (di->periodID) gf_free(di->periodID);
-			if (di->xlink) gf_free(di->xlink);
-			if (di->seg_template) gf_free(di->seg_template);
-			if (di->hls_pl) gf_free(di->hls_pl);
-			if (di->source_opts) gf_free(di->source_opts);
-			if (di->filter_chain) gf_free(di->filter_chain);
+			gf_free(di->representationID);
+			gf_free(di->periodID);
+			gf_free(di->xlink);
+			gf_free(di->seg_template);
+			gf_free(di->hls_pl);
+			gf_free(di->source_opts);
+			gf_free(di->filter_chain);
 
 			if (di->roles) {
 				for (j = 0; j<di->nb_roles; j++) {
@@ -6570,7 +6564,7 @@ int mp4box_main(int argc, char **argv)
 						M4_LOG(GF_LOG_ERROR, ("Error importing %s: %s\n", inName, gf_error_to_string(e)));
 						gf_isom_delete(file);
 						gf_file_delete("ttxt_convert");
-						if (import) gf_free(import);
+						gf_free(import);
 						return mp4box_cleanup(1);
 					}
 				}

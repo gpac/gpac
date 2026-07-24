@@ -386,7 +386,7 @@ static void set_window_caption()
 		GF_PropertyEntry *pe=NULL;
 		GF_FilterPid *pid = (GF_FilterPid *) gf_sc_get_main_pid(compositor);
 
-		if (caption) gf_free(caption);
+		gf_free(caption);
 		caption = NULL;
 		/*get any service info*/
 		if (pid) {
@@ -1167,7 +1167,7 @@ void unload_compositor()
 
 
 #ifdef DESKTOP_GUI
-	if (caption) gf_free(caption);
+	gf_free(caption);
 	caption = NULL;
 #endif
 
@@ -1544,7 +1544,7 @@ static void mp4c_take_screenshot(Bool for_coverage)
 					fprintf(stderr, "Dump to %s\n", szFileName);
 				}
 			}
-			if (dst) gf_free(dst);
+			gf_free(dst);
 			gf_sc_release_screen_buffer(compositor, &fb);
 
 			if (for_coverage) gf_file_delete(szFileName);

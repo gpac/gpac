@@ -150,7 +150,7 @@ static void close_waveform(GF_AudioOutput *dr)
 	SetEvent(ctx->event);
 	waveOutReset(ctx->hwo);
 	waveOutClose(ctx->hwo);
-	if (ctx->wav_buf) gf_free(ctx->wav_buf);
+	gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
 	CloseHandle(ctx->event);
 	ctx->event = NULL;
@@ -181,7 +181,7 @@ static void close_waveform(GF_AudioOutput *dr)
 		}
 		ctx->hwo = NULL;
 	}
-	if (ctx->wav_buf) gf_free(ctx->wav_buf);
+	gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
 	CloseHandle(ctx->event);
 	ctx->event = NULL;

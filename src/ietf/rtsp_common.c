@@ -235,11 +235,11 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 		}
 
 		if (!stricmp(param_name, "destination")) {
-			if (tmp->destination) gf_free(tmp->destination);
+			gf_free(tmp->destination);
 			tmp->destination = gf_strdup(param_val);
 		}
 		else if (!stricmp(param_name, "source")) {
-			if (tmp->source) gf_free(tmp->source);
+			gf_free(tmp->source);
 			tmp->source = gf_strdup(param_val);
 		}
 		else if (!stricmp(param_name, "unicast")) tmp->IsUnicast = GF_TRUE;

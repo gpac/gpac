@@ -159,7 +159,7 @@ Drawable *drawable_new()
 	}
 
 	if (!tmp->dri || !tmp->dri->current_bounds) {
-		if (tmp->dri) gf_free(tmp->dri);
+		gf_free(tmp->dri);
 		gf_path_del(tmp->path);
 		gf_free(tmp);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable object bounds\n"));
@@ -477,7 +477,7 @@ void DeleteDrawableContext(DrawableContext *ctx)
 void drawctx_reset(DrawableContext *ctx)
 {
 	DrawableContext *next = ctx->next;
-	if (ctx->col_mat) gf_free(ctx->col_mat);
+	gf_free(ctx->col_mat);
 	memset(ctx, 0, sizeof(DrawableContext));
 	ctx->next = next;
 

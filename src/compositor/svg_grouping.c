@@ -965,16 +965,16 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 
 			if (evt.navigate.to_url[0] != '#') {
 				gf_scene_process_anchor(handler, &evt);
-				gf_free((char *)evt.navigate.to_url);
+				gf_free((void*)evt.navigate.to_url);
 				return;
 			}
 			all_atts.xlink_href->target = gf_sg_find_node_by_name(gf_node_get_graph(handler), (char *) evt.navigate.to_url+1);
 			if (all_atts.xlink_href->target) {
 				all_atts.xlink_href->type = XMLRI_ELEMENTID;
-				gf_free((char *)evt.navigate.to_url);
+				gf_free((void*)evt.navigate.to_url);
 			} else {
 				svg_a_set_view(handler, compositor, evt.navigate.to_url + 1);
-				gf_free((char *)evt.navigate.to_url);
+				gf_free((void*)evt.navigate.to_url);
 				return;
 			}
 		}

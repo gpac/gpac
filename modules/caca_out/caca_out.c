@@ -266,7 +266,7 @@ static GF_Err cacao_process_event(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_SIZE:
 	    ctx->wnd_w = evt->size.width;
 	    ctx->wnd_h = evt->size.height;
-	    if (ctx->backbuffer) gf_free(ctx->backbuffer);
+	    gf_free(ctx->backbuffer);
 	    ctx->backbuffer = NULL;
 	    if (ctx->bb_dither) caca_free_dither(ctx->bb_dither);
 	    ctx->bb_dither = NULL;
@@ -274,7 +274,7 @@ static GF_Err cacao_process_event(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_VIDEO_SETUP:
 	    ctx->wnd_w = evt->setup.width;
 	    ctx->wnd_h = evt->setup.height;
-	    if (ctx->backbuffer) gf_free(ctx->backbuffer);
+	    gf_free(ctx->backbuffer);
 	    ctx->backbuffer = NULL;
 	    if (ctx->bb_dither) caca_free_dither(ctx->bb_dither);
 	    ctx->bb_dither = NULL;
@@ -529,14 +529,14 @@ static void cacao_del(void *ifce)
 	}
 	if (dr->args) {
 		for (u32 i=0; i<5; i++) {
-			if (dr->args[i].description) gf_free((char *) dr->args[i].description);
-			if (dr->args[i].val) gf_free((char *) dr->args[i].val);
+			gf_free((void*)dr->args[i].description);
+			gf_free((void*)dr->args[i].val);
 		}
 	}
 	gf_list_del(ctx->dithers);
 
 	if (ctx->bb_dither) caca_free_dither(ctx->bb_dither);
-	if (ctx->backbuffer) gf_free(ctx->backbuffer);
+	gf_free(ctx->backbuffer);
 
 	gf_opts_set_key("temp", "use_libcaca", NULL);
 	gf_free(ctx);

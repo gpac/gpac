@@ -348,6 +348,10 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 		if (gf_bs_is_overflow(bs)) {
 			if (!ctx->probe_data) {
 				ctx->probe_data = (u8 *)gf_malloc(pck_size);
+				if (!ctx->probe_data) {
+					gf_bs_del(bs);
+					return GF_OUT_OF_MEM;
+				}
 				memcpy(ctx->probe_data, data, pck_size);
 				ctx->probe_data_size = pck_size;
 			}
@@ -493,7 +497,7 @@ static void pcmreframe_finalize(GF_Filter *filter)
 {
 	GF_PCMReframeCtx *ctx = (GF_PCMReframeCtx *)gf_filter_get_udta(filter);
 	if (ctx->out_pck) gf_filter_pck_discard(ctx->out_pck);
-	if (ctx->probe_data) gf_free(ctx->probe_data);
+	gf_free(ctx->probe_data);
 }
 
 static GF_FilterCapability PCMReframeCaps[] =

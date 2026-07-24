@@ -637,7 +637,7 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
 		       gf_svg_get_attribute_name(rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
 		);
 
-		if (str) gf_free(str);
+		gf_free(str);
 	}
 #endif
 }
@@ -798,7 +798,7 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 				       gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt),
 				       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
 				);
-				if (str) gf_free(str);
+				gf_free(str);
 			}
 #endif
 
@@ -826,7 +826,7 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 				       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
 				);
 
-				if (str) gf_free(str);
+				gf_free(str);
 			}
 #endif
 		}
@@ -911,7 +911,7 @@ static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 			       gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt),
 			       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
 			);
-			if (str) gf_free(str);
+			gf_free(str);
 		}
 #endif
 
@@ -1048,7 +1048,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 				       gf_svg_get_attribute_name(node, aa->presentation_value.fieldIndex), str, aa->dirty_flags)
 				);
 
-				if (str) gf_free(str);
+				gf_free(str);
 			}
 #endif
 

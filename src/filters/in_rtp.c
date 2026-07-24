@@ -899,7 +899,7 @@ static void rtpin_finalize(GF_Filter *filter)
 
 	rtpin_reset(ctx, GF_TRUE);
 	gf_list_del(ctx->streams);
-	if (ctx->auth_string) gf_free(ctx->auth_string);
+	gf_free(ctx->auth_string);
 
 	gf_sk_group_del(ctx->sockgroup);
 }

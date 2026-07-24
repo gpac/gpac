@@ -1282,7 +1282,7 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 			sscanf(valS, "%x", &val);
 			gf_bs_write_u8(bs, val);
 		}
-		if (rtp->sl_map.config) gf_free(rtp->sl_map.config);
+		gf_free(rtp->sl_map.config);
 		rtp->sl_map.config = NULL;
 		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		gf_bs_del(bs);
@@ -2055,8 +2055,8 @@ void gf_rtp_depacketizer_del(GF_RTPDepacketizer *rtp)
 {
 	if (rtp) {
 		gf_rtp_depacketizer_reset(rtp, GF_FALSE);
-		if (rtp->sl_map.config) gf_free(rtp->sl_map.config);
-		if (rtp->key) gf_free(rtp->key);
+		gf_free(rtp->sl_map.config);
+		gf_free(rtp->key);
 		gf_free(rtp);
 	}
 }

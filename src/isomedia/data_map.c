@@ -39,7 +39,7 @@ void gf_isom_datamap_del(GF_DataMap *ptr)
 {
 	if (!ptr) return;
 
-	if (ptr->szName) gf_free(ptr->szName);
+	gf_free(ptr->szName);
 
 	//then delete the structure itself....
 	switch (ptr->type) {
@@ -187,9 +187,7 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 		}
 	}
 
-	if (sPath) {
-		gf_free(sPath);
-	}
+	gf_free(sPath);
 	if (! (*outDataMap)) {
 		return GF_URL_ERROR;
 	}
@@ -368,7 +366,7 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 		tmp->temp_file = gf_strdup(szPath);
 	}
 	if (!tmp->stream) {
-		if (tmp->temp_file) gf_free(tmp->temp_file);
+		gf_free(tmp->temp_file);
 		gf_free(tmp);
 		return NULL;
 	}

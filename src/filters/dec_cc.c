@@ -584,6 +584,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 						i+=2;
 						if (terminal_provider_code==GF_ITU_T35_PROVIDER_ATSC) {
 							u8 *data = (u8 *)gf_malloc(sei_size);
+							if (!data) return GF_OUT_OF_MEM;
 							gf_bs_seek(ctx->bs, pos);
 							i=0;
 							while (i<sei_size) {
@@ -632,7 +633,7 @@ static void ccdec_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->cc_queue);
 	if (ctx->bs) gf_bs_del(ctx->bs);
-	if (ctx->ccframe) gf_free(ctx->ccframe);
+	gf_free(ctx->ccframe);
 }
 
 static Bool ccdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)

@@ -317,15 +317,15 @@ void gf_rtsp_session_del(GF_RTSPSession *sess)
 
 	if (sess->connection) gf_sk_del(sess->connection);
 	if (sess->http) gf_sk_del(sess->http);
-	if (sess->Server) gf_free(sess->Server);
-	if (sess->Service) gf_free(sess->Service);
+	gf_free(sess->Server);
+	gf_free(sess->Service);
 	gf_list_del(sess->TCPChannels);
-	if (sess->rtsp_pck_buf) gf_free(sess->rtsp_pck_buf);
+	gf_free(sess->rtsp_pck_buf);
 	gf_free(sess->tcp_buffer);
-	if (sess->HTTP_Cookie) gf_free(sess->HTTP_Cookie);
-	if (sess->User) gf_free(sess->User);
-	if (sess->Pass) gf_free(sess->Pass);
-	if (sess->async_buf) gf_free(sess->async_buf);
+	gf_free(sess->HTTP_Cookie);
+	gf_free(sess->User);
+	gf_free(sess->Pass);
+	gf_free(sess->async_buf);
 
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) gf_ssl_del(sess->ssl);
@@ -655,7 +655,7 @@ u32 gf_rtsp_unregister_interleave(GF_RTSPSession *sess, u8 LowInterID)
 	if (!sess) return 0;
 
 	ptr = GetTCPChannel(sess, LowInterID, LowInterID, GF_TRUE);
-	if (ptr) gf_free(ptr);
+	gf_free(ptr);
 	res = gf_list_count(sess->TCPChannels);
 	if (!res) sess->interleaved = GF_FALSE;
 	return res;
@@ -672,6 +672,7 @@ GF_Err gf_rtsp_register_interleave(GF_RTSPSession *sess, void *the_ch, u8 LowInt
 	ptr = GetTCPChannel(sess, LowInterID, HighInterID, GF_FALSE);
 	if (!ptr) {
 		ptr = (GF_TCPChan *)gf_malloc(sizeof(GF_TCPChan));
+		if (!ptr) return GF_OUT_OF_MEM;
 		ptr->ch_ptr = the_ch;
 		ptr->rtpID = LowInterID;
 		ptr->rtcpID = HighInterID;

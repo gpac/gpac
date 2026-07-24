@@ -81,7 +81,12 @@ GF_Box *boxstring_new_with_data(u32 type, const char *string, GF_List **parent)
 				a = gf_isom_box_new(type);
 			}
 			if (a) {
-				char* str = ((GF_StringBox *)a)->string = (char *)gf_malloc(len + 1);
+				char* str = (char *)gf_malloc(len + 1);
+				if (!str) {
+					gf_isom_box_del(a);
+					return NULL;
+				}
+				((GF_StringBox *)a)->string = str;
 				memcpy(str, string, len);
 				str[len] = '\0';
 			}
@@ -109,7 +114,7 @@ GF_Box *vtte_box_new() {
 void boxstring_box_del(GF_Box *s)
 {
 	GF_StringBox *box = (GF_StringBox *)s;
-	if (box->string) gf_free(box->string);
+	gf_free(box->string);
 	gf_free(box);
 }
 
@@ -533,11 +538,11 @@ GF_EXPORT
 void gf_webvtt_cue_del(GF_WebVTTCue * cue)
 {
 	if (!cue) return;
-	if (cue->id) gf_free(cue->id);
-	if (cue->settings) gf_free(cue->settings);
-	if (cue->text) gf_free(cue->text);
-	if (cue->pre_text) gf_free(cue->pre_text);
-	if (cue->post_text) gf_free(cue->post_text);
+	gf_free(cue->id);
+	gf_free(cue->settings);
+	gf_free(cue->text);
+	gf_free(cue->pre_text);
+	gf_free(cue->post_text);
 	gf_free(cue);
 }
 
@@ -634,7 +639,7 @@ void gf_webvtt_parser_reset(GF_WebVTTParser *parser)
 		gf_webvtt_sample_del((GF_WebVTTSample *)gf_list_get(parser->samples, 0));
 		gf_list_rem(parser->samples, 0);
 	}
-	if (parser->comment_text) gf_free(parser->comment_text);
+	gf_free(parser->comment_text);
 	parser->comment_text = NULL;
 	parser->prev_line_empty = GF_FALSE;
 	parser->in_comment = GF_FALSE;
@@ -1025,7 +1030,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 				}
 			} else {
 				parser->on_header_parsed(parser->user, header);
-				if (header) gf_free(header);
+				gf_free(header);
 				header = NULL;
 				if (!sOK) {
 					/* end of file, parsing is done */
@@ -1117,7 +1122,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 			} else {
 				/* not possible */
 				gf_assert(0);
-				if (header) gf_free(header);
+				gf_free(header);
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			break;
@@ -1172,7 +1177,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 		}
 		parser->prev_line_empty = len ? GF_FALSE : GF_TRUE;
 	}
-	if (header) gf_free(header);
+	gf_free(header);
 	header = NULL;
 
 	if (parser->suspend)
@@ -1192,8 +1197,8 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 	e = GF_EOS;
 exit:
 	if (cue) gf_webvtt_cue_del(cue);
-	if (prevLine) gf_free(prevLine);
-	if (header) gf_free(header);
+	gf_free(prevLine);
+	gf_free(header);
 	return e;
 }
 
@@ -1312,7 +1317,7 @@ err:
 		gf_webvtt_cue_del(c);
 	}
 	if (cues) gf_list_del(cues);
-	if (pre_text) gf_free(pre_text);
+	gf_free(pre_text);
 	gf_bs_del(bs);
 	return NULL;
 }

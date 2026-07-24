@@ -337,7 +337,7 @@ static void audiobuffer_traverse(GF_Node *node, void *rs, Bool is_destroy)
 			gf_sc_unregister_time_node(st->output.compositor, &st->time_handle);
 
 		gf_mixer_del(st->am);
-		if (st->buffer) gf_free(st->buffer);
+		gf_free(st->buffer);
 		gf_list_del(st->new_inputs);
 		gf_free(st);
 		return;
@@ -526,7 +526,7 @@ static Bool audiobuffer_get_config(GF_AudioInterface *aifc, Bool for_reconf)
 	if (gf_mixer_must_reconfig(st->am)) {
 		Bool force_config = GF_TRUE;
 		if (gf_mixer_reconfig(st->am)) {
-			if (st->buffer) gf_free(st->buffer);
+			gf_free(st->buffer);
 			st->buffer = NULL;
 			st->buffer_size = 0;
 		}

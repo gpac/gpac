@@ -2759,7 +2759,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 		if (!is_stdout)
 			gf_fclose(stream);
 	}
-	if (mw.buffer) gf_free(mw.buffer);
+	gf_free(mw.buffer);
 	if (mw.nb_done<mw.total_samples) {
 		mw.nb_done = mw.total_samples;
 		muxer_report_progress(&mw);

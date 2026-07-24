@@ -1605,7 +1605,7 @@ restart:
 	}
 
 	bck = rsi->ranges;
-	if (rsi->filename) gf_free(rsi->filename);
+	gf_free(rsi->filename);
 	if (rsi->sample_deps) {
 		if (!ctx->sample_deps_reservoir) ctx->sample_deps_reservoir = gf_list_new();
 		while (gf_list_count(rsi->sample_deps)) {

@@ -531,8 +531,8 @@ exit:
 		gf_free(id);
 	}
 	gf_list_del(breaker.id_stack);
-	if (breaker.from_id) gf_free(breaker.from_id);
-	if (breaker.to_id) gf_free(breaker.to_id);
+	gf_free(breaker.from_id);
+	gf_free(breaker.to_id);
 	return e;
 }
 
@@ -597,7 +597,7 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, u32 compress_type, char *
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] compressed data (%d) bigger than input data (%d)\n", (u32) stream.total_out, (u32) ctx->samp_buffer_size - offset));
 	}
 	if (dict) {
-		if (*dict) gf_free(*dict);
+		gf_free(*dict);
 		*dict = (char*)gf_malloc(ctx->samp_buffer_size);
 		if (! *dict) return GF_OUT_OF_MEM;
 		memcpy(*dict, ctx->samp_buffer, ctx->samp_buffer_size);
@@ -723,11 +723,11 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 			NHML_SCAN_INT("%u", nb_channels)
 		} else if (!stricmp(att->name, "baseMediaFile")) {
 			char *url = gf_url_concatenate(ctx->src_url, att->value);
-			if (ctx->media_file) gf_free(ctx->media_file);
+			gf_free(ctx->media_file);
 			ctx->media_file = url;
 		} else if (!stricmp(att->name, "specificInfoFile")) {
 			char *url = gf_url_concatenate(ctx->src_url, att->value);
-			if (init_name) gf_free(init_name);
+			gf_free(init_name);
 			init_name = url;
 		} else if (!stricmp(att->name, "headerEnd")) {
 			NHML_SCAN_INT("%u", ctx->header_end)
@@ -753,7 +753,7 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 
 				e = gf_file_load_data(url ? url : att->value, (u8 **) &ctx->dictionary, &d_size);
 
-				if (url) gf_free(url);
+				gf_free(url);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot open dictionary file %s: %s\n", att->value, gf_error_to_string(e) ));
 					continue;
@@ -861,7 +861,7 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 		e = gf_file_load_data_filep(finfo, (u8 **)&specInfo, &specInfoSize);
 		gf_fclose(finfo);
 		if (e) {
-			if (init_name) gf_free(init_name);
+			gf_free(init_name);
 			return e;
 		}
 	} else if (ctx->header_end && ctx->header_end < GF_UINT_MAX) {
@@ -879,11 +879,15 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 		e = nhml_sample_from_xml(ctx, ctx->media_file, szXmlFrom, szXmlHeaderEnd);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] failed to load XML header: %s\n", gf_error_to_string(e) ));
-			if (init_name) gf_free(init_name);
+			gf_free(init_name);
 			return e;
 		}
 		if (ctx->samp_buffer && ctx->samp_buffer_size < GF_UINT_MAX) {
 			specInfo = (u8 *)gf_malloc(ctx->samp_buffer_size +1);
+			if (!specInfo) {
+				gf_free(init_name);
+				return GF_OUT_OF_MEM;
+			}
 			memcpy(specInfo, ctx->samp_buffer, ctx->samp_buffer_size);
 			specInfoSize = ctx->samp_buffer_size;
 			specInfo[specInfoSize] = 0;
@@ -904,8 +908,8 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 		}
 		e = gf_xml_parse_bit_sequence(node, ctx->src_url, &specInfo, &specInfoSize);
 		if (e) {
-			if (specInfo) gf_free(specInfo);
-			if (init_name) gf_free(init_name);
+			gf_free(specInfo);
+			gf_free(init_name);
 			return e;
 		}
 		break;
@@ -1040,9 +1044,9 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, & PROP_LONGUINT(media_size) );
 	}
 
-	if (specInfo) gf_free(specInfo);
-	if (auxiliary_mime_types) gf_free(auxiliary_mime_types);
-	if (init_name) gf_free(init_name);
+	gf_free(specInfo);
+	gf_free(auxiliary_mime_types);
+	gf_free(init_name);
 
 	if (inRootOD) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE) );
 
@@ -1095,7 +1099,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		return GF_URL_ERROR;
 	}
 
-	if (ctx->media_file) gf_free(ctx->media_file);
+	gf_free(ctx->media_file);
 	ctx->media_file = NULL;
 
 	if (!strncmp(ctx->src_url, "gfio://", 7)) {
@@ -1901,13 +1905,13 @@ void nhmldmx_finalize(GF_Filter *filter)
 	if (ctx->fio) gf_fclose((FILE*) ctx->fio);
 
 #ifndef GPAC_DISABLE_ZLIB
-	if (ctx->dictionary) gf_free(ctx->dictionary);
+	gf_free(ctx->dictionary);
 #endif
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
-	if (ctx->samp_buffer) gf_free(ctx->samp_buffer);
-	if (ctx->zlib_buffer) gf_free(ctx->zlib_buffer);
-	if (ctx->media_file) gf_free(ctx->media_file);
+	gf_free(ctx->samp_buffer);
+	gf_free(ctx->zlib_buffer);
+	gf_free(ctx->media_file);
 }
 
 

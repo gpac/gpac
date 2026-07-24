@@ -2253,9 +2253,9 @@ static void inspect_finalize(GF_Filter *filter)
 		PidCtx *pctx = (PidCtx *)gf_list_pop_front(ctx->src_pids);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if (pctx->avc_state) gf_free(pctx->avc_state);
-		if (pctx->hevc_state) gf_free(pctx->hevc_state);
-		if (pctx->vvc_state) gf_free(pctx->vvc_state);
+		gf_free(pctx->avc_state);
+		gf_free(pctx->hevc_state);
+		gf_free(pctx->vvc_state);
 		if (pctx->av1_state) {
 			if (pctx->av1_state->config) gf_odf_av1_cfg_del(pctx->av1_state->config);
 			gf_av1_reset_state(pctx->av1_state, GF_TRUE);
@@ -4355,7 +4355,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 				gf_odf_hevc_cfg_del(hvcc);
 			}
 		}
-		if (hvcs) gf_free(hvcs);
+		gf_free(hvcs);
 	}
 	else if ((codec_id==GF_CODECID_AVC) || (codec_id==GF_CODECID_SVC) || (codec_id==GF_CODECID_MVC)) {
 		GF_AVCConfig *avcc=NULL;

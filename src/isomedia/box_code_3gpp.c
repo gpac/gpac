@@ -163,7 +163,7 @@ void ftab_box_del(GF_Box *s)
 	if (ptr->fonts) {
 		u32 i;
 		for (i=0; i<ptr->entry_count; i++)
-			if (ptr->fonts[i].fontName) gf_free(ptr->fonts[i].fontName);
+			gf_free(ptr->fonts[i].fontName);
 		gf_free(ptr->fonts);
 	}
 	gf_free(ptr);
@@ -250,8 +250,7 @@ void text_box_del(GF_Box *s)
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
 
-	if (ptr->textName)
-		gf_free(ptr->textName);
+	gf_free(ptr->textName);
 	gf_free(ptr);
 }
 
@@ -543,7 +542,7 @@ GF_Box *styl_box_new()
 void styl_box_del(GF_Box *s)
 {
 	GF_TextStyleBox*ptr = (GF_TextStyleBox*)s;
-	if (ptr->styles) gf_free(ptr->styles);
+	gf_free(ptr->styles);
 	gf_free(ptr);
 }
 
@@ -679,7 +678,7 @@ GF_Box *krok_box_new()
 void krok_box_del(GF_Box *s)
 {
 	GF_TextKaraokeBox*ptr = (GF_TextKaraokeBox*)s;
-	if (ptr->records) gf_free(ptr->records);
+	gf_free(ptr->records);
 	gf_free(ptr);
 }
 
@@ -782,8 +781,8 @@ GF_Box *href_box_new()
 void href_box_del(GF_Box *s)
 {
 	GF_TextHyperTextBox*ptr = (GF_TextHyperTextBox*)s;
-	if (ptr->URL) gf_free(ptr->URL);
-	if (ptr->URL_hint) gf_free(ptr->URL_hint);
+	gf_free(ptr->URL);
+	gf_free(ptr->URL_hint);
 	gf_free(ptr);
 }
 
@@ -974,7 +973,7 @@ void tsel_box_del(GF_Box *s)
 	GF_TrackSelectionBox *ptr;
 	ptr = (GF_TrackSelectionBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->attributeList) gf_free(ptr->attributeList);
+	gf_free(ptr->attributeList);
 	gf_free(ptr);
 }
 
@@ -1041,8 +1040,8 @@ GF_Box *dimC_box_new()
 void dimC_box_del(GF_Box *s)
 {
 	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
-	if (p->contentEncoding) gf_free(p->contentEncoding);
-	if (p->textEncoding) gf_free(p->textEncoding);
+	gf_free(p->contentEncoding);
+	gf_free(p->textEncoding);
 	gf_free(p);
 }
 
@@ -1144,7 +1143,7 @@ GF_Box *diST_box_new()
 void diST_box_del(GF_Box *s)
 {
 	GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;
-	if (p->content_script_types) gf_free(p->content_script_types);
+	gf_free(p->content_script_types);
 	gf_free(p);
 }
 

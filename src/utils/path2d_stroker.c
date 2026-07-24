@@ -1799,10 +1799,10 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 	}
 
 exit:
-	if (stroker.borders[0].points) gf_free(stroker.borders[0].points);
-	if (stroker.borders[0].tags) gf_free(stroker.borders[0].tags);
-	if (stroker.borders[1].points) gf_free(stroker.borders[1].points);
-	if (stroker.borders[1].tags) gf_free(stroker.borders[1].tags);
+	gf_free(stroker.borders[0].points);
+	gf_free(stroker.borders[0].tags);
+	gf_free(stroker.borders[1].points);
+	gf_free(stroker.borders[1].tags);
 
 	if (dashed) gf_path_del(dashed);
 	if (scaled) gf_path_del(scaled);

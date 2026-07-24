@@ -363,7 +363,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		/*send message*/
 		vout->on_event(vout->evt_cbk_hdl, &evt);
 		for (i=0; i<evt.open_file.nb_files; i++) {
-			if (evt.open_file.files[i]) gf_free(evt.open_file.files[i]);
+			gf_free(evt.open_file.files[i]);
 		}
 		gf_free(evt.open_file.files);
 	}

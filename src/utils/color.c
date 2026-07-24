@@ -2330,7 +2330,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		dst_bits += dst->pitch_y;
 		dst_h--;
 	}
-	if (dst_temp_bits) gf_free(dst_temp_bits);
+	gf_free(dst_temp_bits);
 	gf_free(tmp);
 	return GF_OK;
 }

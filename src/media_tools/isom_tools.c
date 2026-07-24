@@ -1666,7 +1666,7 @@ static s32 gf_get_DQId(GF_ISOFile *file, u32 track)
 exit:
 	if (svccfg) gf_odf_avc_cfg_del(svccfg);
 	if (samp) gf_isom_sample_del(&samp);
-	if (buffer) gf_free(buffer);
+	gf_free(buffer);
 	if (bs) gf_bs_del(bs);
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 	return DQId;
@@ -1982,7 +1982,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
 			if (sl) sl->data = (u8 *)gf_malloc(slc->size);
 			if (!sl || !sl->data) {
-				if (sl) gf_free(sl);
+				gf_free(sl);
 				e = GF_OUT_OF_MEM;
 				goto exit;
 			}
@@ -1999,7 +1999,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 					sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
 					if (sl) sl->data = (u8 *)gf_malloc(slc->size);
 					if (!sl || !sl->data) {
-						if (sl) gf_free(sl);
+						gf_free(sl);
 						e = GF_OUT_OF_MEM;
 						goto exit;
 					}
@@ -2030,7 +2030,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 				sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
 				if (sl) sl->data = (u8 *)gf_malloc(slc->size);
 				if (!sl || !sl->data) {
-					if (sl) gf_free(sl);
+					gf_free(sl);
 					e = GF_OUT_OF_MEM;
 					goto exit;
 				}
@@ -2047,7 +2047,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 						sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
 						if (sl) sl->data = (u8 *)gf_malloc(slc->size);
 						if (!sl || !sl->data) {
-							if (sl) gf_free(sl);
+							gf_free(sl);
 							e = GF_OUT_OF_MEM;
 							goto exit;
 						}
@@ -2357,14 +2357,14 @@ exit:
 			gf_bs_del(sample_bs[i]);
 		gf_free(sample_bs);
 	}
-	if (sps_track) gf_free(sps_track);
-	if (sps) gf_free(sps);
-	if (pps) gf_free(pps);
-	if (first_sample_track) gf_free(first_sample_track);
-	if (first_DTS_track) gf_free(first_DTS_track);
-	if (buffer) gf_free(buffer);
-	if (is_subseq_pps) gf_free(is_subseq_pps);
-	if (avc_state) gf_free(avc_state);
+	gf_free(sps_track);
+	gf_free(sps);
+	gf_free(pps);
+	gf_free(first_sample_track);
+	gf_free(first_DTS_track);
+	gf_free(buffer);
+	gf_free(is_subseq_pps);
+	gf_free(avc_state);
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 	return e;
 #else
@@ -2490,7 +2490,7 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 			sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
 			if (sl) sl->data = (u8 *)gf_malloc(slc->size);
 			if (!sl || !sl->data) {
-				if (sl) gf_free(sl);
+				gf_free(sl);
 				e = GF_OUT_OF_MEM;
 				goto exit;
 			}
@@ -2505,7 +2505,7 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 			sl = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
 			if (sl) sl->data = (u8 *)gf_malloc(slc->size);
 			if (!sl || !sl->data) {
-				if (sl) gf_free(sl);
+				gf_free(sl);
 				e = GF_OUT_OF_MEM;
 				goto exit;
 			}
@@ -2706,12 +2706,12 @@ exit:
 	if (cfg) gf_odf_avc_cfg_del(cfg);
 	if (bs) gf_bs_del(bs);
 	if (dst_bs) gf_bs_del(dst_bs);
-	if (buffer) gf_free(buffer);
-	if (DQId) gf_free(DQId);
-	if (list_track_sorted) gf_free(list_track_sorted);
-	if (cur_sample) gf_free(cur_sample);
-	if (max_sample) gf_free(max_sample);
-	if (DTS_offset) gf_free(DTS_offset);
+	gf_free(buffer);
+	gf_free(DQId);
+	gf_free(list_track_sorted);
+	gf_free(cur_sample);
+	gf_free(max_sample);
+	gf_free(DTS_offset);
 	for (t = 1; t <= gf_isom_get_track_count(file); t++)
 		gf_isom_set_nalu_extract_mode(file, t, GF_ISOM_NALU_EXTRACT_DEFAULT);
 	return e;
@@ -2895,7 +2895,7 @@ exit:
 	if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
-	if (nal_data) gf_free(nal_data);
+	gf_free(nal_data);
 	return e;
 }
 
@@ -3449,7 +3449,7 @@ exit:
 	}
 	if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
-	if (nal_data) gf_free(nal_data);
+	gf_free(nal_data);
 	gf_free(hvc_state);
 
 	gf_free(sti);
@@ -4746,7 +4746,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 
 		e = rfc_6381_get_codec_uncv(szCodec, subtype, udesc ? udesc->extension_buf : NULL, udesc ? udesc->extension_buf_size : 0);
 		if (udesc) {
-			if (udesc->extension_buf) gf_free(udesc->extension_buf);
+			gf_free(udesc->extension_buf);
 			gf_free(udesc);
 		}
 		return e;
@@ -4976,7 +4976,7 @@ GF_Err gf_media_isom_apply_qt_key(GF_ISOFile *movie, const char *name, const cha
 	}
 
 	e = gf_isom_set_qt_key(movie, &key);
-	if (data) gf_free(data);
+	gf_free(data);
 
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Failed to add key %s: %s\n", name, gf_error_to_string(e) ));

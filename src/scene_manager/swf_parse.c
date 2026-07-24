@@ -118,8 +118,8 @@ static void swf_init_decompress(SWFReader *read)
 	src = (u8 *)gf_malloc(size);
 	dst = (u8 *)gf_malloc(dst_size);
 	if (!src || !dst) {
-		if (src) gf_free(src);
-		if (dst) gf_free(dst);
+		gf_free(src);
+		gf_free(dst);
 		gf_bs_del(read->bs);
 		read->bs = NULL;
 		return;
@@ -149,12 +149,12 @@ static void swf_init_decompress(SWFReader *read)
 
 static void swf_free_shape_rec(SWFShapeRec *ptr)
 {
-	if (ptr->grad_col) gf_free(ptr->grad_col);
-	if (ptr->grad_ratio) gf_free(ptr->grad_ratio);
+	gf_free(ptr->grad_col);
+	gf_free(ptr->grad_ratio);
 	if (ptr->path) {
-		if (ptr->path->pts) gf_free(ptr->path->pts);
-		if (ptr->path->types) gf_free(ptr->path->types);
-		if (ptr->path->idx) gf_free(ptr->path->idx);
+		gf_free(ptr->path->pts);
+		gf_free(ptr->path->types);
+		gf_free(ptr->path->idx);
 		gf_free(ptr->path);
 	}
 	gf_free(ptr);
@@ -351,15 +351,12 @@ static void swf_get_colormatrix(SWFReader *read, GF_ColorMatrix *cmat)
 
 static char *swf_get_string(SWFReader *read)
 {
-	char szName[1024];
 	char *name;
 	u32 i = 0;
 
-	if (read->size>1024) {
-		name = (char *)gf_malloc(read->size);
-	} else {
-		name = szName;
-	}
+	name = (char *)gf_malloc(read->size);
+	if (!name) return NULL;
+	
 	while (1) {
 		if (i>=read->size) {
 			read->ioerr = GF_NON_COMPLIANT_BITSTREAM;
@@ -370,11 +367,7 @@ static char *swf_get_string(SWFReader *read)
 		if (!name[i]) break;
 		i++;
 	}
-	if (read->size>1024) {
-		return (char *)gf_realloc(name, sizeof(char)*(strlen(name)+1));
-	} else {
-		return gf_strdup(szName);
-	}
+	return name;
 }
 
 static SWFShapeRec *swf_new_shape_rec()
@@ -466,8 +459,8 @@ static void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32
 						grad_ratio = (u8 *) gf_malloc(style->nbGrad+1);
 						grad_col = (u32 *) gf_malloc(sizeof(u32) * (style->nbGrad+1));
 						if (!grad_ratio || !grad_col) {
-							if (grad_ratio) gf_free(grad_ratio);
-							if (grad_col) gf_free(grad_col);
+							gf_free(grad_ratio);
+							gf_free(grad_col);
 							swf_free_shape_rec(style);
 							break;
 						}
@@ -487,8 +480,8 @@ static void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32
 						u32 *grad_col = (u32*)gf_malloc(sizeof(u32) * (style->nbGrad+1));
 						u8 *grad_ratio = (u8*)gf_malloc(style->nbGrad+1);
 						if (!grad_col || !grad_ratio) {
-							if (grad_ratio) gf_free(grad_ratio);
-							if (grad_col) gf_free(grad_col);
+							gf_free(grad_ratio);
+							gf_free(grad_col);
 							swf_free_shape_rec(style);
 							break;
 						}
@@ -1203,8 +1196,8 @@ static GF_Err swf_actions(SWFReader *read, u32 mask, u32 key)
 				act.url = swf_get_string(read);
 				act.target = swf_get_string(read);
 				read->action(read, &act);
-				if (act.url) gf_free(act.url);
-				if (act.target) gf_free(act.target);
+				gf_free(act.url);
+				gf_free(act.target);
 				break;
 			/* next frame */
 			case 0x04:
@@ -1236,14 +1229,14 @@ static GF_Err swf_actions(SWFReader *read, u32 mask, u32 key)
 				act.type = GF_SWF_AS3_SET_TARGET;
 				act.target = swf_get_string(read);
 				read->action(read, &act);
-				if (act.target) gf_free(act.target);
+				gf_free(act.target);
 				break;
 			/* goto label */
 			case 0x8C:
 				act.type = GF_SWF_AS3_GOTO_LABEL;
 				act.target = swf_get_string(read);
 				read->action(read, &act);
-				if (act.target) gf_free(act.target);
+				gf_free(act.target);
 				break;
 			default:
 //				swf_report(read, GF_OK, "Skipping unsupported action %x", action_code);
@@ -1637,7 +1630,7 @@ static GF_Err swf_def_font_info(SWFReader *read)
 		return GF_BAD_PARAM;
 	}
 	/*overwrite font info*/
-	if (ft->fontName) gf_free(ft->fontName);
+	gf_free(ft->fontName);
 	count = swf_read_int(read, 8);
 	ft->fontName = (char*)gf_malloc(count+1);
 	if (!ft->fontName) return GF_OUT_OF_MEM;
@@ -1653,7 +1646,7 @@ static GF_Err swf_def_font_info(SWFReader *read)
 	/*TODO - this should be remapped to a font data stream, we currently only assume the glyph code
 	table is the same as the original font file...*/
 	wide_chars = swf_read_bool(read);
-	if (ft->glyph_codes) gf_free(ft->glyph_codes);
+	gf_free(ft->glyph_codes);
 	ft->glyph_codes = (u16*)gf_malloc(sizeof(u16) * ft->nbGlyphs);
 	if (!ft->glyph_codes) return GF_OUT_OF_MEM;
 
@@ -1755,8 +1748,8 @@ exit:
 	while (gf_list_count(txt.text)) {
 		SWFGlyphRec *gr = (SWFGlyphRec *)gf_list_get(txt.text, 0);
 		gf_list_rem(txt.text, 0);
-		if (gr->indexes) gf_free(gr->indexes);
-		if (gr->dx) gf_free(gr->dx);
+		gf_free(gr->indexes);
+		gf_free(gr->dx);
 		gf_free(gr);
 	}
 	gf_list_del(txt.text);
@@ -1818,7 +1811,7 @@ static GF_Err swf_def_edit_text(SWFReader *read)
 		e = read->define_edit_text(read, &txt);
 	}
 	gf_free(var_name);
-	if (txt.init_value) gf_free(txt.init_value);
+	gf_free(txt.init_value);
 
 	return e;
 }
@@ -1827,7 +1820,7 @@ static void swf_delete_sound_stream(SWFReader *read)
 {
 	if (!read->sound_stream) return;
 	if (read->sound_stream->output) gf_fclose(read->sound_stream->output);
-	if (read->sound_stream->szFileName) gf_free(read->sound_stream->szFileName);
+	gf_free(read->sound_stream->szFileName);
 	gf_free(read->sound_stream);
 	read->sound_stream = NULL;
 }
@@ -1942,9 +1935,9 @@ static GF_Err swf_def_sound(SWFReader *read)
 			tot_size += toread;
 		}
 
-		if (frame) gf_free(frame);
+		gf_free(frame);
 		if (e) {
-			if (snd->szFileName) gf_free(snd->szFileName);
+			gf_free(snd->szFileName);
 			gf_free(snd);
 			return e;
 		}
@@ -2165,6 +2158,7 @@ static GF_Err swf_def_hdr_jpeg(SWFReader *read)
 	read->jpeg_hdr_size = read->size;
 	if (read->size) {
 		read->jpeg_hdr = (u8 *)gf_malloc(read->size);
+		if (!read->jpeg_hdr) return GF_OUT_OF_MEM;
 		swf_read_data(read, read->jpeg_hdr, read->size);
 	}
 	return GF_OK;
@@ -2645,7 +2639,7 @@ void gf_swf_reader_del(SWFReader *read)
 {
 	if (!read) return;
 	gf_bs_del(read->bs);
-	if (read->mem) gf_free(read->mem);
+	gf_free(read->mem);
 
 	if (read->finalize) {
 		read->finalize(read, GF_TRUE);
@@ -2660,9 +2654,9 @@ void gf_swf_reader_del(SWFReader *read)
 	while (gf_list_count(read->fonts)) {
 		SWFFont *ft = (SWFFont *)gf_list_get(read->fonts, 0);
 		gf_list_rem(read->fonts, 0);
-		if (ft->glyph_adv) gf_free(ft->glyph_adv);
-		if (ft->glyph_codes) gf_free(ft->glyph_codes);
-		if (ft->fontName) gf_free(ft->fontName);
+		gf_free(ft->glyph_adv);
+		gf_free(ft->glyph_codes);
+		gf_free(ft->fontName);
 		gf_list_del(ft->glyphs);
 		gf_free(ft);
 	}
@@ -2673,14 +2667,14 @@ void gf_swf_reader_del(SWFReader *read)
 		SWFSound *snd = (SWFSound *)gf_list_get(read->sounds, 0);
 		gf_list_rem(read->sounds, 0);
 		if (snd->output) gf_fclose(snd->output);
-		if (snd->szFileName) gf_free(snd->szFileName);
+		gf_free(snd->szFileName);
 		gf_free(snd);
 	}
 	gf_list_del(read->sounds);
 	swf_delete_sound_stream(read);
 
-	if (read->jpeg_hdr) gf_free(read->jpeg_hdr);
-	if (read->localPath) gf_free(read->localPath);
+	gf_free(read->jpeg_hdr);
+	gf_free(read->localPath);
 
 	gf_fclose(read->input);
 	gf_free(read->inputName);

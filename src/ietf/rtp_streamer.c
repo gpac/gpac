@@ -572,7 +572,7 @@ void gf_rtp_streamer_del(GF_RTPStreamer *streamer)
 	if (streamer) {
 		if (streamer->channel) gf_rtp_del(streamer->channel);
 		if (streamer->packetizer) gf_rtp_builder_del(streamer->packetizer);
-		if (streamer->buffer) gf_free(streamer->buffer);
+		gf_free(streamer->buffer);
 		gf_free(streamer);
 	}
 }
@@ -662,7 +662,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 		gf_media_format_ttxt_sdp(rtp->packetizer, payloadName, &sdp, tw, th, tx, ty, tl, width, height, (char *)dsi_enh);
 		gf_dynstrcat(out_sdp_buffer, sdp, NULL);
 		gf_dynstrcat(out_sdp_buffer, "\n", NULL);
-		if (sdp) gf_free(sdp);
+		gf_free(sdp);
 	}
 #endif
 	/*EVRC/SMV in non header-free mode*/
@@ -766,7 +766,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 		gf_rtp_builder_format_sdp(rtp->packetizer, payloadName, &sdp, (u8*)dsi, dsi_len);
 		gf_dynstrcat(out_sdp_buffer, sdp, NULL);
 		gf_dynstrcat(out_sdp_buffer, "\n", NULL);
-		if (sdp) gf_free(sdp);
+		gf_free(sdp);
 
 		if (rtp->packetizer->slMap.IV_length && KMS_URI) {
 			if (!strnicmp(KMS_URI, "(key)", 5) || !strnicmp(KMS_URI, "(ipmp)", 6) || !strnicmp(KMS_URI, "(uri)", 5)) {
@@ -819,7 +819,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 		gf_free(config_bytes);
 		gf_dynstrcat(out_sdp_buffer, sdp, NULL);
 		gf_dynstrcat(out_sdp_buffer, "\n", NULL);
-		if (sdp) gf_free(sdp);
+		gf_free(sdp);
 	}
 	return GF_OK;
 }

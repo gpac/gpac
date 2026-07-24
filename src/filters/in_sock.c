@@ -239,7 +239,7 @@ static void sockin_finalize(GF_Filter *filter)
 		gf_list_del(ctx->clients);
 	}
 	sockin_client_reset(&ctx->sock_c);
-	if (ctx->buffer) gf_free(ctx->buffer);
+	gf_free(ctx->buffer);
 	if (ctx->active_sockets) gf_sk_group_del(ctx->active_sockets);
 }
 

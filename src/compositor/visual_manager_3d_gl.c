@@ -369,6 +369,7 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
  	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
 	if (blen > 1) {
 		char* compiler_log = (char*) gf_malloc(blen);
+		if (!compiler_log) return GF_FALSE;
 #ifdef CONFIG_DARWIN_GL
 		glGetInfoLogARB((GLhandleARB) shader_id, blen, &slen, compiler_log);
 #elif defined(GPAC_USE_GLES2)
@@ -2972,7 +2973,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 #if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_GLES1X)
-	if (color_array) gf_free(color_array);
+	gf_free(color_array);
 	if (tr_state->mesh_num_textures && (mesh->mesh_type==MESH_TRIANGLES) && !(mesh->flags & MESH_NO_TEXTURE)) {
 		glMatrixMode(GL_TEXTURE);
 		glPopMatrix();

@@ -718,7 +718,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		if (!p.value.string || strcmp(p.value.string, "test")) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing fraction value\n"));
 		}
-		if (p.value.string) gf_free(p.value.string);
+		gf_free(p.value.string);
 
 		p = gf_props_parse_value(GF_PROP_FRACTION64, "prop", "1.001", NULL, 0);
 		if (p.value.lfrac.num * 1000 != p.value.lfrac.den * 1001) {
@@ -762,7 +762,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		if (!p.value.data.ptr || (p.value.data.size != 3) || (p.value.data.ptr[0] != 0xAB) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing data value\n"));
 		}
-		if (p.value.data.ptr) gf_free(p.value.data.ptr);
+		gf_free(p.value.data.ptr);
 
 		sprintf(szFmt, "%p", stack);
 		p = gf_props_parse_value(GF_PROP_POINTER, "prop", szFmt, NULL, 0);

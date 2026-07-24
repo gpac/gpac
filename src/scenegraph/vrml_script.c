@@ -66,7 +66,7 @@ void Script_PreDestroy(GF_Node *node, void *eff, Bool is_destroy)
 				break;
 			}
 		}
-		if (field->name) gf_free(field->name);
+		gf_free(field->name);
 		gf_free(field);
 	}
 	gf_list_del(priv->fields);

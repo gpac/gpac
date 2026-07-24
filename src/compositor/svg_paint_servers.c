@@ -52,8 +52,8 @@ static void SVG_DestroyPaintServer(GF_Node *node)
 {
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(node);
 	if (st) {
-		if (st->cols) gf_free(st->cols);
-		if (st->keys) gf_free(st->keys);
+		gf_free(st->cols);
+		gf_free(st->keys);
 		gf_sc_texture_destroy(&st->txh);
 		gf_free(st);
 	}
@@ -141,9 +141,9 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 	if (gf_node_dirty_get(node)) {
 		is_dirty = all_dirty = GF_TRUE;
 		gf_node_dirty_clear(node, 0);
-		if (st->cols) gf_free(st->cols);
+		gf_free(st->cols);
 		st->cols = NULL;
-		if (st->keys) gf_free(st->keys);
+		gf_free(st->keys);
 		st->keys = NULL;
 
 		st->animated = gf_node_animation_count(node) ? GF_TRUE : GF_FALSE;
@@ -409,7 +409,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 
 exit:
 	if (e || !txh->data) {
-		if (txh->data) gf_free(txh->data);
+		gf_free(txh->data);
 		txh->data = NULL;
 		gf_evg_stencil_delete(texture2D);
 		gf_evg_surface_delete(surface);

@@ -412,7 +412,7 @@ static void svg_traverse_filter(GF_Node *node, void *rs, Bool is_destroy)
 	GF_FilterStack *st = (GF_FilterStack *)gf_node_get_private(node);
 	if (is_destroy) {
 		drawable_del(st->drawable);
-		if (st->data) gf_free(st->data);
+		gf_free(st->data);
 		st->txh.data = NULL;
 		gf_sc_texture_release(&st->txh);
 		gf_sc_texture_destroy(&st->txh);

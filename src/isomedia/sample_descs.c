@@ -406,6 +406,7 @@ GF_Err gf_isom_flac_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 Stream
 	if (!entry->cfg_flac) return GF_OK;
 	if (dsi) {
 		*dsi = (u8 *)gf_malloc(entry->cfg_flac->dataSize);
+		if (!*dsi) return GF_OUT_OF_MEM;
 		memcpy(*dsi, entry->cfg_flac->data, entry->cfg_flac->dataSize);
 	}
 	if (dsi_size) *dsi_size = entry->cfg_flac->dataSize;
@@ -871,6 +872,10 @@ GF_Err gf_isom_flac_config_new(GF_ISOFile *the_file, u32 trackNumber, u8 *metada
 	entry->cfg_flac->data = NULL;
 	if (metadata && metadata_size) {
 		entry->cfg_flac->data = (u8 *)gf_malloc(metadata_size);
+		if (!entry->cfg_flac->data) {
+			gf_isom_box_del((GF_Box*) entry);
+			return GF_OUT_OF_MEM;
+		}
 		memcpy(entry->cfg_flac->data, metadata, sizeof(u8)*metadata_size);
 	}
 	entry->samplerate_hi = trak->Media->mediaHeader->timeScale;
@@ -1042,10 +1047,10 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 	dims->config->containsRedundant = desc->containsRedundant;
 	dims->config->streamType = desc->streamType;
 
-	if (dims->config->textEncoding) gf_free(dims->config->textEncoding);
+	gf_free(dims->config->textEncoding);
 	dims->config->textEncoding = gf_strdup(desc->textEncoding ? desc->textEncoding : "");
 
-	if (dims->config->contentEncoding) gf_free(dims->config->contentEncoding);
+	gf_free(dims->config->contentEncoding);
 	dims->config->contentEncoding = gf_strdup(desc->contentEncoding ? desc->contentEncoding : "");
 
 	if (desc->content_script_types) {
@@ -1053,7 +1058,7 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 			dims->scripts = (GF_DIMSScriptTypesBox*) gf_isom_box_new_parent(&dims->child_boxes, GF_ISOM_BOX_TYPE_DIST);
 			if (!dims->scripts) return GF_OUT_OF_MEM;
 		}
-		if (dims->scripts->content_script_types) gf_free(dims->scripts->content_script_types);
+		gf_free(dims->scripts->content_script_types);
 		dims->scripts->content_script_types = gf_strdup(desc->content_script_types ? desc->content_script_types  :"");
 	} else if (dims->scripts) {
 		gf_isom_box_del_parent(&dims->child_boxes, (GF_Box *) dims->scripts);
@@ -1318,7 +1323,7 @@ GF_Err gf_isom_subtitle_set_mime(GF_ISOFile *the_file, u32 trackNumber, u32 Stre
 		gf_isom_box_del_parent(&entry->child_boxes, (GF_Box *)mime);
 		return GF_OK;
 	}
-	if (mime->config) gf_free(mime->config);
+	gf_free(mime->config);
 	mime->config = gf_strdup(codec_params);
 	return GF_OK;
 }
@@ -1524,14 +1529,10 @@ GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber,
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	if (sample_entry->config->config) {
-		gf_free(sample_entry->config->config);
-	}
+	gf_free(sample_entry->config->config);
 	sample_entry->config->config = gf_strdup(config);
 
-	if (sample_entry->content_encoding) {
-		gf_free(sample_entry->content_encoding);
-	}
+	gf_free(sample_entry->content_encoding);
 	if (encoding) {
 		sample_entry->content_encoding = gf_strdup(encoding);
 	}

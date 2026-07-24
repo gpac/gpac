@@ -464,7 +464,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	opj_cio_close(cio);
 	cio = NULL;
 
-	/* gf_free( remaining structures */
+	/* free remaining structures */
 	if(dinfo) {
 		opj_destroy_decompress(dinfo);
 		dinfo = NULL;

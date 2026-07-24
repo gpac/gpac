@@ -469,7 +469,7 @@ static void nvdec_store_xps(NVDecCtx *ctx, GF_AVCConfig *avc_cfg, GF_HEVCConfig 
 		}
 		gf_odf_hevc_cfg_del(hevc_cfg);
 	}
-	if (ctx->xps_buf) gf_free(ctx->xps_buf);
+	gf_free(ctx->xps_buf);
 	ctx->xps_buf = NULL;
 	ctx->xps_buf_size = 0;
 	gf_bs_get_content(bs, &ctx->xps_buf, &ctx->xps_buf_size);
@@ -1562,9 +1562,9 @@ static void nvdec_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->frames_res);
 
-	if (ctx->single_frame_data) gf_free(ctx->single_frame_data);
-	if (ctx->xps_buf) gf_free(ctx->xps_buf);
-	if (ctx->nal_buffer) gf_free(ctx->nal_buffer);
+	gf_free(ctx->single_frame_data);
+	gf_free(ctx->xps_buf);
+	gf_free(ctx->nal_buffer);
 }
 
 

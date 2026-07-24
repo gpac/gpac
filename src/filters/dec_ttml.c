@@ -481,7 +481,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 
 	gf_xml_dom_del(dom);
 
-	if (pck_alloc) gf_free(pck_alloc);
+	gf_free(pck_alloc);
 	gf_filter_pid_drop_packet(ctx->ipid);
 
 	if (ctx->notify_clock>0) {

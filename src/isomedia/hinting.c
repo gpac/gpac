@@ -142,7 +142,7 @@ void gf_isom_hint_sample_del(GF_HintSample *ptr)
 		gf_list_rem(ptr->packetTable, 0);
 	}
 	gf_list_del(ptr->packetTable);
-	if (ptr->AdditionalData) gf_free(ptr->AdditionalData);
+	gf_free(ptr->AdditionalData);
 
 	if (ptr->sample_cache) {
 		while (gf_list_count(ptr->sample_cache)) {
@@ -843,7 +843,7 @@ GF_RTCPPacket *gf_isom_hint_rtcp_new()
 
 void gf_isom_hint_rtcp_del(GF_RTCPPacket *ptr)
 {
-	if(ptr->data) gf_free(ptr->data);
+	gf_free(ptr->data);
 	gf_free(ptr);
 }
 

@@ -1069,7 +1069,7 @@ static void ffavf_finalize(GF_Filter *filter)
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);
-	if (ctx->filter_desc) gf_free(ctx->filter_desc);
+	gf_free(ctx->filter_desc);
 	if (ctx->frame) av_frame_free(&ctx->frame);
 }
 
@@ -1085,7 +1085,7 @@ static GF_Err ffavf_update_arg(GF_Filter *filter, const char *arg_name, const GF
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Cannot update filter description while running, not supported\n"));
 			return GF_NOT_SUPPORTED;
 		}
-		if (ctx->filter_desc) gf_free(ctx->filter_desc);
+		gf_free(ctx->filter_desc);
 		ctx->filter_desc = gf_strdup(arg_val->value.string);
 		return GF_OK;
 	}

@@ -164,7 +164,7 @@ static char *validator_create_snapshot(GF_Validator *validator)
 				gf_fclose(png);
 			}
 		}
-		if (dst) gf_free(dst);
+		gf_free(dst);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error encoding PNG to %s: %s\n", dumpname, gf_error_to_string(e)));
 		} else {
@@ -271,10 +271,10 @@ static Bool validator_compare_snapshots(GF_Validator *validator)
 
 end:
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[Validator] PNG Comparison result: %s\n", (result?"Same":"Different")));
-	if (ref_name) gf_free(ref_name);
-	if (new_name) gf_free(new_name);
-	if (ref_data) gf_free(ref_data);
-	if (new_data) gf_free(new_data);
+	gf_free(ref_name);
+	gf_free(new_name);
+	gf_free(ref_data);
+	gf_free(new_data);
 	return result;
 }
 #endif
@@ -808,7 +808,7 @@ static void validator_xvs_close(GF_Validator *validator)
                     gf_list_add(validator->xvs_node->attributes, att);
                 } else {
                     att = att_file;
-                    if (att->value) gf_free(att->value);
+                    gf_free(att->value);
                 }
                 if (validator->test_base) {
 					char filename[100];
@@ -849,7 +849,7 @@ static void validator_xvs_close(GF_Validator *validator)
 					att_result->name = gf_strdup("result");
 					gf_list_add(validator->xvs_node_in_xvl->attributes, att_result);
 				}
-				if (att_result->value) gf_free(att_result->value);
+				gf_free(att_result->value);
 				att_result->value = gf_strdup(validator->xvs_result ? "pass" : "fail");
 			}
 		}

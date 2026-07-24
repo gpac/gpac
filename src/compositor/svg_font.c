@@ -186,7 +186,7 @@ static void svg_traverse_font(GF_Node *node, void *rs, Bool is_destroy)
 		GF_Font *font = (GF_Font *)gf_node_get_private(node);
 		if (font) {
 			gf_font_manager_unregister_font(font->ft_mgr, font);
-			if (font->name) gf_free(font->name);
+			gf_free(font->name);
 			gf_free(font);
 		}
 	}
@@ -326,7 +326,7 @@ static void svg_traverse_glyph(GF_Node *node, void *rs, Bool is_destroy)
 		GF_Font *font;
 		GF_Glyph *prev_glyph, *a_glyph;
 		SVG_GlyphStack *st = (SVG_GlyphStack *)gf_node_get_private(node);
-		if (st->unicode) gf_free(st->unicode);
+		gf_free(st->unicode);
 
 		font = st->font;
 		prev_glyph = NULL;
@@ -496,7 +496,7 @@ static void svg_traverse_font_face_uri(GF_Node *node, void *rs, Bool is_destroy)
 		FontURIStack *st = (FontURIStack *)gf_node_get_private(node);
 		if (st) {
 			gf_font_manager_unregister_font(st->font->ft_mgr, st->font);
-			if (st->font->name) gf_free(st->font->name);
+			gf_free(st->font->name);
 			gf_free(st->font);
 			if (st->mo) gf_mo_unload_xlink_resource(node, st->mo);
 			gf_free(st);

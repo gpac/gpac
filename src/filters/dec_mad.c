@@ -148,6 +148,7 @@ static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (!ctx->buffer) {
 		ctx->buffer = (unsigned char*)gf_malloc(sizeof(unsigned char) * 2*MAD_BUFFER_MDLEN);
+		if (!ctx->buffer) return GF_OUT_OF_MEM;
 	}
 
 	gf_filter_set_name(filter, "dec_mad:MAD " MAD_VERSION);
@@ -165,7 +166,7 @@ static void maddec_finalize(GF_Filter *filter)
 {
 	GF_MADCtx *ctx = (GF_MADCtx *)gf_filter_get_udta(filter);
 
-	if (ctx->buffer) gf_free(ctx->buffer);
+	gf_free(ctx->buffer);
 
 	if (ctx->configured) {
 		mad_stream_finish(&ctx->stream);

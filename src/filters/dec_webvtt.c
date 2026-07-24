@@ -543,7 +543,7 @@ void vttd_finalize(GF_Filter *filter)
 	}
 
 	if (ctx->cues) gf_list_del(ctx->cues);
-	if (ctx->dsi) gf_free(ctx->dsi);
+	gf_free(ctx->dsi);
 }
 
 #define OFFS(_n)	#_n, offsetof(GF_VTTDec, _n)

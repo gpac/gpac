@@ -86,14 +86,14 @@ GF_SAFMuxer *gf_saf_mux_new()
 
 static void saf_stream_del(GF_SAFStream *str)
 {
-	if (str->mime_type) gf_free(str->mime_type);
-	if (str->remote_url) gf_free(str->remote_url);
-	if (str->dsi) gf_free(str->dsi);
+	gf_free(str->mime_type);
+	gf_free(str->remote_url);
+	gf_free(str->dsi);
 
 	while (gf_list_count(str->aus)) {
 		GF_SAFSample *au = (GF_SAFSample *)gf_list_last(str->aus);
 		gf_list_rem_last(str->aus);
-		if (au->data) gf_free(au->data);
+		gf_free(au->data);
 		gf_free(au);
 	}
 	gf_list_del(str->aus);
@@ -145,6 +145,11 @@ GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 bu
 	str->dsi_len = dsi_len;
 	if (dsi_len) {
 		str->dsi = (u8 *) gf_malloc(dsi_len);
+		if (!str->dsi) {
+			gf_free(str);
+			gf_mx_v(mux->mx);
+			return GF_OUT_OF_MEM;
+		}
 		memcpy(str->dsi, dsi, sizeof(char)*dsi_len);
 	}
 	if (remote_url) str->remote_url = gf_strdup(remote_url);

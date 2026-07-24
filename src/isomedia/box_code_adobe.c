@@ -38,12 +38,9 @@ void abst_box_del(GF_Box *s)
 	GF_AdobeBootstrapInfoBox *ptr = (GF_AdobeBootstrapInfoBox *)s;
 	if (ptr == NULL) return;
 
-	if (ptr->movie_identifier)
-		gf_free(ptr->movie_identifier);
-	if (ptr->drm_data)
-		gf_free(ptr->drm_data);
-	if (ptr->meta_data)
-		gf_free(ptr->meta_data);
+	gf_free(ptr->movie_identifier);
+	gf_free(ptr->drm_data);
+	gf_free(ptr->meta_data);
 
 	while (gf_list_count(ptr->server_entry_table)) {
 		gf_free(gf_list_get(ptr->server_entry_table, 0));

@@ -44,9 +44,9 @@ void gf_path_reset(GF_Path *gp)
 	Fixed fineness;
 	u32 flags;
 	if (!gp) return;
-	if (gp->contours) gf_free(gp->contours);
-	if (gp->tags) gf_free(gp->tags);
-	if (gp->points) gf_free(gp->points);
+	gf_free(gp->contours);
+	gf_free(gp->tags);
+	gf_free(gp->points);
 	fineness = gp->fineness ? gp->fineness : FIX_ONE;
 	flags = gp->flags;
 	memset(gp, 0, sizeof(GF_Path));
@@ -93,9 +93,9 @@ GF_EXPORT
 void gf_path_del(GF_Path *gp)
 {
 	if (!gp) return;
-	if (gp->contours) gf_free(gp->contours);
-	if (gp->tags) gf_free(gp->tags);
-	if (gp->points) gf_free(gp->points);
+	gf_free(gp->contours);
+	gf_free(gp->tags);
+	gf_free(gp->points);
 	gf_free(gp);
 }
 
@@ -1009,9 +1009,9 @@ void gf_path_flatten(GF_Path *gp)
 	if (gp->flags & GF_PATH_FLATTENED) return;
 	if (!gp->n_points) return;
 	res = gf_path_get_flatten(gp);
-	if (gp->contours) gf_free(gp->contours);
-	if (gp->points) gf_free(gp->points);
-	if (gp->tags) gf_free(gp->tags);
+	gf_free(gp->contours);
+	gf_free(gp->points);
+	gf_free(gp->tags);
 	memcpy(gp, res, sizeof(GF_Path));
 	gp->flags |= (flags & (GF_PATH_FILL_ZERO_NONZERO|GF_PATH_FILL_EVEN));
 	gf_free(res);
@@ -1302,7 +1302,7 @@ found:
 GF_EXPORT
 void gf_path_iterator_del(GF_PathIterator *it)
 {
-	if (it->seg) gf_free(it->seg);
+	gf_free(it->seg);
 	gf_free(it);
 }
 

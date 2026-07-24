@@ -1372,7 +1372,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	ffmpeg_report_options(filter, options, ctx->options);
-	if (ctx->c) gf_free(ctx->c);
+	gf_free(ctx->c);
 	ctx->c = gf_strdup(codec->name);
 
 	{

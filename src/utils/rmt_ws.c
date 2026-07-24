@@ -186,10 +186,10 @@ void rmt_clientctx_del(RMT_ClientCtx* client) {
     client->on_data_cbk = NULL;
     GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d rmt_clientctx_del client %p task %p\n", __FILE__, __LINE__, client, client->on_data_cbk_task));
 
-    if (client->on_data_cbk_task) gf_free(client->on_data_cbk_task);
+    gf_free(client->on_data_cbk_task);
     client->on_data_cbk_task = NULL;
 
-    if (client->on_del_cbk_task) gf_free(client->on_del_cbk_task);
+    gf_free(client->on_del_cbk_task);
     client->on_del_cbk_task = NULL;
 
     gf_free(client);
@@ -588,7 +588,7 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
 
     u8* unmasked_payload = (u8*)gf_malloc( payload_size + 1);
 	if (!unmasked_payload) {
-        if (extra_payload) gf_free(extra_payload);
+        gf_free(extra_payload);
         return GF_OUT_OF_MEM;
 	}
     int i=0;
@@ -655,8 +655,7 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
 
 
     gf_free(unmasked_payload);
-    if (extra_payload)
-        gf_free(extra_payload);
+    gf_free(extra_payload);
 
     return e;
 }

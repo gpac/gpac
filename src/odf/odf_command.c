@@ -85,7 +85,7 @@ GF_ODCom *gf_odf_new_base_command()
 GF_Err gf_odf_del_base_command(GF_BaseODCom *bcRemove)
 {
 	if (! bcRemove) return GF_BAD_PARAM;
-	if (bcRemove->data) gf_free(bcRemove->data);
+	gf_free(bcRemove->data);
 	gf_free(bcRemove);
 	return GF_OK;
 }
@@ -133,7 +133,7 @@ GF_ODCom *gf_odf_new_od_remove()
 GF_Err gf_odf_del_od_remove(GF_ODRemove *ODRemove)
 {
 	if (! ODRemove) return GF_BAD_PARAM;
-	if (ODRemove->OD_ID) gf_free(ODRemove->OD_ID);
+	gf_free(ODRemove->OD_ID);
 	gf_free(ODRemove);
 	return GF_OK;
 }
@@ -428,7 +428,7 @@ GF_ODCom *gf_odf_new_esd_remove()
 GF_Err gf_odf_del_esd_remove(GF_ESDRemove *ESDRemove)
 {
 	if (! ESDRemove) return GF_BAD_PARAM;
-	if (ESDRemove->ES_ID) gf_free(ESDRemove->ES_ID);
+	gf_free(ESDRemove->ES_ID);
 	gf_free(ESDRemove);
 	return GF_OK;
 }
@@ -508,7 +508,7 @@ GF_ODCom *gf_odf_new_ipmp_remove()
 GF_Err gf_odf_del_ipmp_remove(GF_IPMPRemove *IPMPDRemove)
 {
 	if (! IPMPDRemove) return GF_BAD_PARAM;
-	if (IPMPDRemove->IPMPDescID) gf_free(IPMPDRemove->IPMPDescID);
+	gf_free(IPMPDRemove->IPMPDescID);
 	gf_free(IPMPDRemove);
 	return GF_OK;
 }

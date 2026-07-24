@@ -188,7 +188,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 						ftpriv->font_default = gf_strdup(szfont);
 					}
 				}
-				if (szfont) gf_free(szfont);
+				gf_free(szfont);
 				szfont = gf_strdup(face->family_name);
 				strlwr(szfont);
 
@@ -232,14 +232,14 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	gf_opts_del_section("temp_freetype");
 	gf_opts_set_key("core", "rescan-fonts", "no");
 
-	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
+	gf_free(ftpriv->font_fixed);
 	ftpriv->font_fixed = NULL;
-	if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
+	gf_free(ftpriv->font_sans);
 	ftpriv->font_sans = NULL;
-	if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
+	gf_free(ftpriv->font_serif);
 	ftpriv->font_serif = NULL;
 
-	if (ftpriv->font_default) gf_free(ftpriv->font_default);
+	gf_free(ftpriv->font_default);
 	ftpriv->font_default = NULL;
 
 
@@ -253,11 +253,11 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 		}
 	}
 
-	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
+	gf_free(ftpriv->font_fixed);
 	ftpriv->font_fixed = NULL;
-	if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
+	gf_free(ftpriv->font_sans);
 	ftpriv->font_sans = NULL;
-	if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
+	gf_free(ftpriv->font_serif);
 	ftpriv->font_serif = NULL;
 
 	/* let's check we have fonts that match our default Bold/Italic/BoldItalic conventions*/
@@ -293,17 +293,17 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 
 		/*this font is suited for our case*/
 		if (isBestFontFor(BEST_FIXED_FONTS, ftpriv->font_fixed, key) || (!ftpriv->font_fixed && (strstr(fkey, "fixed") || strstr(fkey, "mono")) ) ) {
-			if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
+			gf_free(ftpriv->font_fixed);
 			ftpriv->font_fixed = gf_strdup(key);
 		}
 
 		if (isBestFontFor(BEST_SANS_FONTS, ftpriv->font_sans, key) || (!ftpriv->font_sans && strstr(fkey, "sans")) ) {
-			if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
+			gf_free(ftpriv->font_sans);
 			ftpriv->font_sans = gf_strdup(key);
 		}
 
 		if (isBestFontFor(BEST_SERIF_FONTS, ftpriv->font_serif, key) || (!ftpriv->font_serif && strstr(fkey, "serif")) ) {
-			if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
+			gf_free(ftpriv->font_serif);
 			ftpriv->font_serif = gf_strdup(key);
 		}
 	}
@@ -401,11 +401,11 @@ rescan_fonts:
 	if (rescan==3)
 		return e;
 
-	if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
+	gf_free(ftpriv->font_serif);
 	ftpriv->font_serif = NULL;
-	if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
+	gf_free(ftpriv->font_sans);
 	ftpriv->font_sans = NULL;
-	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
+	gf_free(ftpriv->font_fixed);
 	ftpriv->font_fixed = NULL;
 
 	//error and we rescanned font dirs, restore default fonts
@@ -559,7 +559,7 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	int checkStyles = (styles & GF_FONT_WEIGHT_BOLD) | (styles & GF_FONT_ITALIC);
 
 checkFont:
-	if (fname) gf_free(fname);
+	gf_free(fname);
 	fname = gf_strdup(fontName);
 	if (checkStyles & GF_FONT_WEIGHT_BOLD) gf_dynstrcat(&fname, " Bold", NULL);
 	if (checkStyles & GF_FONT_ITALIC) gf_dynstrcat(&fname, " Italic", NULL);
@@ -843,16 +843,15 @@ static void ft_delete(GF_BaseInterface *ifce)
 
 	while (gf_list_count(ftpriv->font_dirs)) {
 		char *font = (char *)gf_list_pop_back(ftpriv->font_dirs);
-		if (font)
-			gf_free(font);
+		gf_free(font);
 	}
 
 	gf_list_del(ftpriv->font_dirs);
 
-	if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
-	if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
-	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
-	if (ftpriv->font_default) gf_free(ftpriv->font_default);
+	gf_free(ftpriv->font_serif);
+	gf_free(ftpriv->font_sans);
+	gf_free(ftpriv->font_fixed);
+	gf_free(ftpriv->font_default);
 	gf_list_del(ftpriv->loaded_fonts);
 
 	gf_free(dr->udta);

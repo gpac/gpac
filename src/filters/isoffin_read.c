@@ -582,7 +582,7 @@ static void isoffin_finalize(GF_Filter *filter)
 	if (!read->extern_mov && read->mov) gf_isom_close(read->mov);
 	read->mov = NULL;
 
-	if (read->mem_blob.data) gf_free(read->mem_blob.data);
+	gf_free(read->mem_blob.data);
 	if (read->mem_url) {
 		gf_blob_unregister(&read->mem_blob);
 		gf_free(read->mem_url);

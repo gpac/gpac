@@ -816,7 +816,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 		tspid->ctx->total_bytes_in += es_pck.data_len;
 
-		if (tspid->pck_data_buf) gf_free(tspid->pck_data_buf);
+		gf_free(tspid->pck_data_buf);
 		tspid->pck_data_buf = NULL;
 
 		//drop formatting for TX3G
@@ -892,8 +892,10 @@ void update_m4sys_info(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog)
 			esd->dependsOnESID = stream->ifce->depends_on_stream;
 			if (stream->ifce->decoder_config_size) {
 				esd->decoderConfig->decoderSpecificInfo->data = (u8 *)gf_malloc(stream->ifce->decoder_config_size);
-				memcpy(esd->decoderConfig->decoderSpecificInfo->data, stream->ifce->decoder_config, stream->ifce->decoder_config_size);
-				esd->decoderConfig->decoderSpecificInfo->dataLength = stream->ifce->decoder_config_size;
+				if (esd->decoderConfig->decoderSpecificInfo->data) {
+					memcpy(esd->decoderConfig->decoderSpecificInfo->data, stream->ifce->decoder_config, stream->ifce->decoder_config_size);
+					esd->decoderConfig->decoderSpecificInfo->dataLength = stream->ifce->decoder_config_size;
+				}
 			}
 			tsmux_get_sl_config(ctx, stream->ifce->timescale, esd->slConfig);
 			gf_list_add( ((GF_ObjectDescriptor *)prog->iod)->ESDescriptors, esd);
@@ -1232,17 +1234,17 @@ static void tsmux_del_stream(M2Pid *tspid)
 	if (tspid->temi_descs) {
 		while (gf_list_count(tspid->temi_descs)) {
 			TEMIDesc *temi = (TEMIDesc *)gf_list_pop_back(tspid->temi_descs);
-			if (temi->url) gf_free(temi->url);
+			gf_free(temi->url);
 			gf_free(temi);
 		}
 		gf_list_del(tspid->temi_descs);
 	}
-	if (tspid->af_data) gf_free(tspid->af_data);
+	gf_free(tspid->af_data);
 	if (tspid->temi_af_bs) gf_bs_del(tspid->temi_af_bs);
 
-	if (tspid->esi.sl_config) gf_free(tspid->esi.sl_config);
-	if (tspid->pck_data_buf) gf_free(tspid->pck_data_buf);
-	if (tspid->esi.gpac_meta_dsi) gf_free(tspid->esi.gpac_meta_dsi);
+	gf_free(tspid->esi.sl_config);
+	gf_free(tspid->pck_data_buf);
+	gf_free(tspid->esi.gpac_meta_dsi);
 	gf_free(tspid);
 }
 
@@ -2175,8 +2177,11 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 		ctx->init_buffering = GF_TRUE;
 	}
 	ctx->pids = gf_list_new();
-	if (ctx->nb_pack>1) ctx->pack_buffer = (u8 *)gf_malloc(188*ctx->nb_pack);
-
+	if (ctx->nb_pack>1) {
+		ctx->pack_buffer = (u8 *)gf_malloc(188*ctx->nb_pack);
+		if (!ctx->pack_buffer) return GF_OUT_OF_MEM;
+	}
+	
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
 		gf_m2ts_get_sys_clock(ctx->mux);
@@ -2207,10 +2212,10 @@ static void tsmux_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->pids);
 	gf_m2ts_mux_del(ctx->mux);
-	if (ctx->pack_buffer) gf_free(ctx->pack_buffer);
-	if (ctx->sidx_entries) gf_free(ctx->sidx_entries);
+	gf_free(ctx->pack_buffer);
+	gf_free(ctx->sidx_entries);
 	if (ctx->idx_bs) gf_bs_del(ctx->idx_bs);
-	if (ctx->cur_file_suffix) gf_free(ctx->cur_file_suffix);
+	gf_free(ctx->cur_file_suffix);
 }
 
 static Bool tsmux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)

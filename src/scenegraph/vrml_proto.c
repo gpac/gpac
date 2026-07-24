@@ -135,11 +135,11 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 		else if (field->def_value)
 			gf_sg_vrml_field_pointer_del(field->def_value, field->FieldType);
 
-		if (field->FieldName) gf_free(field->FieldName);
+		gf_free(field->FieldName);
 
 		/*QP fields are SF fields, we can safely gf_free() them*/
-		if (field->qp_max_value) gf_free(field->qp_max_value);
-		if (field->qp_min_value) gf_free(field->qp_min_value);
+		gf_free(field->qp_max_value);
+		gf_free(field->qp_min_value);
 		gf_free(field);
 		gf_list_rem(proto->proto_fields, 0);
 	}
@@ -155,7 +155,7 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 	gf_sg_del(proto->sub_graph);
 
 
-	if (proto->Name) gf_free(proto->Name);
+	gf_free(proto->Name);
 	gf_sg_mfurl_del(proto->ExternProto);
 	gf_list_del(proto->instances);
 	gf_free(proto);
@@ -401,7 +401,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		/*node already created, USE*/
 		if (node) {
 			gf_node_register(node, cloned_parent);
-			if (szNodeName) gf_free(szNodeName);
+			gf_free(szNodeName);
 			return node;
 		}
 	}
@@ -428,7 +428,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 	/*register node*/
 	if (id) {
 		gf_node_set_id(node, id, szNodeName);
-		if (szNodeName) gf_free(szNodeName);
+		gf_free(szNodeName);
 	}
 	gf_node_register(node, cloned_parent);
 
@@ -880,7 +880,7 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 	gf_sg_reset(sg);
 	sg->pOwningProto = NULL;
 
-	gf_free((char *) inst->proto_name);
+	gf_free(inst->proto_name);
 	gf_list_del(inst->node_code);
 	gf_assert(!gf_list_count(inst->scripts_to_load));
 	gf_list_del(inst->scripts_to_load);

@@ -1478,7 +1478,7 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 	M_EnvironmentTest *envtest = (M_EnvironmentTest *)node;
 	GF_Compositor *compositor = (GF_Compositor *)gf_node_get_private(node);
 
-	if (envtest->parameterValue.buffer) gf_free(envtest->parameterValue.buffer);
+	gf_free(envtest->parameterValue.buffer);
 	envtest->parameterValue.buffer=NULL;
 
 	smaller = larger = GF_FALSE;

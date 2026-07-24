@@ -395,7 +395,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 			len -= sep_len;
 			nb_path_sep--;
 		}
-		if (tmp) gf_free(tmp);
+		gf_free(tmp);
 		tmp=NULL;
 		gf_dynstrcat(&tmp, "", NULL);
 		while (nb_path_sep--)
@@ -407,7 +407,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	i = (u32) strlen(tmp);
 	outPath = (char *) gf_malloc(i + strlen(name) + 1);
 	if (!outPath) {
-		if (tmp) gf_free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	sprintf(outPath, "%s%s", tmp, name);
@@ -432,7 +432,7 @@ check_spaces:
 		}
 		i++;
 	}
-	if (tmp) gf_free(tmp);
+	gf_free(tmp);
 	return outPath;
 }
 GF_EXPORT
@@ -589,7 +589,7 @@ const char *gf_url_get_path(const char *sURL)
 GF_EXPORT
 void gf_url_free(char *sURL)
 {
-	if (sURL) gf_free(sURL);
+	gf_free(sURL);
 }
 
 #if 0 //unused

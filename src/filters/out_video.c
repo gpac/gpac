@@ -212,6 +212,7 @@ static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const c
 	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
 	if (blen > 1) {
 		char* compiler_log = (char*) gf_malloc(blen);
+		if (!compiler_log) return GF_FALSE;
 #if defined(GPAC_USE_GLES2)
 		glGetShaderInfoLog(shader_id, blen, &slen, compiler_log);
 #elif defined(CONFIG_DARWIN_GL)
@@ -1097,7 +1098,7 @@ static void vout_finalize(GF_Filter *filter)
 		}
 		ctx->video_out = NULL;
 	}
-	if (ctx->dump_buffer) gf_free(ctx->dump_buffer);
+	gf_free(ctx->dump_buffer);
 	nb_vout_inst--;
 
 }
@@ -1302,8 +1303,13 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 		} else {
 			snprintf(szFileName, 1024, "%s_%d.rgb", ctx->out, ctx->dump_f_idx);
 		}
-		if (!ctx->dump_buffer)
+		if (!ctx->dump_buffer) {
 			ctx->dump_buffer = (char *)gf_malloc(ctx->display_width*ctx->display_height*3);
+			if (!ctx->dump_buffer) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error allocating dump frame %d buffer to %s\n", ctx->nb_frames, szFileName));
+				return;
+			}
+		}
 
 		glFlush();
 

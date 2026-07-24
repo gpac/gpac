@@ -123,7 +123,7 @@ void gf_sg_destroy_routes(GF_SceneGraph *sg)
 		GF_Route *r = (GF_Route *)gf_list_get(sg->routes_to_destroy, 0);
 		gf_list_rem(sg->routes_to_destroy, 0);
 		gf_sg_route_unqueue(sg, r);
-		if (r->name) gf_free(r->name);
+		gf_free(r->name);
 		gf_free(r);
 	}
 }
@@ -231,7 +231,7 @@ GF_Err gf_sg_route_set_name(GF_Route *route, char *name)
 	if (!name || !route) return GF_BAD_PARAM;
 	ptr = gf_sg_route_find_by_name(route->graph, name);
 	if (ptr) return GF_BAD_PARAM;
-	if (route->name) gf_free(route->name);
+	gf_free(route->name);
 	route->name = gf_strdup(name);
 	return GF_OK;
 }

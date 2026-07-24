@@ -96,7 +96,7 @@ void gf_laser_decoder_del(GF_LASeRCodec *codec)
 		gf_list_rem_last(codec->streamInfo);
 	}
 	gf_list_del(codec->streamInfo);
-	if (codec->col_table) gf_free(codec->col_table);
+	gf_free(codec->col_table);
 	while (gf_list_count(codec->font_table)) {
 		char *ft = (char *)gf_list_last(codec->font_table);
 		gf_free(ft);
@@ -436,7 +436,7 @@ static void lsr_read_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *na
 	if (!n) {
 		char NodeID[1024];
 		sprintf(NodeID, "N%d", nID-1);
-		if (href->string) gf_free(href->string);
+		gf_free(href->string);
 		href->string = gf_strdup(NodeID);
 		if (href->type!=0xFF && gf_list_find(lsr->deferred_hrefs, href)<0) {
 			gf_list_add(lsr->deferred_hrefs, href);
@@ -528,7 +528,7 @@ static void lsr_read_byte_align_string(GF_LASeRCodec *lsr, char **str, const cha
 	gf_bs_align(lsr->bs);
 	len = lsr_read_vluimsbf8(lsr, "len");
 	if (str) {
-		if (*str) gf_free(*str);
+		gf_free(*str);
 		*str = NULL;
 		if (len) {
 			if (len > gf_bs_available(lsr->bs) ) {
@@ -669,15 +669,15 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 			len = lsr_read_vluimsbf5(lsr, "len");
 			if (len > gf_bs_available(lsr->bs)) {
 				lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
-				if (s) { gf_free(s); }
+				gf_free(s);
 				return;
 			}
 			len_rad = s ? (u32) strlen(s) : 0;
-			if (iri->string) gf_free(iri->string);
+			gf_free(iri->string);
 			iri->string = (char*)gf_malloc(len_rad+1+len+1);
 			if (!iri->string) {
 				lsr->last_error = GF_OUT_OF_MEM;
-				if (s) { gf_free(s); }
+				gf_free(s);
 				return;
 			}
 			iri->string[0] = 0;
@@ -745,7 +745,7 @@ static void lsr_read_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *nam
 			if (iri.string) {
 				paint->type = SVG_PAINT_URI;
 				paint->iri.type = XMLRI_STRING;
-				if (paint->iri.string) gf_free(paint->iri.string);
+				gf_free(paint->iri.string);
 				paint->iri.string = iri.string;
 			} else if (iri.target) {
 				paint->iri.type = XMLRI_ELEMENTID;
@@ -1108,12 +1108,12 @@ static void lsr_restore_base(GF_LASeRCodec *lsr, SVG_Element *elt, SVG_Element *
 
 		if (is_fill && reset_fill) {
 			SVG_Paint*p = (SVG_Paint*)f_clone.far_ptr;
-			if (p->iri.string) gf_free(p->iri.string);
+			gf_free(p->iri.string);
 			memset(p, 0, sizeof(SVG_Paint));
 		}
 		if (is_stroke && reset_stroke) {
 			SVG_Paint*p = (SVG_Paint*)f_clone.far_ptr;
-			if (p->iri.string) gf_free(p->iri.string);
+			gf_free(p->iri.string);
 			memset(p, 0, sizeof(SVG_Paint));
 		}
 		att = att->next;
@@ -1391,7 +1391,7 @@ static void lsr_read_smil_times(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, SMIL_Ti
 	while (gf_list_count(*times)) {
 		v = (SMIL_Time *)gf_list_last(*times);
 		gf_list_rem_last(*times);
-		if (v->element_id) gf_free(v->element_id);
+		gf_free(v->element_id);
 		gf_free(v);
 	}
 
@@ -1719,7 +1719,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 				GF_LSR_READ_INT(lsr, flag, lsr->fontIndexBits, "fontIndex");
 				ft = (char*)gf_list_get(lsr->font_table, flag);
 				if (ft) {
-					if (((SVG_FontFamily*)info.far_ptr)->value) gf_free(((SVG_FontFamily*)info.far_ptr)->value);
+					gf_free(((SVG_FontFamily*)info.far_ptr)->value);
 					((SVG_FontFamily*)info.far_ptr)->value = gf_strdup(ft);
 				}
 			}
@@ -1916,7 +1916,7 @@ void lsr_delete_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u32 coded
 		break;
 	case 11: //SVG_FontFamily *
 		ft = (SVG_FontFamily *) val->value;
-		if (ft && ft->value) gf_free(ft->value);
+		if (ft) gf_free(ft->value);
 		gf_free(ft);
 		break;
 	case 12:
@@ -1925,7 +1925,7 @@ void lsr_delete_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u32 coded
 			gf_list_del_item(lsr->deferred_hrefs, iri);
 			gf_node_unregister_iri(lsr->sg, iri);
 		}
-		if (iri && iri->string) gf_free(iri->string);
+		if (iri) gf_free(iri->string);
 		gf_free(iri);
 		break;
 	default:
@@ -4429,7 +4429,7 @@ static GF_Node *lsr_read_video(GF_LASeRCodec *lsr, SVG_Element *parent)
 		} else {
 			char *str = NULL;
 			lsr_read_byte_align_string(lsr, & str, "overlayExt");
-			if (str) gf_free(str);
+			gf_free(str);
 		}
 	}
 	lsr_read_preserve_aspect_ratio(lsr, elt);
@@ -5282,7 +5282,7 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 			char *ft;
 			GF_LSR_READ_INT(lsr, idx, 1, "escapeFlag");
 			idx = lsr_read_vluimsbf5(lsr, "index");
-			if (ff->value) gf_free(ff->value);
+			gf_free(ff->value);
 			ff->value = NULL;
 			ft = (char*)gf_list_get(lsr->font_table, idx);
 			if (ft) {
@@ -6176,7 +6176,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 	/*clean all tables*/
 	if (reset_encoding_context) {
 		lsr->nb_cols = 0;
-		if (lsr->col_table) gf_free(lsr->col_table);
+		gf_free(lsr->col_table);
 		lsr->col_table = NULL;
 		while (gf_list_count(lsr->font_table)) {
 			char *ft = (char *)gf_list_last(lsr->font_table);

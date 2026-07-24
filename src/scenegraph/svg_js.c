@@ -434,11 +434,11 @@ static JSValue svg_element_setProperty(JSContext *c, JSValueConst obj, JSValueCo
 				if (!nid) nid = gf_sg_get_next_available_node_id(n->sgprivate->scenegraph);
 				gf_node_set_id(n, nid, id);
 				if (gf_node_get_attribute_by_tag(n, TAG_XML_ATT_id, GF_TRUE, GF_FALSE, &info)==GF_OK) {
-					if (*(DOM_String *)info.far_ptr) gf_free(*(DOM_String *)info.far_ptr);
+					gf_free(*(DOM_String *)info.far_ptr);
 					*(DOM_String *)info.far_ptr = gf_strdup(id);
 				}
 				if (gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_id, GF_TRUE, GF_FALSE, &info)==GF_OK) {
-					if (*(DOM_String *)info.far_ptr) gf_free(*(DOM_String *)info.far_ptr);
+					gf_free(*(DOM_String *)info.far_ptr);
 					*(DOM_String *)info.far_ptr = gf_strdup(id);
 				}
 				JS_FreeCString(c, id);
@@ -740,7 +740,7 @@ static JSValue svg_udom_get_trait(JSContext *c, JSValueConst obj, int argc, JSVa
 		/*end of DOM string traits*/
 		attValue = gf_svg_dump_attribute(n, &info);
 		ret = JS_NewString(c, attValue);
-		if (attValue) gf_free(attValue);
+		gf_free(attValue);
 		return ret;
 
 #if 0
@@ -1036,7 +1036,7 @@ static JSValue svg_udom_set_float_trait(JSContext *c, JSValueConst obj, int argc
 		while (gf_list_count(*l)) {
 			val = (SVG_Number *)gf_list_get(*l, 0);
 			gf_list_rem(*l, 0);
-			if (val) gf_free(val);
+			gf_free(val);
 		}
 		GF_SAFEALLOC(val, SVG_Coordinate);
 		if (!val) {
@@ -1460,7 +1460,7 @@ static void baseCI_finalize(JSRuntime *rt, JSValue obj)
 {
 	JSClassID _classID;
 	void *data = (void *)JS_GetAnyOpaque(obj, &_classID);
-	if (data) gf_free(data);
+	gf_free(data);
 }
 
 static JSValue rgb_getProperty(JSContext *c, JSValueConst obj, int magic)
@@ -1617,8 +1617,8 @@ static void pathCI_finalize(JSRuntime *rt, JSValue obj)
 {
 	pathCI *p = (pathCI *) JS_GetOpaque(obj, pathClass.class_id);
 	if (p) {
-		if (p->pts) gf_free(p->pts);
-		if (p->tags) gf_free(p->tags);
+		gf_free(p->pts);
+		gf_free(p->tags);
 		gf_free(p);
 	}
 }
@@ -2436,13 +2436,13 @@ Bool svg_js_load_script(GF_Node *script, char *file)
 			abs_url = (char *) par.uri.url;
 
 		if (abs_url || !gf_file_exists(abs_url)) {
-			if (abs_url) gf_free(abs_url);
+			gf_free(abs_url);
 			return GF_FALSE;
 		}
 	}
 
 	e = gf_file_load_data(abs_url ? abs_url : file, (u8 **)&jsscript, &fsize);
-	if (abs_url) gf_free(abs_url);
+	gf_free(abs_url);
 
 	if (e!=GF_OK) return GF_FALSE;
 

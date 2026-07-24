@@ -437,7 +437,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 
 		e = gf_xml_parse_bit_sequence(node, cfile_name, &specInfo, &specInfoSize);
 		if (e) {
-			if (specInfo) gf_free(specInfo);
+			gf_free(specInfo);
 			break;
 		}
 
@@ -457,14 +457,14 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 			KID_count = gf_bs_read_u32(bs);
 			if (KID_count*16 > gf_bs_available(bs)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC/ISMA] Invalid PSSH blob, KID count %d but only %d bytes available\n", KID_count, gf_bs_available(bs)));
-				if (specInfo) gf_free(specInfo);
+				gf_free(specInfo);
 				gf_bs_del(bs);
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				break;
 			}
 			KIDs = (bin128 *)gf_malloc(KID_count*sizeof(bin128));
 			if (!KIDs) {
-				if (specInfo) gf_free(specInfo);
+				gf_free(specInfo);
 				gf_bs_del(bs);
 				e = GF_OUT_OF_MEM;
 				break;
@@ -481,9 +481,9 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		if (specInfoSize < 16 + (version ? 4 + 16*KID_count : 0)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC/ISMA] Invalid PSSH blob in version %d: size %d key count %d - ignoring PSSH\n", version, specInfoSize, KID_count));
 
-			if (specInfo) gf_free(specInfo);
+			gf_free(specInfo);
 			gf_bs_del(bs);
-			if (KIDs) gf_free(KIDs);
+			gf_free(KIDs);
 			continue;
 		}
 		if (btype)
@@ -494,9 +494,9 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		data = (u8 *)gf_malloc(len);
 		if (!data) {
 			e = GF_OUT_OF_MEM;
-			if (specInfo) gf_free(specInfo);
+			gf_free(specInfo);
 			gf_bs_del(bs);
-			if (KIDs) gf_free(KIDs);
+			gf_free(KIDs);
 			break;
 		}
 		gf_bs_read_data(bs, data, len);
@@ -505,10 +505,10 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 			GF_Crypt *gc = gf_crypt_open(GF_AES_128, GF_CTR);
 			if (!gc) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
-				if (specInfo) gf_free(specInfo);
+				gf_free(specInfo);
 				gf_bs_del(bs);
-				if (KIDs) gf_free(KIDs);
-				if (data) gf_free(data);
+				gf_free(KIDs);
+				gf_free(data);
 				e = GF_IO_ERR;
 				break;
 			}
@@ -530,9 +530,9 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 			gf_bs_write_data(pssh_bs, data, len);
 		}
 
-		if (specInfo) gf_free(specInfo);
-		if (data) gf_free(data);
-		if (KIDs) gf_free(KIDs);
+		gf_free(specInfo);
+		gf_free(data);
+		gf_free(KIDs);
 		if (bs) gf_bs_del(bs);
 		if (e) break;
 	}
@@ -1100,7 +1100,7 @@ static void cenc_free_pid_context(GF_CENCStream *cstr)
 	gf_free(cstr->keys);
 	if (cstr->cinfo) gf_crypt_info_del(cstr->cinfo);
 
-	if (cstr->mkey_indices.vals) gf_free(cstr->mkey_indices.vals);
+	gf_free(cstr->mkey_indices.vals);
 	cenc_pid_reset_codec_states(cstr);
 	if (cstr->pssh_templates) {
 		while (gf_list_count(cstr->pssh_templates)) {
@@ -2473,7 +2473,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					gf_bs_write_data(bs, pssh_kid, pssh_kid_size);
 					nb_systems++;
 				}
-				if (pssh_kid) gf_free(pssh_kid);
+				gf_free(pssh_kid);
 				if (key_att_backup) key_att->value = key_att_backup;
 				if (kid_att_backup) kid_att->value = kid_att_backup;
 			}

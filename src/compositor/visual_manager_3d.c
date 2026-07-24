@@ -772,6 +772,7 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 	i=0;
 	while ((ol = (DirectionalLightContext*)gf_list_enum(tr_state->local_lights, &i))) {
 		DirectionalLightContext *nl = (DirectionalLightContext*)gf_malloc(sizeof(DirectionalLightContext));
+		if (!nl) break;
 		memcpy(nl, ol, sizeof(DirectionalLightContext));
 		gf_list_add(ctx->directional_lights, nl);
 	}

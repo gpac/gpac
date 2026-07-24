@@ -187,7 +187,7 @@ void httpin_finalize(GF_Filter *filter)
 
 	if (ctx->sess) gf_dm_sess_del(ctx->sess);
 
-	if (ctx->block) gf_free(ctx->block);
+	gf_free(ctx->block);
 	if (ctx->cached) gf_fclose(ctx->cached);
 }
 
@@ -311,7 +311,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					ctx->sess = NULL;
 				}
 			}
-			if (ctx->src) gf_free(ctx->src);
+			gf_free(ctx->src);
 			ctx->src = NULL;
 			return GF_TRUE;
 		}
@@ -324,7 +324,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		//handle isobmff:// url
 		if (!strncmp(ctx->src, "isobmff://", 10)) {
 			GF_FilterPacket *pck;
-			if (prev_url) gf_free(prev_url);
+			gf_free(prev_url);
 
 			gf_filter_pid_raw_new(filter, ctx->src, ctx->src, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
 			ctx->is_end = GF_TRUE;
@@ -351,7 +351,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 			ctx->nb_read = 0;
 			ctx->last_state = GF_OK;
-			if (prev_url) gf_free(prev_url);
+			gf_free(prev_url);
 			return GF_TRUE;
 		}
 		ctx->last_state = GF_OK;
@@ -383,11 +383,11 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Cannot resetup session from URL %s: %s\n", ctx->src, gf_error_to_string(e) ) );
 			httpin_notify_error(filter, ctx, e);
 			ctx->is_end = GF_TRUE;
-			if (ctx->src) gf_free(ctx->src);
+			gf_free(ctx->src);
 			ctx->src = prev_url;
 			return GF_TRUE;
 		}
-		if (prev_url) gf_free(prev_url);
+		gf_free(prev_url);
 		ctx->nb_read = ctx->file_size = 0;
 		ctx->do_reconfigure = GF_TRUE;
 		ctx->is_end = GF_FALSE;
@@ -745,7 +745,7 @@ GF_FilterRegister HTTPInRegister = {
 
 static void httpin_reg_free(GF_FilterSession *session, struct __gf_filter_register *freg)
 {
-	gf_free((char*)freg->help);
+	gf_free((void*)freg->help);
 }
 
 #endif

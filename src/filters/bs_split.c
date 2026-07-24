@@ -576,7 +576,10 @@ static GF_Err avc_rewrite_pid_config(BSSplitCtx *ctx, BSSplitIn *pctx)
 	avcc = gf_odf_avc_cfg_read(prop->value.data.ptr, prop->value.data.size);
 	if (!avcc) return GF_NON_COMPLIANT_BITSTREAM;
 
-	if (!pctx->avc_state) pctx->avc_state = (AVCState *) gf_malloc(sizeof(AVCState));
+	if (!pctx->avc_state) {
+		pctx->avc_state = (AVCState *) gf_malloc(sizeof(AVCState));
+		if (!pctx->avc_state) return GF_OUT_OF_MEM;
+	}
 	memset(pctx->avc_state, 0, sizeof(AVCState));
 	if (!pctx->r_bs)
 		pctx->r_bs = gf_bs_new((u8*)pctx->avc_state, 1, GF_BITSTREAM_READ);
@@ -790,7 +793,7 @@ restart:
 					if (vvcc_out) gf_odf_vvc_cfg_del(vvcc_out);
 					if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 					if (hvcc_out) gf_odf_hevc_cfg_del(hvcc_out);
-					if (pa_out) gf_free(pa_out);
+					gf_free(pa_out);
 					return GF_OUT_OF_MEM;
 				}
 				pa_out->type = pa->type;
@@ -803,12 +806,12 @@ restart:
 				nal_out->data = (u8 *)gf_malloc(nal->size);
 
 			if (!nal_out || !nal_out->data) {
-				if (nal_out) gf_free(nal_out);
+				gf_free(nal_out);
 				if (vvcc) gf_odf_vvc_cfg_del(vvcc);
 				if (vvcc_out) gf_odf_vvc_cfg_del(vvcc_out);
 				if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 				if (hvcc_out) gf_odf_hevc_cfg_del(hvcc_out);
-				if (pa_out) gf_free(pa_out);
+				gf_free(pa_out);
 				return GF_OUT_OF_MEM;
 			}
 
@@ -952,7 +955,7 @@ restart:
 					GF_SAFEALLOC(pa_out, GF_NALUFFParamArray);
 					if (pa_out) pa_out->nalus = gf_list_new();
 					if (!pa_out || !pa_out->nalus) {
-						if (pa_out) gf_free(pa_out);
+						gf_free(pa_out);
 						e = GF_OUT_OF_MEM;
 						break;
 					}
@@ -1009,8 +1012,8 @@ restart:
 	}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (hvcc_state) gf_free(hvcc_state);
-	if (vvcc_state) gf_free(vvcc_state);
+	gf_free(hvcc_state);
+	gf_free(vvcc_state);
 #endif
 
 	if (vvcc) gf_odf_vvc_cfg_del(vvcc);

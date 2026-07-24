@@ -1233,7 +1233,7 @@ static JSValue wgl_uniform1fv(JSContext *ctx, JSValueConst this_val, int argc, J
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform1fv(location, v_size, v);
-	if (v) gf_free(v);
+	gf_free(v);
 	return ret_val_js;
 }
 
@@ -1265,7 +1265,7 @@ static JSValue wgl_uniform1iv(JSContext *ctx, JSValueConst this_val, int argc, J
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform1iv(location, v_size, v);
-	if (v) gf_free(v);
+	gf_free(v);
 	return ret_val_js;
 }
 
@@ -1299,7 +1299,7 @@ static JSValue wgl_uniform2fv(JSContext *ctx, JSValueConst this_val, int argc, J
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform2fv(location, v_size, v);
-	if (v) gf_free(v);
+	gf_free(v);
 	return ret_val_js;
 }
 
@@ -1333,7 +1333,7 @@ static JSValue wgl_uniform2iv(JSContext *ctx, JSValueConst this_val, int argc, J
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform2iv(location, v_size, v);
-	if (v) gf_free(v);
+	gf_free(v);
 	return ret_val_js;
 }
 
@@ -1369,7 +1369,7 @@ static JSValue wgl_uniform3fv(JSContext *ctx, JSValueConst this_val, int argc, J
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform3fv(location, v_size, v);
-	if (v) gf_free(v);
+	gf_free(v);
 	return ret_val_js;
 }
 
@@ -1405,7 +1405,7 @@ static JSValue wgl_uniform3iv(JSContext *ctx, JSValueConst this_val, int argc, J
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform3iv(location, v_size, v);
-	if (v) gf_free(v);
+	gf_free(v);
 	return ret_val_js;
 }
 
@@ -1443,7 +1443,7 @@ static JSValue wgl_uniform4fv(JSContext *ctx, JSValueConst this_val, int argc, J
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform4fv(location, v_size, v);
-	if (v) gf_free(v);
+	gf_free(v);
 	return ret_val_js;
 }
 
@@ -1481,7 +1481,7 @@ static JSValue wgl_uniform4iv(JSContext *ctx, JSValueConst this_val, int argc, J
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform4iv(location, v_size, v);
-	if (v) gf_free(v);
+	gf_free(v);
 	return ret_val_js;
 }
 
@@ -1500,7 +1500,7 @@ static JSValue wgl_uniformMatrix2fv(JSContext *ctx, JSValueConst this_val, int a
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniformMatrix2fv(location, value_size, transpose, value);
-	if (value) gf_free(value);
+	gf_free(value);
 	return ret_val_js;
 }
 
@@ -1519,7 +1519,7 @@ static JSValue wgl_uniformMatrix3fv(JSContext *ctx, JSValueConst this_val, int a
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniformMatrix3fv(location, value_size, transpose, value);
-	if (value) gf_free(value);
+	gf_free(value);
 	return ret_val_js;
 }
 
@@ -1538,7 +1538,7 @@ static JSValue wgl_uniformMatrix4fv(JSContext *ctx, JSValueConst this_val, int a
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniformMatrix4fv(location, value_size, transpose, value);
-	if (value) gf_free(value);
+	gf_free(value);
 	return ret_val_js;
 }
 

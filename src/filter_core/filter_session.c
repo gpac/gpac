@@ -687,7 +687,7 @@ void gf_fs_set_ui_callback(GF_FilterSession *fs, Bool (*ui_event_proc)(void *opa
 void gf_propalloc_del(void *it)
 {
 	GF_PropertyEntry *pe = (GF_PropertyEntry *)it;
-	if (pe->prop.value.data.ptr) gf_free(pe->prop.value.data.ptr);
+	gf_free(pe->prop.value.data.ptr);
 	gf_free(pe);
 }
 
@@ -897,15 +897,15 @@ void gf_fs_del(GF_FilterSession *fsess)
 
 #ifdef GF_FS_ENABLE_LOCALES
 	if (fsess->uri_relocators) gf_list_del(fsess->uri_relocators);
-	if (fsess->locales.szAbsRelocatedPath) gf_free(fsess->locales.szAbsRelocatedPath);
+	gf_free(fsess->locales.szAbsRelocatedPath);
 #endif
-	if (fsess->blacklist) gf_free(fsess->blacklist);
+	gf_free(fsess->blacklist);
 
 	if (fsess->additionnal_metrics) {
 		while (gf_list_count(fsess->additionnal_metrics)) {
 			GF_FSCustomMetric *m = (GF_FSCustomMetric *)gf_list_pop_back(fsess->additionnal_metrics);
-			if (m->reg_name) gf_free(m->reg_name);
-			if (m->metric) gf_free(m->metric);
+			gf_free(m->reg_name);
+			gf_free(m->metric);
 			gf_free(m);
 		}
 		gf_list_del(fsess->additionnal_metrics);
@@ -3985,7 +3985,7 @@ restart:
 		gf_free(sURL);
 
 	if (filter) {
-		if (filter->src_args) gf_free(filter->src_args);
+		gf_free(filter->src_args);
 		filter->src_args = args;
 		//for link resolution
 		if (dst_filter && for_source)	{
@@ -4533,7 +4533,7 @@ static void gf_fs_user_task(GF_FSTask *task)
 		gf_free(utask);
 		task->udta = NULL;
 		//we duplicated the name for user tasks
-		gf_free((char *) task->log_name);
+		gf_free((void*)task->log_name);
 		task->requeue_request = GF_FALSE;
 	} else {
 		gf_assert(task->requeue_request);
@@ -5102,7 +5102,7 @@ static Bool fsess_find_res(GF_FSLocales *loc, char *parent, char *path, char *re
 {
 	FILE *f;
 
-	if (loc->szAbsRelocatedPath) gf_free(loc->szAbsRelocatedPath);
+	gf_free(loc->szAbsRelocatedPath);
 	loc->szAbsRelocatedPath = gf_url_concatenate(parent, path);
 	if (!loc->szAbsRelocatedPath) loc->szAbsRelocatedPath = gf_strdup(path);
 

@@ -683,7 +683,7 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 			}
 		}
 		if (node && (gf_node_get_tag(node)==TAG_MPEG4_BitWrapper)) {
-			if (str) gf_free(str);
+			gf_free(str);
 		}
 
 		if (sdump->XMLDump) {
@@ -2692,7 +2692,7 @@ static GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 					att = gf_svg_dump_attribute(com->node, &info);
 				}
 				gf_fprintf(sdump->trace, "value=\"%s\" ", att ? att : "");
-				if (att) gf_free(att);
+				gf_free(att);
 			}
 
 			if (com->fromNodeID) {

@@ -2268,12 +2268,11 @@ static void cleanup_logs()
 	if (static_logs) {
 		u32 i;
 		for (i=0; i<nb_log_entries; i++) {
-			if (static_logs[i].szMsg)
-				gf_free(static_logs[i].szMsg);
+			gf_free(static_logs[i].szMsg);
 		}
 		gf_free(static_logs);
 	}
-	if (log_buf) gf_free(log_buf);
+	gf_free(log_buf);
 	log_buf = NULL;
 	log_buf_size = 0;
 	log_write = 0;
@@ -2301,7 +2300,7 @@ static void gpac_on_logs(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_too
 
 	static_logs[log_write].level = log_level;
 	static_logs[log_write].tool = log_tool;
-	if (static_logs[log_write].szMsg) gf_free(static_logs[log_write].szMsg);
+	gf_free(static_logs[log_write].szMsg);
 	static_logs[log_write].szMsg = gf_strdup(log_buf);
 	static_logs[log_write].clock = gf_net_get_utc();
 
@@ -2844,7 +2843,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		ioctx->io_mode = ioctx_ref->io_mode;
 		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, ioctx->io_mode ? fio_read : NULL, ioctx->io_mode ? NULL : fio_write, fio_tell, fio_eof, fio_printf);
 		if (!gfio) {
-			if (ioctx->path) gf_free(ioctx->path);
+			gf_free(ioctx->path);
 			gf_free(ioctx);
 			return NULL;
 		}
@@ -2864,7 +2863,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		if (!ioctx_ref->nb_refs) {
 			gf_list_del_item(all_gfio_defined, fileio_ref);
 			gf_fileio_del(fileio_ref);
-			if (ioctx_ref->path) gf_free(ioctx_ref->path);
+			gf_free(ioctx_ref->path);
 			gf_free(ioctx_ref);
 		}
 		return NULL;
@@ -2918,7 +2917,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		}
 		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, ioctx_ref->io_mode ? fio_read : NULL, ioctx_ref->io_mode ? NULL : fio_write, fio_tell, fio_eof, fio_printf);
 		if (!gfio) {
-			if (ioctx->path) gf_free(ioctx->path);
+			gf_free(ioctx->path);
 			gf_free(ioctx);
 			*out_err = GF_OUT_OF_MEM;
 		}
@@ -2934,7 +2933,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		*out_err = GF_IO_ERR;
 		gf_list_del_item(all_gfio_defined, gfio);
 		gf_fileio_del(gfio);
-		if (ioctx->path) gf_free(ioctx->path);
+		gf_free(ioctx->path);
 		gf_free(ioctx);
 		return NULL;
 	}
@@ -3095,7 +3094,7 @@ static void cleanup_file_io()
 			fprintf(stderr, "Warning: file IO for %s still opened!\n", ioctx->path);
 			gf_fclose(ioctx->filep);
 		}
-		if (ioctx->path) gf_free(ioctx->path);
+		gf_free(ioctx->path);
 		gf_free(ioctx);
 	}
 	gf_list_del(all_gfio_defined);
@@ -3113,8 +3112,8 @@ static void cleanup_file_io()
 				gf_blob_unregister(&bctx->blob);
 			gf_free(bctx->blob.data);
 		}
-		if (bctx->path) gf_free(bctx->path);
-		if (bctx->url) gf_free(bctx->url);
+		gf_free(bctx->path);
+		gf_free(bctx->url);
 		gf_free(bctx);
 	}
 	gf_list_del(all_blobs_defined);
@@ -3441,7 +3440,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	res=0;
 	e = gf_gz_decompress_payload(zbuf, osize, &ozbuf, &res);
 	gf_free(zbuf);
-	if (ozbuf) gf_free(ozbuf);
+	gf_free(ozbuf);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] zlib decompress fail\n"));
 		return 1;
@@ -3460,7 +3459,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	res=0;
 	e = gf_lz_decompress_payload(zbuf, osize, &ozbuf, &res);
 	gf_free(zbuf);
-	if (ozbuf) gf_free(ozbuf);
+	gf_free(ozbuf);
 	if (e && (e!= GF_NOT_SUPPORTED)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma decompress fail\n"));
 		return 1;
@@ -3505,7 +3504,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_sys_get_battery_state(NULL, NULL, NULL, NULL, NULL);
 	gf_sys_get_process_id();
 	data = (u8 *) gf_log_get_tools_levels();
-	if (data) gf_free(data);
+	gf_free(data);
 
 	gf_sys_is_quiet();
 	gf_sys_get_argv();

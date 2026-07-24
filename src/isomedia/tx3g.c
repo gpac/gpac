@@ -181,7 +181,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 	txt->horizontal_justification = desc->horiz_justif;
 	if (is_qt_text) {
 		GF_TextSampleEntryBox *qtt = (GF_TextSampleEntryBox *) txt;
-		if (qtt->textName) gf_free(qtt->textName);
+		gf_free(qtt->textName);
 		qtt->textName = NULL;
 		if (desc->font_count) {
 			qtt->textName = gf_strdup(desc->fonts[0].fontName);
@@ -649,7 +649,7 @@ GF_EXPORT
 GF_Err gf_isom_text_reset(GF_TextSample *samp)
 {
 	if (!samp) return GF_BAD_PARAM;
-	if (samp->text) gf_free(samp->text);
+	gf_free(samp->text);
 	samp->text = NULL;
 	samp->len = 0;
 	return gf_isom_text_reset_styles(samp);

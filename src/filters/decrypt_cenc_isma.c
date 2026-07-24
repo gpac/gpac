@@ -682,7 +682,7 @@ static GF_Err rfmt_dec_b64(char *data, u8 *output, u32 osize)
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	if (tmpd) gf_free(tmpd);
+	gf_free(tmpd);
 	if (len != 16) return GF_NON_COMPLIANT_BITSTREAM;
 	return GF_OK;
 }
@@ -709,7 +709,7 @@ static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
 		break;
 	case GF_NETIO_DATA_EXCHANGE:
 		if (!cstr->res_size) {
-			if (cstr->body) gf_free(cstr->body);
+			gf_free(cstr->body);
 			cstr->body = NULL;
 		}
 		cstr->body = (char *)gf_realloc(cstr->body, (cstr->res_size + par->size + 1));
@@ -773,15 +773,18 @@ static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
 			cstr->KID_count = key_idx;
 
 			if (!cstr->crypts) {
-				cstr->crypts = (CENCDecKey *)gf_malloc(sizeof(CENCDecKey));
-				memset(cstr->crypts, 0, sizeof(CENCDecKey));
+				GF_SAFEALLOC(cstr->crypts, CENCDecKey);
 			}
-			memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
-			cstr->crypts[0].key_valid = GF_TRUE;
+			if (!cstr->crypts) {
+				cstr->state = DECRYPT_STATE_ERROR;
+			} else {
+				memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
+				cstr->crypts[0].key_valid = GF_TRUE;
+			}
 		} else {
 			cstr->state = DECRYPT_STATE_ERROR;
 		}
-		if (cstr->body) gf_free(cstr->body);
+		gf_free(cstr->body);
 		cstr->body = NULL;
 		gf_dm_sess_del(cstr->sess);
 		cstr->sess = NULL;
@@ -793,7 +796,7 @@ static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
 			gf_dm_sess_del(cstr->sess);
 			cstr->sess = NULL;
 			cstr->ctx->pending_keys--;
-			if (cstr->body) gf_free(cstr->body);
+			gf_free(cstr->body);
 			cstr->body = NULL;
 		}
 		break;
@@ -819,7 +822,7 @@ static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		res--;
 		if (!res) break;
 	}
-	if (cstr->body) gf_free(cstr->body);
+	gf_free(cstr->body);
 	cstr->body = NULL;
 	gf_dynstrcat(&cstr->body, "{\"kids\": [\"", NULL);
 	gf_dynstrcat(&cstr->body, data64, NULL);
@@ -850,7 +853,7 @@ static void hls_kms_io(void *usr_cbk, GF_NETIO_Parameter *par)
 			return;
 
 		if (!cstr->res_size) {
-			if (cstr->body) gf_free(cstr->body);
+			gf_free(cstr->body);
 			cstr->body = NULL;
 		}
 		if (cstr->res_size > 32) {
@@ -872,16 +875,19 @@ static void hls_kms_io(void *usr_cbk, GF_NETIO_Parameter *par)
 
 			//load keys
 			if (!cstr->crypts) {
-				cstr->crypts = (CENCDecKey *)gf_malloc(sizeof(CENCDecKey));
-				memset(cstr->crypts, 0, sizeof(CENCDecKey));
+				GF_SAFEALLOC(cstr->crypts, CENCDecKey);
 			}
-			memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
-			cstr->crypts[0].key_valid = GF_TRUE;
+			if (!cstr->crypts) {
+				cstr->state = DECRYPT_STATE_ERROR;
+			} else {
+				memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
+				cstr->crypts[0].key_valid = GF_TRUE;
+			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Invalid key size, greater than 16 bytes\n"))
 			cstr->state = DECRYPT_STATE_ERROR;
 		}
-		if (cstr->body) gf_free(cstr->body);
+		gf_free(cstr->body);
 		cstr->body = NULL;
 		gf_dm_sess_del(cstr->sess);
 		cstr->sess = NULL;
@@ -891,7 +897,7 @@ static void hls_kms_io(void *usr_cbk, GF_NETIO_Parameter *par)
 			gf_dm_sess_del(cstr->sess);
 			cstr->sess = NULL;
 			cstr->ctx->pending_keys--;
-			if (cstr->body) gf_free(cstr->body);
+			gf_free(cstr->body);
 			cstr->body = NULL;
 		}
 	}
@@ -912,7 +918,7 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 		return GF_OK;
 	}
 
-	if (cstr->hls_key_url) gf_free(cstr->hls_key_url);
+	gf_free(cstr->hls_key_url);
 
 	if (!key_url) {
 		cstr->hls_key_url = NULL;
@@ -994,8 +1000,8 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 	}
 
 	if (!cstr->crypts) {
-		cstr->crypts = (CENCDecKey *)gf_malloc(sizeof(CENCDecKey));
-		memset(cstr->crypts, 0, sizeof(CENCDecKey));
+		GF_SAFEALLOC(cstr->crypts, CENCDecKey);
+		if (!cstr->crypts) return GF_OUT_OF_MEM;
 	}
 	memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
 	cstr->crypts[0].key_valid = GF_TRUE;
@@ -2210,11 +2216,11 @@ static void cenc_dec_stream_del(GF_CENCDecStream *cstr)
 		}
 		gf_free(cstr->crypts);
 	}
-	if (cstr->KIDs) gf_free(cstr->KIDs);
-	if (cstr->keys) gf_free(cstr->keys);
-	if (cstr->hls_key_url) gf_free(cstr->hls_key_url);
+	gf_free(cstr->KIDs);
+	gf_free(cstr->keys);
+	gf_free(cstr->hls_key_url);
 
-	if (cstr->body) gf_free(cstr->body);
+	gf_free(cstr->body);
 #ifdef GPAC_USE_DOWNLOADER
 	if (cstr->sess) gf_dm_sess_del(cstr->sess);
 #endif

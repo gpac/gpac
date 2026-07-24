@@ -210,7 +210,7 @@ void gf_evg_stencil_delete(GF_EVGStencil * st)
 	{
 		EVG_Texture *tx = (EVG_Texture *)st;
 		/*destroy local texture iof any*/
-		if (tx->owns_texture && tx->pixels) gf_free(tx->pixels);
+		if (tx->owns_texture) gf_free(tx->pixels);
 		gf_free(st);
 	}
 		return;

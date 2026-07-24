@@ -1298,7 +1298,7 @@ static void bsrw_finalize(GF_Filter *filter)
 	GF_BSRWCtx *ctx = (GF_BSRWCtx *) gf_filter_get_udta(filter);
 	while (gf_list_count(ctx->pids)) {
 		BSRWPid *pctx = (BSRWPid *)gf_list_pop_back(ctx->pids);
-		if (pctx->avc) gf_free(pctx->avc);
+		gf_free(pctx->avc);
 		gf_free(pctx);
 	}
 	gf_list_del(ctx->pids);

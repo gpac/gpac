@@ -341,12 +341,12 @@ static void svg_delete_deferred_anim(SVG_DeferredAnimation *anim, GF_List *defer
 	if (deferred_animations) gf_list_del_item(deferred_animations, anim);
 
 	if (anim->animation_elt) gf_node_unregister((GF_Node*)anim->animation_elt, NULL);
-	if (anim->target_id) gf_free(anim->target_id);
-	if (anim->to) gf_free(anim->to);
-	if (anim->from) gf_free(anim->from);
-	if (anim->by) gf_free(anim->by);
-	if (anim->values) gf_free(anim->values);
-	if (anim->type) gf_free(anim->type);
+	gf_free(anim->target_id);
+	gf_free(anim->to);
+	gf_free(anim->from);
+	gf_free(anim->by);
+	gf_free(anim->values);
+	gf_free(anim->type);
 	gf_free(anim);
 }
 

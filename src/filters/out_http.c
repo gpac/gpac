@@ -314,7 +314,7 @@ typedef struct __gf_http_io
 static void httpio_del(GF_HTTPFileIO *hio)
 {
 	gf_fileio_del(hio->fio);
-	if (hio->data) gf_free(hio->data);
+	gf_free(hio->data);
 	gf_free(hio);
 }
 
@@ -497,7 +497,7 @@ static void httpout_close_session(GF_HTTPOutSession *sess, GF_Err code)
 		gf_js_lock(sess->ctx->jsc, GF_FALSE);
 	}
 #endif
-	if (sess->body_or_file) gf_free(sess->body_or_file);
+	gf_free(sess->body_or_file);
 	sess->body_or_file=NULL;
 	if (sess->headers) {
 		while (1) {
@@ -738,7 +738,7 @@ static void httpout_set_local_path(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	dir = di->path;
 	if (!dir) return;
 	len = (u32) strlen(dir);
-	if (in->local_path) gf_free(in->local_path);
+	gf_free(in->local_path);
 	in->local_path = NULL;
 	gf_dynstrcat(&in->local_path, dir, NULL);
 	if (!strchr("/\\", dir[len-1]))
@@ -1490,7 +1490,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 		sess->nb_bytes = sess->bytes_in_req = 0;
 
-		if (sess->req_url) gf_free(sess->req_url);
+		gf_free(sess->req_url);
 		sess->req_url = gf_strdup(url);
 
 		HTTP_DIRInfo *di=NULL;
@@ -1525,7 +1525,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 	}
 	if (sess->async_pending==1) {
-		if (url) gf_free(url);
+		gf_free(url);
 		return;
 	}
 
@@ -1615,6 +1615,15 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	if (parameter->reply==GF_HTTP_DELETE)
 		is_upload = GF_FALSE;
 
+	if (!sess->buffer) {
+		sess->buffer = (u8 *)gf_malloc(sess->ctx->block_size);
+		if (!sess->buffer) {
+			sess->reply_code = 501;
+			gf_dynstrcat(&response_body, "No mem", NULL);
+			goto exit;
+		}
+	}
+
 	if (is_upload) {
 		const char *hdr;
 		range = gf_dm_sess_get_header(sess->http_sess, "Range");
@@ -1640,7 +1649,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->nb_bytes = 0;
 		sess->done = GF_FALSE;
 		gf_assert(full_path);
-		if (sess->path) gf_free(sess->path);
+		gf_free(sess->path);
 		sess->path = full_path;
 		if (sess->resource) gf_fclose(sess->resource);
 		sess->resource = NULL;
@@ -1689,9 +1698,6 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (!httpout_sess_parse_range(sess, (char *) range, &response_body)) {
 			goto exit;
 		}
-		if (!sess->buffer) {
-			sess->buffer = (u8 *)gf_malloc(sess->ctx->block_size);
-		}
 		if (gf_list_find(sess->ctx->active_sessions, sess)<0) {
 			gf_list_add(sess->ctx->active_sessions, sess);
 			gf_sk_group_register(sess->ctx->sg, sess->socket);
@@ -1709,7 +1715,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 		sess->nb_consecutive_errors = 0;
 		sess->req_start_time = gf_sys_clock_high_res();
-		if (url) gf_free(url);
+		gf_free(url);
 		gf_dm_sess_clear_headers(sess->http_sess);
 
 		gf_dm_sess_set_timeout(sess->http_sess, sess->ctx->timeout/10);
@@ -1874,7 +1880,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	if (sess->dir_desc) {
 		sess->reply_code = httpout_auth_check(sess->dir_desc, gf_dm_sess_get_header(sess->http_sess, "Authorization"), GF_FALSE);
 		if (sess->reply_code != 200) {
-			if (full_path) gf_free(full_path);
+			gf_free(full_path);
 			goto exit;
 		}
 	}
@@ -1943,7 +1949,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	if (parameter->reply==GF_HTTP_DELETE) {
 		no_body = GF_TRUE;
 		sess->upload_type = 0;
-		if (sess->path) gf_free(sess->path);
+		gf_free(sess->path);
 		sess->path = full_path;
 		if (sess->resource) gf_fclose(sess->resource);
 		sess->resource = NULL;
@@ -1978,7 +1984,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 	/*we have a source and we are not in record mode */
 	else if (source_pid && sess->ctx->single_mode) {
-		if (sess->path) gf_free(sess->path);
+		gf_free(sess->path);
 		sess->path = NULL;
 		sess->in_source = source_pid;
 		source_pid->nb_dest++;
@@ -1990,7 +1996,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 	/*we have matching etag*/
 	else if (etag && !strcmp(etag, szETag) && !sess->ctx->no_etag) {
-		if (sess->path) gf_free(sess->path);
+		gf_free(sess->path);
 		sess->path = full_path;
 		not_modified = GF_TRUE;
 	}
@@ -2000,7 +2006,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->file_pos = 0;
 	}
 	else {
-		if (sess->path) gf_free(sess->path);
+		gf_free(sess->path);
 		if (source_pid) {
 			//source_pid->resource may be NULL at this point (PID created but no data written yet), typically happens on manifest PIDs or init segments
 			sess->in_source = source_pid;
@@ -2093,7 +2099,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->file_pos = 0;
 		sess->bytes_in_req = sess->file_size;
 
-		if (sess->mime) gf_free(sess->mime);
+		gf_free(sess->mime);
 		sess->mime = ( mime && strcmp(mime, "*")) ? gf_strdup(mime) : NULL;
 		sess->last_file_modif = gf_file_modification_time(full_path);
 	}
@@ -2149,7 +2155,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		gf_dm_sess_set_header(sess->http_sess, "Cross-Origin-Opener-Policy", "same-origin");
 //		gf_dm_sess_set_header(sess->http_sess, "Cross-Origin-Resource-Policy", "cross-origin");
 	}
-	if (cors_origin) gf_free(cors_origin);
+	gf_free(cors_origin);
 
 #ifdef GPAC_HAS_NGTCP2
 	if ((sess->http_type!=GF_SESS_TYPE_HTTP3) && sess->ctx->quic_sock) {
@@ -2215,7 +2221,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 					sess->bytes_in_req = comp_size;
 					gf_dm_sess_set_header(sess->http_sess, "Content-Encoding", (content_encoding==1) ? "gzip" : "deflate");
 				}
-				if (data) gf_free(data);
+				gf_free(data);
 			}
 			gf_fseek(sess->resource, 0, SEEK_SET);
 		}
@@ -2346,10 +2352,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	sess->http_type = gf_dm_sess_is_hmux(sess->http_sess);
 	if (sess->http_type==GF_SESS_TYPE_HTTP3) sess->blockio = GF_FALSE;
 
-	if (url) gf_free(url);
-	if (!sess->buffer) {
-		sess->buffer = (u8 *)gf_malloc(sess->ctx->block_size);
-	}
+	gf_free(url);
 	if (response_body) {
 		gf_free(response_body);
 		httpout_mark_session_done(sess);
@@ -2467,9 +2470,7 @@ exit:
 				gf_dm_sess_set_header(sess->http_sess, "Transfer-Encoding", "chunked");
 				sess->use_chunk_transfer=GF_TRUE;
 			}
-			if (!sess->buffer) {
-				sess->buffer = (u8 *)gf_malloc(sess->ctx->block_size);
-			}
+			//no need to check for sess->buffer here as we would fail the request if alloc failed
 			sess->http_type = gf_dm_sess_is_hmux(sess->http_sess);
 		}
 	}
@@ -2485,7 +2486,7 @@ exit:
 	sess->http_type = gf_dm_sess_is_hmux(sess->http_sess);
 	if (sess->http_type==GF_SESS_TYPE_HTTP3) sess->blockio = GF_FALSE;
 
-	if (response_body) gf_free(response_body);
+	gf_free(response_body);
 	if (sess->body_or_file) {
 		gf_free(sess->body_or_file);
 		sess->body_or_file=NULL;
@@ -2501,7 +2502,7 @@ exit:
 		}
 	}
 
-	if (url) gf_free(url);
+	gf_free(url);
 	sess->req_end_type = SESS_END_OK;
 	sess->headers_done = GF_FALSE;
 
@@ -3332,7 +3333,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		ctx->jsc = gf_js_create_context();
 		if (!ctx->jsc) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DASHDmx] Failed to load QuickJS context\n"));
-			if (buf) gf_free(buf);
+			gf_free(buf);
 			return GF_IO_ERR;
 		}
 		JS_SetContextOpaque(ctx->jsc, ctx);
@@ -3352,7 +3353,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		}
 
 		ret = buf ? JS_Eval(ctx->jsc, (char *)buf, buf_len, ctx->js, flags) : JS_TRUE;
-		if (buf) gf_free(buf);
+		gf_free(buf);
 
 		if (JS_IsException(ret)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[HTTPOut] Error loading script %s\n", ctx->js));
@@ -3384,13 +3385,13 @@ static void httpout_del_session(GF_HTTPOutSession *s)
 	gf_list_del_item(s->ctx->sessions, s);
 	if (s->http_sess)
 		httpout_close_session(s, GF_OK);
-	if (s->buffer) gf_free(s->buffer);
-	if (s->path) gf_free(s->path);
-	if (s->mime) gf_free(s->mime);
-	if (s->req_url) gf_free(s->req_url);
+	gf_free(s->buffer);
+	gf_free(s->path);
+	gf_free(s->mime);
+	gf_free(s->req_url);
 	if (s->opid) gf_filter_pid_remove(s->opid);
 	if (s->resource) gf_fclose(s->resource);
-	if (s->ranges) gf_free(s->ranges);
+	gf_free(s->ranges);
 
 #ifdef GPAC_HAS_QJS
 	if (!JS_IsUndefined(s->obj)) {
@@ -3458,23 +3459,23 @@ static void httpout_close_llhas_part(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bo
 		}
 	}
 
-	if (in->llhas_part_path) gf_free(in->llhas_part_path);
+	gf_free(in->llhas_part_path);
 	in->llhas_part_path = NULL;
-	if (in->llhas_part_local_path) gf_free(in->llhas_part_local_path);
+	gf_free(in->llhas_part_local_path);
 	in->llhas_part_local_path = NULL;
 }
 
 static void httpout_delete_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 {
-	if (in->local_path) gf_free(in->local_path);
-	if (in->path) gf_free(in->path);
-	if (in->mime) gf_free(in->mime);
+	gf_free(in->local_path);
+	gf_free(in->path);
+	gf_free(in->mime);
 
 	httpout_close_llhas_part(ctx, in, GF_TRUE);
 
 	if (in->resource) gf_fclose(in->resource);
 	if (in->llhas_upload) gf_dm_sess_del(in->llhas_upload);
-	if (in->llhas_url) gf_free(in->llhas_url);
+	gf_free(in->llhas_url);
 	if (in->upload) {
 		if (in->upload_sock)
 			gf_sk_group_unregister(ctx->sg, in->upload_sock);
@@ -3503,7 +3504,7 @@ static void httpout_delete_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	}
 	if (in->no_cte_llhas_cache) gf_filter_pck_discard(in->no_cte_llhas_cache);
 	if (in->no_cte_cache) gf_filter_pck_discard(in->no_cte_cache);
-	if (in->llhas_template) gf_free(in->llhas_template);
+	gf_free(in->llhas_template);
 
 	gf_free(in);
 }
@@ -3538,7 +3539,7 @@ static void httpout_finalize(GF_Filter *filter)
 #endif
 
 	if (ctx->sg) gf_sk_group_del(ctx->sg);
-	if (ctx->ip) gf_free(ctx->ip);
+	gf_free(ctx->ip);
 
 	if (ctx->mem_fileio) gf_fileio_del(ctx->mem_fileio);
 #ifdef GPAC_HAS_SSL
@@ -3556,11 +3557,11 @@ static void httpout_finalize(GF_Filter *filter)
 	while (gf_list_count(ctx->directories)) {
 		HTTP_DIRInfo *di = (HTTP_DIRInfo *)gf_list_pop_back(ctx->directories);
 		gf_free(di->path);
-		if (di->name) gf_free(di->name);
-		if (di->ru) gf_free(di->ru);
-		if (di->rg) gf_free(di->rg);
-		if (di->wu) gf_free(di->wu);
-		if (di->wg) gf_free(di->wg);
+		gf_free(di->name);
+		gf_free(di->ru);
+		gf_free(di->rg);
+		gf_free(di->wu);
+		gf_free(di->wg);
 		gf_free(di);
 	}
 	gf_list_del(ctx->directories);
@@ -3852,7 +3853,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 						}
 					}
 					gf_dm_sess_set_header(sess->http_sess, "Content-Location", spath);
-					if (dpath) gf_free(dpath);
+					gf_free(dpath);
 				} else {
 					httpout_push_headers(sess);
 				}
@@ -4129,7 +4130,7 @@ session_done:
 		if (sess->resource) gf_fclose(sess->resource);
 		sess->resource = NULL;
 
-		if (sess->comp_data) gf_free(sess->comp_data);
+		gf_free(sess->comp_data);
 		sess->comp_data = NULL;
 
 		if (sess->nb_bytes) {
@@ -4275,7 +4276,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		char *new_url = NULL;
 		gf_dynstrcat(&new_url, "/", NULL);
 		gf_dynstrcat(&new_url, sep, NULL);
-		if (o_url) gf_free(o_url);
+		gf_free(o_url);
 		sep = o_url = new_url;
 	}
 
@@ -4295,9 +4296,9 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		if (!in->force_dst_name) {
 			char *old = in->path;
 			in->path = gf_strdup(sep);
-			if (old) gf_free(old);
+			gf_free(old);
 		}
-		if (o_url) gf_free(o_url);
+		gf_free(o_url);
 		if (is_fake) return GF_TRUE;
 
 		in->is_open = GF_TRUE;
@@ -4325,7 +4326,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Failed to open output %s: %s\n", in->path, gf_error_to_string(e) ));
 			in->is_open = GF_FALSE;
-			if (orig_path) gf_free(orig_path);
+			gf_free(orig_path);
 			return GF_FALSE;
 		}
 		in->http_type = gf_dm_sess_is_hmux(in->upload);
@@ -4334,7 +4335,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 			httpout_close_upload(ctx, in, GF_FALSE);
 			//restore path before delete for LLHAS setup
 			if (orig_path) {
-				if (in->path) gf_free(in->path);
+				gf_free(in->path);
 				in->path = orig_path;
 			}
 		}
@@ -4374,7 +4375,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		}
 
 		gf_file_delete(loc_path);
-		if (o_url) gf_free(o_url);
+		gf_free(o_url);
 		gf_free(loc_path);
 		return GF_TRUE;
 	}
@@ -4382,10 +4383,10 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 	if (in->path && !strcmp(in->path, sep)) {
 //		reassign_clients = GF_FALSE;
 	} else {
-		if (in->path) gf_free(in->path);
+		gf_free(in->path);
 		in->path = gf_strdup(sep);
 	}
-	if (o_url) gf_free(o_url);
+	gf_free(o_url);
 
 	httpout_set_local_path(ctx, in);
 	if (is_fake) return GF_FALSE;
@@ -4599,7 +4600,7 @@ static Bool httpout_open_input_llhas(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, ch
 
 	in->llhas_is_open = GF_TRUE;
 	if (in->llhas_url != dst) {
-		if (in->llhas_url) gf_free(in->llhas_url);
+		gf_free(in->llhas_url);
 		in->llhas_url = gf_strdup(dst);
 	}
 
@@ -5140,7 +5141,7 @@ next_pck:
 
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
 			if (p) {
-				if (in->llhas_template) gf_free(in->llhas_template);
+				gf_free(in->llhas_template);
 				in->llhas_template = gf_strdup(p->value.string);
 			}
 
@@ -5169,7 +5170,7 @@ next_pck:
 			}
 
 			httpout_open_input(ctx, in, dyn_name ? dyn_name : name, GF_FALSE, is_static, no_cte_fake_open, is_init ? GF_FALSE : GF_TRUE);
-			if (dyn_name) gf_free(dyn_name);
+			gf_free(dyn_name);
 
 			if (!no_cte_fake_open) {
 				if (!in->is_open) {
@@ -5893,7 +5894,7 @@ GF_Err gf_httpout_send_request(GF_HTTPOutSession *sess, void *udta,
 	sess->async_pending = 2;
 	sess->next_process_clock = 0;
 
-	if (sess->body_or_file) gf_free(sess->body_or_file);
+	gf_free(sess->body_or_file);
 	sess->body_or_file = body_or_file ? gf_strdup(body_or_file) : NULL;
 	sess->reply = reply;
 	sess->cbk_write = write;

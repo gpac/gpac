@@ -241,7 +241,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	if (mux->src_url) {
 		ext = gf_url_concatenate(mux->src_url, mux->file_name);
 		gf_strcpy(szName, ext ? ext : mux->file_name);
-		if (ext) gf_free(ext);
+		gf_free(ext);
 	} else {
 		gf_strcpy(szName, mux->file_name);
 	}
@@ -880,7 +880,7 @@ force_scene_rap:
 					gf_isom_sample_del(&rap_sample);
 					/*same timing, don't add sample*/
 					if (last_rap == samp->DTS) {
-						if (samp->data) gf_free(samp->data);
+						gf_free(samp->data);
 						samp->data = NULL;
 						samp->dataLength = 0;
 					}
@@ -1288,7 +1288,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 					rate += rap_sample->dataLength;
 
 					if (rap_sample->DTS==samp->DTS) {
-						if (samp->data) gf_free(samp->data);
+						gf_free(samp->data);
 						samp->data = NULL;
 						samp->dataLength = 0;
 					}
@@ -1325,7 +1325,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 				last_rap = samp->DTS;
 				e = gf_odf_codec_encode(rap_codec, 2);
 				if (e) goto err_exit;
-				if (samp->data) gf_free(samp->data);
+				gf_free(samp->data);
 				samp->data = NULL;
 				samp->dataLength = 0;
 				e = gf_odf_codec_get_au(rap_codec, &samp->data, &samp->dataLength);

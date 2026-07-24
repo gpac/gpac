@@ -1621,7 +1621,7 @@ void *NewX11VideoOutput ()
 void
 DeleteX11VideoOutput (GF_VideoOutput * vout)
 {
-	if (vout->opaque) gf_free(vout->opaque);
+	gf_free(vout->opaque);
 	gf_free(vout);
 }
 

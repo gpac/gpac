@@ -799,7 +799,7 @@ static GF_Err rtpout_initialize(GF_Filter *filter)
 		if (sep) {
 			ctx->port = atoi(sep+1);
 			sep[0] = 0;
-			if (ctx->ip) gf_free(ctx->ip);
+			gf_free(ctx->ip);
 			ctx->ip = gf_strdup(dst);
 			sep[0] = ':';
 		}

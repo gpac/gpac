@@ -326,7 +326,7 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const u8 *inBuffer, u32 
 				length = gf_bs_read_int(bs, size);
 				if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 
-				if ( ((SFString *)field->far_ptr)->buffer ) gf_free( ((SFString *)field->far_ptr)->buffer);
+				gf_free( ((SFString *)field->far_ptr)->buffer);
 				((SFString *)field->far_ptr)->buffer = (char*)gf_malloc(length+1);
 				if ( ((SFString *)field->far_ptr)->buffer) {
 					for (j=0; j<length; j++) {
@@ -362,12 +362,12 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const u8 *inBuffer, u32 
 			ptr = is_ctx->enteredText;
 			len = gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
 			if (len == GF_UTF8_FAIL) len = 1;
-			if (outText->buffer) gf_free(outText->buffer);
+			gf_free(outText->buffer);
 			outText->buffer = (char*)gf_malloc(len);
 			if (!outText->buffer) return GF_OUT_OF_MEM;
 			memcpy(outText->buffer, tmp_utf8, sizeof(char) * (len-1) );
 			outText->buffer[len-1] = 0;
-			if (inText->buffer) gf_free(inText->buffer);
+			gf_free(inText->buffer);
 			inText->buffer = NULL;
 			is_ctx->text_len = 0;
 
@@ -386,7 +386,7 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const u8 *inBuffer, u32 
 			ptr = is_ctx->enteredText;
 			len = gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
 			if (len == GF_UTF8_FAIL) len = 0;
-			if (inText->buffer) gf_free(inText->buffer);
+			gf_free(inText->buffer);
 			inText->buffer = (char*)gf_malloc(len+1);
 			if (!inText->buffer) return GF_OUT_OF_MEM;
 			memcpy(inText->buffer, tmp_utf8, sizeof(char) * len);
@@ -789,7 +789,7 @@ Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, 
 		if (!n->enabled) return GF_FALSE;
 
 		if (keyPressed) {
-			if (n->keyPress.buffer) gf_free(n->keyPress.buffer);
+			gf_free(n->keyPress.buffer);
 			tc[0] = keyPressed;
 			tc[1] = 0;
 			ptr = tc;
@@ -802,7 +802,7 @@ Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, 
 			gf_node_event_out_str((GF_Node *)n, "keyPress");
 		}
 		if (keyReleased) {
-			if (n->keyRelease.buffer) gf_free(n->keyRelease.buffer);
+			gf_free(n->keyRelease.buffer);
 			tc[0] = keyReleased;
 			tc[1] = 0;
 			ptr = tc;
@@ -906,13 +906,13 @@ void gf_sc_input_sensor_string_input(GF_Compositor *compositor, u32 character)
 				ptr = st->enteredText;
 				len = gf_utf8_wcstombs(szStr, 10, &ptr);
 				if (len == GF_UTF8_FAIL) len = 0;
-				if (n->enteredText.buffer) gf_free(n->enteredText.buffer);
+				gf_free(n->enteredText.buffer);
 				szStr[len] = 0;
 				n->enteredText.buffer = gf_strdup(szStr);
 				gf_node_event_out_str((GF_Node *)n, "enteredText");
 			}
 		} else if (character=='\r') {
-			if (n->finalText.buffer) gf_free(n->finalText.buffer);
+			gf_free(n->finalText.buffer);
 			n->finalText.buffer = n->enteredText.buffer;
 			n->enteredText.buffer = gf_strdup("");
 			st->text_len = 0;
@@ -925,7 +925,7 @@ void gf_sc_input_sensor_string_input(GF_Compositor *compositor, u32 character)
 			ptr = st->enteredText;
 			len = gf_utf8_wcstombs(szStr, 10, &ptr);
 			if (len == GF_UTF8_FAIL) len = 0;
-			if (n->enteredText.buffer) gf_free(n->enteredText.buffer);
+			gf_free(n->enteredText.buffer);
 			szStr[len] = 0;
 			n->enteredText.buffer = gf_strdup(szStr);
 			gf_node_event_out_str((GF_Node *)n, "enteredText");

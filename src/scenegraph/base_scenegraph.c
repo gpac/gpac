@@ -549,8 +549,8 @@ restart:
 	while (gf_list_count(sg->ns)) {
 		GF_XMLNS *ns = (GF_XMLNS *)gf_list_get(sg->ns, 0);
 		gf_list_rem(sg->ns, 0);
-		if (ns->name) gf_free(ns->name);
-		if (ns->qname) gf_free(ns->qname);
+		gf_free(ns->name);
+		gf_free(ns->qname);
 		gf_free(ns);
 	}
 	gf_list_del(sg->ns);
@@ -674,7 +674,7 @@ void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 		sg->id_node = reg_node->next;
 		if (sg->id_node_last==reg_node)
 			sg->id_node_last = reg_node->next;
-		if (reg_node->NodeName) gf_free(reg_node->NodeName);
+		gf_free(reg_node->NodeName);
 		gf_free(reg_node);
 	} else {
 		NodeIDedItem *to_del;
@@ -688,7 +688,7 @@ void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 			if (sg->id_node_last==to_del) {
 				sg->id_node_last = reg_node->next ? reg_node->next : reg_node;
 			}
-			if (to_del->NodeName) gf_free(to_del->NodeName);
+			gf_free(to_del->NodeName);
 			to_del->NodeName = NULL;
 			gf_free(to_del);
 			break;
@@ -813,13 +813,20 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 	if (parentNode) {
 		if (!node->sgprivate->parents) {
 			node->sgprivate->parents = (GF_ParentList*)gf_malloc(sizeof(GF_ParentList));
+			if (!node->sgprivate->parents) {
+				node->sgprivate->num_instances --;
+				return GF_OUT_OF_MEM;
+			}
 			node->sgprivate->parents->next = NULL;
 			node->sgprivate->parents->node = parentNode;
 		} else {
 			GF_ParentList *item, *nlist = node->sgprivate->parents;
 			while (nlist->next) nlist = nlist->next;
 			item = (GF_ParentList*)gf_malloc(sizeof(GF_ParentList));
-			if (!item) return GF_OUT_OF_MEM;
+			if (!item) {
+				node->sgprivate->num_instances --;
+				return GF_OUT_OF_MEM;
+			}
 			item->next = NULL;
 			item->node = parentNode;
 			nlist->next = item;
@@ -1947,13 +1954,13 @@ void gf_node_del(GF_Node *node)
 	if (node->sgprivate->tag==TAG_UndefinedNode) gf_node_free(node);
 	else if (node->sgprivate->tag==TAG_DOMText) {
 		GF_DOMText *t = (GF_DOMText *)node;
-		if (t->textContent) gf_free(t->textContent);
+		gf_free(t->textContent);
 		gf_sg_parent_reset(node);
 		gf_node_free(node);
 	}
 	else if (node->sgprivate->tag==TAG_DOMUpdates) {
 		GF_DOMUpdates *up = (GF_DOMUpdates *)node;
-		if (up->data) gf_free(up->data);
+		gf_free(up->data);
 #ifndef GPAC_DISABLE_VRML
 		u32 i, count = gf_list_count(up->updates);
 		for (i=0; i<count; i++) {
@@ -1970,7 +1977,7 @@ void gf_node_del(GF_Node *node)
 #ifndef GPAC_DISABLE_SVG
 		gf_node_delete_attributes(node);
 #endif
-		if (n->name) gf_free(n->name);
+		gf_free(n->name);
 		gf_sg_parent_reset(node);
 		gf_node_free(node);
 	}
@@ -2356,7 +2363,7 @@ GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, const char *ns_name, const char
 		if (ok && ns->name && !strcmp(ns->name, ns_name)) {
 			gf_list_rem(sg->ns, i);
 			gf_free(ns->name);
-			if (ns->qname) gf_free(ns->qname);
+			gf_free(ns->qname);
 			gf_free(ns);
 			return GF_OK;
 		}

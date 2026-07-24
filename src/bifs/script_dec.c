@@ -219,7 +219,7 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 
 	SFS_Line(&parser);
 
-	if (script_field->script_text) gf_free(script_field->script_text);
+	gf_free(script_field->script_text);
 	script_field->script_text = (char *) gf_strdup(parser.string);
 
 exit:
@@ -230,7 +230,7 @@ exit:
 		gf_list_rem(parser.identifiers, 0);
 	}
 	gf_list_del(parser.identifiers);
-	if (parser.string) gf_free(parser.string);
+	gf_free(parser.string);
 	return e;
 }
 

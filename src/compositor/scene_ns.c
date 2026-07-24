@@ -420,8 +420,8 @@ void gf_scene_ns_del(GF_SceneNamespace *sns, GF_Scene *root_scene)
 		}
 		gf_list_del(sns->clocks);
 	}
-	if (sns->url) gf_free(sns->url);
-	if (sns->url_frag) gf_free(sns->url_frag);
+	gf_free(sns->url);
+	gf_free(sns->url_frag);
 	gf_free(sns);
 }
 
@@ -534,7 +534,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, const ch
 
 	gf_filter_lock_all(scene->compositor->filter, GF_TRUE);
 	odm->scene_ns->source_filter = gf_filter_connect_source(scene->compositor->filter, url_with_args ? url_with_args : serviceURL, parent_url, GF_FALSE, &e);
-	if (url_with_args) gf_free(url_with_args);
+	gf_free(url_with_args);
 
 	if (frag) frag[0] = '#';
 	if (!odm->scene_ns->source_filter) {

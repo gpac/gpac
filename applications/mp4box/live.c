@@ -201,7 +201,7 @@ static Bool live_session_setup(LiveSession *livesess, const char *ip, u16 port, 
 	u32 i;
 	char *iod64 = gf_seng_get_base64_iod(livesess->seng);
 	char *sdp = gf_rtp_streamer_format_sdp_header("GPACSceneStreamer", ip, NULL, iod64);
-	if (iod64) gf_free(iod64);
+	gf_free(iod64);
 
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
@@ -271,7 +271,7 @@ void live_session_shutdown(LiveSession *livesess)
 			RTPChannel *rtpch = (RTPChannel *)gf_list_get(livesess->streams, 0);
 			gf_list_rem(livesess->streams, 0);
 			gf_rtp_streamer_del(rtpch->rtp);
-			if (rtpch->carousel_data) gf_free(rtpch->carousel_data);
+			gf_free(rtpch->carousel_data);
 			gf_free(rtpch);
 		}
 		gf_list_del(livesess->streams);
@@ -411,7 +411,7 @@ int live_session(int argc, char **argv)
 		Bool res = live_session_setup(&livesess, dst, dst_port, path_mtu, ttl, ifce_addr, sdp_name);
 		if (!res) {
 			live_session_shutdown(&livesess);
-			if (update_buffer) gf_free(update_buffer);
+			gf_free(update_buffer);
 			if (sk) gf_sk_del(sk);
 			gf_sys_close();
 			return e ? 1 : 0;
@@ -764,7 +764,7 @@ int live_session(int argc, char **argv)
 
 exit:
 	live_session_shutdown(&livesess);
-	if (update_buffer) gf_free(update_buffer);
+	gf_free(update_buffer);
 	if (sk) gf_sk_del(sk);
 	gf_sys_close();
 	return e ? 1 : 0;

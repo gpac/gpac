@@ -2631,8 +2631,7 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock) {
 		}
 	}
 #endif
-	if (lock->resourceName)
-		gf_free(lock->resourceName);
+	gf_free(lock->resourceName);
 	lock->resourceName = NULL;
 	gf_free(lock);
 	return GF_OK;

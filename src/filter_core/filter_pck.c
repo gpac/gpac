@@ -693,10 +693,10 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 			gf_free(pck);
 		}
 	} else if (is_filter_destroyed) {
-		if (!pck->filter_owns_mem && pck->data) gf_free(pck->data);
+		if (!pck->filter_owns_mem) gf_free(pck->data);
 		gf_free(pck);
 	} else if (pck->is_dangling) {
-		if (pck->data) gf_free(pck->data);
+		gf_free(pck->data);
 		gf_free(pck);
 	}
 	else if (pck->filter_owns_mem ) {
@@ -705,7 +705,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 		}
 	} else {
 		if (!pid->filter || gf_fq_res_add(pid->filter->pcks_alloc_reservoir, pck)) {
-			if (pck->data) gf_free(pck->data);
+			gf_free(pck->data);
 			gf_free(pck);
 		}
 	}

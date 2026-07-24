@@ -322,7 +322,7 @@ GF_Err vttmx_process(GF_Filter *filter)
 static void vttmx_finalize(GF_Filter *filter)
 {
 	GF_WebVTTMxCtx *ctx = (GF_WebVTTMxCtx *)gf_filter_get_udta(filter);
-	if (ctx->cues_buffer) gf_free(ctx->cues_buffer);
+	gf_free(ctx->cues_buffer);
 
 	if (ctx->parser) gf_webvtt_parser_del(ctx->parser);
 

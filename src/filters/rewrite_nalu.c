@@ -212,10 +212,10 @@ static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, const u8 *dsi, u32 ds
 	}
 
 	if (for_non_rap) {
-		if (ctx->dsi_non_rap) gf_free(ctx->dsi_non_rap);
+		gf_free(ctx->dsi_non_rap);
 		gf_bs_get_content(bs, &ctx->dsi_non_rap, &ctx->dsi_non_rap_size);
 	} else {
-		if (ctx->dsi) gf_free(ctx->dsi);
+		gf_free(ctx->dsi);
 		gf_bs_get_content(bs, &ctx->dsi, &ctx->dsi_size);
 	}
 	gf_bs_del(bs);
@@ -697,11 +697,11 @@ static void nalumx_finalize(GF_Filter *filter)
 	GF_NALUMxCtx *ctx = (GF_NALUMxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
-	if (ctx->dsi) gf_free(ctx->dsi);
-	if (ctx->dsi_non_rap) gf_free(ctx->dsi_non_rap);
+	gf_free(ctx->dsi);
+	gf_free(ctx->dsi_non_rap);
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (ctx->hevc_state) gf_free(ctx->hevc_state);
-	if (ctx->vvc_state) gf_free(ctx->vvc_state);
+	gf_free(ctx->hevc_state);
+	gf_free(ctx->vvc_state);
 #endif
 }
 

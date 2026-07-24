@@ -974,8 +974,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 			gf_filter_pck_set_property_dyn(gpck->pck, pname, &p);
 			gf_free(pname);
 			if ((p.type==GF_PROP_UINT_LIST) || (p.type==GF_PROP_4CC_LIST) || (p.type==GF_PROP_SINT_LIST) || (p.type==GF_PROP_VEC2I_LIST) ) {
-				if (p.value.uint_list.vals)
-					gf_free(p.value.uint_list.vals);
+				gf_free(p.value.uint_list.vals);
 			}
 		}
 	}
@@ -1447,7 +1446,7 @@ static void gsfdmx_finalize(GF_Filter *filter)
 	while (gf_list_count(ctx->pck_res)) {
 		GSF_Packet *gsp = (GSF_Packet *)gf_list_pop_back(ctx->pck_res);
 		gf_list_del_item(ctx->pck_res, gsp);
-		if (gsp->frags) gf_free(gsp->frags);
+		gf_free(gsp->frags);
 		gf_free(gsp);
 	}
 	gf_list_del(ctx->pck_res);
@@ -1455,7 +1454,7 @@ static void gsfdmx_finalize(GF_Filter *filter)
 #ifndef GPAC_DISABLE_CRYPTO
 	if (ctx->crypt) gf_crypt_close(ctx->crypt);
 #endif
-	if (ctx->buffer) gf_free(ctx->buffer);
+	gf_free(ctx->buffer);
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->bs_pck) gf_bs_del(ctx->bs_pck);
 }

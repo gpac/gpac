@@ -154,7 +154,7 @@ static void cryptfile_finalize(GF_Filter *filter)
 {
 	GF_CryptFileCtx *ctx = (GF_CryptFileCtx *) gf_filter_get_udta(filter);
 	if (ctx->crypt) gf_crypt_close(ctx->crypt);
-	if (ctx->key_url) gf_free(ctx->key_url);
+	gf_free(ctx->key_url);
 
 	if (ctx->keys) {
 		while (gf_list_count(ctx->keys)) {
@@ -406,7 +406,7 @@ void gf_cryptfin_set_kms(GF_Filter *filter, const char *key_url, bin128 key_IV)
 	if (ctx->key_url && key_url && !strcmp(ctx->key_url, key_url)) {
 		ctx->reload_key_state = KEY_STATE_SET_IV;
 	} else {
-		if (ctx->key_url) gf_free(ctx->key_url);
+		gf_free(ctx->key_url);
 
 		if (!key_url) {
 			ctx->key_url = NULL;
