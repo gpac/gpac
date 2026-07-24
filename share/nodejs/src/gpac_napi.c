@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2021-2025
+ *			Copyright (c) Telecom Paris 2021
  *					All rights reserved
  *
  *  This file is part of GPAC / NodeJS module

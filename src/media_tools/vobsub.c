@@ -2,7 +2,7 @@
  *          GPAC - Multimedia Framework C SDK
  *
  *          Copyright (c) by  Falco (Ivan Vecera) 2006
- *          Copyright (c) Jean Le Feuvre - Telecom ParisTech 2018_2020
+ *          Copyright (c) Jean Le Feuvre - Telecom Paris 2018
  *                  All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project

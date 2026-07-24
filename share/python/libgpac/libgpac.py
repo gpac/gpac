@@ -2,7 +2,7 @@
 #          GPAC - Multimedia Framework C SDK
 #
 #          Authors: Jean Le Feuvre
-#          Copyright (c) Telecom Paris 2020-2026
+#          Copyright (c) Telecom Paris 2020
 #                  All rights reserved
 #
 #  Python ctypes bindings for GPAC (core initialization and filters API only)

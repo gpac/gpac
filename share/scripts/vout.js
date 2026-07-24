@@ -3,7 +3,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2025
+ *			Copyright (c) Telecom Paris 2020
  *					All rights reserved
  *
  *  This file is part of GPAC / vout default ui
