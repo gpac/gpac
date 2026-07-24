@@ -795,7 +795,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		}
 
 	}
-	//disabled for the time being, matchin `colr` box will be injected by mp43mx if needed
+	//disabled for the time being, matching `colr` box will be injected by mp4mx if needed
 	//check vpX specs to see if always needed
 #if 0
 	else if (ctx->vp_cfg) {
