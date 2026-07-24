@@ -582,8 +582,9 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 			while ((the_url = (MFURL *)gf_list_enum(l->mf_urls, &j))) {
 				u32 k;
 				char *seg = NULL;
-				for (k=0; k<the_url->count; k++) {
-					SFURL *url = &the_url->vals[k];
+				for (k = 0; k < the_url->count; k++) {
+					SFURL* url = &the_url->vals[k];
+					seg = NULL;
 					if (url->url) seg = strstr(url->url, "#");
 					if (seg) {
 						sprintf(szURL, "od:%d#%s", l->od->objectDescriptorID, seg+1);
@@ -1541,10 +1542,10 @@ static void xmt_discard_node(GF_XMTParser *parser, GF_Node *node)
 	gf_node_unregister(node, NULL);
 }
 
-static void xmt_discard_subtree(GF_XMTParser* parser, GF_Node* node)
+static void xmt_discard_subtree_do(GF_XMTParser* parser, GF_Node* node, u32 depth)
 {
 	u32 i, count;
-	if (!node)
+	if (!node || depth > 512)
 		return;
 	for (i = gf_list_count(parser->nodes); i > 0; i--) {
 		XMTNodeStack* st = gf_list_get(parser->nodes, i - 1);
@@ -1571,6 +1572,7 @@ static void xmt_discard_subtree(GF_XMTParser* parser, GF_Node* node)
 						parser->command_buffer_depth--;
 						parser->command_buffer = (SFCommandBuffer*)prev;
 					} else {
+						parser->command = (GF_Command*)(void*)prev;
 						parser->command_buffer = NULL;
 					}
 				}
@@ -1585,16 +1587,22 @@ static void xmt_discard_subtree(GF_XMTParser* parser, GF_Node* node)
 				}
 			}
 		} else if (field.fieldType == GF_SG_VRML_SFNODE) {
-			xmt_discard_subtree(parser, *(GF_Node**)field.far_ptr);
+			xmt_discard_subtree_do(parser, *(GF_Node**)field.far_ptr, depth + 1);
 		} else if (field.fieldType == GF_SG_VRML_MFNODE) {
 			GF_ChildNodeItem* list = *(GF_ChildNodeItem**)field.far_ptr;
 			while (list) {
-				xmt_discard_subtree(parser, list->node);
+				xmt_discard_subtree_do(parser, list->node, depth + 1);
 				list = list->next;
 			}
 		}
 	}
 }
+
+static void xmt_discard_subtree(GF_XMTParser* parser, GF_Node* node)
+{
+	xmt_discard_subtree_do(parser, node, 0);
+}
+
 
 static void xmt_remove_od_links_recursive(GF_XMTParser* parser, GF_Node* node)
 {
@@ -2534,7 +2542,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 		}
 
 		if (atNode) {
-			parser->command->node = atNode;
+			gf_sg_command_set_node(parser->command, atNode);
 			gf_node_register(atNode, NULL);
 			if (tag == GF_SG_MULTIPLE_INDEXED_REPLACE) {
 				parser->command->fromFieldIndex = info.fieldIndex;
@@ -2571,7 +2579,10 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 					}
 				}
 				if (childField) {
-					GF_Node *child = gf_node_list_get_child( ((GF_ParentNode*)atNode)->children, position);
+					GF_ChildNodeItem* clist = (info.far_ptr && info.fieldType == GF_SG_VRML_MFNODE)
+					    ? *(GF_ChildNodeItem**)info.far_ptr
+					    : NULL;
+					GF_Node* child = gf_node_list_get_child(clist, position);
 					if (child) {
 						parser->command->ChildNodeTag = gf_node_get_tag(child);
 						if (parser->command->ChildNodeTag == TAG_ProtoNode) {
@@ -2862,7 +2873,7 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 	/*assign root node here to enable progressive loading*/
 	if (!top && (parser->doc_type == 1) && !parser->parsing_proto && parser->command && (parser->command->tag==GF_SG_SCENE_REPLACE) && !parser->command->node) {
-		parser->command->node = elt;
+		gf_sg_command_set_node(parser->command, elt);
 		gf_node_register(elt, NULL);
 	}
 }
@@ -3097,8 +3108,35 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 attach_node:
 		top = (XMTNodeStack*)gf_list_last(parser->nodes);
 		Bool node_processed = GF_FALSE;
+		/* If this node owns a SFCOMMANDBUFFER that parser->command_buffer still points
+		   into, the <buffer> element was never properly closed (malformed XML).
+		   Unwind the command-buffer stack now, zeroing cb->buffer so that
+		   gf_sg_sfcommand_del cannot later free the stale bookmark pointer as if it
+		   were heap-allocated binary data. */
+		if (parser->command_buffer && node) {
+			u32 fi, fcount = gf_node_get_field_count(node);
+			for (fi = 0; fi < fcount; fi++) {
+				GF_FieldInfo cbfield;
+				if (gf_node_get_field(node, fi, &cbfield) != GF_OK)
+					continue;
+				if (cbfield.fieldType == GF_SG_VRML_SFCOMMANDBUFFER && (SFCommandBuffer*)cbfield.far_ptr == parser->command_buffer) {
+					while (parser->command_buffer) {
+						void* prev = parser->command_buffer->buffer;
+						parser->command_buffer->buffer = NULL;
+						if (parser->command_buffer_depth > 0) {
+							parser->command_buffer_depth--;
+							parser->command_buffer = (SFCommandBuffer*)prev;
+						} else {
+							parser->command = (GF_Command*)(void*)prev;
+							parser->command_buffer = NULL;
+						}
+					}
+					break;
+				}
+			}
+		}
 		/*add node to command*/
-		if (!top || (top->container_field.fieldType==GF_SG_VRML_SFCOMMANDBUFFER)) {
+		if (!top || (top->container_field.fieldType == GF_SG_VRML_SFCOMMANDBUFFER)) {
 			if (parser->doc_type == 1) {
 				GF_CommandField *inf;
 				Bool single_node = 0;
@@ -3113,7 +3151,7 @@ attach_node:
 						gf_sg_proto_add_node_code(parser->parsing_proto, node);
 						gf_node_register(node, NULL);
 					} else if (!parser->command->node) {
-						parser->command->node = node;
+						gf_sg_command_set_node(parser->command, node);
 						gf_node_register(node, NULL);
 					} else if (parser->command->node != node) {
 						xmt_report(parser, GF_OK, "Warning: top-node already assigned - discarding node %s", name);
@@ -3192,10 +3230,46 @@ attach_node:
 					}
 				default:
 					xmt_report(parser, GF_OK, "Warning: node %s defined outside scene scope - skipping", name);
+					/* if parser->command_buffer is a field of this node being discarded,
+					   pop the buffer stack and restore parser->command BEFORE freeing
+					   the node; otherwise gf_node_unregister will free the SFCommandBuffer
+					   and all its commands, leaving parser->command dangling */
+					if (parser->command_buffer) {
+						u32 fi, fcount = gf_node_get_field_count(node);
+						for (fi = 0; fi < fcount; fi++) {
+							GF_FieldInfo cbfield;
+							if (gf_node_get_field(node, fi, &cbfield) != GF_OK)
+								continue;
+							if (cbfield.fieldType == GF_SG_VRML_SFCOMMANDBUFFER && (SFCommandBuffer*)cbfield.far_ptr == parser->command_buffer) {
+								/* remove commands from route resolution lists before they're freed */
+								u32 j, cb_count = gf_list_count(parser->command_buffer->commandList);
+								for (j = 0; j < cb_count; j++) {
+									GF_Command* cb_cmd = (GF_Command*)gf_list_get(parser->command_buffer->commandList, j);
+									gf_list_del_item(parser->unresolved_routes, cb_cmd);
+									gf_list_del_item(parser->inserted_routes, cb_cmd);
+								}
+								while (parser->command_buffer) {
+									void* prev = parser->command_buffer->buffer;
+									parser->command_buffer->buffer = NULL;
+									if (parser->command_buffer_depth > 0) {
+										parser->command_buffer_depth--;
+										parser->command_buffer = (SFCommandBuffer*)prev;
+										parser->command = NULL;
+									} else {
+										/* at depth 0, buffer->buffer holds the saved parser->command */
+										parser->command = (GF_Command*)(void*)prev;
+										parser->command_buffer = NULL;
+									}
+								}
+								break;
+							}
+						}
+					}
+					xmt_remove_od_links_for_node(parser, node);
 					gf_node_register(node, NULL);
 					gf_node_unregister(node, NULL);
+					node_processed = GF_TRUE;
 					break;
-
 				}
 			}
 			/*X3D*/
@@ -3221,8 +3295,43 @@ attach_node:
 				gf_node_register(node, NULL);
 			} else {
 				xmt_report(parser, GF_OK, "Warning: node %s defined outside scene scope - skipping", name);
+				/* clean up command_buffer, unresolved_routes and inserted_routes if they
+				   reference this node's SFCommandBuffer field, before the node is freed;
+				   also set node_processed to prevent the !node_processed block from running
+				   a second register+unregister on a potentially-freed node */
+				if (parser->command_buffer) {
+					u32 fi, fcount = gf_node_get_field_count(node);
+					for (fi = 0; fi < fcount; fi++) {
+						GF_FieldInfo cbfield;
+						if (gf_node_get_field(node, fi, &cbfield) != GF_OK)
+							continue;
+						if (cbfield.fieldType == GF_SG_VRML_SFCOMMANDBUFFER && (SFCommandBuffer*)cbfield.far_ptr == parser->command_buffer) {
+							u32 j, cb_count = gf_list_count(parser->command_buffer->commandList);
+							for (j = 0; j < cb_count; j++) {
+								GF_Command* cb_cmd = (GF_Command*)gf_list_get(parser->command_buffer->commandList, j);
+								gf_list_del_item(parser->unresolved_routes, cb_cmd);
+								gf_list_del_item(parser->inserted_routes, cb_cmd);
+							}
+							while (parser->command_buffer) {
+								void* prev = parser->command_buffer->buffer;
+								parser->command_buffer->buffer = NULL;
+								if (parser->command_buffer_depth > 0) {
+									parser->command_buffer_depth--;
+									parser->command_buffer = (SFCommandBuffer*)prev;
+									parser->command = NULL;
+								} else {
+									parser->command = (GF_Command*)(void*)prev;
+									parser->command_buffer = NULL;
+								}
+							}
+							break;
+						}
+					}
+				}
+				xmt_remove_od_links_for_node(parser, node);
 				gf_node_register(node, NULL);
 				gf_node_unregister(node, NULL);
+				node_processed = GF_TRUE;
 			}
 		}
 		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
@@ -3266,6 +3375,7 @@ attach_node:
 								parser->command_buffer_depth--;
 								parser->command_buffer = (SFCommandBuffer*)prev;
 							} else {
+								parser->command = (GF_Command*)(void*)prev;
 								parser->command_buffer = NULL;
 							}
 						}

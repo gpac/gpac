@@ -1690,6 +1690,14 @@ void gf_node_free(GF_Node *node)
 		}
 	}
 	gf_assert(! node->sgprivate->parents);
+	if (node->sgprivate->referencing_commands) {
+		u32 i, cnt = gf_list_count(node->sgprivate->referencing_commands);
+		for (i = 0; i < cnt; i++) {
+			GF_Node **node_ptr = (GF_Node **)gf_list_get(node->sgprivate->referencing_commands, i);
+			*node_ptr = NULL;
+		}
+		gf_list_del(node->sgprivate->referencing_commands);
+	}
 	gf_free(node->sgprivate);
 	gf_free(node);
 }

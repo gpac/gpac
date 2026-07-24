@@ -2104,7 +2104,7 @@ void gf_bt_resolve_routes(GF_BTParser *parser, Bool clean)
 
 static void bd_set_com_node(GF_Command *com, GF_Node *node)
 {
-	com->node = node;
+	gf_sg_command_set_node(com, node);
 	gf_node_register(com->node, NULL);
 }
 

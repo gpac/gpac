@@ -61,6 +61,12 @@ void gf_sg_command_del(GF_Command *com)
 	if (com->in_scene && com->in_scene->referencing_commands)
 		gf_list_del_item(com->in_scene->referencing_commands, &com->in_scene);
 
+	/* deregister from the node's back-reference list before the command struct is freed;
+	   if gf_node_free already ran (force-free in gf_sg_reset), com->node will be NULL here */
+	if (com->node && com->node->sgprivate && com->node->sgprivate->referencing_commands)
+		gf_list_del_item(com->node->sgprivate->referencing_commands, &com->node);
+
+
 	if (com->tag < GF_SG_LAST_BIFS_COMMAND) {
 #ifndef GPAC_DISABLE_VRML
 		while (gf_list_count(com->command_fields)) {
@@ -230,7 +236,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		}
 		/*assign new root (no need to register/unregister)*/
 		graph->RootNode = com->node;
-		com->node = NULL;
+		gf_sg_command_set_node(com, NULL);
 		break;
 
 	case GF_SG_NODE_REPLACE:
@@ -606,9 +612,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				break;
 			}
 			case GF_SG_VRML_MFNODE:
+				if (!value.far_ptr) break;
 				gf_node_unregister_children(target, * ((GF_ChildNodeItem **) field.far_ptr));
 				* ((GF_ChildNodeItem **) field.far_ptr) = NULL;
-
 				list = * ((GF_ChildNodeItem **) value.far_ptr);
 				prev=NULL;
 				while (list) {
@@ -655,7 +661,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 
 		/*assign new root (no need to register/unregister)*/
 		graph->RootNode = com->node;
-		com->node = NULL;
+		gf_sg_command_set_node(com, NULL);
 		break;
 	case GF_SG_LSR_DELETE:
 		if (!com->node) return GF_NON_COMPLIANT_BITSTREAM;
@@ -911,6 +917,21 @@ GF_CommandField *gf_sg_command_field_new(GF_Command *com)
 	if (ptr)
 		gf_list_add(com->command_fields, ptr);
 	return ptr;
+}
+
+void gf_sg_command_set_node(GF_Command *com, GF_Node *node)
+{
+	/* remove the back-reference from the old node's tracking list */
+	if (com->node && com->node->sgprivate && com->node->sgprivate->referencing_commands)
+		gf_list_del_item(com->node->sgprivate->referencing_commands, &com->node);
+
+	com->node = node;
+
+	if (node) {
+		if (!node->sgprivate->referencing_commands)
+			node->sgprivate->referencing_commands = gf_list_new();
+		gf_list_add(node->sgprivate->referencing_commands, &com->node);
+	}
 }
 
 

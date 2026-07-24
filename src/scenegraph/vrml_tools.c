@@ -625,7 +625,7 @@ void gf_sg_sfcommand_del(SFCommandBuffer cb)
 		gf_sg_command_del(com);
 	}
 	gf_list_del(cb.commandList);
-	if (cb.buffer) gf_free(cb.buffer);
+	if (cb.buffer && cb.bufferSize) gf_free(cb.buffer);
 }
 
 GF_EXPORT
