@@ -334,7 +334,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		                             sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_STREAM_DESCRIPTION || sec->section[0]==GF_M2TS_TABLE_ID_DSM_CC_PRIVATE)) ) {
 
 		}
-		else if (((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
+		else if (sec->section[0]==GF_M2TS_TABLE_ID_INT) {
 		}
 		else if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_SCTE35_SPLICE_INFO)) ) {
 			GF_M2TS_SL_PCK pck;

@@ -238,7 +238,6 @@ push_feature "isoff-hds" "Adobe HDS in ISOBMFF support"
 push_feature "streaming" "RTP/RTSP/SDP support"
 push_feature "fonts" "Font and Text engine (used by compositor and EVG.js"
 push_feature "player" "deprecated - old name for compositor feature"
-push_feature "dvbx" "!DVB-specific tools (MPE, FEC, DSM-CC)"
 push_feature "vobsub" "VobSub support"
 push_feature "ttxt" "TTXT (3GPP / MPEG-4 Timed Text) support"
 push_feature "ttml" "TTML/EBU TTD support"
@@ -2523,11 +2522,6 @@ if test "$disable_streaming" = "yes" ; then
     echo "RTP/RTSP/SDP streaming disabled"
     echo "#define GPAC_DISABLE_STREAMING" >> $TMPH
 fi
-if test "$disable_dvbx" = "no" ; then
-    echo "DVB MPE and DSM-CC enabled"
-    echo "#define GPAC_ENABLE_MPE" >> $TMPH
-    echo "#define GPAC_ENABLE_DSMCC" >> $TMPH
-fi
 if test "$disable_vobsub" = "yes" ; then
     echo "VobSub disabled"
     echo "#define GPAC_DISABLE_VOBSUB" >> $TMPH
@@ -3112,7 +3106,6 @@ echo "DISABLE_SCENE_DUMP=$disable_scene_dump" >> config.mak
 echo "DISABLE_SCENE_ENCODE=$disable_scene_encode" >> config.mak
 echo "DISABLE_SCENEGRAPH=$disable_scenegraph" >> config.mak
 echo "DISABLE_CRYPTO=$disable_crypto" >> config.mak
-echo "DISABLE_DVBX=$disable_dvbx" >> config.mak
 echo "DISABLE_AVILIB=$disable_avi" >> config.mak
 echo "DISABLE_M2PS=$disable_m2ps" >> config.mak
 echo "DISABLE_OGG=$disable_ogg" >> config.mak

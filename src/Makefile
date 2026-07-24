@@ -60,7 +60,10 @@ endif
 
 
 ## libgpac objects gathering: src/odf
-LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/odf_code.o odf/odf_codec.o odf/odf_command.o odf/slc.o odf/qos.o odf/oci_codec.o
+LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/odf_code.o odf/odf_codec.o odf/odf_command.o odf/slc.o
+ifeq ($(MINIMAL_OD),no)
+LIBGPAC_ODF+=odf/qos.o odf/oci_codec.o
+endif
 
 ifeq ($(DISABLE_OD_DUMP),no)
 LIBGPAC_ODF+=odf/odf_dump.o
