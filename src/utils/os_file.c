@@ -762,23 +762,6 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		}
 		gf_free(drives);
 		return GF_OK;
-#elif defined(__SYMBIAN32__)
-		RFs iFs;
-		TDriveList aList;
-		iFs.Connect();
-		iFs.DriveList(aList);
-		for (TInt i=0; i<KMaxDrives; i++) {
-			if (aList[i]) {
-				char szDrive[10];
-				TChar aDrive;
-				iFs.DriveToChar(i, aDrive);
-				sprintf(szDrive, "%c:", (TUint)aDrive);
-				enum_dir_fct(cbck, szDrive, "", &file_info);
-			}
-		}
-		iFs.Close();
-		FlushItemList();
-		return GF_OK;
 #elif defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_IOS)
 		dir = (char *) gf_opts_get_key("core", "docs-dir");
 #endif

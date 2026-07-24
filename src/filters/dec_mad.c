@@ -30,7 +30,7 @@
 
 #include <gpac/constants.h>
 
-#if defined(_WIN32_WCE) || defined(_WIN64) || defined(__SYMBIAN32__)
+#if defined(_WIN32_WCE) || defined(_WIN64)
 #ifndef FPM_DEFAULT
 #ifdef GPAC_64_BITS
 #define FPM_64BIT

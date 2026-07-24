@@ -58,11 +58,6 @@
 
 #endif
 
-/*!! HORRIBLE HACK, but on my test devices, it seems that glClipPlanex is missing on the device but not in the SDK lib !!*/
-#if defined(GL_MAX_CLIP_PLANES) && defined(__SYMBIAN32__)
-#undef GL_MAX_CLIP_PLANES
-#endif
-
 
 #ifdef LOAD_GL_1_3
 

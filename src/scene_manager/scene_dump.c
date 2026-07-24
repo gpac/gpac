@@ -31,10 +31,7 @@
 #include <gpac/nodes_svg.h>
 #include <gpac/events.h>
 #include <gpac/base_coding.h>
-
-#ifndef __SYMBIAN32__
 #include <wchar.h>
-#endif
 
 #ifndef GPAC_DISABLE_SCENE_DUMP
 

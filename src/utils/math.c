@@ -78,11 +78,7 @@ void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2)
 #pragma message("Compiling with fixed-point arithmetic")
 #endif
 
-#if defined(__SYMBIAN32__) && !defined(__SERIES60_3X__)
-typedef long long fix_s64;
-#else
 typedef s64 fix_s64;
-#endif
 
 
 /* the following is 0.2715717684432231 * 2^30 */

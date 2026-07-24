@@ -309,28 +309,6 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 	return GF_FALSE;
 }
 
-
-#elif defined(__SYMBIAN__)
-
-#if defined(__SERIES60_3X__)
-#define SYMBIAN_GPAC_CFG_DIR	"\\private\\F01F9075"
-#define SYMBIAN_GPAC_GUI_DIR	"\\private\\F01F9075\\gui"
-#define SYMBIAN_GPAC_MODULES_DIR	"\\sys\\bin"
-#else
-#define SYMBIAN_GPAC_CFG_DIR	"\\system\\apps\\GPAC"
-#define SYMBIAN_GPAC_GUI_DIR	"\\system\\apps\\GPAC\\gui"
-#define SYMBIAN_GPAC_MODULES_DIR	GPAC_CFG_DIR
-#endif
-
-static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
-{
-	if (path_type==GF_PATH_APP) gf_strlcpy(file_path, SYMBIAN_GPAC_MODULES_DIR, GF_MAX_PATH);
-	else if (path_type==GF_PATH_CFG) gf_strlcpy(file_path, SYMBIAN_GPAC_CFG_DIR, GF_MAX_PATH);
-	else if (path_type==GF_PATH_GUI) gf_strlcpy(file_path, SYMBIAN_GPAC_GUI_DIR, GF_MAX_PATH);
-	else if (path_type==GF_PATH_MODULES) gf_strlcpy(file_path, SYMBIAN_GPAC_MODULES_DIR, GF_MAX_PATH);
-	return GF_TRUE;
-}
-
 /*Linux, OSX, iOS*/
 #else
 

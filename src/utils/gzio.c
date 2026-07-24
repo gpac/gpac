@@ -16,11 +16,9 @@
 #  define NO_GZCOMPRESS
 
 #ifndef NO_DUMMY_DECL
-#ifndef __SYMBIAN32__
 struct internal_state {
 	int dummy;
 }; /* for buggy compilers */
-#endif
 #endif
 
 #ifndef Z_BUFSIZE

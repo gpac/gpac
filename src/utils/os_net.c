@@ -358,11 +358,7 @@ static const char * inet_ntop6(const unsigned char *src, char *dst, size_t size)
 #endif
 
 
-#ifdef __SYMBIAN32__
-#define SSO_CAST
-#else
 #define SSO_CAST (const char *)
-#endif
 
 
 #ifdef GPAC_HAS_IPV6
@@ -2407,11 +2403,9 @@ conn_ok:
 		if (Host == NULL) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Failed to retrieve host %s address: %s\n", PeerName, gf_errno_str(LASTSOCKERROR) ));
 			switch (LASTSOCKERROR) {
-#ifndef __SYMBIAN32__
 			case ENETDOWN:
 				return GF_IP_NETWORK_FAILURE;
 				//case ENOHOST: return GF_IP_ADDRESS_NOT_FOUND;
-#endif
 			default:
 				return GF_IP_NETWORK_FAILURE;
 			}
@@ -2823,7 +2817,6 @@ Bool gpac_use_poll=GF_TRUE;
 
 static GF_Err poll_select(GF_Socket *sock, GF_SockSelectMode mode, u32 usec, Bool force_select)
 {
-#ifndef __SYMBIAN32__
 	int ready;
 	struct timeval timeout;
 
@@ -2900,7 +2893,6 @@ static GF_Err poll_select(GF_Socket *sock, GF_SockSelectMode mode, u32 usec, Boo
 		return GF_IP_NETWORK_EMPTY;
 	//if mode is both and we are ready, let's go
 	return GF_OK;
-#endif
 }
 
 //send length bytes of a buffer
@@ -2957,13 +2949,11 @@ static GF_Err gf_sk_send_internal(GF_Socket *sock, const u8 *buffer, u32 length,
 			case EAGAIN:
 			case EINTR:
 				return GF_IP_NETWORK_EMPTY;
-#ifndef __SYMBIAN32__
 			case ENOTCONN:
 			case ECONNRESET:
 			case EPIPE:
 				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] send failure: %s\n", gf_errno_str(LASTSOCKERROR)));
 				return GF_IP_CONNECTION_CLOSED;
-#endif
 
 #ifndef __DARWIN__
 			case EPROTOTYPE:
@@ -4115,7 +4105,6 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, u8 *buffer, u32 length, u32 *Byte
 			return GF_IP_NETWORK_EMPTY;
 #endif
 
-#ifndef __SYMBIAN32__
 		case EMSGSIZE:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading: %s\n", gf_errno_str(LASTSOCKERROR)));
 			return GF_OUT_OF_MEM;
@@ -4128,7 +4117,6 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, u8 *buffer, u32 length, u32 *Byte
 			//log as debug, let higher level decide if this is an error or not
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[socket] error reading: %s\n", gf_errno_str(LASTSOCKERROR)));
 			return GF_IP_CONNECTION_CLOSED;
-#endif
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading: %s\n", gf_errno_str(LASTSOCKERROR) ));
 			return GF_IP_NETWORK_FAILURE;
@@ -4331,9 +4319,7 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 
 	one = serverOn ? 1 : 0;
 	setsockopt(sock->socket, IPPROTO_TCP, TCP_NODELAY, SSO_CAST &one, sizeof(u32));
-#ifndef __SYMBIAN32__
 	setsockopt(sock->socket, SOL_SOCKET, SO_KEEPALIVE, (char *) &one, sizeof(u32));
-#endif
 	return GF_OK;
 }
 
