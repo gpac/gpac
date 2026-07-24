@@ -158,13 +158,17 @@ void gf_sg_vrml_parent_setup(GF_Node *pNode)
 void gf_sg_vrml_parent_destroy(GF_Node *pNode)
 {
 	GF_VRMLParent* par = (GF_VRMLParent*)pNode;
-	GF_ChildNodeItem* children = par->children;
 	GF_ChildNodeItem* addChildren = par->addChildren;
 	GF_ChildNodeItem* removeChildren = par->removeChildren;
-	par->children = NULL;
 	par->addChildren = NULL;
 	par->removeChildren = NULL;
-	gf_node_unregister_children(pNode, children);
+	while (par->children) {
+		GF_ChildNodeItem *cur = par->children;
+		par->children = cur->next;
+		if (cur->node != pNode) gf_node_unregister(cur->node, pNode);
+		gf_free(cur);
+	}
+	par->children = NULL;
 	gf_node_unregister_children(pNode, addChildren);
 	gf_node_unregister_children(pNode, removeChildren);
 }
@@ -625,7 +629,7 @@ void gf_sg_sfcommand_del(SFCommandBuffer cb)
 		gf_sg_command_del(com);
 	}
 	gf_list_del(cb.commandList);
-	if (cb.buffer && cb.bufferSize) gf_free(cb.buffer);
+	if (cb.buffer) gf_free(cb.buffer);
 }
 
 GF_EXPORT

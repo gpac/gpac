@@ -565,6 +565,31 @@ static GF_Proto *find_proto_by_interface(GF_SceneGraph *sg, GF_Proto *extern_pro
 	return NULL;
 }
 
+#define GF_MAX_PROTO_INSTANTIATION_DEPTH 256
+
+static Bool gf_sg_proto_instantiation_would_cycle(GF_ProtoInstance *proto_node, GF_Proto *proto, u32 *depth_out)
+{
+    u32 depth = 0;
+    GF_SceneGraph *sg = proto_node && proto_node->sgprivate ? proto_node->sgprivate->scenegraph : NULL;
+    if (!sg) return GF_FALSE;
+
+    sg = sg->parent_scene;
+    while (sg) {
+        depth++;
+        if (depth > GF_MAX_PROTO_INSTANTIATION_DEPTH) {
+            if (depth_out) *depth_out = depth;
+            return GF_TRUE;
+        }
+        if (sg->pOwningProto && (sg->pOwningProto->proto_interface == proto)) {
+            if (depth_out) *depth_out = depth;
+            return GF_TRUE;
+        }
+        sg = sg->parent_scene;
+    }
+    if (depth_out) *depth_out = depth;
+    return GF_FALSE;
+}
+
 /*performs common initialization of routes ISed fields and protos once everything is loaded*/
 void gf_sg_proto_instantiate(GF_ProtoInstance *proto_node)
 {
@@ -647,6 +672,18 @@ void gf_sg_proto_instantiate(GF_ProtoInstance *proto_node)
 
 	/*OVERRIDE the proto instance (eg don't instantiate an empty externproto...)*/
 	proto_node->proto_interface = proto;
+
+	{
+		u32 chain_depth = 0;
+		if (gf_sg_proto_instantiation_would_cycle(proto_node, proto, &chain_depth)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE,
+			    ("[Scenegraph] cyclic PROTO instantiation blocked for %s (depth %u)\n",
+			        proto->Name ? proto->Name : "<unnamed>", chain_depth));
+			/* Mark as loaded to avoid repeated attempts on traversal */
+			proto_node->flags |= GF_SG_PROTO_LOADED;
+			return;
+		}
+	}
 
 	/*clone all nodes*/
 	i=0;
