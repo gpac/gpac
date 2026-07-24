@@ -331,6 +331,7 @@ char *gf_text_get_utf8_line(char szLine[2048], u32 lineSize, FILE *txt_in, s32 u
 	unsigned short *sptr;
 	Bool in_eof = *io_progress;
 	*io_progress = GF_FALSE;
+	if (lineSize<2) return NULL;
 
 	memset(szLine, 0, sizeof(char)*lineSize);
 	sOK = gf_fgets(szLine, lineSize, txt_in);
@@ -429,8 +430,8 @@ char *gf_text_get_utf8_line(char szLine[2048], u32 lineSize, FILE *txt_in, s32 u
 			i+=2;
 		}
 	}
-	szLine[2046]=0;
-	szLine[2047]=0;
+	szLine[lineSize-2]=0;
+	szLine[lineSize-1]=0;
 	sptr = (u16 *)szLine;
 	i = gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);
 	if (i == GF_UTF8_FAIL) i = 0;
