@@ -37,7 +37,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>26.07</string>
+	<string>26.08.0-DEV</string>
 	<key>CFBundleSignature</key>
 	<string>gpac</string>
 	<key>CFBundleVersion</key>
