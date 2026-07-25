@@ -516,7 +516,7 @@
 		<string>yes</string>
 	</dict>
 	<key>CFBundleShortVersionString</key>
-	<string>26.08.0-DEV</string>
+	<string>26.08-DEV</string>
 	<key>CFBundleSignature</key>
 	<string>gpac</string>
 	<key>CFBundleURLTypes</key>
