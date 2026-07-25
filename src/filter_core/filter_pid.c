@@ -1628,6 +1628,26 @@ static void gf_filter_pid_detach_task_ex(GF_FSTask *task, Bool no_flush)
 	if (gf_list_find(filter->detached_pid_inst, pidinst)<0)
 		gf_list_add(filter->detached_pid_inst, pidinst);
 
+	//If new_chain_input has detach_pid_tasks_pending > 1, a DISCONNECT_TASK was also posted
+	//meaning the new chain is being torn down and no connect task will ever be posted for filter.
+	//In that case CFG_CLEARED will never fire, so dispose the stuck pidinst now.
+	if (pidinst->swap_id && new_chain_input->detach_pid_tasks_pending > 1) {
+		pidinst->swap_id = 0;
+		gf_list_del_item(filter->detached_pid_inst, pidinst);
+		//reattach filter and pid so configure_pid(remove) can clean up filter-side state
+		pidinst->filter = filter;
+		pidinst->pid = pid;
+		if (pidinst->detach_pending) safe_int_dec(&pidinst->detach_pending);
+		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
+		filter->freg->configure_pid(filter, (GF_FilterPid *) pidinst, GF_TRUE);
+		gf_logs_thread_untag(filter);
+		gf_filter_pid_inst_del(pidinst);
+		if (!gf_list_count(filter->detached_pid_inst)) {
+			gf_list_del(filter->detached_pid_inst);
+			filter->detached_pid_inst = NULL;
+		}
+	}
+
 	//we are done, reset filter swap instance so that connection can take place
 	if (new_chain_input->swap_needs_init) {
 		new_chain_input->swap_pidinst_dst = NULL;
