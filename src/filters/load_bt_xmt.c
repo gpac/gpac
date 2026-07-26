@@ -60,6 +60,7 @@ typedef struct
 	u64 pck_time;
 	const char *service_url;
 	Bool is_playing;
+	u32 stuck_clock_count;
 
 	GF_FileIO *fio;
 	Bool load_file;
@@ -546,6 +547,23 @@ static GF_Err ctxload_process(GF_Filter *filter)
 	}
 
 	updates_pending = 0;
+	/*If pending AUs exist but the scene clock has not advanced after several process calls,
+	  the pipeline is in offline/headless encoding mode and no realtime clock is driving
+	  scene updates. Set EOS to terminate the pipeline without forcing potentially unsafe
+	  scene graph modifications from commands tied to unreachable timestamps.*/
+	if (priv->load_flags == 2 && priv->stuck_clock_count >= 5) {
+		priv->stuck_clock_count = 0;
+		/*sys_frames_pending prevents EOS detection in compose_process; clear it before signaling EOS*/
+		priv->scene->compositor->sys_frames_pending = GF_FALSE;
+		gf_filter_pid_set_eos(priv->out_pid);
+		if (priv->fio) {
+			gf_fclose((FILE*)priv->fio);
+			priv->fio = NULL;
+			gf_filter_pck_unref(priv->pck_ref);
+			priv->pck_ref = NULL;
+		}
+		return GF_EOS;
+	}
 
 	i=0;
 	while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
@@ -802,6 +820,13 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		}
 	}
 	if (e) return e;
+
+	if (priv->load_flags==2) {
+		if (updates_pending && gf_clock_time(priv->scene->root_od->ck) == 0)
+			priv->stuck_clock_count++;
+		else
+			priv->stuck_clock_count = 0;
+	}
 
 	if ((priv->load_flags==2) && !updates_pending) {
 		gf_filter_pid_set_eos(priv->out_pid);
