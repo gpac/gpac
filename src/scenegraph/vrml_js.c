@@ -2910,8 +2910,10 @@ static void vrml_js_init_api(GF_ScriptPriv *sc, GF_Node *script)
     JS_SetPropertyStr(sc->js_ctx, sc->js_obj, "alert", JS_NewCFunction(sc->js_ctx, js_print, "print", 1));
     JS_SetPropertyStr(sc->js_ctx, sc->js_obj, "parseXML", JS_NewCFunction(sc->js_ctx, vrml_parse_xml, "parseXML", 1));
 
-	/*remember pointer to scene graph!!*/
-	JS_SetOpaque(sc->js_obj, script->sgprivate->scenegraph);
+	/*remember pointer to scene graph - do NOT use global object private, might be owned by QuickJS !*/
+	JSValue sg_obj = JS_NewObject(sc->js_ctx);
+	JS_SetOpaque(sg_obj, script->sgprivate->scenegraph);
+    JS_SetPropertyStr(sc->js_ctx, sc->js_obj, "__scenegraph", sg_obj);
 
 	JS_SetPropertyStr(sc->js_ctx, sc->js_obj, "FALSE", JS_FALSE);
 	JS_SetPropertyStr(sc->js_ctx, sc->js_obj, "TRUE", JS_TRUE);

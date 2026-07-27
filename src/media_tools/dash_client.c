@@ -6276,6 +6276,10 @@ retry_rep:
 							goto exit;
 						}
 						rep->playback.init_segment.data = gf_malloc(sizeof(char) * rep->playback.init_segment.size);
+						if (!rep->playback.init_segment.data) {
+							e = GF_OUT_OF_MEM;
+							goto exit;
+						}
 						memcpy(rep->playback.init_segment.data, mem_address, sizeof(char) * rep->playback.init_segment.size);
 
 						rep->segment_list->initialization_segment->sourceURL = gf_blob_register(&rep->playback.init_segment);
@@ -6288,6 +6292,10 @@ retry_rep:
 							rep->playback.init_segment.size = (u32) gf_fsize(t);
 
 							rep->playback.init_segment.data = gf_malloc(sizeof(char) * rep->playback.init_segment.size);
+							if (!rep->playback.init_segment.data) {
+								e = GF_OUT_OF_MEM;
+								goto exit;
+							}
 							res = (s32) gf_fread(rep->playback.init_segment.data, rep->playback.init_segment.size, t);
 							if (res != rep->playback.init_segment.size) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to store init segment\n"));

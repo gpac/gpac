@@ -323,9 +323,8 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 				if (ctx->last_ref_cts == cts) {
 					cts += ctx->b_frames * ctx->cur_fps.den;
 					gf_filter_pck_set_cts(q_pck, cts);
-				} else {
+				} else if (cts >= ctx->cur_fps.den) {
 					//shift all other frames (i.e. pending Bs) by 1 frame in the past since we move the ref frame after them
-					gf_assert(cts >= ctx->cur_fps.den);
 					cts -= ctx->cur_fps.den;
 					gf_filter_pck_set_cts(q_pck, cts);
 				}

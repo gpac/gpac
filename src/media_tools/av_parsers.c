@@ -6293,7 +6293,7 @@ static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_
 	*/
 
 	pps->weighted_pred_flag = gf_bs_read_int_log(bs, 1, "weighted_pred_flag");
-	gf_bs_read_int_log(bs, 2, "weighted_bipred_idc");
+	pps->weighted_bipred_idc = gf_bs_read_int_log(bs, 2, "weighted_bipred_idc");
 	gf_bs_read_se_log(bs, "init_qp_minus26");
 	gf_bs_read_se_log(bs, "init_qs_minus26");
 	gf_bs_read_se_log(bs, "chroma_qp_index_offset");
@@ -10594,8 +10594,7 @@ Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_p
 	if (buflen < 6) return GF_FALSE;
 	(*pos) = AC3_FindSyncCode(buf, buflen);
 	if (*pos >= buflen) return GF_FALSE;
-
-	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
+	bs = gf_bs_new((const char*)(buf + *pos), buflen-*pos, GF_BITSTREAM_READ);
 	ret = gf_ac3_parser_bs(bs, hdr, full_parse);
 	gf_bs_del(bs);
 
@@ -10615,6 +10614,11 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 	syncword = gf_bs_read_u16(bs);
 	if (syncword != 0x0B77) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC3] Wrong sync word detected (0x%X - expecting 0x0B77).\n", syncword));
+		return GF_FALSE;
+	}
+
+	if (gf_bs_available(bs) < 6) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AC3] Truncated buffer\n"));
 		return GF_FALSE;
 	}
 	gf_bs_read_int_log(bs, 16, "crc1");

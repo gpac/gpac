@@ -1645,6 +1645,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		/*create an OrderedGroup*/
 		n1 = is_create_node(scene->graph, scene->vr_type ? TAG_MPEG4_Group : TAG_MPEG4_OrderedGroup, NULL);
+		if (!n1) return;
 		gf_sg_set_root_node(scene->graph, n1);
 		gf_node_register(n1, NULL);
 		root = n1;
@@ -1658,6 +1659,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		//create VP info regardless of VR type
 		if (scene->vr_type) {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Viewpoint, "DYN_VP");
+			if (!n2) return;
 			((M_Viewpoint *)n2)->position.z = 0;
 
 #ifndef GPAC_DISABLE_3D
@@ -1670,6 +1672,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 			gf_node_register(n2, n1);
 
 			n2 = is_create_node(scene->graph, TAG_MPEG4_NavigationInfo, NULL);
+			if (!n2) return;
 			gf_free( ((M_NavigationInfo *)n2)->type.vals[0] );
 			((M_NavigationInfo *)n2)->type.vals[0] = gf_strdup("VR");
 			gf_free( ((M_NavigationInfo *)n2)->type.vals[1] );
@@ -1683,10 +1686,12 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		/*create an sound2D and an audioClip node*/
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Sound2D, NULL);
+		if (!n2) return;
 		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 		gf_node_register(n2, n1);
 
 		ac = (M_AudioClip *) is_create_node(scene->graph, TAG_MPEG4_AudioClip, "DYN_AUDIO1");
+		if (!ac) return;
 		ac->startTime = gf_scene_get_time(scene);
 		((M_Sound2D *)n2)->source = (GF_Node *)ac;
 		gf_node_register((GF_Node *)ac, n2);
@@ -1694,12 +1699,14 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		/*transform for any translation due to scene resize (3GPP)*/
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Transform2D, "DYN_TRANS");
+		if (!n2) return;
 		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 		gf_node_register(n2, n1);
 		n1 = n2;
 
 		/*create a touch sensor for the video*/
 		n2 = is_create_node(scene->graph, TAG_MPEG4_TouchSensor, "DYN_TOUCH");
+		if (!n2) return;
 		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 		gf_node_register(n2, n1);
 		gf_sg_route_new_to_callback(scene->graph, n2, 3/*"hitTexCoord_changed"*/, scene, scene_video_mouse_move);
@@ -1715,42 +1722,56 @@ void gf_scene_regenerate(GF_Scene *scene)
 			/*text streams controlled through AnimationStream*/
 			n1 = gf_sg_get_root_node(scene->graph);
 			as = (M_AnimationStream *) is_create_node(scene->graph, TAG_MPEG4_AnimationStream, "DYN_TEXT");
-			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)as);
-			gf_node_register((GF_Node *)as, n1);
+			if (as) {
+				gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)as);
+				gf_node_register((GF_Node *)as, n1);
+			}
 
 
 			/*3GPP DIMS streams controlled */
 			n1 = gf_sg_get_root_node(scene->graph);
 			dims = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "DIMS_SCENE");
-			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)dims);
-			gf_node_register((GF_Node *)dims, n1);
+			if (dims) {
+				gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)dims);
+				gf_node_register((GF_Node *)dims, n1);
+			}
 
 			/*PVR version of live content*/
 			n1 = gf_sg_get_root_node(scene->graph);
 			addon_scene = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "PVR_SCENE");
-			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)addon_scene);
-			gf_node_register((GF_Node *)addon_scene, (GF_Node *)n1);
+			if (addon_scene) {
+				gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)addon_scene);
+				gf_node_register((GF_Node *)addon_scene, (GF_Node *)n1);
+			}
 
 			/*Media addon scene*/
 			n1 = gf_sg_get_root_node(scene->graph);
 			addon_tr = (M_Transform2D *) is_create_node(scene->graph, TAG_MPEG4_Transform2D, "ADDON_TRANS");
-			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)addon_tr);
-			gf_node_register((GF_Node *)addon_tr, n1);
+			if (addon_tr) {
+				gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)addon_tr);
+				gf_node_register((GF_Node *)addon_tr, n1);
+			}
 
 			addon_layer = (M_Layer2D *) is_create_node(scene->graph, TAG_MPEG4_Layer2D, "ADDON_LAYER");
-			gf_node_list_add_child( &((GF_ParentNode *)addon_tr)->children, (GF_Node*)addon_layer);
-			gf_node_register((GF_Node *)addon_layer, (GF_Node *)addon_tr);
+			if (addon_layer) {
+				gf_node_list_add_child( &((GF_ParentNode *)addon_tr)->children, (GF_Node*)addon_layer);
+				gf_node_register((GF_Node *)addon_layer, (GF_Node *)addon_tr);
+			}
 
 			addon_scene = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "ADDON_SCENE");
-			gf_node_list_add_child( &((GF_ParentNode *)addon_layer)->children, (GF_Node*)addon_scene);
-			gf_node_register((GF_Node *)addon_scene, (GF_Node *)addon_layer);
+			if (addon_scene) {
+				gf_node_list_add_child( &((GF_ParentNode *)addon_layer)->children, (GF_Node*)addon_scene);
+				gf_node_register((GF_Node *)addon_scene, (GF_Node *)addon_layer);
+			}
 
 		}
 		//VR mode, add VR headup
 		else {
 			GF_Node *vrhud = load_vr_proto_node(scene->graph, "urn:inet:gpac:builtin:VRHUD", NULL);
-			gf_node_list_add_child( &((GF_ParentNode *)root)->children, (GF_Node*)vrhud);
-			gf_node_register(vrhud, root);
+			if (vrhud) {
+				gf_node_list_add_child( &((GF_ParentNode *)root)->children, (GF_Node*)vrhud);
+				gf_node_register(vrhud, root);
+			}
 		}
 
 		//send activation for sensors
@@ -1783,21 +1804,25 @@ void gf_scene_regenerate(GF_Scene *scene)
 			if (!an) {
 				/*create an sound2D and an audioClip node*/
 				an = is_create_node(scene->graph, TAG_MPEG4_Sound2D, NULL);
+				if (!an) return;
 				gf_node_list_add_child( &((GF_ParentNode *)root)->children, an);
 				gf_node_register(an, root);
 
 				ac = (M_AudioClip *) is_create_node(scene->graph, TAG_MPEG4_AudioClip, szName);
+				if (!ac) return;
 				ac->startTime = gf_scene_get_time(scene);
 				((M_Sound2D *)an)->source = (GF_Node *)ac;
 				gf_node_register((GF_Node *)ac, an);
 			}
 			ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, szName);
+			if (!ac) return;
 
 			url.OD_ID = odm->ID;
 			set_media_url(scene, &url, (GF_Node*)ac, &ac->url, GF_STREAM_AUDIO);
 		}
 	} else {
 		ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO1");
+		if (!ac) return;
 		set_media_url(scene, &scene->audio_url, (GF_Node*)ac, &ac->url, GF_STREAM_AUDIO);
 	}
 
@@ -1886,6 +1911,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 					th = INT2FIX(sh * a_odm->mo->srd_h) / (max_y - min_y);
 
 					n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
+					if (!n2) continue;
 					((M_Rectangle *)n2)->size.x = tw;
 					((M_Rectangle *)n2)->size.y = th;
 					gf_node_changed(n2, NULL);
@@ -1897,6 +1923,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 					ty = INT2FIX(sh) / 2 - ty - INT2FIX(th) / 2;
 
 					addon_tr = (M_Transform2D  *) gf_sg_find_node_by_name(scene->graph, szName);
+					if (!addon_tr) continue;
 					addon_tr->translation.x = tx;
 					addon_tr->translation.y = ty;
 					gf_node_changed((GF_Node *)addon_tr, NULL);
@@ -1905,19 +1932,23 @@ void gf_scene_regenerate(GF_Scene *scene)
 		}
 	} else {
 		mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1");
-		set_media_url(scene, &scene->visual_url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
+		if (mt)
+			set_media_url(scene, &scene->visual_url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
 
 		mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_SUBT_IMG");
-		set_media_url(scene, &scene->subs_url, (GF_Node*)mt, &mt->url, GF_STREAM_UNKNOWN);
+		if (mt)
+			set_media_url(scene, &scene->subs_url, (GF_Node*)mt, &mt->url, GF_STREAM_UNKNOWN);
 	}
 
 
 	if (! scene->vr_type) {
 		as = (M_AnimationStream *) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
-		set_media_url(scene, &scene->text_url, (GF_Node*)as, &as->url, GF_STREAM_TEXT);
+		if (as)
+			set_media_url(scene, &scene->text_url, (GF_Node*)as, &as->url, GF_STREAM_TEXT);
 
 		dims = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "DIMS_SCENE");
-		set_media_url(scene, &scene->dims_url, (GF_Node*)dims, &dims->url, GF_STREAM_SCENE);
+		if (dims)
+			set_media_url(scene, &scene->dims_url, (GF_Node*)dims, &dims->url, GF_STREAM_SCENE);
 	}
 
 	/*disconnect to force resize*/
@@ -3011,7 +3042,7 @@ void gf_scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)
 {
 	if (addon->root_od) {
 		addon->root_od->addon = NULL;
-		if (disconnect) {				
+		if (disconnect) {
 			gf_scene_remove_object(addon->root_od->parentscene, addon->root_od, 2);
 			gf_odm_disconnect(addon->root_od, 1);
 		}
@@ -3118,7 +3149,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 					addon->splice_end = addon_info->splice_end_time * 1000;
 				}
 			}
-			
+
 			//restart addon
 			if (!addon->root_od && addon->timeline_ready && addon->enabled) {
 				load_associated_media(scene, addon);
@@ -3385,7 +3416,7 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 
 	GF_FEVT_INIT(evt, GF_FEVT_QUALITY_SWITCH, NULL);
 	evt.quality_switch.up = up;
-	
+
 	if (scene->root_od->pid) {
 		gf_filter_pid_send_event(scene->root_od->pid, &evt);
 		if (scene->root_od->extra_pids) {

@@ -342,7 +342,11 @@ next_line:
 					buf = sep+1;
 					while (buf && *buf && strchr(" \t", buf[0])) buf++;
 					def->value = gf_strdup(buf);
-					gf_list_add(parser->def_symbols, def);
+					if (def->name && def->value) {
+						gf_list_add(parser->def_symbols, def);
+					} else {
+						gf_free(def);
+					}
 				}
 			}
 			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#if ", 4)) {
@@ -2100,7 +2104,7 @@ void gf_bt_resolve_routes(GF_BTParser *parser, Bool clean)
 
 static void bd_set_com_node(GF_Command *com, GF_Node *node)
 {
-	com->node = node;
+	gf_sg_command_set_node(com, node);
 	gf_node_register(com->node, NULL);
 }
 

@@ -331,6 +331,7 @@ char *gf_text_get_utf8_line(char szLine[2048], u32 lineSize, FILE *txt_in, s32 u
 	unsigned short *sptr;
 	Bool in_eof = *io_progress;
 	*io_progress = GF_FALSE;
+	if (lineSize<2) return NULL;
 
 	memset(szLine, 0, sizeof(char)*lineSize);
 	sOK = gf_fgets(szLine, lineSize, txt_in);
@@ -429,6 +430,8 @@ char *gf_text_get_utf8_line(char szLine[2048], u32 lineSize, FILE *txt_in, s32 u
 			i+=2;
 		}
 	}
+	szLine[lineSize-2]=0;
+	szLine[lineSize-1]=0;
 	sptr = (u16 *)szLine;
 	i = gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);
 	if (i == GF_UTF8_FAIL) i = 0;
@@ -4677,10 +4680,12 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 
 	data = res;
 	//strip all spaces and \r\n\t
-	while (data[0] && strchr("\n\r\t ", (char) data[0])) {
+	while (res_size && data[0] && strchr("\n\r\t ", (char) data[0])) {
 		data++;
 		res_size--;
 	}
+
+	if (!res_size) goto exit;
 
 #define PROBE_OK(_score, _mime) \
 		*score = _score;\
@@ -4721,6 +4726,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttml")
 	}
 
+exit:
 	if (dst) gf_free(dst);
 	return NULL;
 }

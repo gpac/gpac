@@ -1096,6 +1096,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 			}
 		}
 		else if (ch->check_vvc_ps) {
+			if (ch->sample->dataLength < size + pos + nalu_len + 1) break;
 			u8 hdr = ch->sample->data[pos + nalu_len + 1];
 			nal_type = hdr >> 3;
 			switch (nal_type) {

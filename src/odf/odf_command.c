@@ -245,9 +245,10 @@ GF_Err gf_odf_read_od_update(GF_BitStream *bs, GF_ODUpdate *odUp, u32 gf_odf_siz
 	u32 tmpSize = 0, nbBytes = 0;
 	if (! odUp) return GF_BAD_PARAM;
 
-	while (nbBytes < gf_odf_size_command) {
+	while (nbBytes < gf_odf_size_command && gf_bs_available(bs)) {
 		e = gf_odf_parse_descriptor(bs, &tmp, &tmpSize);
 		if (e) return e;
+		if (!tmpSize) break;
 		e = AddToODUpdate(odUp, tmp);
 		if (e) return e;
 		nbBytes += tmpSize + gf_odf_size_field_size(tmpSize);

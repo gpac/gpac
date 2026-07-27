@@ -2596,7 +2596,10 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			for (j=0; j<AVI->track[audtr].audio_superindex->nEntriesInUse; j++) {
 
 				// read from file
-				chunk_start = en = (char*)gf_malloc ((u32) (AVI->track[audtr].audio_superindex->aIndex[j].dwSize+hdrl_len));
+				u32 chunk_size = (u32) (AVI->track[audtr].audio_superindex->aIndex[j].dwSize+hdrl_len);
+				if (!chunk_size || chunk_size < 28)
+					continue;
+				chunk_start = en = (char*)gf_malloc(chunk_size);
 
 				if (gf_fseek(AVI->fdes, AVI->track[audtr].audio_superindex->aIndex[j].qwOffset, SEEK_SET) == (u64)-1) {
 					gf_free(chunk_start);
@@ -2618,9 +2621,25 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 				// skip header
 				en += hdrl_len;
 				nai[audtr] += nrEntries;
+
+				if (nai[audtr] <= 0 || nai[audtr] >= GF_INT_MAX/sizeof(audio_index_entry)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] invalid nai value %d\n", nai[audtr]));
+					gf_free(chunk_start);
+					ERR_EXIT(AVI_ERR_READ);
+				}
+
 				AVI->track[audtr].audio_index = (audio_index_entry *) gf_realloc (AVI->track[audtr].audio_index, nai[audtr] * sizeof (audio_index_entry));
 
+				if (!AVI->track[audtr].audio_index) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] out of mem (size = %ld)\n", nai[audtr] * sizeof (audio_index_entry)));
+					gf_free(chunk_start);
+					ERR_EXIT(AVI_ERR_NO_MEM);
+				}
+
 				while (k < nai[audtr]) {
+
+					if (en - chunk_start + 8 > chunk_size)
+						break;
 
 					AVI->track[audtr].audio_index[k].pos = offset + str2ulong((unsigned char*)en);
 					en += 4;
@@ -3160,7 +3179,7 @@ int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous)
 		AVI->track[AVI->aptr].audio_posb += (int)todo;
 		if ( (ret = avi_read(AVI->fdes,audbuf+nr,todo)) != (s64)todo)
 		{
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] XXX pos = "LLD", ret = "LLD", todo = %ld\n", pos, ret, todo));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] avi_read returned before being done :: pos = "LLD", ret = "LLD", todo = %ld\n", pos, ret, todo));
 			AVI_errno = AVI_ERR_READ;
 			return -1;
 		}

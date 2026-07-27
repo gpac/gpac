@@ -602,16 +602,18 @@ static GF_Err ctxload_process(GF_Filter *filter)
 			}
 
 			s32 early = flush_all ? 0 : gf_clock_diff(priv->scene->root_od->ck, stream_time, au_time);
-			if (early>0) {
-				if (!min_next_time_ms || (min_next_time_ms > (u32) early))
+
+			if (early > 0) {
+				if (!min_next_time_ms || (min_next_time_ms > (u32)early))
 					min_next_time_ms = early;
 
 				updates_pending++;
 
 				u64 cts = gf_timestamp_rescale(au->timing, sc->timeScale, 1000);
-				gf_sc_sys_frame_pending(priv->scene->compositor, (u32) cts, stream_time, filter);
+				gf_sc_sys_frame_pending(priv->scene->compositor, (u32)cts, stream_time, filter);
 				break;
 			}
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[CtxLoad] %s applying AU time %d\n", priv->file_name, au_time ));
 
 			if (sc->streamType == GF_STREAM_SCENE) {
@@ -861,6 +863,8 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 		probe_size--;
 	}
 
+	if (!probe_size) goto exit;
+
 	//for XML, strip doctype, <?xml and comments
 	while (1) {
 		char *search=NULL;
@@ -888,6 +892,8 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 	}
 	//probe_data is now the first element of the document, if XML
 	//we should refine by getting the xmlns attribute value rather than searching for its value...
+
+	if (!probe_size) goto exit;
 
 	if (gf_strmemstr(probe_data, probe_size, "http://www.w3.org/1999/XSL/Transform")
 	) {

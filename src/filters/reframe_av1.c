@@ -1050,7 +1050,11 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		gf_filter_pck_merge_properties(ctx->src_pck, pck);
 
 	gf_filter_pck_set_cts(pck, ctx->cts);
-	gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
+	if (ctx->is_iamf) {
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+	} else {
+		gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
+	}
 	gf_filter_pck_set_switch_frame(pck, ctx->state.frame_state.switch_frame);
 
 	if (ctx->is_iamf) {

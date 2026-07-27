@@ -112,6 +112,11 @@ typedef struct _nodepriv
 
 	/*holder for all interactive stuff - THIS IS DYNAMICALLY CREATED*/
 	struct _node_interactive_ext *interact;
+
+	/* list of GF_Node** entries pointing to cmd->node fields; nulled out in gf_node_free
+	   to prevent UAF when gf_sg_reset force-frees a node still referenced by a command -
+	   THIS IS DYNAMICALLY CREATED */
+	GF_List *referencing_commands;
 } NodePriv;
 
 
@@ -282,6 +287,10 @@ struct __tag_scene_graph
 	u32 (*get_document_class)(GF_SceneGraph *n);
 	struct __gf_filter_session *attached_session;
 #endif
+
+	/* list of GF_SceneGraph** entries pointing to cmd->in_scene fields necessary to avoid UAFs */
+	GF_List *referencing_commands;
+
 };
 
 void gf_sg_parent_setup(GF_Node *pNode);
@@ -957,4 +966,3 @@ GF_DOMEventTarget *gf_dom_event_get_target_from_node(GF_Node *n);
 #endif
 
 #endif	/*_GF_SCENEGRAPH_DEV_H_*/
-

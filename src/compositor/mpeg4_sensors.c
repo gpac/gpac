@@ -934,7 +934,7 @@ static Bool OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF
 static GF_SensorHandler *plane_sensor_get_handler(GF_Node *n)
 {
 	PSStack *st = (PSStack *)gf_node_get_private(n);
-	return &st->hdl;
+	return st ? &st->hdl : NULL;
 }
 
 void compositor_init_plane_sensor(GF_Compositor *compositor, GF_Node *node)
@@ -1137,7 +1137,7 @@ static Bool OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel,
 static GF_SensorHandler *cylinder_sensor_get_handler(GF_Node *n)
 {
 	CylinderSensorStack *st = (CylinderSensorStack  *)gf_node_get_private(n);
-	return &st->hdl;
+	return st ? &st->hdl : NULL ;
 }
 
 void compositor_init_cylinder_sensor(GF_Compositor *compositor, GF_Node *node)
@@ -1315,7 +1315,7 @@ static Bool OnSphereSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, G
 static GF_SensorHandler *sphere_get_handler(GF_Node *n)
 {
 	SphereSensorStack *st = (SphereSensorStack *)gf_node_get_private(n);
-	return &st->hdl;
+	return st ? &st->hdl : NULL;
 }
 
 void compositor_init_sphere_sensor(GF_Compositor *compositor, GF_Node *node)
@@ -1481,9 +1481,11 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 	envtest->parameterValue.buffer=NULL;
 
 	smaller = larger = equal = 0;
+	par_value[0] = 0;
 	switch (envtest->parameter) {
 	/*screen aspect ratio*/
 	case 0:
+		if (!compositor) break;
 		if (compositor->display_width>compositor->display_height) {
 			ar = (Float) compositor->display_width;
 			ar /= compositor->display_height;

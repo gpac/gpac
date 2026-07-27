@@ -565,6 +565,31 @@ static GF_Proto *find_proto_by_interface(GF_SceneGraph *sg, GF_Proto *extern_pro
 	return NULL;
 }
 
+#define GF_MAX_PROTO_INSTANTIATION_DEPTH 256
+
+static Bool gf_sg_proto_instantiation_would_cycle(GF_ProtoInstance *proto_node, GF_Proto *proto, u32 *depth_out)
+{
+    u32 depth = 0;
+    GF_SceneGraph *sg = proto_node && proto_node->sgprivate ? proto_node->sgprivate->scenegraph : NULL;
+    if (!sg) return GF_FALSE;
+
+    sg = sg->parent_scene;
+    while (sg) {
+        depth++;
+        if (depth > GF_MAX_PROTO_INSTANTIATION_DEPTH) {
+            if (depth_out) *depth_out = depth;
+            return GF_TRUE;
+        }
+        if (sg->pOwningProto && (sg->pOwningProto->proto_interface == proto)) {
+            if (depth_out) *depth_out = depth;
+            return GF_TRUE;
+        }
+        sg = sg->parent_scene;
+    }
+    if (depth_out) *depth_out = depth;
+    return GF_FALSE;
+}
+
 /*performs common initialization of routes ISed fields and protos once everything is loaded*/
 void gf_sg_proto_instantiate(GF_ProtoInstance *proto_node)
 {
@@ -647,6 +672,18 @@ void gf_sg_proto_instantiate(GF_ProtoInstance *proto_node)
 
 	/*OVERRIDE the proto instance (eg don't instantiate an empty externproto...)*/
 	proto_node->proto_interface = proto;
+
+	{
+		u32 chain_depth = 0;
+		if (gf_sg_proto_instantiation_would_cycle(proto_node, proto, &chain_depth)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE,
+			    ("[Scenegraph] cyclic PROTO instantiation blocked for %s (depth %u)\n",
+			        proto->Name ? proto->Name : "<unnamed>", chain_depth));
+			/* Mark as loaded to avoid repeated attempts on traversal */
+			proto_node->flags |= GF_SG_PROTO_LOADED;
+			return;
+		}
+	}
 
 	/*clone all nodes*/
 	i=0;
@@ -1278,8 +1315,7 @@ u32 gf_sg_proto_get_root_tag(GF_Proto *proto)
 	return n->sgprivate->tag;
 }
 
-GF_EXPORT
-Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
+static Bool gf_sg_proto_field_is_sftime_offset_internal(GF_Node *node, GF_FieldInfo *field, u32 depth)
 {
 	u32 i;
 	GF_Route *r;
@@ -1287,6 +1323,7 @@ Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
 	GF_FieldInfo inf;
 	if (node->sgprivate->tag != TAG_ProtoNode) return 0;
 	if (field->fieldType != GF_SG_VRML_SFTIME) return 0;
+	if (depth > 255) return 0;
 
 	inst = (GF_ProtoInstance *) node;
 	/*check in interface if this is ISed */
@@ -1300,12 +1337,18 @@ Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
 		/*IS to another proto*/
 		if (r->ToNode->sgprivate->tag == TAG_ProtoNode) {
 			if (r->ToNode==node) continue;
-			return gf_sg_proto_field_is_sftime_offset(r->ToNode, &inf);
+			return gf_sg_proto_field_is_sftime_offset_internal(r->ToNode, &inf, depth+1);
 		}
 		/*IS to a startTime/stopTime field*/
 		if (!stricmp(inf.name, "startTime") || !stricmp(inf.name, "stopTime")) return 1;
 	}
 	return 0;
+}
+
+GF_EXPORT
+Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
+{
+	return gf_sg_proto_field_is_sftime_offset_internal(node, field, 0);
 }
 
 GF_EXPORT

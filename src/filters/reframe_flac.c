@@ -571,7 +571,9 @@ restart:
 
 		if (ctx->flac_buffer_size + pck_size > ctx->flac_buffer_alloc) {
 			ctx->flac_buffer_alloc = ctx->flac_buffer_size + pck_size;
-			ctx->flac_buffer = gf_realloc(ctx->flac_buffer, ctx->flac_buffer_alloc);
+			u8* new_buf = gf_realloc(ctx->flac_buffer, ctx->flac_buffer_alloc);
+			if (!new_buf) return GF_OUT_OF_MEM;
+			ctx->flac_buffer = new_buf;
 		}
 		memcpy(ctx->flac_buffer + ctx->flac_buffer_size, data, pck_size);
 		ctx->flac_buffer_size += pck_size;

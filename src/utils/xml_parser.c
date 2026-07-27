@@ -1593,11 +1593,12 @@ fetch_attr:
 				continue;
 			}
 			sep += strlen(get_attr);
-			while (strchr("= \t\r\n", sep[0])) sep++;
+			while (sep[0] && strchr("= \t\r\n", sep[0])) sep++;
+			if (!sep[0]) goto exit;
 			sep++;
 			sub_pos = 0;
 			while (!strchr(" \t\r\n/>", sep[sub_pos])) sub_pos++;
-			sep[sub_pos-1] = 0;
+			sep[sub_pos ? sub_pos-1 : 0] = 0;
 			result = gf_strdup(sep);
 			if (is_substitute) *is_substitute = GF_TRUE;
 			goto exit;

@@ -26,6 +26,11 @@
 
 #include <stdint.h>
 
+/* unicode standard version */
+#define LIBUNICODE_UNICODE_VERSION_MAJOR 17
+#define LIBUNICODE_UNICODE_VERSION_MINOR 0
+#define LIBUNICODE_UNICODE_VERSION_PATCH 0
+
 /* define it to include all the unicode tables (40KB larger) */
 #define CONFIG_ALL_UNICODE
 
@@ -145,6 +150,11 @@ static inline int lre_is_id_continue_byte(uint8_t c) {
     return lre_ctype_bits[c] & (UNICODE_C_UPPER | UNICODE_C_LOWER |
                                 UNICODE_C_UNDER | UNICODE_C_DOLLAR |
                                 UNICODE_C_DIGIT);
+}
+
+static inline int lre_is_word_byte(uint8_t c) {
+    return lre_ctype_bits[c] & (UNICODE_C_UPPER | UNICODE_C_LOWER |
+                                UNICODE_C_UNDER | UNICODE_C_DIGIT);
 }
 
 int lre_is_space_non_ascii(uint32_t c);
