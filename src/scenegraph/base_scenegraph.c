@@ -1999,7 +1999,7 @@ void gf_node_del(GF_Node *node)
 GF_EXPORT
 u32 gf_node_get_field_count(GF_Node *node)
 {
-	gf_assert(node);
+	if (!node) return 0;
 	if (node->sgprivate->tag <= TAG_UndefinedNode) return 0;
 #ifndef GPAC_DISABLE_VRML
 	/*for both MPEG4 & X3D*/
@@ -2096,7 +2096,7 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 		gf_node_setup(node, TAG_DOMFullNode);
 	}
 #ifndef GPAC_DISABLE_SVG
-	else if (tag <= GF_NODE_RANGE_LAST_SVG) node = (GF_Node *) gf_svg_create_node(tag);
+	else if (tag >= GF_NODE_RANGE_FIRST_SVG && tag <= GF_NODE_RANGE_LAST_SVG) node = (GF_Node *) gf_svg_create_node(tag);
 #endif
 	else node = NULL;
 

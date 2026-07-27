@@ -2101,7 +2101,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 		if (parent->node)
 			gf_node_changed(parent->node, NULL);
 		else {
-			gf_assert(0);
+			return NULL;
 		}
 	}
 

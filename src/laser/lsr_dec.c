@@ -4991,13 +4991,9 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 		return da;
 	}
 	case SVG_ViewBox_datatype:
-		f_val = (Fixed*)gf_malloc(sizeof(Fixed));
-		if (!f_val) {
-			lsr->last_error = GF_OUT_OF_MEM;
-		} else {
-			*f_val = lsr_read_fixed_16_8(lsr, "floatValue");
-		}
-		return f_val;
+		SVG_ViewBox *viewbox;
+		GF_SAFEALLOC(viewbox, SVG_ViewBox)
+		return viewbox;
 	case SMIL_KeyTimes_datatype/*ITYPE_keyTime*/:
 	{
 		ListOfXXX *res;
@@ -5939,8 +5935,7 @@ void lsr_exec_command_list(GF_Node *node, void *par, Bool is_destroy)
 	GF_DOMUpdates *up = (GF_DOMUpdates *)node;
 	GF_LASeRCodec *codec = (GF_LASeRCodec *)gf_node_get_private((GF_Node*)node);
 
-	if (is_destroy || !up || (up->sgprivate->tag!=TAG_DOMUpdates)) return;
-	gf_assert(!codec->bs);
+	if (is_destroy || !up || (up->sgprivate->tag!=TAG_DOMUpdates) || codec->bs) return;
 
 	codec->info = lsr_get_stream(codec, 0);
 	if (!codec->info) return;

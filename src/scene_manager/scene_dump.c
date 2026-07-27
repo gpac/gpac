@@ -98,7 +98,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, Bool is_
 		}
 		if (_rad_name) {
 			const char* ext_name = tmp->LSRDump ? ".xsr" : ".svg";
-			
+
 			tmp->filename = gf_strdup(_rad_name);
 			if (!is_final_name) gf_dynstrcat(&tmp->filename, ext_name, NULL);
 			tmp->trace = gf_fopen(tmp->filename, "wt");
@@ -2908,7 +2908,8 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 			break;
 		case GF_SG_SCENE_REPLACE:
 			/*we don't support replace scene in conditional*/
-			gf_assert(!sdump->current_com_list);
+			if (sdump->current_com_list)
+				return GF_NOT_SUPPORTED;
 			sdump->current_com_list = comList;
 			e = DumpSceneReplace(sdump, com);
 			sdump->current_com_list = NULL;
