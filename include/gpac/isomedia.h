@@ -523,6 +523,16 @@ enum
 	GF_ISOM_BRAND_CMFC = GF_4CC('c','m','f','c'),
 	/* CMAF brand with neg ctts */
 	GF_ISOM_BRAND_CMF2 = GF_4CC('c','m','f','2'),
+	/* CMAF Media Profile */
+	GF_ISOM_BRAND_CHD1 = GF_4CC('c','h','d','1'),
+	GF_ISOM_BRAND_CLG1 = GF_4CC('c','l','g','1'),
+	GF_ISOM_BRAND_CHDF = GF_4CC('c','h','d','f'),
+
+	/* CMAF brand with dolby vision */
+	GF_ISOM_BRAND_DV58 = GF_4CC( 'd', 'v', '5', '8' ),
+	GF_ISOM_BRAND_DV09 = GF_4CC( 'd', 'v', '0', '9' ),
+	GF_ISOM_BRAND_DV10 = GF_4CC( 'd', 'v', '1', '0' ),
+	GF_ISOM_BRAND_DV20 = GF_4CC( 'd', 'v', '2', '0' ),
 
 	/* from ismacryp.c */
 	/* OMA DCF DRM Format 2.0 (OMA-TS-DRM-DCF-V2_0-20060303-A) */

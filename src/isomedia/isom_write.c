@@ -2237,8 +2237,31 @@ GF_Err gf_isom_set_dolby_vision_brands(GF_ISOFile* movie, u32 trackNumber, u32 S
 		}
 	}
 
-	// TODO: add support for CMAF brands once the spec is finalized
-
+	// Dolby Vision Streams Within the ISO Base Media File Format specification Version 2.8 section 6
+	if (add_cmaf_brands) {
+		if (dvcc->dv_profile == 5) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DV58, GF_TRUE);
+		} else if (dvcc->dv_profile == 8) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DV58, GF_TRUE);
+			if (dvcc->dv_bl_signal_compatibility_id == 1) {
+				gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_CHD1, GF_TRUE);
+			} else if (dvcc->dv_bl_signal_compatibility_id == 4) {
+				gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_CLG1, GF_TRUE);
+			}
+		} else if (dvcc->dv_profile == 9) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DV09, GF_TRUE);
+			if (dvcc->dv_bl_signal_compatibility_id == 2) {
+				gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_CHDF, GF_TRUE);
+			}
+		} else if (dvcc->dv_profile == 10) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DV10, GF_TRUE);
+		} else if (dvcc->dv_profile == 20) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DV20, GF_TRUE);
+			if (dvcc->dv_bl_signal_compatibility_id == 4) {
+				gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_CLG1, GF_TRUE);
+			}
+		}
+	}
 	return GF_OK;
 }
 
