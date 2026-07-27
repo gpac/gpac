@@ -1613,6 +1613,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 	return node;
 
 err:
+	gf_list_del_item(parser->def_nodes, node);
 	gf_node_unregister(node, parent);
 	if (name) gf_free(name);
 	return NULL;

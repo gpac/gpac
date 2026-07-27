@@ -1688,6 +1688,10 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 
 	/*proto declaration*/
 	if (!strcmp(name, "ProtoDeclare") || !strcmp(name, "ExternProtoDeclare")) {
+		if (parent && parent->node) {
+			xmt_report(parser, GF_BAD_PARAM, "ProtoDeclare cannot be nested inside a node - skipping");
+			return NULL;
+		}
 		if (!parser->parsing_proto && parser->command && !parser->command->new_proto_list) parser->command->new_proto_list = gf_list_new();
 		xmt_parse_proto(parser, attributes, nb_attributes, (!parser->parsing_proto && parser->command) ? parser->command->new_proto_list : NULL);
 		return NULL;
@@ -3150,6 +3154,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 attach_node:
 		top = (XMTNodeStack*)gf_list_last(parser->nodes);
 		Bool node_processed = GF_FALSE;
+		Bool node_discarded = GF_FALSE;
 		/* If this node owns a SFCOMMANDBUFFER that parser->command_buffer still points
 		   into, the <buffer> element was never properly closed (malformed XML).
 		   Unwind the command-buffer stack now, zeroing cb->buffer so that
@@ -3201,6 +3206,7 @@ attach_node:
 						xmt_discard_subtree(parser, node);
 						gf_node_register(node, NULL);
 						gf_node_unregister(node, NULL);
+						node_discarded = GF_TRUE;
 					}
 					break;
 				case GF_SG_GLOBAL_QUANTIZER:
@@ -3250,6 +3256,7 @@ attach_node:
 							xmt_discard_subtree(parser, node);
 							gf_node_register(node, NULL);
 							gf_node_unregister(node, NULL);
+							node_discarded = GF_TRUE;
 							break;
 						}
 					}
@@ -3311,6 +3318,7 @@ attach_node:
 					gf_node_register(node, NULL);
 					gf_node_unregister(node, NULL);
 					node_processed = GF_TRUE;
+					node_discarded = GF_TRUE;
 					break;
 				}
 			}
@@ -3325,6 +3333,7 @@ attach_node:
 						xmt_report(parser, GF_OK, "Warning: node %s defined outside scene scope - skipping", name);
 						gf_node_register(node, NULL);
 						gf_node_unregister(node, NULL);
+						node_discarded = GF_TRUE;
 					} else {
 						//node has already been added to its parent with X3d parsing, because of the default container resolving
 //						gf_node_list_add_child(& gr->children, node);
@@ -3374,6 +3383,7 @@ attach_node:
 				gf_node_register(node, NULL);
 				gf_node_unregister(node, NULL);
 				node_processed = GF_TRUE;
+				node_discarded = GF_TRUE;
 			}
 		}
 		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
@@ -3387,7 +3397,7 @@ attach_node:
 					node_processed = GF_TRUE;
 					/*it may happen that the script uses itself as a field (not sure this is compliant since this
 					implies a cyclic structure, but happens in some X3D conformance seq)*/
-					if (!top || (top->node != node)) {
+					if (!node_discarded && (!top || (top->node != node))) {
 						if (parser->command) {
 							if (!parser->command->scripts_to_load) parser->command->scripts_to_load = gf_list_new();
 							gf_list_add(parser->command->scripts_to_load, node);

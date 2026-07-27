@@ -4990,7 +4990,7 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 		}
 		return da;
 	}
-	case SVG_ViewBox_datatype:
+	case SVG_ViewBox_datatype:;
 		SVG_ViewBox *viewbox;
 		GF_SAFEALLOC(viewbox, SVG_ViewBox)
 		return viewbox;

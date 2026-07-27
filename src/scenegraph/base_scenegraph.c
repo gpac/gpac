@@ -334,6 +334,23 @@ static GFINLINE u32 get_num_id_nodes(GF_SceneGraph *sg)
 }
 
 #ifndef GPAC_DISABLE_VRML
+
+static void drop_proto_default_field_nodes(GF_Proto *p)
+{
+    u32 fi, fcount = gf_list_count(p->proto_fields);
+    for (fi = 0; fi < fcount; fi++) {
+        GF_ProtoFieldInterface *field = (GF_ProtoFieldInterface*)gf_list_get(p->proto_fields, fi);
+        if ((field->FieldType==GF_SG_VRML_SFNODE) && field->def_sfnode_value) {
+            gf_node_unregister(field->def_sfnode_value, NULL);
+            field->def_sfnode_value = NULL;
+        }
+        else if ((field->FieldType==GF_SG_VRML_MFNODE) && field->def_mfnode_value) {
+            gf_node_unregister_children(NULL, field->def_mfnode_value);
+            field->def_mfnode_value = NULL;
+        }
+    }
+}
+
 static void drop_nested_node_codes(GF_SceneGraph* sg)
 {
 	u32 pi, pcount;
@@ -344,6 +361,7 @@ static void drop_nested_node_codes(GF_SceneGraph* sg)
 			GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
 			gf_node_unregister(n, NULL);
 		}
+		drop_proto_default_field_nodes(p);
 		if (p->sub_graph)
 			drop_nested_node_codes(p->sub_graph);
 	}
@@ -354,6 +372,7 @@ static void drop_nested_node_codes(GF_SceneGraph* sg)
 			GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
 			gf_node_unregister(n, NULL);
 		}
+		drop_proto_default_field_nodes(p);
 		if (p->sub_graph)
 			drop_nested_node_codes(p->sub_graph);
 	}
@@ -1002,9 +1021,9 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 		}
 
 		if (new_node && new_node != par) gf_node_register(new_node, par);
-		gf_node_unregister(node, par);
 		if (node != par)
 			gf_node_changed(par, NULL);
+		gf_node_unregister(node, par);
 		if (do_break) break;
 	}
 
@@ -2210,12 +2229,14 @@ const char *gf_node_get_log_name(GF_Node *anim)
 
 
 
-static GF_Err gf_node_deactivate_ex(GF_Node *node)
+static GF_Err gf_node_deactivate_ex(GF_Node *node, u32 depth)
 {
 #ifdef GPAC_DISABLE_SVG
 	return GF_NOT_SUPPORTED;
 #else
 	GF_ChildNodeItem *item;
+	/*avoid stack overflow on cyclic/malformed scene graphs*/
+	if (depth > 255) return GF_OK;
 	if (node->sgprivate->tag<GF_NODE_FIRST_DOM_NODE_TAG) return GF_BAD_PARAM;
 	if (! (node->sgprivate->flags & GF_NODE_IS_DEACTIVATED)) {
 
@@ -2236,7 +2257,7 @@ static GF_Err gf_node_deactivate_ex(GF_Node *node)
 	/*and deactivate children*/
 	item = ((GF_ParentNode*)node)->children;
 	while (item) {
-		gf_node_deactivate_ex(item->node);
+		gf_node_deactivate_ex(item->node, depth+1);
 		item = item->next;
 	}
 	return GF_OK;
@@ -2245,18 +2266,20 @@ static GF_Err gf_node_deactivate_ex(GF_Node *node)
 
 GF_Err gf_node_deactivate(GF_Node *node)
 {
-	GF_Err e = gf_node_deactivate_ex(node);
+	GF_Err e = gf_node_deactivate_ex(node, 0);
 	gf_node_changed(node, NULL);
 	return e;
 }
 
-static u32 gf_node_activate_ex(GF_Node *node)
+static u32 gf_node_activate_ex(GF_Node *node, u32 depth)
 {
 #ifdef GPAC_DISABLE_SVG
 	return 0;
 #else
 	u32 ret = 0;
 	GF_ChildNodeItem *item;
+	/*avoid stack overflow on cyclic/malformed scene graphs*/
+	if (depth > 255) return 0;
 	if (node->sgprivate->tag<GF_NODE_FIRST_DOM_NODE_TAG) return 0;
 	if (node->sgprivate->flags & GF_NODE_IS_DEACTIVATED) {
 
@@ -2278,7 +2301,7 @@ static u32 gf_node_activate_ex(GF_Node *node)
 	/*and deactivate children*/
 	item = ((GF_ParentNode*)node)->children;
 	while (item) {
-		ret += gf_node_activate_ex(item->node);
+		ret += gf_node_activate_ex(item->node, depth+1);
 		item = item->next;
 	}
 	return ret;
@@ -2288,7 +2311,7 @@ static u32 gf_node_activate_ex(GF_Node *node)
 GF_Err gf_node_activate(GF_Node *node)
 {
 	if (!node) return GF_BAD_PARAM;
-	if (gf_node_activate_ex(node))
+	if (gf_node_activate_ex(node, 0))
 		gf_node_changed(node, NULL);
 	return GF_OK;
 }
