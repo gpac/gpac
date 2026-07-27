@@ -229,7 +229,7 @@ static GF_Err pck_send_simple(GF_FilterPacket *pck)
 
 			GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 			gf_bs_seek(bs, 16);
-			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls], LLU); //presentation_time_delta
+			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls], LLU);  //presentation_time_delta
 			assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls], "%u");  //event_duration
 			assert_equal(gf_bs_read_u32(bs), expected_event_id[calls], "%u");        //event_id
 			gf_bs_del(bs);
@@ -344,7 +344,7 @@ static GF_Err pck_send_segmentation_beginning(GF_FilterPacket *pck)
 
 			GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 			gf_bs_seek(bs, 16);
-			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls], LLU); //presentation_time_delta
+			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls], LLU);  //presentation_time_delta
 			assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls], "%u");  //event_duration
 			assert_equal(gf_bs_read_u32(bs), expected_event_id[calls], "%u");        //event_id
 			gf_bs_del(bs);
@@ -414,7 +414,7 @@ static GF_Err pck_send_segmentation_end(GF_FilterPacket *pck)
 
 			GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 			gf_bs_seek(bs, 16);
-			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls], LLU); //presentation_time_delta
+			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls], LLU);  //presentation_time_delta
 			assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls], "%u");  //event_duration
 			assert_equal(gf_bs_read_u32(bs), expected_event_id[calls], "%u");        //event_id
 			gf_bs_del(bs);

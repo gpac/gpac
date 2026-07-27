@@ -316,7 +316,7 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 
 			evt->dts += emib_dur;
 			dts += emib_dur;
-			evt->emib->presentation_time_delta -= evt->emib->presentation_time_delta;
+			evt->emib->presentation_time_delta = 0; //event is on-going
 			evt->emib->event_duration -= emib_dur;
 			if (max_dur != GF_UINT_MAX)
 				max_dur -= emib_dur;
