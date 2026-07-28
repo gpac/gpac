@@ -769,7 +769,8 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 #endif
 
 	/*unregister the instance*/
-	gf_assert(pNode->sgprivate->num_instances);
+	if (!pNode->sgprivate->num_instances)
+		return GF_BAD_PARAM;
 	pNode->sgprivate->num_instances -= 1;
 
 	/*this is just an instance removed*/
@@ -1377,8 +1378,7 @@ const char *gf_node_get_name_and_id(GF_Node*p, u32 *id)
 {
 	GF_SceneGraph *sg;
 	NodeIDedItem *reg_node;
-	gf_assert(p);
-	if (!(p->sgprivate->flags & GF_NODE_IS_DEF)) {
+	if (!p || !(p->sgprivate->flags & GF_NODE_IS_DEF)) {
 		*id = 0;
 		return NULL;
 	}

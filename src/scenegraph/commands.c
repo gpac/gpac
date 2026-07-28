@@ -432,6 +432,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		if (!gf_list_count(com->command_fields)) return GF_OK;
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 
+		if (!com->node || !gf_sg_mpeg4_node_get_child_ndt(com->node))
+			return GF_NON_COMPLIANT_BITSTREAM;
+
 		e = gf_node_insert_child(com->node, inf->new_node, inf->pos);
 		if (!e) e = gf_node_register(inf->new_node, com->node);
 		if (!e) {
@@ -673,8 +676,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 		node = gf_node_list_get_child(((SVG_Element *)com->node)->children, inf->pos);
 		if (node) {
-			e = gf_node_replace_child(com->node, &((SVG_Element *)com->node)->children, inf->pos, NULL);
 			gf_node_deactivate(node);
+			e = gf_node_replace_child(com->node, &((SVG_Element *)com->node)->children, inf->pos, NULL);
 		}
 		break;
 	case GF_SG_LSR_INSERT:
@@ -713,9 +716,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				}
 			} else {
 				node = gf_node_list_get_child( ((SVG_Element *)com->node)->children, inf->pos);
+				if (node) gf_node_deactivate(node);
 				gf_node_replace_child(com->node, & ((SVG_Element *)com->node)->children, inf->pos, inf->new_node);
 				gf_node_register(inf->new_node, com->node);
-				if (node) gf_node_deactivate(node);
 				gf_node_activate(inf->new_node);
 			}
 			/*signal node modif*/
