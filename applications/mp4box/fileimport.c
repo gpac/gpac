@@ -375,7 +375,7 @@ Bool scan_color(char *val, u32 *clr_prim, u32 *clr_tranf, u32 *clr_mx, Bool *clr
 
 #include <gpac/internal/media_dev.h>
 
-static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, u32 dv_md_compression)
+static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, u32 dv_md_compression, u16 dv_flags)
 {
 	GF_Err e;
 	Bool remove=GF_FALSE;
@@ -383,6 +383,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, 
 	u32 dv_profile = 0;
 	u32 dv_compat_id=0;
 	u32 dv_version_major = 1;
+	s32 flag_idx;
 	char *sep = strchr(dv_profile_str, '.');
 	if (sep) {
 		sep[0] = 0;
@@ -426,6 +427,10 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, 
 		dovi->force_dv = force_dv;
 		dovi->dv_md_compression = dv_md_compression;
 		dovi->rpu_present_flag = 1;
+		for (flag_idx = 9; flag_idx >= 0; flag_idx--) {
+			dovi->dv_feature_flags[flag_idx] = dv_flags & 0x1;
+			dv_flags = dv_flags >> 1;
+		}
 		e = gf_isom_set_dolby_vision_profile(dest, track, 1, remove ? NULL : dovi);
 		gf_odf_dovi_cfg_del(dovi);
 		return e;
@@ -445,6 +450,10 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, 
 	_dovi.dv_bl_signal_compatibility_id = dv_compat_id;
 	_dovi.force_dv = force_dv;
 	_dovi.dv_md_compression = dv_md_compression;
+	for (flag_idx = 9; flag_idx >= 0; flag_idx--) {
+		_dovi.dv_feature_flags[flag_idx] = dv_flags & 0x1;
+		dv_flags = dv_flags >> 1;
+	}
 
 	// This flag must always be set to 1 given the deprecation of certain profiles
 	// Dolby Vision Streams Within the ISO Base Media File Format specification version 2.6 section 2.2
@@ -721,6 +730,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 bitdepth=0;
 	char dv_profile[100]; /*Dolby Vision*/
 	u32 dv_md_compression;  /*Dolby Vision*/
+	u16 dv_flags=0;  /*Dolby Vision*/
 	u32 clr_type=0;
 	u32 clr_prim;
 	u32 clr_tranf;
@@ -1324,6 +1334,13 @@ reparse_opts:
 				GOTO_EXIT("Dolby Vision metadata compression valid value: 0, 1, 3. default = 0")
 			}
 		}
+		else if (!strnicmp(ext + 1, "dvflags=", 8)) {
+			dv_flags = (u16)strtol(ext+9, NULL, 16);
+			if (dv_flags != 0 && dv_flags != 512) {
+				e = GF_BAD_PARAM;
+				GOTO_EXIT("Currently, only values 0x0 and 0x200 are defined for dvflags. default = 0")
+			}
+		}
 		//old name
 		else if (!strnicmp(ext + 1, "dv-profile=", 11)) {
 			M4_LOG(GF_LOG_WARNING, ("Deprecated option name, use `:dvp=` instead\n"));
@@ -1818,7 +1835,7 @@ reparse_opts:
 				GOTO_EXIT("setting HDR info")
 			}
 			if (dv_profile[0]) {
-				e = set_dv_profile(dest, track, dv_profile, dv_md_compression);
+				e = set_dv_profile(dest, track, dv_profile, dv_md_compression, dv_flags);
 				GOTO_EXIT("setting DV profile")
 			}
 
