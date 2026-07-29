@@ -36,7 +36,7 @@ GF_Err ParseMFFieldVec(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Node *node, G
 
 static void BM_SetCommandNode(GF_Command *com, GF_Node *node)
 {
-	com->node = node;
+	gf_sg_command_set_node(com, node);
 	gf_node_register(node, NULL);
 }
 
@@ -911,6 +911,7 @@ GF_Err BM_SceneReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 		com->use_names = codec->UseName;
 
 		/*restore*/
+		gf_sg_command_set_node(com, codec->scenegraph->RootNode);
 		com->node = codec->scenegraph->RootNode;
 		codec->scenegraph->RootNode = backup_root;
 		gf_list_add(com_list, com);

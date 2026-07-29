@@ -1606,7 +1606,8 @@ fetch_attr:
 				continue;
 			}
 			sep += strlen(get_attr);
-			while (strchr("= \t\r\n", sep[0])) sep++;
+			while (sep[0] && strchr("= \t\r\n", sep[0])) sep++;
+			if (!sep[0]) goto exit;
 			sep++;
 			sub_pos = 0;
 			while (!strchr(" \t\r\n/>", sep[sub_pos])) sub_pos++;

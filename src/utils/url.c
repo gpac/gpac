@@ -313,7 +313,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	gf_dynstrcat(&tmp, parentName, NULL);
 	if (!tmp) return NULL;
 
-	while (strchr(" \r\n\t", tmp[strlen(tmp)-1])) {
+	while (strlen(tmp) && strchr(" \r\n\t", tmp[strlen(tmp)-1])) {
 		tmp[strlen(tmp)-1] = 0;
 	}
 	//strip query part or fragment part

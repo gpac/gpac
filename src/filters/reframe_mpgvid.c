@@ -1202,9 +1202,11 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		}
 
 		if (ftype) {
-			gf_assert(pck_data[0] == 0);
-			gf_assert(pck_data[1] == 0);
-			gf_assert(pck_data[2] == 1);
+			if (size < 3 || pck_data[0] != 0 || pck_data[1] != 0 || pck_data[2] != 1) {
+				gf_filter_pid_drop_packet(ctx->ipid);
+				gf_filter_pck_discard(dst_pck);
+				return GF_BAD_PARAM;
+			}
 
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, (full_frame || ctx->input_is_au_end) ? GF_TRUE : GF_FALSE);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);

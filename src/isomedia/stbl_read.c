@@ -458,9 +458,8 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 
 	//first get the chunk
 	for (; i < stbl->SampleToChunk->nb_entries; i++) {
-		gf_assert(stbl->SampleToChunk->firstSampleInCurrentChunk <= sampleNumber);
 		//corrupted file (less sample2chunk info than sample count
-		if (k > stbl->SampleToChunk->ghostNumber) {
+		if (stbl->SampleToChunk->firstSampleInCurrentChunk > sampleNumber || k > stbl->SampleToChunk->ghostNumber) {
 			return GF_ISOM_INVALID_FILE;
 		}
 

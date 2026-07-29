@@ -39829,10 +39829,6 @@ u32 gf_sg_mpeg4_node_get_child_ndt(GF_Node *node)
 		return NDT_SF3DNode;
 	case TAG_MPEG4_FootPrintSetNode:
 		return NDT_SFGeometryNode;
-	case TAG_MPEG4_BuildingPartNode:
-		return NDT_SFGeometryNode;
-	case TAG_MPEG4_FacadeNode:
-		return NDT_SFGeometryNode;
 	case TAG_MPEG4_Shadow:
 		return NDT_SF3DNode;
 	case TAG_MPEG4_SpacePartition:

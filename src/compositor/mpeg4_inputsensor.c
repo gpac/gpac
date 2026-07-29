@@ -523,6 +523,7 @@ void InputSensorModified(GF_Node *node)
 {
 	GF_MediaObject *mo;
 	ISStack *st = (ISStack *)gf_node_get_private(node);
+	if (!st) return;
 
 	mo = gf_mo_register(node, &st->is->url, GF_FALSE, GF_FALSE);
 	if ((mo!=st->mo) || !st->registered) {

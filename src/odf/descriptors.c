@@ -373,7 +373,7 @@ GF_Err gf_odf_encode_ui_config(GF_UIConfig *cfg, GF_DefaultDescriptor **out_dsi)
 	u32 i, len;
 	GF_BitStream *bs;
 	GF_DefaultDescriptor *dsi;
-	if (!out_dsi || (cfg->tag != GF_ODF_UI_CFG_TAG)) return GF_BAD_PARAM;
+	if (!out_dsi || !cfg || (cfg->tag != GF_ODF_UI_CFG_TAG)) return GF_BAD_PARAM;
 
 	*out_dsi = NULL;
 	if (!cfg->deviceName) return GF_OK;
