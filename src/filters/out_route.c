@@ -35,14 +35,14 @@
 GF_OPT_ENUM (DVBFluteChecksumMode,
 	DVB_CSUM_NO=0,
 	DVB_CSUM_META,
-	DVB_CSUM_ALL,
+	DVB_CSUM_ALL
 );
 
 GF_OPT_ENUM (LCTChannelSplitMode,
 	LCT_SPLIT_NONE=0,
 	LCT_SPLIT_TYPE,
 	LCT_SPLIT_ALL,
-	LCT_SPLIT_MCAST,
+	LCT_SPLIT_MCAST
 );
 
 typedef struct
@@ -1277,7 +1277,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 			"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 			"<metadataEnvelope xmlns=\"urn:3gpp:metadata:2005:MBMS:envelope\">\n"
 			" <item metadataURI=\"usbd.xml\" version=\"", NULL);
-		snprintf(temp, 100, "%d", serv->stsid_version);
+		snprintf(temp, 100, "%u", serv->stsid_version);
 		gf_dynstrcat(&payload_text, temp, NULL);
 
 		gf_dynstrcat(&payload_text, "\" contentType=\"", NULL);
@@ -1289,7 +1289,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 		gf_dynstrcat(&payload_text,
 			" <item metadataURI=\"stsid.xml\" version=\"", NULL);
-		snprintf(temp, 100, "%d", serv->stsid_version);
+		snprintf(temp, 100, "%u", serv->stsid_version);
 		gf_dynstrcat(&payload_text, temp, NULL);
 
 		gf_dynstrcat(&payload_text, "\" contentType=\"", NULL);
@@ -1303,7 +1303,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		if (serv->manifest) {
 			gf_dynstrcat(&payload_text, " <item metadataURI=\"", NULL);
 			gf_dynstrcat(&payload_text, serv->manifest_name, NULL);
-			snprintf(temp, 1000, "\" version=\"%d\" contentType=\"", serv->manifest_version);
+			snprintf(temp, 1000, "\" version=\"%u\" contentType=\"", serv->manifest_version);
 			gf_dynstrcat(&payload_text, temp, NULL);
 			gf_dynstrcat(&payload_text, serv->manifest_mime, NULL);
 			gf_dynstrcat(&payload_text, "\"/>\n", NULL);
@@ -1328,7 +1328,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 		snprintf(temp, 1000, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 				"<BundleDescriptionROUTE xmlns=\"tag:atsc.org,2016:XMLSchemas/ATSC3/Delivery/ROUTEUSD/1.0/\">\n"
-				" <UserServiceDescription serviceId=\"%d\">\n"
+				" <UserServiceDescription serviceId=\"%u\">\n"
 				"  <Name lang=\"eng\">", service_id);
 		gf_dynstrcat(&payload_text, temp, NULL);
 		gf_dynstrcat(&payload_text, service_name, NULL);
@@ -1415,7 +1415,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 			if (!has_rs_hdr) {
 				gf_dynstrcat(&payload_text, " <RS dIpAddr=\"", NULL);
 				gf_dynstrcat(&payload_text, rlct->ip, NULL);
-				snprintf(temp, 1000, "\" dPort=\"%d\" sIpAddr=\"", rlct->port);
+				snprintf(temp, 1000, "\" dPort=\"%u\" sIpAddr=\"", rlct->port);
 				gf_dynstrcat(&payload_text, temp, NULL);
 				gf_dynstrcat(&payload_text, src_ip, NULL);
 				gf_dynstrcat(&payload_text, "\">\n", NULL);
@@ -1426,9 +1426,9 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 				u32 kbps = rpid->bandwidth / 1000;
 				kbps *= 110;
 				kbps /= 100;
-				snprintf(temp, 100, "  <LS tsi=\"%d\" bw=\"%d\">\n", rpid->tsi, kbps);
+				snprintf(temp, 100, "  <LS tsi=\"%u\" bw=\"%u\">\n", rpid->tsi, kbps);
 			} else {
-				snprintf(temp, 100, "  <LS tsi=\"%d\">\n", rpid->tsi);
+				snprintf(temp, 100, "  <LS tsi=\"%u\">\n", rpid->tsi);
 			}
 			gf_dynstrcat(&payload_text, temp, NULL);
 
@@ -1501,7 +1501,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 					max_size *= 2;
 				}
 
-				snprintf(temp, 1000, " Expires=\"4294944000\" afdt:maxTransportSize=\"%d\">\n", max_size);
+				snprintf(temp, 1000, " Expires=\"4294944000\" afdt:maxTransportSize=\"%u\">\n", max_size);
 				gf_dynstrcat(&payload_text, temp, NULL);
 			}
 
@@ -1570,7 +1570,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 			//setup payload format - we remove srcFecPayloadId=\"0\" as there is no FEC support yet
 			//format is always 1 for the time being
 			snprintf(temp, 1000,
-					"    <Payload codePoint=\"%d\" formatId=\"1\" frag=\"0\" order=\"true\"/>\n"
+					"    <Payload codePoint=\"%u\" formatId=\"1\" frag=\"0\" order=\"true\"/>\n"
 					, rpid->fmtp);
 
 			gf_dynstrcat(&payload_text, temp, NULL);
@@ -1660,10 +1660,10 @@ static void inject_fdt_file_desc(GF_ROUTEOutCtx *ctx, char **payload, ROUTEServi
 
 static void routeout_send_mabr_manifest(GF_ROUTEOutCtx *ctx);
 
-static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, Bool manifest_updated)
+static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *for_serv, Bool manifest_updated)
 {
 	u32 i, nb_serv;
-	if (serv && ctx->dvb_mabr_fdt && !serv->needs_reconfig) return GF_OK;
+	if (for_serv && ctx->dvb_mabr_fdt && !for_serv->needs_reconfig) return GF_OK;
 	char *payload=NULL;
 	gf_dynstrcat(&payload, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n", NULL);
 	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"4294944000\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
@@ -1972,7 +1972,7 @@ retry:
 					evt.seg_size.is_init = 0;
 					evt.seg_size.media_range_start = rpid->offset_at_seg_start;
 					//end range excludes last byte, except if 0 size (some text segments)
-					evt.seg_size.media_range_end = rpid->res_size ? (rpid->res_size - 1) : 0;
+					evt.seg_size.media_range_end = rpid->res_size - 1;
 					gf_filter_pid_send_event(rpid->pid, &evt);
 				}
 			}
@@ -2591,7 +2591,7 @@ next_packet:
 					target_push_dur = rpid->current_dur_us + rpid->current_cts_us - rpid->cts_us_at_frame_start;
 				}
 				if (ctx->sock_atsc_lls) {
-					snprintf(szSID, 20, "Service%d ", serv->service_id);
+					snprintf(szSID, 20, "Service%u ", serv->service_id);
 					szSID[30] = 0;
 				}
 				else
@@ -2604,9 +2604,9 @@ next_packet:
 				}
 
 				if (rpid->frag_idx)
-					snprintf(szFInfo, 100, "%s%s (%d frags %d bytes)", szSID, rpid->seg_name, rpid->frag_idx+1, rpid->full_frame_size);
+					snprintf(szFInfo, 100, "%s%s (%u frags %u bytes)", szSID, rpid->seg_name, rpid->frag_idx+1, rpid->full_frame_size);
 				else
-					snprintf(szFInfo, 100, "%s%s (%d bytes)", szSID, rpid->seg_name, rpid->full_frame_size);
+					snprintf(szFInfo, 100, "%s%s (%u bytes)", szSID, rpid->seg_name, rpid->full_frame_size);
 
 				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushed %s in " LLU " us - target push " LLU " us%s\n", rpid->route->log_name, szFInfo, ctx->clock - rpid->clock_at_frame_start, target_push_dur, szDelay));
 
@@ -2662,7 +2662,7 @@ next_packet:
 static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 {
 	char *payload_text = NULL;
-	u8 *payload = NULL, *pay_start;
+	u8 *payload, *pay_start;
 	char tmp[2000];
 	u32 i, count, len, comp_size;
 	s32 timezone, h, m;
@@ -2726,7 +2726,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 	//ATSC3 SLT
 	if (!ctx->lls_slt_table) {
 		count = gf_list_count(ctx->services);
-		snprintf(tmp, 1000, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<SLT xmlns=\"tag:atsc.org,2016:XMLSchemas/ATSC3/Delivery/SLT/1.0/\" bsid=\"%d\">\n", ctx->bsid);
+		snprintf(tmp, 1000, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<SLT xmlns=\"tag:atsc.org,2016:XMLSchemas/ATSC3/Delivery/SLT/1.0/\" bsid=\"%u\">\n", ctx->bsid);
 		gf_dynstrcat(&payload_text, tmp, NULL);
 		for (i=0; i<count; i++) {
 			const GF_PropertyValue *p;
@@ -2775,7 +2775,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 			configuration = (p && p->value.string) ? p->value.string : "Broadcast";
 
 			snprintf(tmp, 2000,
-				" <Service serviceId=\"%d\" globalServiceID=\"urn:atsc:gpac:%d:%d\" sltSvcSeqNum=\"0\" protected=\"false\" majorChannelNo=\"%d\" minorChannelNo=\"%d\" serviceCategory=\"%d\" shortServiceName=\"%s\" hidden=\"%s\" hideInGuide=\"%s\" broadbandAccessRequired=\"false\" configuration=\"%s\"> \n", sid, ctx->bsid, sid, major, minor, service_cat, szIP, hidden, hideInESG, configuration);
+				" <Service serviceId=\"%u\" globalServiceID=\"urn:atsc:gpac:%u:%u\" sltSvcSeqNum=\"0\" protected=\"false\" majorChannelNo=\"%u\" minorChannelNo=\"%u\" serviceCategory=\"%u\" shortServiceName=\"%s\" hidden=\"%s\" hideInGuide=\"%s\" broadbandAccessRequired=\"false\" configuration=\"%s\"> \n", sid, ctx->bsid, sid, major, minor, service_cat, szIP, hidden, hideInESG, configuration);
 			gf_dynstrcat(&payload_text, tmp, NULL);
 
 			src_ip = ctx->ifce_ip;
@@ -2785,10 +2785,10 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 				src_ip = szIP;
 			}
 
-			int res = snprintf(tmp, 1000, "  <BroadcastSvcSignaling slsProtocol=\"1\" slsDestinationIpAddress=\"%s\" slsDestinationUdpPort=\"%d\" slsSourceIpAddress=\"%s\"/>\n"
+			int res = snprintf(tmp, 1000, "  <BroadcastSvcSignaling slsProtocol=\"1\" slsDestinationIpAddress=\"%s\" slsDestinationUdpPort=\"%u\" slsSourceIpAddress=\"%s\"/>\n"
 				" </Service>\n", serv->rlct_base->ip, serv->rlct_base->port, src_ip);
 			if (res<0) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] String truncated will trying to write: <BroadcastSvcSignaling slsProtocol=\"1\" slsDestinationIpAddress=\"%s\" slsDestinationUdpPort=\"%d\" slsSourceIpAddress=\"%s\"/>\n", serv->log_name, serv->rlct_base->ip, serv->rlct_base->port, src_ip));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] String truncated will trying to write: <BroadcastSvcSignaling slsProtocol=\"1\" slsDestinationIpAddress=\"%s\" slsDestinationUdpPort=\"%u\" slsSourceIpAddress=\"%s\"/>\n", serv->log_name, serv->rlct_base->ip, serv->rlct_base->port, src_ip));
 			}
 			gf_dynstrcat(&payload_text, tmp, NULL);
 		}
@@ -2956,7 +2956,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, "\"", NULL);
 
 		p = gf_filter_pid_get_property_str(rpid->pid, "DVBPlaybackOffset");
-		sprintf(tmp, " contentPlaybackAvailabilityOffset=\"PT%dS\"", p ? p->value.uint : 4);
+		sprintf(tmp, " contentPlaybackAvailabilityOffset=\"PT%uS\"", p ? p->value.uint : 4);
 		gf_dynstrcat(&payload_text, tmp, NULL);
 		gf_dynstrcat(&payload_text, ">\n", NULL);
 
@@ -3074,7 +3074,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 
 		u32 j, nb_pids = gf_list_count(serv->pids);
 		for (j=0; j<nb_pids; j++) {
-			ROUTEPid *rpid = (ROUTEPid *)gf_list_get(serv->pids, j);
+			rpid = (ROUTEPid *)gf_list_get(serv->pids, j);
 			if (rpid->manifest_type) continue;
 
 			gf_dynstrcat(&payload_text, "<MulticastTransportSession sessionIdleTimeout=\"60000\" transportSecurity=\"", NULL);
@@ -3142,7 +3142,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 					gf_dynstrcat(&payload_text, "<BaseURL", NULL);
 					if (weight!=1) {
 						char szW[100];
-						sprintf(szW, " relativeWeight=\"%u\"", weight);
+						sprintf(szW, " relativeWeight=\"%d\"", weight);
 						gf_dynstrcat(&payload_text, szW, NULL);
 					}
 					if (is_self) {
@@ -3262,7 +3262,7 @@ static void routeout_send_mabr_manifest(GF_ROUTEOutCtx *ctx)
 	if (!ctx->dvb_mabr_fdt) routeout_update_dvb_mabr_fdt(ctx, NULL, GF_FALSE);
 	//not ready
 	if (!ctx->dvb_mabr_config || !ctx->dvb_mabr_fdt) return;
-	if (ctx->dvb_mabr_config && ctx->last_dvb_mabr_clock) {
+	if (ctx->last_dvb_mabr_clock) {
 		u64 diff = ctx->clock - ctx->last_dvb_mabr_clock;
 		if (diff < ctx->carousel) {
 			u64 next_sched = ctx->carousel - diff;
@@ -3372,9 +3372,9 @@ static GF_Err routeout_process(GF_Filter *filter)
 				progress = (u32) (10000*ctx->total_bytes / ctx->total_size);
 
 			if (ctx->sock_atsc_lls) {
-				snprintf(szStatus, 200, "s_rate=" LLU " kbps nb_services=%d active_resources=%d prog=%.02f %%", rate, count, ctx->nb_resources, ((Double)progress) / 100);
+				snprintf(szStatus, 200, "s_rate=" LLU " kbps nb_services=%u active_resources=%u prog=%.02f %%", rate, count, ctx->nb_resources, ((Double)progress) / 100);
 			} else {
-				snprintf(szStatus, 200, "s_rate=" LLU " kbps active_resources=%d prog=%.02f %%", rate, ctx->nb_resources, ((Double)progress) / 100);
+				snprintf(szStatus, 200, "s_rate=" LLU " kbps active_resources=%u prog=%.02f %%", rate, ctx->nb_resources, ((Double)progress) / 100);
 			}
 			gf_filter_update_status(filter, 0, szStatus);
 		}

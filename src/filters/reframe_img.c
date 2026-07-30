@@ -211,7 +211,7 @@ GF_Err img_process(GF_Filter *filter)
 			} else if (!stricmp(ext, "pngds")) {
 				codecid = GF_CODECID_PNG;
 				pf = GF_PIXEL_RGBDS;
-			} else if (!stricmp(ext, "bmp") || !strcmp(mime, "image/png")) {
+			} else if (!stricmp(ext, "bmp") || !strcmp(mime, "image/bmp")) {
 				codecid = GF_CODECID_RAW;
 			}
 		}

@@ -123,7 +123,7 @@ static GF_Err webgrab_process(GF_Filter *filter)
 	if (!ctx->v_playing && !ctx->a_playing && ctx->init_play_done) return GF_EOS;
 
 	while (gf_list_count(ctx->video_pcks)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->video_pcks);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_front(ctx->video_pcks);
 		gf_filter_pck_send(pck);
 
 		if (ctx->is_canvas && (ctx->fps.num<=0)) {
@@ -132,7 +132,7 @@ static GF_Err webgrab_process(GF_Filter *filter)
 	}
 
 	while (gf_list_count(ctx->audio_pcks)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->audio_pcks);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_front(ctx->audio_pcks);
 		gf_filter_pck_send(pck);
 	}
 
@@ -475,12 +475,12 @@ void webgrab_finalize(GF_Filter *filter)
 	GF_WebGrab *ctx = (GF_WebGrab *)gf_filter_get_udta(filter);
 	wgrab_del(EM_CAST_PTR ctx);
 	while (gf_list_count(ctx->video_pcks)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->video_pcks);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_front(ctx->video_pcks);
 		gf_filter_pck_discard(pck);
 	}
 	gf_list_del(ctx->video_pcks);
 	while (gf_list_count(ctx->audio_pcks)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->audio_pcks);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_front(ctx->audio_pcks);
 		gf_filter_pck_discard(pck);
 	}
 	gf_list_del(ctx->audio_pcks);

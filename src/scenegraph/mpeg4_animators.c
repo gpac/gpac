@@ -128,7 +128,7 @@ static void anurbs_init(anim_nurbs *nurbs, u32 type, u32 nCtrl, u32 nKnots, Fixe
 		break;
 	}
 	nurbs->p = nurbs->nknots - nurbs->npoints - 1;
-	if ((nurbs->p<=0) || (nurbs->p >= nurbs->nknots -1)
+	if ((nurbs->p==0) || (nurbs->p >= nurbs->nknots -1)
 	        || ((nurbs->nweights>0) && (nurbs->npoints != nurbs->nweights)) ) {
 		nurbs->valid = GF_FALSE;
 	} else {

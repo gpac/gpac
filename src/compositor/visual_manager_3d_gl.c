@@ -74,10 +74,11 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	if (has_gl_context)
 		ext = (const char *) glGetString(GL_EXTENSIONS);
 
-	if (!ext) ext = gf_opts_get_key("core", "glext");
+	if (!ext)
+		ext = gf_opts_get_key("core", "glext");
 	/*store OGL extension to config for app usage*/
 	else if (gf_opts_get_key("core", "glext")==NULL)
-		gf_opts_set_key("core", "glext", ext ? ext : "None");
+		gf_opts_set_key("core", "glext", ext);
 
 	if (!ext) return;
 
@@ -925,7 +926,7 @@ void visual_3d_set_clipper_scissor(GF_VisualManager *visual, GF_TraverseState *t
 static void visual_3d_load_matrix_shaders(GF_SHADERID program, Fixed *mat, const char *name)
 {
 	GLint loc;
-#ifdef GPAC_FIXED_POINT
+#if !defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
 	Float _mat[16];
 	u32 i;
 #endif
@@ -953,7 +954,7 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	u32 bw, bh;
 	SFVec2f s;
-	Bool use_npot = visual->compositor->gl_caps.npot_texture;
+	Bool use_npot;
 	if (visual->gl_textures) return GF_OK;
 
 	visual->gl_textures = (u32 *)gf_malloc(sizeof(u32) * visual->nb_views);
@@ -971,6 +972,8 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 
 #ifdef GPAC_USE_GLES2
 	use_npot = GF_TRUE;
+#else
+	use_npot = visual->compositor->gl_caps.npot_texture;
 #endif
 
 	if (use_npot) {
@@ -1411,7 +1414,7 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 
 static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 {
-#if defined(GPAC_FIXED_POINT)
+#if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_GLES1X)
 	Float _mat[16];
 	u32 i;
 #endif
@@ -1537,7 +1540,7 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 #if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
 	Fixed vals[4], exp;
 #else
-	Float vals[4], intensity, cutOffAngle, beamWidth, ambientIntensity, exp;
+	Float vals[4], intensity, cutOffAngle=0, beamWidth, ambientIntensity, exp;
 #endif
 
 	if (!visual->num_lights) return;
@@ -2941,15 +2944,13 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 		glNormalPointer(normal_type, sizeof(GF_Vertex), ((char *)base_address + MESH_NORMAL_OFFSET));
 
-		if (mesh->mesh_type==MESH_TRIANGLES) {
-			if (compositor->bcull
-			        && (!tr_state->mesh_is_transparent || (compositor->bcull ==GF_BACK_CULL_ALPHA) )
-			        && (mesh->flags & MESH_IS_SOLID)) {
-				glEnable(GL_CULL_FACE);
-				glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
-			} else {
-				glDisable(GL_CULL_FACE);
-			}
+		if (compositor->bcull
+				&& (!tr_state->mesh_is_transparent || (compositor->bcull ==GF_BACK_CULL_ALPHA) )
+				&& (mesh->flags & MESH_IS_SOLID)) {
+			glEnable(GL_CULL_FACE);
+			glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
+		} else {
+			glDisable(GL_CULL_FACE);
 		}
 	}
 

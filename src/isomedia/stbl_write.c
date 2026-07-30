@@ -172,7 +172,6 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 	if (!DTSs) return GF_OUT_OF_MEM;
 	curDTS = 0;
 	sampNum = 0;
-	ent = NULL;
 	inserted = GF_FALSE;
 	for (i=0; i<stts->nb_entries; i++) {
 		ent = & stts->entries[i];
@@ -1125,8 +1124,6 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 		ent = &stts->entries[stts->nb_entries-1];
 		ent->sampleCount--;
 		if (!ent->sampleCount) stts->nb_entries--;
-		if (nb_samples>1)
-			stts->cumulated_start_dts += ent->sampleDelta;
 	} else {
 		u64 *DTSs, curDTS;
 		u32 i, j, k, sampNum;
@@ -1138,7 +1135,6 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 
 		curDTS = 0;
 		sampNum = 0;
-		ent = NULL;
 		k=0;
 
 		for (i=0; i<stts->nb_entries; i++) {
@@ -1797,8 +1793,7 @@ GF_Err stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset)
 		if (offset>0xFFFFFFFF) {
 			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_CO64);
 			if (!co64) return GF_OUT_OF_MEM;
-			co64->nb_entries = stco->nb_entries + 1;
-			if (co64->nb_entries<=stco->nb_entries) return GF_OUT_OF_MEM;
+			co64->nb_entries = (u32) stco->nb_entries + 1;
 			co64->alloc_size = co64->nb_entries;
 			co64->offsets = (u64*)gf_malloc(sizeof(u64) * co64->nb_entries);
 			if (!co64->offsets) return GF_OUT_OF_MEM;
@@ -2261,7 +2256,6 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 	//check if we can remove the current sampleToChunk entry (same properties)
 	if (the_stsc->nb_entries > 1) {
 		GF_StscEntry *ent = &the_stsc->entries[the_stsc->nb_entries - 2];
-		if (!ent) return GF_OUT_OF_MEM;
 		if ( (ent->sampleDescriptionIndex == cur_ent->sampleDescriptionIndex)
 		        && (ent->samplesPerChunk == cur_ent->samplesPerChunk)
 		   ) {
@@ -2283,7 +2277,6 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 	}
 	//create a new entry (could be the first one, BTW)
 	newEnt = &the_stsc->entries[the_stsc->nb_entries];
-	if (!newEnt) return GF_OUT_OF_MEM;
 
 	//get the first chunk value
 	if ((*the_stco)->type == GF_ISOM_BOX_TYPE_STCO) {

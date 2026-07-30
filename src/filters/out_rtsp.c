@@ -55,13 +55,13 @@ GF_OPT_ENUM(GF_RTSPOutMulticastMode,
 	MCAST_ON,
 	MCAST_MIRROR,
 	//describe does not ened authenticate but multicast setup does
-	MCAST_AUTHENTICATE_SETUP,
+	MCAST_AUTHENTICATE_SETUP
 );
 
 GF_OPT_ENUM (GF_RTSPOutTransportMode,
 	TRP_BOTH=0,
 	TRP_UDP_ONLY,
-	TRP_TCP_ONLY,
+	TRP_TCP_ONLY
 );
 
 typedef struct
@@ -283,7 +283,7 @@ static void rtspout_del_session(GF_Filter *filter, GF_RTSPOutSession *sess)
 
 	if (filter) {
 		while (gf_list_count(sess->filter_srcs)) {
-			GF_Filter *fsrc = (struct __gf_filter *)gf_list_pop_back(sess->filter_srcs);
+			GF_Filter *fsrc = (GF_Filter *)gf_list_pop_back(sess->filter_srcs);
 			gf_filter_remove_src(filter, fsrc);
 		}
 	}
@@ -317,7 +317,7 @@ GF_RTSPOutSession *rtspout_locate_session_for_pid(GF_Filter *filter, GF_RTSPOutC
 		if (sess->single_session) continue;
 		nb_filters = gf_list_count(sess->filter_srcs);
 		for (j=0; j<nb_filters; j++) {
-			GF_Filter *srcf = (struct __gf_filter *)gf_list_get(sess->filter_srcs, j);
+			GF_Filter *srcf = (GF_Filter *)gf_list_get(sess->filter_srcs, j);
 			if (gf_filter_pid_is_filter_in_parents(pid, srcf))
 				return sess;
 		}
@@ -751,7 +751,7 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 			gf_free(rtpi);
 			continue;
 		}
-		sprintf(rtpi->url, "%s_%d", sess->ctrl_name, stream->ctrl_id);
+		sprintf(rtpi->url, "%s_%u", sess->ctrl_name, stream->ctrl_id);
 		rtpi->seq = gf_rtp_streamer_get_next_rtp_sn(stream->rtp);
 		rtpi->rtp_time = (u32) (stream->current_cts + stream->ts_offset + stream->rtp_ts_offset);
 
@@ -893,7 +893,7 @@ static GF_Err rtspout_load_media_service(GF_Filter *filter, GF_RTSPOutCtx *ctx, 
 	Bool found = GF_FALSE;
 	u32 i, count = gf_list_count(sess->filter_srcs);
 	for (i=0; i<count; i++) {
-		GF_Filter *src = (struct __gf_filter *)gf_list_get(sess->filter_srcs, i);
+		GF_Filter *src = (GF_Filter *)gf_list_get(sess->filter_srcs, i);
 		const char *url = gf_filter_get_arg_str(src, "src", NULL);
 		if (url && !strcmp(src_url, url)) {
 			found = GF_TRUE;
@@ -930,7 +930,7 @@ static GF_Err rtspout_check_sdp(GF_Filter *filter, GF_RTSPOutSession *sess)
 
 	for (j=0; j<nb_filters; j++) {
 		Bool found = GF_FALSE;
-		GF_Filter *srcf = (struct __gf_filter *)gf_list_get(sess->filter_srcs, j);
+		GF_Filter *srcf = (GF_Filter *)gf_list_get(sess->filter_srcs, j);
 		//check we have at least one pid
 		for (i=0; i<count; i++) {
 			GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(sess->streams, i);
@@ -1053,7 +1053,7 @@ static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path, GF_R
 	}
 	//check access rights and authentication
 	GF_Err creds_ok = GF_NOT_FOUND;
-	char szUsrPass[200], *user=NULL, *pass=NULL;
+	char szUsrPass[200], *user=NULL, *pass;
 	*err_code = NC_RTSP_Unauthorized;
 
 	if (!com->Authorization) {
@@ -1110,7 +1110,7 @@ static u32 rtspout_get_ctrl_id(GF_RTSPOutSession *sess, char *ctrl)
 	if (ctrl && (ctrl[0]=='/')) {
 		u32 len = (u32) strlen(sess->ctrl_name);
 		if (!strncmp(ctrl, sess->ctrl_name, len)) {
-			if (sscanf(ctrl+len, "_%d", &stream_ctrl_id)<1) {
+			if (sscanf(ctrl+len, "_%u", &stream_ctrl_id)<1) {
 				stream_ctrl_id=0;
 			}
 		}

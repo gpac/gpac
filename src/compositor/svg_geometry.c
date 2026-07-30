@@ -519,7 +519,7 @@ static void svg_rect_rebuild(GF_Node *node, Drawable *stack, SVGAllAttributes *a
 		if (height-ry!=ry)
 			gf_path_add_line_to(stack->path, x+width, y+height-ry);
 
-		cx = x+width-rx;
+		//cx = x+width-rx;
 		cy = y+height-ry;
 		svg_rect_add_arc(stack->path, x+width-rx, y+height, cx, cy, rx, ry);
 
@@ -527,13 +527,13 @@ static void svg_rect_rebuild(GF_Node *node, Drawable *stack, SVGAllAttributes *a
 			gf_path_add_line_to(stack->path, x+rx, y+height);
 
 		cx = x+rx;
-		cy = y+height-ry;
+		//cy = y+height-ry;
 		svg_rect_add_arc(stack->path, x, y+height-ry, cx, cy, rx, ry);
 
 		if (height-ry!=ry)
 			gf_path_add_line_to(stack->path, x, y+ry);
 
-		cx = x+rx;
+		//cx = x+rx;
 		cy = y+ry;
 		svg_rect_add_arc(stack->path, x+rx, y, cx, cy, rx, ry);
 

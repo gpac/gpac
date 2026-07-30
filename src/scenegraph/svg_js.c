@@ -63,7 +63,7 @@ typedef struct
 
 typedef struct __tag_svg_script_ctx
 {
-	Bool (*script_execute)(struct __tag_scene_graph *sg, char *utf8_script, GF_DOM_Event *event);
+	Bool (*script_execute)(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *event);
 	Bool (*handler_execute)(GF_Node *n, GF_DOM_Event *event, GF_Node *observer, char *utf8_script);
 	u32 nb_scripts;
 	/*global script context for the scene*/
@@ -81,7 +81,7 @@ typedef struct __tag_svg_script_ctx
 	SVG_JSClass svgElement;
 	SVG_JSClass svgDocument;
 	SVG_JSClass svg_globalClass;
-	SVG_JSClass connectionClass;
+	//SVG_JSClass connectionClass;
 	SVG_JSClass rgbClass;
 	SVG_JSClass rectClass;
 	SVG_JSClass pointClass;
@@ -97,7 +97,7 @@ void svg_mark_gc(struct __tag_svg_script_ctx *svg_js)
 
 void svg_free_node_binding(struct __tag_svg_script_ctx *svg_js, GF_Node *node)
 {
-	struct _node_js_binding *js_binding = node->sgprivate->interact->js_binding;
+	GF_NodeBindJS *js_binding = node->sgprivate->interact->js_binding;
 	if (!JS_IsUndefined(js_binding->obj)) {
 		JS_SetOpaque(js_binding->obj, NULL);
 		JS_FreeValue(svg_js->js_ctx, js_binding->obj);
@@ -926,11 +926,12 @@ static JSValue svg_udom_get_rgb_color_trait(JSContext *c, JSValueConst obj, int 
 		JS_SetOpaque(newObj, rgb);
 		return newObj;
 	}
-	break;
+
 	case SVG_Paint_datatype:
 	{
 		SVG_Paint *paint = (SVG_Paint *)info.far_ptr;
-		if ((1) || paint->type==SVG_PAINT_COLOR) {
+		//if ((1) || paint->type==SVG_PAINT_COLOR)
+		{
 			GF_SAFEALLOC(rgb, rgbCI);
 			if (!rgb) {
 				return js_throw_err(c, GF_DOM_EXC_DATA_CLONE_ERR);
@@ -942,7 +943,7 @@ static JSValue svg_udom_get_rgb_color_trait(JSContext *c, JSValueConst obj, int 
 			JS_SetOpaque(newObj, rgb);
 			return newObj;
 		}
-		return JS_TRUE;
+		//return JS_TRUE;
 	}
 	}
 	return JS_NULL;
@@ -2004,6 +2005,7 @@ static JSValue svg_mx2d_scale(JSContext *c, JSValueConst obj, int argc, JSValueC
 	if (JS_ToFloat64(c, &scale, argv[0])) return GF_JS_EXCEPTION(c);
 
 	gf_mx2d_init(mx2);
+	//cppcheck-suppress redundantAssignment
 	mx2.m[0] = mx2.m[4] = FLT2FIX(scale);
 	gf_mx2d_pre_multiply(mx1, &mx2);
 	return JS_DupValue(c, obj);
@@ -2402,13 +2404,11 @@ GF_DOMText *svg_get_text_child(GF_Node *node)
 {
 	GF_ChildNodeItem *child;
 	GF_DOMText *txt;
-	txt = NULL;
 	child = ((SVG_Element*)node)->children;
 	if (! child) return NULL;
 	while (child) {
 		txt = (GF_DOMText*)child->node;
 		if ((txt->sgprivate->tag==TAG_DOMText) && txt->textContent) return txt;
-		txt = NULL;
 		child = child->next;
 	}
 	return NULL;
@@ -2762,7 +2762,7 @@ void svg_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer)
 	ctx = hdl->js_data->ctx;
 
 	/*if an observer is being specified, use it*/
-	if (hdl && hdl->js_data && !JS_IsUndefined(hdl->js_data->evt_listen_obj))
+	if (!JS_IsUndefined(hdl->js_data->evt_listen_obj))
 		__this = hdl->js_data->evt_listen_obj;
 	else
 		return;

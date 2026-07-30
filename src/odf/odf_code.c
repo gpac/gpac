@@ -111,7 +111,8 @@ GF_Err gf_odf_write_url_string(GF_BitStream *bs, char *string)
 	} else {
 		gf_bs_write_int(bs, len, 8);
 	}
-	gf_bs_write_data(bs, (u8*)string, len);
+	if (gf_bs_write_data(bs, (u8*)string, len) != len)
+		return GF_IO_ERR;
 	return GF_OK;
 }
 

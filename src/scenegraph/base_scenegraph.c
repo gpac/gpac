@@ -583,7 +583,7 @@ restart:
 		u32 i;
 		count = gf_list_count(par->smil_timed_elements);
 		for (i=0; i<count; i++) {
-			SMIL_Timing_RTI *rti = (struct _smil_timing_rti *)gf_list_get(par->smil_timed_elements, i);
+			SMIL_Timing_RTI *rti = (SMIL_Timing_RTI *)gf_list_get(par->smil_timed_elements, i);
 			if (rti->timed_elt->sgprivate->scenegraph == sg) {
 				gf_list_rem(par->smil_timed_elements, i);
 				i--;
@@ -1023,8 +1023,9 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 		if (type) {
 			ReplaceIRINode(par, node, new_node);
 		}
-		else {
+		else
 #endif
+		{
 			ReplaceDEFNode(par, node, new_node, updateOrderedGroup);
 		}
 
@@ -2028,7 +2029,7 @@ GF_EXPORT
 u32 gf_node_get_field_count(GF_Node *node)
 {
 	if (!node) return 0;
-	if (node->sgprivate->tag <= TAG_UndefinedNode) return 0;
+	if (node->sgprivate->tag == TAG_UndefinedNode) return 0;
 #ifndef GPAC_DISABLE_VRML
 	/*for both MPEG4 & X3D*/
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_ALL);
@@ -2320,8 +2321,10 @@ static u32 gf_node_activate_ex(GF_Node *node, u32 depth)
 GF_Err gf_node_activate(GF_Node *node)
 {
 	if (!node) return GF_BAD_PARAM;
+#ifndef GPAC_DISABLE_SVG
 	if (gf_node_activate_ex(node, 0))
 		gf_node_changed(node, NULL);
+#endif
 	return GF_OK;
 }
 

@@ -31,7 +31,7 @@
 GF_OPT_ENUM (EVGScaleAspectRatioMode,
 	EVGS_KEEPAR_OFF=0,
 	EVGS_KEEPAR_FULL,
-	EVGS_KEEPAR_NOSRC,
+	EVGS_KEEPAR_NOSRC
 );
 
 typedef struct
@@ -302,8 +302,6 @@ static GF_Err evgs_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->o_w = ctx->osize.x;
 		ctx->o_h = ctx->osize.y;
 	}
-	ctx->offset_w = ctx->offset_h = 0;
-
 	u32 final_w = ctx->o_w;
 	u32 final_h = ctx->o_h;
 	if (ctx->keepar!=EVGS_KEEPAR_OFF) {

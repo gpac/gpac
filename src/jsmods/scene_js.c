@@ -457,6 +457,8 @@ static JSValue scenejs_set_option(JSContext *ctx, JSValueConst this_val, int arg
 	}
 	JS_FreeCString(ctx, sec_name);
 	JS_FreeCString(ctx, key_name);
+	//cppcheck does not get the key_val= branch
+	//cppcheck-suppress knownConditionTrueFalse
 	if (key_val) {
 		JS_FreeCString(ctx, key_val);
 	}
@@ -660,14 +662,14 @@ static JSValue scenejs_trigger_gc(JSContext *ctx, JSValueConst this_val, int arg
 static GF_FilterPid *gjs_enum_pids(void *udta, u32 *idx)
 {
 	GF_Scene *scene = (GF_Scene *)udta;
-	GF_ObjectManager *odm = (struct _od_manager *)gf_list_get(scene->resources, *idx);
+	GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(scene->resources, *idx);
 	if (odm) return odm->pid;
 	return NULL;
 }
 
 static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 {
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 	GF_MediaInfo odi;
 	const char *str;
 	GF_Scene *scene;
@@ -742,7 +744,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 	case GJS_OM_PROP_PAR:
 		if (odm->mo && odm->mo->pixel_ar) {
 			char szPar[50];
-			sprintf(szPar, "%d:%d", (odm->mo->pixel_ar>>16)&0xFF, (odm->mo->pixel_ar)&0xFF );
+			sprintf(szPar, "%u:%u", (odm->mo->pixel_ar>>16)&0xFF, (odm->mo->pixel_ar)&0xFF );
 			return JS_NewString(ctx, szPar);
 		} else if (odm->mo && odm->mo->width) {
 			return JS_NewString(ctx, "1:1");
@@ -858,7 +860,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		if (scene->main_addon_selected) {
 			count = gf_list_count(scene->resources);
 			for (i=0; i < count; i++) {
-				GF_ObjectManager *an_odm = (struct _od_manager *)gf_list_get(scene->resources, i);
+				GF_ObjectManager *an_odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
 				if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
 					odm = an_odm;
 				}
@@ -868,7 +870,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		if (odm->timeshift_depth) {
 			GF_FilterPid *pid = odm->pid;
 			if (!pid && odm->subscene) {
-				odm = (struct _od_manager *)gf_list_get(odm->subscene->resources, 0);
+				odm = (GF_ObjectManager *)gf_list_get(odm->subscene->resources, 0);
 				pid = odm->pid;
 			}
 			if (pid) {
@@ -943,7 +945,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		scene = odm->subscene ? odm->subscene : odm->parentscene;
 		count = gf_list_count(scene->resources);
 		for (i=0; i < count; i++) {
-			GF_ObjectManager *an_odm = (struct _od_manager *)gf_list_get(scene->resources, i);
+			GF_ObjectManager *an_odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
 			if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
 				if (!strstr(an_odm->addon->url, "://")) {
 					char szURL[GF_MAX_PATH];
@@ -977,7 +979,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		if (! scene->main_addon_selected) count = 0;
 
 		for (i=0; i < count; i++) {
-			GF_ObjectManager *an_odm = (struct _od_manager *)gf_list_get(scene->resources, i);
+			GF_ObjectManager *an_odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
 			if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
 				if (an_odm->duration) {
 					Double now = gf_clock_time_absolute(scene->root_od->ck) / 1000.0;
@@ -1022,7 +1024,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 
 static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 	const GF_PropertyValue *prop;
 	GF_PropertyEntry *pe=NULL;
 	char *qdesc;
@@ -1092,14 +1094,14 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 		else if (!strcmp(qdesc, "selected")) selected = GF_TRUE;
 		else if (!strncmp(qdesc, "fps=", 4)) {
 			u32 fd=25, fn=1;
-			if (sscanf(qdesc, "fps=%d/%d", &fn, &fd) != 2) {
+			if (sscanf(qdesc, "fps=%u/%u", &fn, &fd) != 2) {
 				fd=1;
-				sscanf(qdesc, "fps=%d", &fn);
+				sscanf(qdesc, "fps=%u", &fn);
 			}
 			fps = ((Double)fn) / fd;
 		}
 		else if (!strncmp(qdesc, "sar=", 4)) {
-			sscanf(qdesc, "sar=%d/%d", &par_n, &par_d);
+			sscanf(qdesc, "sar=%u/%u", &par_n, &par_d);
 		}
 		else if (!strncmp(qdesc, "ssr=", 4)) {
 			sscanf(qdesc, "ssr=%u", &ssr);
@@ -1162,7 +1164,7 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 
 static JSValue gjs_odm_get_srd(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 	s32 x, y, w, h;
 
 	if (!odm) return GF_JS_EXCEPTION(ctx);
@@ -1186,10 +1188,10 @@ static JSValue gjs_odm_get_srd(JSContext *ctx, JSValueConst this_val, int argc, 
 				return GF_JS_EXCEPTION(ctx);
 			}
 			srd = p->value.string_list.vals[dep_idx];
-			sscanf(srd, "%dx%dx%dx%d@%dx%d", &x, &y, &w, &h, &srdw, &srdh);
+			sscanf(srd, "%dx%dx%dx%d@%ux%u", &x, &y, &w, &h, &srdw, &srdh);
 		}
 		gf_filter_release_property(pe);
-	} else if (odm && odm->mo && odm->mo->srd_w && odm->mo->srd_h) {
+	} else if (odm->mo && odm->mo->srd_w && odm->mo->srd_h) {
 		x = odm->mo->srd_x;
 		y = odm->mo->srd_y;
 		w = odm->mo->srd_w;
@@ -1216,7 +1218,7 @@ static JSValue gjs_odm_in_parent_chain(JSContext *ctx, JSValueConst this_val, in
 	Bool res;
 	GF_Filter *f;
 	GF_Scene *scene;
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 	if (!odm || !argc) return GF_JS_EXCEPTION(ctx);
 
 	f = jsff_get_filter(ctx, argv[0]);
@@ -1241,7 +1243,7 @@ static JSValue gjs_odm_select_quality(JSContext *ctx, JSValueConst this_val, int
 	s32 tile_mode = -1;
 	u32 dep_idx = 0;
 	GF_FilterEvent evt;
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 
 	if (!odm || !odm->pid) return GF_JS_EXCEPTION(ctx);
 
@@ -1280,7 +1282,7 @@ static JSValue gjs_odm_select_quality(JSContext *ctx, JSValueConst this_val, int
 
 static JSValue gjs_odm_disable_main_addon(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 	if (!odm) return GF_JS_EXCEPTION(ctx);
 	if (!odm->subscene || !odm->subscene->main_addon_selected) return JS_UNDEFINED;
 
@@ -1291,7 +1293,7 @@ static JSValue gjs_odm_disable_main_addon(JSContext *ctx, JSValueConst this_val,
 static JSValue gjs_odm_select_service(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 sid;
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 	if (!odm) return GF_JS_EXCEPTION(ctx);
 	if (argc<1) return GF_JS_EXCEPTION(ctx);
 
@@ -1304,7 +1306,7 @@ static JSValue gjs_odm_select_service(JSContext *ctx, JSValueConst this_val, int
 
 static JSValue gjs_odm_select(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 	if (!odm) return GF_JS_EXCEPTION(ctx);
 
 #ifndef GPAC_DISABLE_COMPOSITOR
@@ -1317,14 +1319,14 @@ static JSValue gjs_odm_get_resource(JSContext *ctx, JSValueConst this_val, int a
 {
 	GF_ObjectManager *an_odm = NULL;
 	u32 idx;
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 
 	if (!odm) return GF_JS_EXCEPTION(ctx);
 	if (argc<1) return GF_JS_EXCEPTION(ctx);
 	if (JS_ToUint32(ctx, &idx, argv[0])) return GF_JS_EXCEPTION(ctx);
 
 	if (odm->subscene) {
-		an_odm = (struct _od_manager *)gf_list_get(odm->subscene->resources, idx);
+		an_odm = (GF_ObjectManager *)gf_list_get(odm->subscene->resources, idx);
 	}
 	if (an_odm && an_odm->scene_ns) {
 		JSValue anobj = JS_NewObjectClass(ctx, odm_class_id);
@@ -1337,7 +1339,7 @@ static JSValue gjs_odm_get_resource(JSContext *ctx, JSValueConst this_val, int a
 static JSValue gjs_odm_addon_layout(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 pos, size;
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 	if (!odm) return GF_JS_EXCEPTION(ctx);
 	if (argc<2) return GF_JS_EXCEPTION(ctx);
 	if (JS_ToUint32(ctx, &pos, argv[0])) return GF_JS_EXCEPTION(ctx);
@@ -1364,7 +1366,7 @@ static JSValue gjs_odm_enable_addon(JSContext *ctx, JSValueConst this_val, int a
 {
 	Bool do_disable = GF_FALSE;
 	const char *addon_url = NULL;
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 	if (!odm || !argc) return GF_JS_EXCEPTION(ctx);
 
 	if (! JS_IsString(argv[0]) ) {
@@ -1388,7 +1390,7 @@ static JSValue gjs_odm_enable_addon(JSContext *ctx, JSValueConst this_val, int a
 static JSValue gjs_odm_declare_addon(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	const char *addon_url = NULL;
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 	if (!odm || !argc) return GF_JS_EXCEPTION(ctx);
 	if (! JS_IsString(argv[0]) ) return GF_JS_EXCEPTION(ctx);
 
@@ -1402,10 +1404,10 @@ static JSValue gjs_odm_declare_addon(JSContext *ctx, JSValueConst this_val, int 
 
 static JSValue gjs_odm_get_chapters(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	GF_ObjectManager *odm = (struct _od_manager *)JS_GetOpaque(this_val, odm_class_id);
+	GF_ObjectManager *odm = (GF_ObjectManager *)JS_GetOpaque(this_val, odm_class_id);
 	if (!odm) return GF_JS_EXCEPTION(ctx);
 
-	if (odm->subscene) odm = (struct _od_manager *)gf_list_get(odm->subscene->resources, 0);
+	if (odm->subscene) odm = (GF_ObjectManager *)gf_list_get(odm->subscene->resources, 0);
 	if (!odm || ! odm->pid) return JS_NULL;
 
 	const GF_PropertyValue *times = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_CHAP_TIMES);
@@ -1430,15 +1432,15 @@ static JSValue gjs_odm_get_chapters(JSContext *ctx, JSValueConst this_val, int a
 static JSValue scenejs_get_object_manager(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	JSValue anobj;
-	u32 i, count;
 	GF_ObjectManager *odm = NULL;
-	const char *service_url = NULL;
 	GF_SCENEJSExt *sjs = (GF_SCENEJSExt *)JS_GetOpaque(this_val, scene_class_id);
 	GF_Compositor *compositor = scenejs_get_compositor(ctx, this_val);
 	GF_Scene *scene = compositor->root_scene;
-	if (!sjs) return GF_JS_EXCEPTION(ctx);
+	if (!sjs || !argc) return GF_JS_EXCEPTION(ctx);
 
 	if (JS_IsString(argv[0]) ) {
+		u32 i, count;
+		const char *service_url = NULL;
 		const char *url;
 		const char *an_url;
 		u32 url_len;
@@ -1454,29 +1456,32 @@ static JSValue scenejs_get_object_manager(JSContext *ctx, JSValueConst this_val,
 
 		count = gf_list_count(scene->resources);
 		for (i=0; i<count; i++) {
-			odm = (struct _od_manager *)gf_list_get(scene->resources, i);
-			if (odm->scene_ns) {
-				an_url = odm->scene_ns->url;
+			GF_ObjectManager *an_odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
+			if (an_odm->scene_ns) {
+				an_url = an_odm->scene_ns->url;
 				if (!strncmp(an_url, "gpac://", 7)) an_url = an_url + 7;
 				if (!strncmp(an_url, "file://", 7)) an_url = an_url + 7;
-				if (!strncmp(an_url, url, url_len))
+				if (!strncmp(an_url, url, url_len)) {
+					odm = an_odm;
 					break;
+				}
 
 				if (strstr(an_url, "://")) {
 					char *pc_url = gf_url_percent_encode(an_url);
 					if (!strncmp(pc_url, url, url_len)) {
 						gf_free(pc_url);
+						odm = an_odm;
 						break;
 					}
 					gf_free(pc_url);
 				}
 			}
-			odm = NULL;
 		}
+		JS_FreeCString(ctx, service_url);
 	}
 
-	JS_FreeCString(ctx, service_url);
-
+	//cppcheck does not get the odm= branch
+	//cppcheck-suppress knownConditionTrueFalse
 	if (!odm) return JS_NULL;
 
 	anobj = JS_NewObjectClass(ctx, odm_class_id);
@@ -1568,14 +1573,14 @@ static Bool gjs_event_filter_process(GF_SCENEJSExt *sjs, GF_Event *evt)
 
 static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_compositor)
 {
-	u32 lock_fail;
 	Bool res;
 	GF_SCENEJSExt *sjs = (GF_SCENEJSExt *)udta;
 	if (consumed_by_compositor) return GF_FALSE;
 
 	if (sjs->evt != NULL) return GF_FALSE;
 
-	lock_fail=0;
+#ifndef GPAC_DISABLE_THREADS
+	u32 lock_fail = 0;
 	res = gf_mx_try_lock(sjs->compositor->mx);
 	if (!res) {
 		lock_fail=1;
@@ -1599,6 +1604,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 		}
 		return GF_FALSE;
 	}
+#endif
 
 	gf_mx_p(sjs->event_mx);
 	while (gf_list_count(sjs->event_queue)) {
@@ -1917,7 +1923,7 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 	sjs->scene_obj = JS_UNDEFINED;
 	sjs->evt_obj = JS_UNDEFINED;
 
-	scene = (struct __tag_scene_graph *)JS_GetContextOpaque(c);
+	scene = (GF_SceneGraph *)JS_GetContextOpaque(c);
 	if (!scene) return -1;
 	if (scene->__reserved_null) {
 		GF_Node *n = (GF_Node *)JS_GetContextOpaque(c);

@@ -37,7 +37,6 @@ static GF_MediaObject *get_sync_reference(GF_Scene *scene, XMLRI *iri, u32 o_typ
 	MFURL mfurl;
 	SFURL sfurl;
 	GF_MediaObject *res;
-	GF_Node *ref = NULL;
 
 	u32 stream_id = 0;
 	if (post_pone) *post_pone = GF_FALSE;
@@ -47,6 +46,7 @@ static GF_MediaObject *get_sync_reference(GF_Scene *scene, XMLRI *iri, u32 o_typ
 	} else if (!iri->string) {
 		return NULL;
 	} else {
+		GF_Node *ref;
 		if (iri->target) ref = (GF_Node *)iri->target;
 		else if (iri->string[0]=='#') ref = gf_sg_find_node_by_name(scene->graph, iri->string+1);
 		else ref = gf_sg_find_node_by_name(scene->graph, iri->string);
@@ -761,7 +761,6 @@ retry:
 		&& (mo->type==GF_MEDIA_OBJECT_VIDEO)
 		//if no buffer playout we are in low latency configuration, don"t skip resync
 		&& mo->odm->buffer_playout_ms
-		&& mo->odm->parentscene
 	) {
 		if (! mo->odm->parentscene->compositor->drop) {
 			if (mo->odm->parentscene->compositor->force_late_frame_draw) {
@@ -875,8 +874,7 @@ retry:
 			}
 			if (too_slow != mo->odm->too_slow) {
 				mo->odm->too_slow = too_slow;
-				if (mo->odm->parentscene)
-					gf_scene_notify_event(mo->odm->parentscene, too_slow ? GF_EVENT_CODEC_SLOW : GF_EVENT_CODEC_OK, NULL, NULL, GF_OK, GF_FALSE);
+				gf_scene_notify_event(mo->odm->parentscene, too_slow ? GF_EVENT_CODEC_SLOW : GF_EVENT_CODEC_OK, NULL, NULL, GF_OK, GF_FALSE);
 			}
 		}
 	}

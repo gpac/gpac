@@ -388,15 +388,12 @@ GF_RTPStreamer *gf_rtp_streamer_new_ex(const GF_RTPStreamerConfig *cfg, Bool for
 		streamType = GF_STREAM_AUDIO;
 		codecid = GF_CODECID_QCELP;
 		OfficialPayloadType = 12;
-//			nb_ch = 1;
 		break;
 	case GF_CODECID_EVRC:
 	case GF_CODECID_SMV:
 		required_rate = 8000;
 		rtp_type = GF_RTP_PAYT_EVRC_SMV;
 		streamType = GF_STREAM_AUDIO;
-		codecid = (codecid==GF_ISOM_SUBTYPE_3GP_EVRC) ? GF_CODECID_EVRC : GF_CODECID_SMV;
-//			nb_ch = 1;
 		break;
 	case GF_CODECID_TX3G:
 		rtp_type = GF_RTP_PAYT_3GPP_TEXT;
@@ -590,10 +587,10 @@ void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, cha
 	snprintf(tmp_buf, 100, "a=fmtp:%d sver=60; ", builder->PayloadType);
 	gf_dynstrcat(out_sdp_line, tmp_buf, NULL);
 
-	snprintf(tmp_buf, 100, "width=%d; height=%d; tx=%d; ty=%d; layer=%d; ", w, h, tx, ty, l);
+	snprintf(tmp_buf, 100, "width=%u; height=%u; tx=%d; ty=%d; layer=%d; ", w, h, tx, ty, l);
 	gf_dynstrcat(out_sdp_line, tmp_buf, NULL);
 
-	snprintf(tmp_buf, 100, "max-w=%d; max-h=%d", max_w, max_h);
+	snprintf(tmp_buf, 100, "max-w=%u; max-h=%u", max_w, max_h);
 	gf_dynstrcat(out_sdp_line, tmp_buf, NULL);
 
 	if (tx3g_base64) {
@@ -642,11 +639,11 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 
 	if (width && height) {
 		if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_H263) {
-			snprintf(tmp_buf, 100, "a=cliprect:0,0,%d,%d\n", height, width);
+			snprintf(tmp_buf, 100, "a=cliprect:0,0,%u,%u\n", height, width);
 			gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 		}
 		/*extensions for some mobile phones*/
-		snprintf(tmp_buf, 100, "a=framesize:%d %d-%d\n", rtp->packetizer->PayloadType, width, height);
+		snprintf(tmp_buf, 100, "a=framesize:%u %u-%u\n", rtp->packetizer->PayloadType, width, height);
 		gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 	}
 
@@ -667,7 +664,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 #endif
 	/*EVRC/SMV in non header-free mode*/
 	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_EVRC_SMV) && (rtp->packetizer->auh_size>1)) {
-		snprintf(tmp_buf, 100, "a=fmtp:%d maxptime=%d\n", rtp->packetizer->PayloadType, rtp->packetizer->auh_size*20);
+		snprintf(tmp_buf, 100, "a=fmtp:%u maxptime=%u\n", rtp->packetizer->PayloadType, rtp->packetizer->auh_size*20);
 		gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 	}
 	/*H264/AVC*/
@@ -675,7 +672,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 		GF_AVCConfig *avcc = dsi ? gf_odf_avc_cfg_read((u8*)dsi, dsi_len) : NULL;
 
 		if (avcc) {
-			snprintf(tmp_buf, 100, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", rtp->packetizer->PayloadType, avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			snprintf(tmp_buf, 100, "a=fmtp:%u profile-level-id=%02X%02X%02X; packetization-mode=1", rtp->packetizer->PayloadType, avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 			gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 
 			if (gf_list_count(avcc->pictureParameterSets) || gf_list_count(avcc->sequenceParameterSets)) {

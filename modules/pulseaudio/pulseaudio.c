@@ -43,7 +43,7 @@ typedef struct
 	const char *output_description;
 	u32 errors;
 	u32 consecutive_zero_reads;
-	char data[BUFF_SIZE];
+	u8 data[BUFF_SIZE];
 } PulseAudioContext;
 
 static void
@@ -281,7 +281,7 @@ GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface (u32 InterfaceType)
 {
 	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
-		return NewPulseAudioOutput ();
+		return (GF_BaseInterface *) NewPulseAudioOutput ();
 	return NULL;
 }
 

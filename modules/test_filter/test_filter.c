@@ -64,7 +64,8 @@ static GF_Err testfilter_process(GF_Filter *filter)
 	for (i = 0; i < count; i++) {
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
-		gf_filter_pid_drop_packet(pid);
+		if (pck)
+			gf_filter_pid_drop_packet(pid);
 	}
 	return GF_OK;
 }
@@ -72,12 +73,14 @@ static GF_Err testfilter_process(GF_Filter *filter)
 static GF_Err testfilter_initialize(GF_Filter *filter)
 {
 	TestContext *ctx = (TestContext *) gf_filter_get_udta(filter);
+	if (ctx->opt1)
+		ctx->opt1 = GF_FALSE;
 	return GF_OK;
 }
 
 static void testfilter_finalize(GF_Filter *filter)
 {
-	TestContext *ctx = (TestContext *) gf_filter_get_udta(filter);
+//	TestContext *ctx = (TestContext *) gf_filter_get_udta(filter);
 }
 
 static const GF_FilterCapability TestFilterCaps[] =

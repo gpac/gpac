@@ -133,7 +133,7 @@ static GF_Err rewind_process_video(GF_RewindCtx *ctx, GF_FilterPacket *pck)
 	//frame was a SAP, flush all previous frames in reverse order
 	if (do_flush) {
 		while (1) {
-			GF_FilterPacket *frame = (struct __gf_filter_pck *)gf_list_pop_back(ctx->frames);
+			GF_FilterPacket *frame = (GF_FilterPacket *)gf_list_pop_back(ctx->frames);
 			if (!frame) break;
 			gf_filter_pck_forward(frame, ctx->opid);
 			gf_filter_pck_unref(frame);

@@ -2452,7 +2452,7 @@ GF_Err gf_isom_update_aperture_info(GF_ISOFile *movie, u32 trackNumber, Bool rem
 	//prof: encoded pixels + pasp in 16.16
 	width = (Float) (ventry->Width * hspacing);
 	width /= vspacing;
-	high = (u32) floor((Float)width);
+	high = (u32) floor(width);
 	low = (u32) ( 0xFFFF * (width - (Double)high) );
 	((GF_ApertureBox *)prof)->width = (high)<<16 | low;
 	((GF_ApertureBox *)prof)->height = (ventry->Height)<<16;
@@ -2463,10 +2463,10 @@ GF_Err gf_isom_update_aperture_info(GF_ISOFile *movie, u32 trackNumber, Bool rem
 	height = (Float) clap_height_num;
 	height /= clap_height_den;
 
-	high = (u32) floor((Float)width);
+	high = (u32) floor(width);
 	low = (u32) (0xFFFF * (width - (Double)high));
 	((GF_ApertureBox *)clef)->width = (high)<<16 | low;
-	high = (u32) floor((Float)height);
+	high = (u32) floor(height);
 	low = (u32) (0xFFFF * (height - (Double)high));
 	((GF_ApertureBox *)clef)->height = (high)<<16 | low;
 
@@ -3139,7 +3139,7 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
-	if (the_trak && the_trak->Media && the_trak->Media->information) {
+	if (the_trak->Media && the_trak->Media->information) {
 		if (the_trak->Media->information->dataHandler == movie->movieFileMap || the_trak->Media->information->dataHandler == movie->editFileMap)
 			the_trak->Media->information->dataHandler = NULL;
 
@@ -5847,7 +5847,7 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			//if (!res) return GF_FALSE;
 			return GF_TRUE;
 		}
-		break;
+
 		case GF_ISOM_BOX_TYPE_LSR1:
 		{
 			GF_LASeRSampleEntryBox *lsr1 = (GF_LASeRSampleEntryBox *)ent1;
@@ -5861,7 +5861,7 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			}
 			return GF_FALSE;
 		}
-		break;
+
 #ifndef GPAC_DISABLE_VTT
 		case GF_ISOM_BOX_TYPE_WVTT:
 		{
@@ -5873,8 +5873,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			}
 			return GF_FALSE;
 		}
-		break;
 #endif
+
 		case GF_ISOM_BOX_TYPE_STPP:
 		{
 			GF_MetaDataSampleEntryBox *stpp1 = (GF_MetaDataSampleEntryBox *)ent1;
@@ -5884,12 +5884,10 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			}
 			return GF_FALSE;
 		}
-		break;
+
 		case GF_ISOM_BOX_TYPE_SBTT:
-		{
 			return GF_FALSE;
-		}
-		break;
+
 		case GF_ISOM_BOX_TYPE_STXT:
 		{
 			GF_MetaDataSampleEntryBox *stxt1 = (GF_MetaDataSampleEntryBox *)ent1;
@@ -5902,6 +5900,7 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			}
 			return GF_FALSE;
 		}
+
 		case GF_ISOM_BOX_TYPE_MP3:
 		case GF_QT_SUBTYPE_RAW_AUD:
 		case GF_QT_SUBTYPE_TWOS:
@@ -7329,7 +7328,7 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 		gf_assert(parent);
 		gf_list_add(parent, sgroup);
 	}
-	u32 def_insert_value = (sgdesc && (sgdesc->version==2)) ? sgdesc->default_description_index : 0;
+	u32 def_insert_value = (sgdesc->version==2) ? sgdesc->default_description_index : 0;
 
 	/*used in fragments, means we are adding the last sample*/
 	if (!sample_number) {
@@ -9077,7 +9076,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 					gf_bs_read_data(bs, new_box->data, new_box->dataSize);
 					if (insert_pos<0) {
 						gf_list_add(box->child_boxes, new_box);
-						insert_pos = gf_list_find(box->child_boxes, new_box);
+						//insert_pos = gf_list_find(box->child_boxes, new_box);
 					} else {
 						gf_list_insert(*parent_list, new_box, insert_pos);
 					}
@@ -9087,27 +9086,27 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 						if (!item_id) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMFF] Inserting box in ipco without itemID, no association added\n"));
 						} else if (ipma) {
-							u32 nb_asso, k, insert_pos;
+							u32 nb_asso, k, do_insert_pos;
 							GF_ItemPropertyAssociationEntry *entry = NULL;
 							nb_asso = gf_list_count(ipma->entries);
-							insert_pos = 0;
+							do_insert_pos = 0;
 							for (k=0; k<nb_asso;k++) {
 								entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, k);
 								if (entry->item_id==item_id) break;
 								// item ids must appear in increasing order
-								if (item_id>entry->item_id) ++insert_pos;
+								if (item_id>entry->item_id) ++do_insert_pos;
 								entry = NULL;
 							}
 							if (!entry) {
 								GF_SAFEALLOC(entry, GF_ItemPropertyAssociationEntry);
 								if (!entry) return GF_OUT_OF_MEM;
-								gf_list_insert(ipma->entries, entry, insert_pos);
+								gf_list_insert(ipma->entries, entry, do_insert_pos);
 								entry->item_id = item_id;
 							}
 							entry->associations = (GF_ItemPropertyAssociationSlot *)gf_realloc(entry->associations, sizeof(GF_ItemPropertyAssociationSlot) * (entry->nb_associations+1));
 							if (!entry->associations) return GF_OUT_OF_MEM;
 							entry->associations[entry->nb_associations].essential = essential_prop;
-							entry->associations[entry->nb_associations].index = 1+insert_pos;
+							entry->associations[entry->nb_associations].index = 1+do_insert_pos;
 							entry->nb_associations++;
 						}
 					}

@@ -181,7 +181,6 @@ static GFINLINE void vorbis_to_intern(u32 samples, Float **pcm, char *buf, u32 c
 		Float *mono;
 		ogg_int16_t *ptr;
 		ptr = &data[i];
-		if (!ptr) break;
 
 		if (channels>2) {
 			/*center is third in gpac*/

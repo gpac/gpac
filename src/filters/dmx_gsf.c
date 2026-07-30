@@ -910,7 +910,6 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	if (has_4cc_props) {
 		u32 nb_4cc = gsfdmx_read_vlen(bs);
 		while (nb_4cc) {
-			GF_Err e;
 			GF_PropertyValue p;
 			memset(&p, 0, sizeof(GF_PropertyValue));
 			u32 p4cc = gf_bs_read_u32(bs);
@@ -935,7 +934,6 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	if (has_str_props) {
 		u32 nb_props = gsfdmx_read_vlen(bs);
 		while (nb_props) {
-			GF_Err e;
 			GF_PropertyValue p;
 			char *pname=NULL;
 			memset(&p, 0, sizeof(GF_PropertyValue));

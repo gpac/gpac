@@ -45,7 +45,7 @@ static void mpeg4_sensor_deleted(GF_Node *node, GF_SensorHandler *hdl)
 		gf_list_del_item(compositor->sensors, hdl);
 		gf_list_del_item(compositor->previous_sensors, hdl);
 		if (compositor->interaction_sensors) compositor->interaction_sensors--;
-		while ( (visual = (struct _visual_manager *)gf_list_enum(compositor->visuals, &i)) ) {
+		while ( (visual = (GF_VisualManager *)gf_list_enum(compositor->visuals, &i)) ) {
 			if (visual->offscreen)
 				compositor_compositetexture_sensor_delete(visual->offscreen, hdl);
 		}

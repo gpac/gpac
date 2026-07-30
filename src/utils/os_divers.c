@@ -273,7 +273,6 @@ int gettimeofday(struct timeval *tp, struct timezone *tzp)
 {
 	SYSTEMTIME      st;
 	FILETIME        ft;
-	LARGE_INTEGER   li;
 	TIME_ZONE_INFORMATION tzi;
 	__int64         t;
 
@@ -281,9 +280,7 @@ int gettimeofday(struct timeval *tp, struct timezone *tzp)
 	{
 		GetSystemTime(&st);
 		SystemTimeToFileTime(&st, &ft);
-		li.LowPart  = ft.dwLowDateTime;
-		li.HighPart = ft.dwHighDateTime;
-		t  = li.QuadPart;       /* In 100-nanosecond intervals */
+		t  = (((__int64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime; /* In 100-nanosecond intervals */
 		t -= EPOCHFILETIME;     /* Offset to the Epoch time */
 		t /= 10;                /* In microseconds */
 		tp->tv_sec  = (long)(t / 1000000);
@@ -1938,14 +1935,14 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	int pagesize;
 	u64 process_u_k_time;
 	double utime, stime;
-	vm_statistics_data_t vmstat;
+	vm_statistics_data_t vmstat = {};
 	task_t task;
 	kern_return_t error;
 	thread_array_t thread_table;
 	unsigned table_size;
 	thread_basic_info_t thi;
-	thread_basic_info_data_t thi_data;
-	struct task_basic_info ti;
+	thread_basic_info_data_t thi_data = {};
+	struct task_basic_info ti = {};
 	mach_msg_type_number_t count = HOST_VM_INFO_COUNT, size = sizeof(ti);
 
 	entry_time = gf_sys_clock();
@@ -2071,12 +2068,12 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
 	u64 u_k_time = 0;
 	kern_return_t kr;
-	task_info_data_t tinfo;
+	task_info_data_t tinfo = {};
 	mach_msg_type_number_t task_info_count;
 	task_basic_info_t basic_info;
 	thread_array_t thread_list;
 	mach_msg_type_number_t thread_count;
-	thread_info_data_t thinfo;
+	thread_info_data_t thinfo = {};
 	mach_msg_type_number_t thread_info_count;
 	thread_basic_info_t basic_info_th;
 	u32 j, tot_cpu = 0, nb_threads = 0;
@@ -2194,7 +2191,6 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #ifndef GPAC_CONFIG_EMSCRIPTEN
 	FILE *f = gf_fopen("/proc/stat", "r");
 	if (f) {
-		char line[2048];
 		u32 k_time, nice_time, u_time;
 		if (gf_fgets(line, 128, f) != NULL) {
 			if (sscanf(line, "cpu  %u %u %u %u\n", &u_time, &k_time, &nice_time, &idle_time) == 4) {
@@ -2255,12 +2251,12 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	the_rti.process_memory = r_usage.ru_maxrss*1024;
 
 	if (!the_rti.process_memory) {
-		sprintf(szProc, "/proc/%d/status", the_rti.pid);
+		sprintf(szProc, "/proc/%u/status", the_rti.pid);
 		f = gf_fopen(szProc, "r");
 		if (f) {
 			while (gf_fgets(line, 1024, f) != NULL) {
 				if (!strnicmp(line, "VmRSS:", 7)) {
-					sscanf(line, "VmRSS: " LLD " kB", &the_rti.process_memory);
+					sscanf(line, "VmRSS: " LLU " kB", &the_rti.process_memory);
 					the_rti.process_memory *= 1024;
 				}
 			}
@@ -2280,7 +2276,6 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	the_rti.physical_memory = the_rti.physical_memory_avail = 0;
 	f = gf_fopen("/proc/meminfo", "r");
 	if (f) {
-		char line[2048];
 		while (gf_fgets(line, 1024, f) != NULL) {
 			if (!strnicmp(line, "MemTotal:", 9)) {
 				sscanf(line, "MemTotal: " LLU " kB",  &the_rti.physical_memory);
@@ -2902,22 +2897,22 @@ u64 gf_net_parse_date(const char *val)
 	secs = 0;
 	Bool has_sep = strchr(val, ':') ? GF_TRUE : GF_FALSE;
 
-	if (sscanf(val, "%d-%d-%dT%d:%d:%g-%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
+	if (sscanf(val, "%u-%u-%uT%u:%u:%g-%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
 		neg_time_zone = GF_TRUE;
 	}
-	else if (sscanf(val, "%d-%d-%dT%d:%d:%g+%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
+	else if (sscanf(val, "%u-%u-%uT%u:%u:%g+%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
 	}
-	else if (sscanf(val, "%d-%d-%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &secs) == 6) {
+	else if (sscanf(val, "%u-%u-%uT%u:%u:%gZ", &year, &month, &day, &h, &m, &secs) == 6) {
 	}
-	else if (sscanf(val, "%d/%d/%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &secs) == 6) {
+	else if (sscanf(val, "%u/%u/%uT%u:%u:%gZ", &year, &month, &day, &h, &m, &secs) == 6) {
 	}
-	else if (sscanf(val, "%3s, %d %3s %d %d:%d:%d", szDay, &day, szMonth, &year, &h, &m, &s)==7) {
+	else if (sscanf(val, "%3s, %u %3s %u %u:%u:%u", szDay, &day, szMonth, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
 	}
-	else if (sscanf(val, "%9s, %d-%3s-%d %02d:%02d:%02d GMT", szDay, &day, szMonth, &year, &h, &m, &s)==7) {
+	else if (sscanf(val, "%9s, %u-%3s-%u %02u:%02u:%02u GMT", szDay, &day, szMonth, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
 	}
-	else if (sscanf(val, "%3s %3s %d %02d:%02d:%02d %d", szDay, szMonth, &day, &year, &h, &m, &s)==7) {
+	else if (sscanf(val, "%3s %3s %u %02u:%02u:%02u %u", szDay, szMonth, &day, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
 	}
 	else if (!has_sep && (sscanf(val, LLU, &current_time) == 1) && current_time > 1000000000000ULL && current_time < GF_INT_MAX * 1000ULL) {

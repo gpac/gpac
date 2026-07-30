@@ -303,7 +303,7 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		char szPName[101];
 		szPName[100]=0;
 		const char *szST = gf_stream_type_name(streamtype);
-		snprintf(szPName, 100, "%c%d", szST[0], esid);
+		snprintf(szPName, 100, "%c%u", szST[0], esid);
 		gf_filter_pid_set_name(pid, szPName);
 	}
 
@@ -746,7 +746,7 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 				gf_isom_get_user_data(read->mov, ch->track, type, uuid, j+1, &udta, &udta_size);
 				if (!udta || !udta_size) continue;
 				if (nb_items>1)
-					snprintf(szName, 30, "udta_%s_%d", gf_4cc_to_str(type), j+1);
+					snprintf(szName, 30, "udta_%s_%u", gf_4cc_to_str(type), j+1);
 				else
 					snprintf(szName, 30, "udta_%s", gf_4cc_to_str(type));
 				szName[30]=0;
@@ -1683,7 +1683,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 #ifndef GPAC_DISABLE_AV_PARSERS
 			GF_ISOSample *samp = gf_isom_get_sample(ch->owner->mov, ch->track, 1, NULL);
 			if (samp) {
-				u64 ch_layout=0;
+				ch_layout=0;
 				s32 PL = gf_mpegh_get_mhas_pl(samp->data, samp->dataLength, &ch_layout);
 				if (PL>0) {
 					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT((u32) PL));
@@ -1698,7 +1698,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	} else if (codec_id==GF_CODECID_DTS_X) {
 		GF_UDTSConfig cfg;
 		if (gf_isom_get_udts_config(ch->owner->mov, ch->track, stsd_idx, &cfg) == GF_OK) {
-			u64 ch_layout = cfg.ChannelMask;
+			ch_layout = cfg.ChannelMask;
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_layout));
 		}
 	}
@@ -1867,7 +1867,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 
 		if (read->tkid) {
 			u32 for_id=0;
-			if (sscanf(read->tkid, "%d", &for_id)) {
+			if (sscanf(read->tkid, "%u", &for_id)) {
 				u32 id = gf_isom_get_track_id(read->mov, i+1);
 				if (id != for_id) continue;
 			} else if (!strcmp(read->tkid, "audio")) {

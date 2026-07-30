@@ -103,7 +103,7 @@ GF_OPT_ENUM (GF_InspectDumpMode,
 	INSPECT_MODE_PCK=0,
 	INSPECT_MODE_BLOCK,
 	INSPECT_MODE_REFRAME,
-	INSPECT_MODE_RAW,
+	INSPECT_MODE_RAW
 );
 
 GF_OPT_ENUM (GF_InspectSkipPropsMode,
@@ -114,14 +114,14 @@ GF_OPT_ENUM (GF_InspectSkipPropsMode,
 	INSPECT_TEST_ENCODE,
 	INSPECT_TEST_ENCX,
 	INSPECT_TEST_NOCRC,
-	INSPECT_TEST_NOBR,
+	INSPECT_TEST_NOBR
 );
 
 GF_OPT_ENUM (GF_InspectSampleAnalyzeMode,
 	INSPECT_ANALYZE_OFF=0,
 	INSPECT_ANALYZE_ON,
 	INSPECT_ANALYZE_BS,
-	INSPECT_ANALYZE_BS_BITS,
+	INSPECT_ANALYZE_BS_BITS
 );
 
 typedef struct
@@ -872,38 +872,38 @@ static void inspect_dump_crypt(FILE *dump, u32 nal_size, u8 *sai_buffer, u32 sai
 	GF_BitStream *bs = gf_bs_new(sai_buffer, sai_buffer_size, GF_BITSTREAM_READ);
 	u8 iv_size = 0;
 	Bool multi_key=GF_FALSE;
-	u32 nb_iv_init=0;
-	u32 i, nb_subs;
+	u32 nb_iv_init,i, nb_subs;
 
-restart:
-	if (iv_size && !multi_key) gf_bs_skip_bytes(bs, iv_size);
-	nb_subs = gf_bs_read_u16(bs);
-	if (!multi_key && (gf_bs_available(bs) == nb_subs*6)) {
-
-	} else if (!multi_key && (iv_size<16)) {
-		gf_bs_seek(bs, 0);
-		iv_size += 8;
-		goto restart;
-	} else {
-		//multikey
-		if (!multi_key) {
-			iv_size=0;
-			multi_key = GF_TRUE;
-			gf_bs_seek(bs, 0);
-			nb_subs = gf_bs_read_u16(bs);
-		}
-		nb_iv_init = nb_subs;
-		gf_bs_skip_bytes(bs, nb_iv_init*(2+iv_size));
-		nb_subs = gf_bs_read_u32(bs);
-		if (gf_bs_available(bs) == nb_subs*8) {
-		} else if (iv_size<16) {
+	//auto-detect multikey config
+	while (1) {
+		if (iv_size && !multi_key) gf_bs_skip_bytes(bs, iv_size);
+		nb_subs = gf_bs_read_u16(bs);
+		if (!multi_key && (gf_bs_available(bs) == nb_subs*6)) {
+			break;
+		} else if (!multi_key && (iv_size<16)) {
 			gf_bs_seek(bs, 0);
 			iv_size += 8;
-			goto restart;
 		} else {
-			inspect_printf(dump, "encrypted=\"unsupported multikey\" ");
-			gf_bs_del(bs);
-			return;
+			//multikey
+			if (!multi_key) {
+				iv_size=0;
+				multi_key = GF_TRUE;
+				gf_bs_seek(bs, 0);
+				nb_subs = gf_bs_read_u16(bs);
+			}
+			nb_iv_init = nb_subs;
+			gf_bs_skip_bytes(bs, nb_iv_init*(2+iv_size));
+			nb_subs = gf_bs_read_u32(bs);
+			if (gf_bs_available(bs) == nb_subs*8) {
+				break;
+			} else if (iv_size<16) {
+				gf_bs_seek(bs, 0);
+				iv_size += 8;
+			} else {
+				inspect_printf(dump, "encrypted=\"unsupported multikey\" ");
+				gf_bs_del(bs);
+				return;
+			}
 		}
 	}
 
@@ -3453,7 +3453,7 @@ static void inspect_format_tmcd_internal(const u8 *data, u32 size, u32 tmcd_flag
 		nb_secs *= tmcd_fpt;
 
 		f = (u32) (nb_frames - nb_secs);
-		if (tmcd_fpt && (f==tmcd_fpt)) {
+		if (f==tmcd_fpt) {
 			f = 0;
 			s++;
 			if (s==60) {
@@ -3467,9 +3467,9 @@ static void inspect_format_tmcd_internal(const u8 *data, u32 size, u32 tmcd_flag
 		}
 	}
 	if (dump)
-		inspect_printf(dump, " time=\"%s%02d:%02d:%02d%c%02d\"/>\n", neg ? "-" : "", h, m, s, is_drop ? ';' : ':', f);
+		inspect_printf(dump, " time=\"%s%02u:%02u:%02u%c%02u\"/>\n", neg ? "-" : "", h, m, s, is_drop ? ';' : ':', f);
 	else if (szFmt)
-		sprintf(szFmt, "%s%02d:%02d:%02d%c%02d", neg ? "-" : "", h, m, s, is_drop ? ';' : ':', f);
+		sprintf(szFmt, "%s%02u:%02u:%02u%c%02u", neg ? "-" : "", h, m, s, is_drop ? ';' : ':', f);
 
 	if (loc_bs) gf_bs_del(loc_bs);
 }
@@ -3491,16 +3491,14 @@ static void inspect_dump_boxes(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data,
 {
 	if (ctx->dump) {
 		GF_BitStream *bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
-		GF_Err e = GF_OK;
 		while (gf_bs_available(bs) > 0) {
 			GF_Box *a = NULL;
-			e = gf_isom_box_parse(&a, bs);
+			GF_Err e = gf_isom_box_parse(&a, bs);
 			if (e) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] Event Track: error while parsing data boxes\n"));
 				break; //don't parse any further
 			}
 			gf_isom_box_dump(a, dump);
-			data += a->size;
 			gf_isom_box_del(a);
 			a=NULL;
 		}
@@ -3799,7 +3797,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	while (1) {
 		u32 prop_4cc;
 		const char *prop_name;
-		const GF_PropertyValue * p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
+		p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
 		if (idx==0) inspect_printf(dump, "properties:\n");
 
@@ -5102,8 +5100,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 				}
 				inspect_printf(dump, "\"");
 			}
-			pctx->opus_channel_count = opcfg.StreamCount;
-			pctx->opus_channel_count = (opcfg.StreamCount ? opcfg.StreamCount : 1);
+			pctx->opus_channel_count = opcfg.StreamCount ? opcfg.StreamCount : 1;
 			inspect_printf(dump, "/>\n");
 		} else {
 			inspect_printf(dump, "/>\n");

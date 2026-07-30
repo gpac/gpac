@@ -24,6 +24,7 @@ Furthermore, typedef of non-exported structure shall only apply to the structure
     typedef struct _my_gpac_thingy GF_MyGPACStuff;    /*this is OK*/
 This will allow easy exporting of structure declaration if needed at some point in the development.
 
+Exported struct shall all be typedef'ed, and if named, shall be prefixed with _, eg struct _gf_filter. Internal struct should not use _ prefix. 
 
   1.2 constants
 
@@ -50,10 +51,17 @@ Exported structures member should preferably all be lower case - this may not be
 All exported header files shall be in lower case
 All source files within the gpac core shall be in lower case
 
-All comments should be C-like ones (/**/) not C++ ones (//)
+Single-line comments can be C ones (/**/) or C++ ones (//)
+All multi-line comments should be C rather than C++
 All exported headers documentation should be written with doxygen syntax
 All constructor-like functions should be of style gf_zzz_new
 All destructor like functions should be of style gf_zzz_del
+
+Copyright notice must be indicated in each file with the following lines:
+- Authors: name of the author(s)
+- Copyright (c) HOLDER_NAME CREATION_DATE
+
+The date must not be changed when the file is modified, use git for this.
 
 3 Current structure of the GPAC repository
   
@@ -68,7 +76,7 @@ This is a short overview of the gpac source repository.
 - *gpac/debian/*
     files for debian packaging
 - *gpac/extra_lib/*
-    external lib directory used by different build systems
+    external lib directory used by different build systems, see wiki
 - *gpac/include/gpac/*
     all exported files of the lib (high level APIs, full documentation available).
 - *gpac/include/gpac/internal/*

@@ -57,6 +57,7 @@ extern "C" {
 #ifdef GPAC_HAS_CURL
 #include <curl/curl.h>
 //we need multi API
+//cppcheck-suppress syntaxError
 #if CURL_AT_LEAST_VERSION(7,80,0)
 #ifndef CURLPIPE_MULTIPLEX
 #define CURLPIPE_MULTIPLEX 0
@@ -368,10 +369,12 @@ struct __gf_download_session
 };
 
 #define PUSH_HDR(_name, _value) {\
-		GF_SAFEALLOC(hdr, GF_HTTPHeader)\
-		hdr->name = gf_strdup((char *)_name);\
-		hdr->value = gf_strdup((char *)_value);\
-		gf_list_add(sess->headers, hdr);\
+		hdr = (GF_HTTPHeader *) gf_malloc(sizeof(GF_HTTPHeader));\
+		if (hdr) { \
+			hdr->name = gf_strdup((char *)_name);\
+			hdr->value = gf_strdup((char *)_value);\
+			gf_list_add(sess->headers, hdr);\
+		}\
 	}
 
 

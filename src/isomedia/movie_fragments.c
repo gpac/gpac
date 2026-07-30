@@ -2191,7 +2191,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 					/*update last ref duration*/
 
 					//get next segment earliest cts - if estimation failed, use ref_track_next_cts
-					if ((next_earliest_cts==-1) || (next_earliest_cts < prev_earliest_cts))  {
+					if ((next_earliest_cts==(u64)-1) || (next_earliest_cts < prev_earliest_cts))  {
 						u64 next_cts;
 						if (gf_list_count(movie->moof_list)) {
 							next_cts = get_presentation_time( ref_track_decode_time + sidx_dur + cur_dur + moof_get_earliest_cts((GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID), ts_shift);
@@ -2290,7 +2290,6 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 	}
 	if (ssix) {
 		gf_isom_box_del((GF_Box*)ssix);
-		ssix = NULL;
 	}
 
 	if (daisy_sidx) {
@@ -3034,7 +3033,6 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 			traf->sample_encryption = gf_isom_create_samp_enc_box(0, 0);
 		} else {
 			GF_SampleEncryptionBox *psec = (GF_SampleEncryptionBox *) traf->trex->track->sample_encryption;
-			if (!psec) return GF_ISOM_INVALID_FILE;
 			traf->sample_encryption = gf_isom_create_piff_psec_box(1, 0, psec->AlgorithmID, psec->IV_size, psec->KID);
 		}
 		if (!traf->sample_encryption) return GF_OUT_OF_MEM;

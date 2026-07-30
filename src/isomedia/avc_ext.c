@@ -108,7 +108,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 	GF_TrackReferenceTypeBox *dpnd;
 	GF_ISONaluExtractMode ref_extract_mode, cur_extract_mode;
 	GF_TrackBox *ref_trak;
-	s8 sample_offset;
+	s32 sample_offset;
 	u32 last_byte, ref_sample_num, prev_ref_sample_num;
 	Bool header_written = GF_FALSE;
 	nb_bytes_nalh = is_hevc ? 2 : 1;
@@ -143,7 +143,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 			}
 
 			ref_track_index = gf_bs_read_u8(mdia->nalu_parser);
-			sample_offset = (s8) gf_bs_read_int(mdia->nalu_parser, 8);
+			sample_offset = (s32) gf_bs_read_int(mdia->nalu_parser, 8);
 			data_offset = gf_bs_read_int(mdia->nalu_parser, nal_unit_size_field*8);
 			data_length = gf_bs_read_int(mdia->nalu_parser, nal_unit_size_field*8);
 
@@ -1422,7 +1422,7 @@ static GF_Err gf_isom_check_mvc(GF_ISOFile *the_file, GF_TrackBox *trak, GF_MPEG
 	vwid = (GF_ViewIdentifierBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_VWID);
 	if (!vwid) {
 		vwid = (GF_ViewIdentifierBox *)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_VWID);
-		if (!mvcg) return GF_OUT_OF_MEM;
+		if (!vwid) return GF_OUT_OF_MEM;
 	}
 	gf_free(vwid->views);
 	vwid->num_views = mvcg->num_entries;

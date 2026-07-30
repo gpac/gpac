@@ -266,6 +266,7 @@ static void TraverseTriangleSet2D(GF_Node *node, void *rs, Bool is_destroy)
 			stack->mesh->mesh_type = MESH_TRIANGLES;
 			col.red = col.green = col.blue = 0;
 			col.alpha = FIX_ONE;
+			memset(&v1, 0, sizeof(GF_Vertex));
 			v1.color = MESH_MAKE_COL(col);
 			v1.normal.x = v1.normal.y = 0;
 			v1.normal.z = MESH_NORMAL_UNIT;

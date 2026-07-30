@@ -450,7 +450,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 						   not have its sec num 0 */
 						section_valid = GF_FALSE;
 						if (t->is_init) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted table (lost section %d)\n", cur_sec_num ? cur_sec_num-1 : 31) );
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted table (lost section %d)\n", t->section_number+1) );
 						}
 					} else {
 						section_valid = GF_TRUE;
@@ -905,6 +905,7 @@ static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt
 	u32 date, yp, mp, k;
 	GF_M2TS_Section *section;
 	GF_M2TS_TDT_TOT *time_table;
+	Float day;
 	const char *table_name;
 
 	/*wait for the last section */
@@ -953,7 +954,8 @@ See annex C of DVB-SI ETSI EN 300468 */
 	date = data[0]*256 + data[1];
 	yp = GF_FLOAT_TO_U32((date - 15078.2)/365.25);
 	mp = GF_FLOAT_TO_U32((date - 14956.1 - (u32)(yp * 365.25))/30.6001);
-	time_table->day = GF_FLOAT_TO_U32(date - 14956 - (u32)(yp * 365.25) - (u32)(mp * 30.6001));
+	day = date - 14956 - (yp * 365.25) - (mp * 30.6001);
+	time_table->day = GF_FLOAT_TO_U32(day);
 	if (mp == 14 || mp == 15) k = 1;
 	else k = 0;
 	time_table->year = yp + k + 1900;
@@ -1762,11 +1764,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 						if ((flags & 0x01) && (len>=7)) {
 							pes->lang = ' ';
 							pes->lang <<= 8;
-							pes->lang = data[4];
+							pes->lang |= data[4];
 							pes->lang <<= 8;
-							pes->lang = data[5];
+							pes->lang |= data[5];
 							pes->lang <<= 8;
-							pes->lang = data[6];
+							pes->lang |= data[6];
 						}
 					}
 					break;

@@ -288,7 +288,7 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 			char szSTR[100];
 			char *szPreview = NULL;
 
-			sprintf(szSTR, "PreviewRange:%d", cstr->tci->sel_enc_range);
+			sprintf(szSTR, "PreviewRange:%u", cstr->tci->sel_enc_range);
 			gf_dynstrcat(&szPreview, cstr->tci->TextualHeaders ? cstr->tci->TextualHeaders : "", NULL);
 			gf_dynstrcat(&szPreview, szSTR, NULL);
 
@@ -1258,7 +1258,6 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			if (!tci->keys[0].IV_size) tci->keys[0].IV_size = 16;
 			tci->keys[0].constant_IV_size = 0;
 		}
-		tci->nb_keys = 1;
 		gf_rand_init(GF_TRUE);
 		cenc_gen_bin128(tci->keys[0].key);
 		cenc_gen_bin128(tci->keys[0].KID);
@@ -2008,7 +2007,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				subsample_idx++;
 				if (do_crypt && cstr->tci->subs_crypt) {
 					char szSub[20], *sep;
-					sprintf(szSub, "%d", subsample_idx);
+					sprintf(szSub, "%u", subsample_idx);
 					sep = strstr(cstr->tci->subs_crypt, szSub);
 					if (sep) {
 						u32 len = (u32) strlen(szSub);

@@ -524,7 +524,7 @@ restart:
 		if (remain && (remain < ctx->ac4_buffer_size)) {
 			memmove(ctx->ac4_buffer, start, remain);
 		}
-		if (!ctx->src_pck && pck) {
+		if (!ctx->src_pck) {
 			ctx->src_pck = pck;
 			gf_filter_pck_ref_props(&ctx->src_pck);
 		}
@@ -547,7 +547,7 @@ static void ac4dmx_finalize(GF_Filter *filter)
 
 static const char *ac4dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeScore *score)
 {
-	u32 nb_frames = 0, sync_framesize = 0, pos = 0;
+	u32 nb_frames = 0, sync_framesize, pos = 0;
 	u32 nb_broken_frames = GF_FALSE;
 	GF_AC4Config ahdr;
 	memset(&ahdr, 0, sizeof(GF_AC4Config));

@@ -592,7 +592,7 @@ void wcenc_on_frame(GF_WCEncCtx *ctx, u64 timestamp, u32 duration, u32 size, int
 
 	count = gf_list_count(ctx->src_pcks);
 	for (i=0; i<count; i++) {
-		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_pcks, i);
+		src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_pcks, i);
 		s64 ts = gf_filter_pck_get_cts(src_pck);
 		if (ABS(ts - cts) <= 1) {
 			gf_list_rem(ctx->src_pcks, i);
@@ -616,7 +616,7 @@ void wcenc_on_frame(GF_WCEncCtx *ctx, u64 timestamp, u32 duration, u32 size, int
 
 	if (ctx->sample_rate) {
 		while (gf_list_count(ctx->src_pcks)) {
-			src_pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_pcks);
+			src_pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_pcks);
 			gf_filter_pck_unref(src_pck);
 		}
 	}
@@ -650,7 +650,7 @@ void wcenc_finalize(GF_Filter *filter)
 	wcenc_del(EM_CAST_PTR ctx);
 
 	while (gf_list_count(ctx->src_pcks)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_pcks);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_pcks);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_pcks);

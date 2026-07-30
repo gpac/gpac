@@ -133,8 +133,11 @@ GF_BaseInterface *MyDecoderInterfaceLoad() {
 
 #ifdef __cplusplus
 #define GPAC_MODULE_EXPORT_START extern "C" {
-#define GPAC_MODULE_EXPORT_END }
-#else
+
+	#define GPAC_MODULE_EXPORT_END \
+	}
+
+	#else
 #define GPAC_MODULE_EXPORT_START
 #define GPAC_MODULE_EXPORT_END
 #endif

@@ -374,7 +374,7 @@ static JSValue node_get_binding(GF_ScriptPriv *priv, GF_Node *node)
 		}
 	}
 	if (!node->sgprivate->interact->js_binding) {
-		GF_SAFEALLOC(node->sgprivate->interact->js_binding, struct _node_js_binding);
+		GF_SAFEALLOC(node->sgprivate->interact->js_binding, GF_NodeBindJS);
 		if (!node->sgprivate->interact->js_binding) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create JS bindings storage\n"));
 			return GF_JS_EXCEPTION(priv->js_ctx);
@@ -454,13 +454,17 @@ static JSValue getElementById(JSContext *c, JSValueConst this_val, int argc, JSV
 	GF_Node *elt;
 	const char *name = NULL;
 	u32 ID = 0;
+	if (!argc) return GF_JS_EXCEPTION(c);
 	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	GF_Node *sc = (GF_Node *) JS_GetContextOpaque(c);
-	if (JS_IsString(argv[0])) name = JS_ToCString(c, argv[0]);
-	else if (JS_IsInteger(argv[0])) {
+
+	if (JS_IsString(argv[0])) {
+		name = JS_ToCString(c, argv[0]);
+	} else if (JS_IsInteger(argv[0])) {
 		if (JS_ToUint32(c, &ID, argv[0]))
 			return GF_JS_EXCEPTION(c);
 	}
+	//cppcheck-suppress knownConditionTrueFalse
 	if (!ID && !name) return GF_JS_EXCEPTION(c);
 
 	elt = NULL;
@@ -543,7 +547,6 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 	gf_assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 	n1 = * ((GF_Node **)ptr->field.far_ptr);
 	if (!n1) return GF_JS_EXCEPTION(c);
-	n2 = NULL;
 
 	if (!JS_IsString(argv[1])) return GF_JS_EXCEPTION(c);
 	f1 = JS_ToCString(c, argv[1]);
@@ -689,7 +692,7 @@ static JSValue deleteRoute(JSContext *c, JSValueConst this_val, int argc, JSValu
 		f1 = JS_ToCString(c, argv[1]);
 		if (!strcmp(f1, "ALL")) {
 			while (n1->sgprivate->interact && n1->sgprivate->interact->routes && gf_list_count(n1->sgprivate->interact->routes) ) {
-				GF_Route *r = (struct _route *)gf_list_get(n1->sgprivate->interact->routes, 0);
+				GF_Route *r = (GF_Route *)gf_list_get(n1->sgprivate->interact->routes, 0);
 				gf_sg_route_del(r);
 			}
 		}
@@ -784,6 +787,7 @@ static JSValue loadURL(JSContext *c, JSValueConst this_val, int argc, JSValueCon
 			res = ScriptAction(c, NULL, GF_JSAPI_OP_LOAD_URL, (GF_Node*)script, &par);
 			JS_FreeCString(c, par.uri.url);
 		}
+		//cppcheck-suppress knownConditionTrueFalse
 		if (res) return JS_TRUE;
 	}
 	return JS_FALSE;
@@ -887,16 +891,14 @@ void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner
 		return;
 	}
 	/*otherwise mark field if eventOut*/
-	if (parent_owner || parent) {
-		GF_ScriptPriv *priv = (GF_ScriptPriv *) (parent ? parent->sgprivate->UserPrivate : parent_owner->owner->sgprivate->UserPrivate);
-		GF_ScriptField *sf;
-		i=0;
-		while ((sf = (struct _scriptfield *)gf_list_enum(priv->fields, &i))) {
-			if (sf->ALL_index == field->fieldIndex) {
-				/*queue eventOut*/
-				if (sf->eventType == GF_SG_EVENT_OUT) {
-					sf->activate_event_out = GF_TRUE;
-				}
+	GF_ScriptPriv *priv = (GF_ScriptPriv *) parent->sgprivate->UserPrivate;
+	GF_ScriptField *sf;
+	i=0;
+	while ((sf = (GF_ScriptField *)gf_list_enum(priv->fields, &i))) {
+		if (sf->ALL_index == field->fieldIndex) {
+			/*queue eventOut*/
+			if (sf->eventType == GF_SG_EVENT_OUT) {
+				sf->activate_event_out = GF_TRUE;
 			}
 		}
 	}
@@ -915,7 +917,7 @@ static JSValue gf_sg_script_eventout_set_prop(JSContext *c, JSValueConst this_va
 	if (!n) return GF_JS_EXCEPTION(c);
 
 	i=0;
-	while ((sf = (struct _scriptfield *)gf_list_enum(script->fields, &i))) {
+	while ((sf = (GF_ScriptField *)gf_list_enum(script->fields, &i))) {
 		if (sf->magic==magic) {
 			GF_FieldInfo info;
 			gf_node_get_field(n, sf->ALL_index, &info);
@@ -965,7 +967,7 @@ static GFINLINE void sffield_toString(char **str, void *f_ptr, u32 fieldType)
 	case GF_SG_VRML_SFIMAGE:
 	{
 		SFImage *val = ((SFImage *)f_ptr);
-		sprintf(temp, "%dx%dx%d", val->width, val->height, val->numComponents);
+		sprintf(temp, "%ux%ux%d", val->width, val->height, val->numComponents);
 		gf_dynstrcat(str, temp, NULL);
 		break;
 	}
@@ -1198,7 +1200,7 @@ static JSValue node_toString(JSContext *c, JSValueConst obj, int argc, JSValueCo
 		if (name) {
 			snprintf(str, 500, "DEF %s ", name);
 		} else {
-			snprintf(str, 500, "DEF %d ", id - 1);
+			snprintf(str, 500, "DEF %u ", id - 1);
 		}
 	}
 	gf_strcat(str, gf_node_get_class_name(n));
@@ -1908,11 +1910,11 @@ static JSValue SFRotationConstructor(JSContext *c, JSValueConst new_target, int 
 	l1 = gf_vec_len(v1);
 	l2 = gf_vec_len(v2);
 	dot = gf_divfix(gf_vec_dot(v1, v2), gf_mulfix(l1, l2) );
-	a = gf_atan2(gf_sqrt(FIX_ONE - gf_mulfix(dot, dot)), dot);
+	Fixed _a = gf_atan2(gf_sqrt(FIX_ONE - gf_mulfix(dot, dot)), dot);
 	SFRotation_Create(c, obj, gf_mulfix(v1.y, v2.z) - gf_mulfix(v2.y, v1.z),
 	                  gf_mulfix(v1.z, v2.x) - gf_mulfix(v2.z, v1.x),
 	                  gf_mulfix(v1.x, v2.y) - gf_mulfix(v2.x, v1.y),
-	                  FLT2FIX(a));
+	                  FLT2FIX(_a));
 	return obj;
 }
 
@@ -3293,7 +3295,7 @@ static void gf_sg_script_update_cached_object(GF_ScriptPriv *priv, JSValue obj, 
 		for (i=0; i<f->count; i++) {
 			if (f->vals[i].OD_ID > 0) {
 				char msg[30];
-				sprintf(msg, "od:%d", f->vals[i].OD_ID);
+				sprintf(msg, "od:%u", f->vals[i].OD_ID);
 				jsf->mfvals[i] = JS_NewString(priv->js_ctx, (const char *) msg);
 			} else {
 				jsf->mfvals[i] = JS_NewString(priv->js_ctx, f->vals[i].url);
@@ -3403,7 +3405,7 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		SFURL *url = (SFURL *)field->far_ptr;
 		if (url->OD_ID > 0) {
 			char msg[30];
-			sprintf(msg, "od:%d", url->OD_ID);
+			sprintf(msg, "od:%u", url->OD_ID);
 			return JS_NewString(priv->js_ctx, (const char *) msg);
 		} else {
 			return JS_NewString(priv->js_ctx, (const char *) url->url);
@@ -3591,7 +3593,7 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		for (i=0; i<f->count; i++) {
 			if (f->vals[i].OD_ID > 0) {
 				char msg[30];
-				sprintf(msg, "od:%d", f->vals[i].OD_ID);
+				sprintf(msg, "od:%u", f->vals[i].OD_ID);
 				jsf->mfvals[i] = JS_NewString(priv->js_ctx, (const char *) msg);
 			} else {
 				jsf->mfvals[i] = JS_NewString(priv->js_ctx, f->vals[i].url);
@@ -3722,7 +3724,7 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 		return JS_NULL;
 	}
 	if (!parent->sgprivate->interact->js_binding) {
-		GF_SAFEALLOC(parent->sgprivate->interact->js_binding, struct _node_js_binding);
+		GF_SAFEALLOC(parent->sgprivate->interact->js_binding, GF_NodeBindJS);
 		if (!parent->sgprivate->interact->js_binding) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create JS bindings storage\n"));
 			return JS_NULL;
@@ -3833,7 +3835,7 @@ static void JS_PreDestroy(GF_Node *node)
 	JS_FreeValue(priv->js_ctx, priv->js_obj);
 
 
-	scene = (struct __tag_scene_graph *)JS_GetContextOpaque(priv->js_ctx);
+	scene = (GF_SceneGraph *)JS_GetContextOpaque(priv->js_ctx);
 	if (scene && scene->__reserved_null) {
 		GF_Node *n = (GF_Node *)JS_GetContextOpaque(priv->js_ctx);
 		scene = n->sgprivate->scenegraph;
@@ -3872,7 +3874,7 @@ static void JS_InitScriptFields(GF_ScriptPriv *priv, GF_Node *sc)
 	JSValue setter;
 
 	i=0;
-	while ((sf = (struct _scriptfield *)gf_list_enum(priv->fields, &i))) {
+	while ((sf = (GF_ScriptField *)gf_list_enum(priv->fields, &i))) {
 		switch (sf->eventType) {
 		case GF_SG_EVENT_IN:
 			//nothing to do
@@ -3907,7 +3909,7 @@ void gf_js_vrml_flush_event_out(GF_Node *node, GF_ScriptPriv *priv)
 
 	/*flush event out*/
 	i=0;
-	while ((sf = (struct _scriptfield *)gf_list_enum(priv->fields, &i))) {
+	while ((sf = (GF_ScriptField *)gf_list_enum(priv->fields, &i))) {
 		if (sf->activate_event_out) {
 			sf->activate_event_out = GF_FALSE;
 			gf_node_event_out(node, sf->ALL_index);
@@ -3936,7 +3938,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	if (in_field->fieldIndex<3) return;
 
 	i = (node->sgprivate->tag==TAG_MPEG4_Script) ? 3 : 4;
-	sf = (struct _scriptfield *)gf_list_get(priv->fields, in_field->fieldIndex - i);
+	sf = (GF_ScriptField *)gf_list_get(priv->fields, in_field->fieldIndex - i);
 	time = gf_node_get_scene_time(node);
 
 	/*

@@ -123,8 +123,8 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, u32 type, GF_G
 		gf_bs_write_data(bs, (u8*)szName, 20);/*reserved*/
 		gf_bs_get_content(bs, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
+		return GF_OK;
 	}
-	return GF_OK;
 	case GF_ISOM_SUBTYPE_3GP_SMV:
 		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_SMV;
 		return GF_OK;
@@ -136,7 +136,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, u32 type, GF_G
 		return GF_OK;
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] unsupported sample description type %s\n", gf_4cc_to_str(entry->type)));
-		break;
+		return GF_BAD_PARAM;
 	}
 	return GF_OK;
 }

@@ -110,9 +110,9 @@ static u32 avi_write (FILE *fd, const u8 *buf, u32 len)
 static void long2str(unsigned char *dst, s32 n)
 {
 	dst[0] = (n    )&0xff;
-	dst[1] = (n>> 8)&0xff;
-	dst[2] = (n>>16)&0xff;
-	dst[3] = (n>>24)&0xff;
+	dst[1] = ((u32)n>> 8)&0xff;
+	dst[2] = ((u32)n>>16)&0xff;
+	dst[3] = ((u32)n>>24)&0xff;
 }
 
 #ifdef WORDS_BIGENDIAN
@@ -412,7 +412,7 @@ static int avi_add_odml_index_entry(avi_t *AVI, unsigned char *tag, int flags, u
 
 			AVI->track[AVI->aptr].audio_superindex->nEntriesInUse++;
 
-			sprintf(fcc, "ix%02d", AVI->aptr+1);
+			sprintf(fcc, "ix%02u", AVI->aptr+1);
 			if (avi_add_std_index (AVI, (unsigned char *)fcc, tag, AVI->track[AVI->aptr].audio_superindex->stdindex[
 			                           AVI->track[AVI->aptr].audio_superindex->nEntriesInUse - 1 ]) < 0
 			   ) return -1;
@@ -471,8 +471,8 @@ static int avi_add_odml_index_entry(avi_t *AVI, unsigned char *tag, int flags, u
 			}
 			AVI->track[audtr].audio_superindex->nEntriesInUse++;
 
-			sprintf(fcc, "ix%02d", audtr+1);
-			sprintf(aud, "0%01dwb", audtr+1);
+			sprintf(fcc, "ix%02u", audtr+1);
+			sprintf(aud, "0%01uwb", audtr+1);
 			if (avi_add_std_index (AVI, (unsigned char *)fcc, (unsigned char *)aud, AVI->track[audtr].audio_superindex->stdindex[
 			                           AVI->track[audtr].audio_superindex->nEntriesInUse - 1 ]) < 0
 			   ) return -1;
@@ -970,6 +970,10 @@ int avi_update_header(avi_t *AVI)
 
 	OUT4CC ("JUNK");
 	OUTLONG(njunk);
+	if (nhb+njunk>HEADERBYTES) {
+		AVI_errno = AVI_ERR_NO_MEM;
+		return -1;
+	}
 	memset(AVI_header+nhb,0,njunk);
 
 	nhb += njunk;
@@ -1784,9 +1788,8 @@ int AVI_close(avi_t *AVI)
 		gf_free(AVI->track[j].audio_index);
 		if(AVI->track[j].audio_superindex) {
 			avisuperindex_chunk *asi = AVI->track[j].audio_superindex;
-			if (asi) gf_free(asi->aIndex);
-
-			if (asi && asi->stdindex) {
+			gf_free(asi->aIndex);
+			if (asi->stdindex) {
 				for (j=0; j < NR_IXNN_CHUNKS; j++) {
 					gf_free(asi->stdindex[j]->aIndex);
 					gf_free(asi->stdindex[j]);
@@ -2319,7 +2322,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 							AVI->track[AVI->aptr].audio_superindex->aIndex = (avisuperindex_entry*) gf_malloc (AVI->track[AVI->aptr].audio_superindex->wLongsPerEntry *
 						                   AVI->track[AVI->aptr].audio_superindex->nEntriesInUse * sizeof (u32));
-						                   
+
 							if (!AVI->track[AVI->aptr].audio_superindex->aIndex) ERR_EXIT(AVI_ERR_NO_MEM)
 						}
 						else {
@@ -2506,7 +2509,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 			// read from file
 			u32 chunk_size = (u32) (AVI->video_superindex->aIndex[j].dwSize+hdrl_len);
-			if (!chunk_size || chunk_size < 28)
+			if (chunk_size < 28)
 				continue;
 			chunk_start = (char*) gf_malloc(chunk_size);
 			if (!chunk_start) continue;
@@ -2517,7 +2520,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 				continue;
 			}
 
-			if (avi_read(AVI->fdes, (u8*)en, (u32) (AVI->video_superindex->aIndex[j].dwSize+hdrl_len) ) <= 0) {
+			if (avi_read(AVI->fdes, (u8*)en, (u32) (AVI->video_superindex->aIndex[j].dwSize+hdrl_len) ) == 0) {
 				gf_free(chunk_start);
 				continue;
 			}
@@ -2601,7 +2604,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 				// read from file
 				u32 chunk_size = (u32) (AVI->track[audtr].audio_superindex->aIndex[j].dwSize+hdrl_len);
-				if (!chunk_size || chunk_size < 28)
+				if (chunk_size < 28)
 					continue;
 				chunk_start = (char*)gf_malloc(chunk_size);
 				if (!chunk_start) continue;
@@ -2612,7 +2615,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					continue;
 				}
 
-				if (avi_read(AVI->fdes, (u8*)en, (u32) (AVI->track[audtr].audio_superindex->aIndex[j].dwSize+hdrl_len)) <= 0) {
+				if (avi_read(AVI->fdes, (u8*)en, (u32) (AVI->track[audtr].audio_superindex->aIndex[j].dwSize+hdrl_len)) == 0) {
 					gf_free(chunk_start);
 					continue;
 				}

@@ -39,7 +39,7 @@
 GF_OPT_ENUM (GF_NHMLChksum,
 	NO_CHKSUM,
 	CRC32_CHKSUM,
-	SHA1_CHKSUM,
+	SHA1_CHKSUM
 );
 
 typedef struct
@@ -210,7 +210,7 @@ GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_CodecID cid;
-	const char *mime=NULL;
+	const char *mime;
 	char *name;
 	const GF_PropertyValue *p;
 	GF_NHMLDumpCtx *ctx = (GF_NHMLDumpCtx *)gf_filter_get_udta(filter);
@@ -352,7 +352,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		if (_code) p = gf_filter_pid_get_property(ctx->ipid, _code); \
 		else p = gf_filter_pid_get_property_str(ctx->ipid, _pname); \
 		if (p) { \
-			sprintf(nhml, "%s=\"%d\" ", _name, p->value.uint); \
+			sprintf(nhml, "%s=\"%u\" ", _name, p->value.uint); \
 			gf_bs_write_data(ctx->bs_w,(u8*) nhml, (u32) strlen(nhml)); \
 		}
 
@@ -400,7 +400,7 @@ static GF_Err nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	}
 
 	if (ctx->oti && (ctx->oti<GF_CODECID_LAST_MPEG4_MAPPING)) {
-		sprintf(nhml, "streamType=\"%d\" objectTypeIndication=\"%d\" ", ctx->streamtype, ctx->oti);
+		sprintf(nhml, "streamType=\"%u\" objectTypeIndication=\"%u\" ", ctx->streamtype, ctx->oti);
 		gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32)strlen(nhml));
 	} else {
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_SUBTYPE);
@@ -419,7 +419,7 @@ static GF_Err nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 		switch (ctx->streamtype) {
 		case GF_STREAM_VISUAL:
 		case GF_STREAM_SCENE:
-			sprintf(nhml, "width=\"%d\" height=\"%d\" ", ctx->w, ctx->h);
+			sprintf(nhml, "width=\"%u\" height=\"%u\" ", ctx->w, ctx->h);
 			gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 			break;
 		default:
@@ -427,11 +427,11 @@ static GF_Err nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 		}
 	}
 	else if (ctx->sr && ctx->chan) {
-		sprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", ctx->sr, ctx->chan);
+		sprintf(nhml, "sampleRate=\"%u\" numChannels=\"%u\" ", ctx->sr, ctx->chan);
 		gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT);
 		if (p) {
-			sprintf(nhml, "bitsPerSample=\"%d\" ", gf_audio_fmt_bit_depth(p->value.uint));
+			sprintf(nhml, "bitsPerSample=\"%u\" ", gf_audio_fmt_bit_depth(p->value.uint));
 			gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 		}
 	}
@@ -704,10 +704,10 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, const u8 *data, u32 data_
 	else cts += ctx->delay;
 
 	ctx->pck_num++;
-	sprintf(nhml, "<NHNTSample number=\"%d\" DTS=\"" LLU "\" ", ctx->pck_num, dts);
+	sprintf(nhml, "<NHNTSample number=\"%u\" DTS=\"" LLU "\" ", ctx->pck_num, dts);
 	gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 	if (!ctx->nhmlonly) {
-		sprintf(nhml, "dataLength=\"%d\" ", data_size);
+		sprintf(nhml, "dataLength=\"%u\" ", data_size);
 		gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 	}
 	if (ctx->pckp || (cts != dts) ) {
@@ -718,16 +718,17 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, const u8 *data, u32 data_
 		sprintf(nhml, "isRAP=\"yes\" ");
 		gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 	} else if (sap) {
-		sprintf(nhml, "SAPType=\"%d\" ", sap);
-		gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
-	} else if (ctx->pckp) {
-		sprintf(nhml, "isRAP=\"no\" ");
-		gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 		if ((sap==GF_FILTER_SAP_4) || (sap==GF_FILTER_SAP_4_PROL)) {
 			s32 roll = gf_filter_pck_get_roll_info(pck);
 			sprintf(nhml, "SAPType=\"4\" %s=\"%d\" ", (sap==GF_FILTER_SAP_4_PROL) ? "prol" : "roll", roll);
 			gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
+		} else {
+			sprintf(nhml, "SAPType=\"%d\" ", sap);
+			gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 		}
+	} else if (ctx->pckp) {
+		sprintf(nhml, "isRAP=\"no\" ");
+		gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 	}
 
 	if (ctx->pckp) {
@@ -745,32 +746,32 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, const u8 *data, u32 data_
 		}
 		duration = gf_filter_pck_get_duration(pck);
 		if (duration) {
-			sprintf(nhml, "duration=\"%d\" ", duration);
+			sprintf(nhml, "duration=\"%u\" ", duration);
 			gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 		}
 		idx = gf_filter_pck_get_carousel_version(pck);
 		if (idx) {
-			sprintf(nhml, "carouselVersion=\"%d\" ", idx);
+			sprintf(nhml, "carouselVersion=\"%u\" ", idx);
 			gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 		}
 		idx = gf_filter_pck_get_crypt_flags(pck);
 		if (idx) {
-			sprintf(nhml, "encrypted=\"%d\" ", idx);
+			sprintf(nhml, "encrypted=\"%u\" ", idx);
 			gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 		}
 		idx = gf_filter_pck_get_seek_flag(pck);
 		if (idx) {
-			sprintf(nhml, "seek=\"%d\" ", idx);
+			sprintf(nhml, "seek=\"%u\" ", idx);
 			gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 		}
 		idx = gf_filter_pck_get_corrupted(pck);
 		if (idx) {
-			sprintf(nhml, "corrupted=\"%d\" ", idx);
+			sprintf(nhml, "corrupted=\"%u\" ", idx);
 			gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 		}
 		idx = gf_filter_pck_get_interlaced(pck);
 		if (idx) {
-			sprintf(nhml, "interlaced=\"%d\" ", idx);
+			sprintf(nhml, "interlaced=\"%u\" ", idx);
 			gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 		}
 		s32 roll = gf_filter_pck_get_roll_info(pck);
@@ -838,8 +839,8 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, const u8 *data, u32 data_
 			u32 s_flags = gf_bs_read_u32(ctx->bs_r);
 			u32 s_size = gf_bs_read_u32(ctx->bs_r);
 			u32 s_res = gf_bs_read_u32(ctx->bs_r);
-			u8 s_prio = gf_bs_read_u8(ctx->bs_r);
-			u8 s_discard = gf_bs_read_u8(ctx->bs_r);
+			u32 s_prio = gf_bs_read_u8(ctx->bs_r);
+			u32 s_discard = gf_bs_read_u8(ctx->bs_r);
 
 
 			if (offset_in_sample + s_size > data_size) {
@@ -875,7 +876,7 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, const u8 *data, u32 data_
 					gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 				}
 			} else {
-				sprintf(nhml, "<NHNTSubSample size=\"%d\" flags=\"%d\" reserved=\"%d\" priority=\"%d\" discard=\"%d\" />\n", s_size, s_flags, s_res, s_prio, s_discard);
+				sprintf(nhml, "<NHNTSubSample size=\"%u\" flags=\"%u\" reserved=\"%u\" priority=\"%u\" discard=\"%u\" />\n", s_size, s_flags, s_res, s_prio, s_discard);
 				gf_bs_write_data(ctx->bs_w, (u8*)nhml, (u32) strlen(nhml));
 			}
 			first_subs = GF_FALSE;
@@ -900,18 +901,15 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, const u8 *data, u32 data_
 			FILE *f = ctx->filep ? ctx->filep : gf_file_temp(NULL);
 			Bool owns = ctx->filep ? GF_FALSE : GF_TRUE;
 			GF_BitStream *bs = gf_bs_new((u8*)data, data_size, GF_BITSTREAM_READ);
-			GF_Err e = GF_OK;
 			while (gf_bs_available(bs) > 0) {
 				GF_Box *a = NULL;
-				e = gf_isom_box_parse(&a, bs);
+				GF_Err e = gf_isom_box_parse(&a, bs);
 				if (e) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[NHMLMx] Event Track / SCTE-35: error while parsing data boxes\n"));
 					break; //don't parse any further
 				}
 				gf_isom_box_dump(a, f);
-				data += a->size;
 				gf_isom_box_del(a);
-				a=NULL;
 			}
 			gf_bs_del(bs);
 

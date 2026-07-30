@@ -222,10 +222,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_malloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_calloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_realloc_strict) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_realloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_free) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_strdup) )
 #endif /*GPAC_MEMORY_TRACKING*/
+#pragma comment (linker, EXPORT_SYMBOL(gf_realloc) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_strlcpy) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_strlcat) )
@@ -470,7 +470,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_wcs_to_utf8) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_is_legal) )
 
-#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_COMPOSITOR)
+#if ! (defined(GPAC_DISABLE_SVG) && defined(GPAC_DISABLE_COMPOSITOR) && defined(GPAC_DISABLE_EVG) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_is_right_to_left) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_reorder_bidi) )
 #endif

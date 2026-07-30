@@ -917,7 +917,7 @@ void gf_dom_event_dump_listeners(GF_Node *n, FILE *f)
 {
 	u32		i;
 	u32		count;
-	GF_List *listeners = NULL;
+	GF_List *listeners;
 	GF_FieldInfo info;
 
 	/*re-translate dynamically created listeners/handlers */

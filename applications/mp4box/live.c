@@ -131,11 +131,11 @@ static void live_session_callback(void *calling_object, u16 ESID, u8 *data, u32 
 				rtpch->carousel_size = size;
 				rtpch->carousel_ts = ts;
 				rtpch->time_at_carousel_store = gf_sys_clock();
-				fprintf(stderr, "\nStream %d: Storing new carousel TS " LLD ", %d bytes\n", ESID, ts, size);
+				fprintf(stderr, "\nStream %d: Storing new carousel TS " LLU ", %u bytes\n", ESID, ts, size);
 			}
 			/*send data*/
 			else {
-				u32 critical = GF_FALSE;
+				u32 critical = 0;
 				Bool rap = rtpch->rap;
 				if (livesess->carousel_generation) rap = GF_TRUE;
 				ts += rtpch->timescale*((u64)gf_sys_clock()-rtpch->init_time + rtpch->ts_delta)/1000;
@@ -144,7 +144,7 @@ static void live_session_callback(void *calling_object, u16 ESID, u8 *data, u32 
 
 				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rap, critical);
 
-				fprintf(stderr, "Stream %d: Sending update at TS " LLD ", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rap, critical);
+				fprintf(stderr, "Stream %d: Sending update at TS " LLU ", %u bytes - RAP %d - critical %u\n", ESID, ts, size, rap, critical);
 				rtpch->rap = GF_FALSE;
 				rtpch->critical = 0;
 
@@ -165,7 +165,7 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 
 			gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, GF_TRUE, 0);
 			ch->last_carousel_time = now - livesess->start_time;
-			fprintf(stderr, "Stream %d: Sending carousel at TS " LLD ", %d bytes\n", ch->ESID, ts, ch->carousel_size);
+			fprintf(stderr, "Stream %d: Sending carousel at TS " LLU ", %u bytes\n", ch->ESID, ts, ch->carousel_size);
 
 			if (ch->manual_rtcp) {
 				ts = ch->carousel_ts + ch->timescale * ( gf_sys_clock() - ch->init_time + ch->ts_delta)/1000;
@@ -183,7 +183,7 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 				}
 				gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, GF_TRUE, 0);
 				ch->last_carousel_time = now - livesess->start_time;
-				fprintf(stderr, "Stream %d: Sending carousel at TS " LLD "	, %d bytes\n", ch->ESID, ts, ch->carousel_size);
+				fprintf(stderr, "Stream %d: Sending carousel at TS " LLU "	, %u bytes\n", ch->ESID, ts, ch->carousel_size);
 
 				if (ch->manual_rtcp) {
 					ts = ch->carousel_ts + ch->timescale*(gf_sys_clock()-ch->init_time + ch->ts_delta)/1000;
@@ -472,6 +472,7 @@ int live_session(int argc, char **argv)
 	if (has_carousel || !no_rap) {
 		livesess.carousel_generation = GF_TRUE;
 		gf_seng_encode_context(livesess.seng, live_session_callback);
+		//cppcheck-suppress redundantAssignment
 		livesess.carousel_generation = GF_FALSE;
 	}
 
@@ -725,6 +726,7 @@ int live_session(int argc, char **argv)
 		if (update_context) {
 			livesess.carousel_generation = GF_TRUE;
 			e = gf_seng_encode_context(livesess.seng, live_session_callback	);
+			//cppcheck-suppress redundantAssignment
 			livesess.carousel_generation = GF_FALSE;
 			update_context = GF_FALSE;
 		}

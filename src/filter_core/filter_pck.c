@@ -115,7 +115,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 	if (count) {
 		//don't let reservoir grow too large (may happen if burst of packets are stored/consumed in the upper chain)
 		while (count>30) {
-			GF_FilterPacket *head_pck = (struct __gf_filter_pck *)gf_fq_pop(pid->filter->pcks_alloc_reservoir);
+			GF_FilterPacket *head_pck = (GF_FilterPacket *)gf_fq_pop(pid->filter->pcks_alloc_reservoir);
 			gf_free(head_pck->data);
 			gf_free(head_pck);
 			count--;
@@ -172,7 +172,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		//this may however imply that we don't get the best matching block size if new packets
 		//were added to the list
 
-		GF_FilterPacket *head_pck = (struct __gf_filter_pck *)gf_fq_pop(pid->filter->pcks_alloc_reservoir);
+		GF_FilterPacket *head_pck = (GF_FilterPacket *)gf_fq_pop(pid->filter->pcks_alloc_reservoir);
 		u8 *pck_data = pck->data;
 		u32 alloc_size = pck->alloc_size;
 		pck->data = head_pck->data;
@@ -454,7 +454,7 @@ GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const u8 *
 		return NULL;
 	}
 
-	pck = (struct __gf_filter_pck *)gf_fq_pop(pid->filter->pcks_shared_reservoir);
+	pck = (GF_FilterPacket *)gf_fq_pop(pid->filter->pcks_shared_reservoir);
 	if (!pck) {
 		GF_SAFEALLOC(pck, GF_FilterPacket);
 		if (!pck)
@@ -550,7 +550,7 @@ GF_FilterPacket *gf_filter_pck_new_frame_interface(GF_FilterPid *pid, GF_FilterF
 	pck->frame_ifce = frame_ifce;
 	pck->filter_owns_mem = 2;
 	//GL frame interface must be processed by main thread
-	if (frame_ifce && frame_ifce->get_gl_texture)
+	if (frame_ifce->get_gl_texture)
 		pck->info.flags |= GF_PCKF_FORCE_MAIN;
 	return pck;
 }
@@ -1138,7 +1138,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	for (i=0; i<count; i++) {
 		Bool post_task=GF_FALSE;
 		GF_FilterPacketInstance *inst;
-		GF_FilterPidInst *dst = (struct __gf_filter_pid_inst *)gf_list_get(pck->pid->destinations, i);
+		GF_FilterPidInst *dst = (GF_FilterPidInst *)gf_list_get(pck->pid->destinations, i);
 		if (!dst->filter || dst->filter->finalized || (dst->filter->removed==1) || !dst->filter->freg->process || dst->in_swap) continue;
 
 		if (dst->discard_inputs==GF_PIDI_DISCARD_ON) {
@@ -1444,7 +1444,7 @@ GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 	srcpck = (*pck)->pck;
 	pid = srcpck->pid;
 
-	npck = (struct __gf_filter_pck *)gf_fq_pop( pid->filter->session->pcks_refprops_reservoir);
+	npck = (GF_FilterPacket *)gf_fq_pop( pid->filter->session->pcks_refprops_reservoir);
 	if (!npck) {
 		GF_SAFEALLOC(npck, GF_FilterPacket);
 		if (!npck) return GF_OUT_OF_MEM;

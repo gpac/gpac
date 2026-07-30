@@ -239,7 +239,7 @@ static void ffenc_finalize(GF_Filter *filter)
 	gf_free(ctx->audio_buffer);
 
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);
@@ -380,7 +380,7 @@ static u64 ffenc_get_cts(GF_FFEncodeCtx *ctx, GF_FilterPacket *pck)
 }
 
 //TODO add more feedback
-static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPacket *pkt, Bool do_reporting)
+static void ffenc_log_video(GF_Filter *filter, GF_FFEncodeCtx *ctx, AVPacket *pkt, Bool do_reporting)
 {
 	Double fps=0;
 	s32 q=-1;
@@ -451,7 +451,7 @@ static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPack
 	}
 }
 
-static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
+static GF_Err ffenc_process_video(GF_Filter *filter, GF_FFEncodeCtx *ctx)
 {
 	AVPacket *pkt;
 	s32 gotpck;
@@ -819,7 +819,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	src_pck = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i=0; i<count; i++) {
-		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
+		src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_packets, i);
 		u64 cts = ffenc_get_cts(ctx, src_pck);
 		if (ctx->remap_ts) {
 			SCALE_TS(cts);
@@ -992,7 +992,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	return GF_OK;
 }
 
-static GF_Err ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data, u32 size, u32 sample_offset, u32 nb_samples)
+static GF_Err ffenc_audio_append_samples(GF_FFEncodeCtx *ctx, const u8 *data, u32 size, u32 sample_offset, u32 nb_samples)
 {
 	u8 *dst;
 	u32 f_idx, s_idx, offset, bytes;
@@ -1063,7 +1063,7 @@ static GF_Err ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *da
 	return GF_OK;
 }
 
-static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
+static GF_Err ffenc_process_audio(GF_Filter *filter, GF_FFEncodeCtx *ctx)
 {
 	AVPacket *pkt;
 	s32 gotpck;
@@ -1375,7 +1375,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (ctx->init_cts_setup) {
 		u64 octs;
 		ctx->init_cts_setup = GF_FALSE;
-		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, 0);
+		src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_packets, 0);
 		octs = src_pck ? ffenc_get_cts(ctx, src_pck) : ctx->frame->pts;
 		if (octs != pkt->pts) {
 			ctx->ts_shift = (s64) octs - (s64) pkt->pts;
@@ -1395,7 +1395,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	for (i=0; i<count; i++) {
 		u64 acts;
 		u32 adur;
-		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
+		src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_packets, i);
 		acts = ffenc_get_cts(ctx, src_pck);
 		adur = gf_filter_pck_get_duration(src_pck);
 

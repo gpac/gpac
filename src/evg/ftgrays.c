@@ -691,6 +691,7 @@ u32 th_sweep_lines(void *par)
 				continue;
 			}
 			gf_sema_wait(rctx->surf->raster_sem);
+			//cppcheck-suppress knownConditionTrueFalse
 			if (!rctx->th_state) break;
 			rctx->active = GF_TRUE;
 		}

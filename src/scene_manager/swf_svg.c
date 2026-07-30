@@ -36,13 +36,6 @@
 
 #define SWF_TEXT_SCALE              (1/1024.0f)
 
-typedef struct _swf_svg_sample
-{
-	u64 start;
-	u64 end;
-	char *data;
-} GF_SWF_SVG_Sample;
-
 static void swf_svg_print(SWFReader *read, const char *format, ...) {
 	char line[2000];
 	u32 line_length;
@@ -215,7 +208,7 @@ static GF_Err swf_svg_define_shape(SWFReader *read, SWFShape *shape, SWFFont *pa
 		else
 		{
 			char    szGlyphId[256];
-			sprintf(szGlyphId, "Font%d_Glyph%d", parent_font->fontID, gf_list_count(parent_font->glyphs));
+			sprintf(szGlyphId, "Font%u_Glyph%u", parent_font->fontID, gf_list_count(parent_font->glyphs));
 			swf_svg_print(read, "<g id=\"%s\" >\n", szGlyphId);
 			gf_list_add(parent_font->glyphs, szGlyphId);
 		}

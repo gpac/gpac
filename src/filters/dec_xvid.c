@@ -236,7 +236,7 @@ static void xviddec_finalize(GF_Filter *filter)
 	GF_XVIDCtx *ctx = (GF_XVIDCtx *)gf_filter_get_udta(filter);
 	if (ctx->codec) xvid_decore(ctx->codec, XVID_DEC_DESTROY, NULL, NULL);
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);
@@ -267,7 +267,7 @@ flush_dec:
 	memset(&frame, 0, sizeof(frame));
 	if (pck) {
 		u64 cts = gf_filter_pck_get_cts(pck);
-		frame.bitstream = (void*)gf_filter_pck_get_data(pck, &frame.length);
+		frame.bitstream = (void*)gf_filter_pck_get_data(pck, (u32*) &frame.length);
 
 		//append in cts order since we get output frames in cts order
 		pck_ref = pck;
@@ -276,7 +276,7 @@ flush_dec:
 		src_pck = NULL;
 		for (i=0; i<count; i++) {
 			u64 acts;
-			src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
+			src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_packets, i);
 			acts = gf_filter_pck_get_cts(src_pck);
 			if (acts==cts) {
 				gf_filter_pck_unref(pck_ref);
@@ -360,7 +360,7 @@ packed_frame :
 		buffer[2] = 'i';
 		buffer[3] = 'd';
 	}
-	src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, 0);
+	src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_packets, 0);
 
 	res = xvid_decore(ctx->codec, XVID_DEC_DECODE, &frame, NULL);
 	if (res < 0) {

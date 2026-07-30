@@ -188,7 +188,7 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 	if (!asp->fill_texture)
 		return;
 	txh = asp->fill_texture;
-	if (!txh || !txh->tx_io || !txh->width || !txh->height)
+	if (!txh->tx_io || !txh->width || !txh->height)
 		return;
 
 	if (((txh->pixelformat==GF_PIXEL_RGBD) || (txh->pixelformat==GF_PIXEL_YUVD))) {

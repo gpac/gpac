@@ -914,7 +914,7 @@ GF_EXPORT
 GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 {
 	u32 i, count;
-
+	if (!cfg || !bs) return GF_BAD_PARAM;
 	count = gf_list_count(cfg->param_array);
 
 	if (!cfg->write_annex_b) {
@@ -1438,6 +1438,7 @@ GF_EXPORT
 GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs)
 {
 	u32 i = 0;
+	if (!cfg || !bs) return GF_BAD_PARAM;
 	gf_bs_write_int(bs, cfg->marker, 1);
 	gf_assert(cfg->marker == 1);
 	gf_bs_write_int(bs, cfg->version, 7);
@@ -1502,6 +1503,7 @@ void gf_odf_vp_cfg_del(GF_VPConfig *cfg)
 GF_EXPORT
 GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs, Bool is_v0)
 {
+	if (!cfg || !bs) return GF_BAD_PARAM;
 	gf_bs_write_int(bs, cfg->profile, 8);
 	gf_bs_write_int(bs, cfg->level, 8);
 	gf_bs_write_int(bs, cfg->bit_depth, 4);
@@ -1705,6 +1707,7 @@ void gf_odf_avs3v_cfg_del(GF_AVS3VConfig *cfg)
 GF_EXPORT
 GF_Err gf_odf_avs3v_cfg_write_bs(GF_AVS3VConfig *cfg, GF_BitStream *bs)
 {
+	if (!cfg || !bs) return GF_BAD_PARAM;
 	gf_bs_write_int(bs, cfg->configurationVersion, 8);
 	gf_bs_write_int(bs, cfg->sequence_header_length, 16);
 	gf_bs_write_data(bs, cfg->sequence_header, cfg->sequence_header_length);
@@ -1978,6 +1981,9 @@ GF_Err gf_odf_ac4_cfg_substream_dsi(GF_AC4SubStream *s, GF_BitStream *bs, u8 b_c
 		GF_AC4_SSS(bs, s->b_substream_contains_dynamic_objects, 1, size, desc_mode);
 		GF_AC4_SSS(bs, s->b_substream_contains_ISF_objects, 1, size, desc_mode);
 		GF_AC4_SSS(bs, zero_val, 1, size, desc_mode); //reserved bit
+		if (zero_val) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AC4] Reserved bit in substream config not 0\n"));
+		}
 	}
 	return GF_OK;
 }
@@ -2103,7 +2109,7 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 		}
 		else {
 			GF_AC4_SSS(bs, p->b_multi_pid, 1, size, desc_mode);
-			if (p->presentation_config >= 0 && p->presentation_config <= 2) {
+			if (p->presentation_config <= 2) {
 				p->n_substream_groups = 2;
 			}
 			if (p->presentation_config == 3 || p->presentation_config == 4) {
@@ -2177,6 +2183,9 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 	}
 	else {
 		GF_AC4_SSS(bs, zero_val, 1, size, desc_mode);
+		if (zero_val) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AC4] Reserved bit in substream config not 0\n"));
+		}
 	}
 
 	return GF_OK;
@@ -2188,7 +2197,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 {
 	u32 i, j, add_pres_bytes, presentation_bytes, skip_bytes, ims_pres_num = 0, legacy_pres_num = 0;
 	u32 pres_bytes = 0, t_size_bytes = 0;
-	GF_AC4PresentationV1* p = NULL, *imsp = NULL;
+	GF_AC4PresentationV1* p, *imsp = NULL;
 	u64 pos, t_size_bits = 0;
 	u8 *t_data = NULL;
 	GF_BitStream *t_bs;
@@ -2216,7 +2225,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 		// In WRITE mode, modify n_presentations for IMS content and add legacy presentations
 		// For more information, please read Dolby AC-4 Online Delivery Kit - Signaling immersive stereo content
 		if (legacy_pres_num == 0 && ims_pres_num > 0) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("[AC4] This is a Dolby AC-4 bitstreams signal immersive stereo content.\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[AC4] This is a Dolby AC-4 bitstreams signal immersive stereo content.\n"));
 
 			for (i = 0; i < dsi->n_presentations; i++) {
 				p = (GF_AC4PresentationV1*)gf_list_get(dsi->presentations, i);
@@ -2273,7 +2282,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 			pos = gf_bs_get_position(bs);
 
 			if (p->presentation_version == 0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support presentation_version 0.\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Don't support presentation_version 0.\n"));
 			} else if (p->presentation_version == 1) {
 				gf_odf_ac4_cfg_presentation_v1_dsi(p, bs, size, desc_mode);
 			} else if (p->presentation_version == 2) {
@@ -2293,7 +2302,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 
 			t_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (p->presentation_version == 0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support presentation_version 0.\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Don't support presentation_version 0.\n"));
 			} else if (p->presentation_version == 1 || p->presentation_version == 2) {
 				gf_odf_ac4_cfg_presentation_v1_dsi(p, t_bs, size, desc_mode);
 			}
@@ -2318,7 +2327,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 
 			t_size_bits = 0; // t_size in bits
 			if (p->presentation_version == 0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support presentation_version 0.\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Don't support presentation_version 0.\n"));
 				return GF_OK;
 			} else if (p->presentation_version == 1 || p->presentation_version == 2) {
 				gf_odf_ac4_cfg_presentation_v1_dsi(p, bs, &t_size_bits, desc_mode);
@@ -2341,7 +2350,7 @@ GF_Err gf_odf_ac4_cfg_write_bs(GF_AC4Config *cfg, GF_BitStream *bs)
 	if (!cfg || !bs) return GF_BAD_PARAM;
 	GF_AC4StreamInfo* dsi = &cfg->stream;
 	if (dsi->ac4_dsi_version == 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support ac4_dsi_version 0.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Don't support ac4_dsi_version 0.\n"));
 		return GF_OK;
 	}
 	GF_Err e = gf_odf_ac4_cfg_dsi_v1(dsi, bs, NULL, GF_AC4_DESCMODE_WRITE);
@@ -2367,7 +2376,7 @@ GF_Err gf_odf_ac4_cfg_parse_bs(GF_BitStream *bs, GF_AC4Config *cfg)
 	u64 pos = gf_bs_get_position(bs);
 	dsi->ac4_dsi_version = gf_bs_read_int(bs, 3);
 	if (dsi->ac4_dsi_version == 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support ac4_dsi_version 0.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Don't support ac4_dsi_version 0.\n"));
 		gf_bs_seek(bs, pos);
 		return GF_OK;
 	}
@@ -2375,7 +2384,7 @@ GF_Err gf_odf_ac4_cfg_parse_bs(GF_BitStream *bs, GF_AC4Config *cfg)
 	GF_Err e = gf_odf_ac4_cfg_dsi_v1(dsi, bs, NULL, GF_AC4_DESCMODE_PARSE);
 	if (e) return e;
 	cfg->sample_rate = dsi->fs_index ? 48000 : 44100;
-	return e;
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -2396,7 +2405,7 @@ u64 gf_odf_ac4_cfg_size(GF_AC4Config *cfg)
 	GF_AC4StreamInfo* dsi = &cfg->stream;
 	u64 size = 0;
 	if (dsi->ac4_dsi_version == 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support ac4_dsi_version 0.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Don't support ac4_dsi_version 0.\n"));
 		return 0;
 	} else {
 		gf_odf_ac4_cfg_dsi_v1(dsi, NULL, &size, GF_AC4_DESCMODE_GETSIZE);
@@ -2408,15 +2417,11 @@ GF_EXPORT
 void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src)
 {
 	u32 i;
-	GF_List *presentations_src = src->stream.presentations;
 	GF_AC4PresentationV1 *pres_dst, *pres_src;
-
-	if (!dst || !src) {
-		return;
-	}
+	if (!dst || !src) return;
+	GF_List *presentations_src = src->stream.presentations;
 
 	memcpy(dst, src, sizeof(GF_AC4Config));
-
 	if (!src->stream.presentations) {
 		return;
 	}
@@ -2490,7 +2495,7 @@ void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
 		while ( (pres = (GF_AC4PresentationV1*)gf_list_pop_back(cfg->stream.presentations)) ) {
 			if (pres->substream_groups) {
 				while ( (group = (GF_AC4SubStreamGroupV1*)gf_list_pop_back(pres->substream_groups)) ) {
-					if (group && gf_list_find(groups_to_del, group) < 0)
+					if (gf_list_find(groups_to_del, group) < 0)
 						gf_list_add(groups_to_del, group);
 				}
 				gf_list_del(pres->substream_groups);
@@ -2709,26 +2714,25 @@ GF_Err gf_odf_iamf_cfg_write_obus(GF_IAConfig *cfg, GF_BitStream *bs)
 	u32 i;
 	if (!cfg || !bs) return GF_BAD_PARAM;
 
-	#ifndef GPAC_DISABLE_AV_PARSERS
 	for (i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
 		GF_IamfObu *configOBU = (GF_IamfObu*)gf_list_get(cfg->configOBUs, i);
 		gf_bs_write_data(bs, configOBU->raw_obu_bytes, (u32)configOBU->obu_length);
 	}
-	#endif
 	return GF_OK;
 }
 
 GF_EXPORT
 GF_Err gf_odf_iamf_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
 {
-  if (!cfg || !bs) return GF_BAD_PARAM;
+	if (!cfg || !bs) return GF_BAD_PARAM;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-  gf_bs_write_u8(bs, cfg->configurationVersion);
-  gf_av1_leb128_write(bs, cfg->configOBUs_size);
-  return gf_odf_iamf_cfg_write_obus(cfg, bs);
+	gf_bs_write_u8(bs, cfg->configurationVersion);
+	gf_av1_leb128_write(bs, cfg->configOBUs_size);
+	return gf_odf_iamf_cfg_write_obus(cfg, bs);
+#else
+	return GF_NOT_SUPPORTED;
 #endif
-  return GF_OK;
 }
 
 GF_EXPORT

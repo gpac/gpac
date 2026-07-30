@@ -37,13 +37,13 @@ GF_OPT_ENUM (GF_DecoderConfigInsertMode,
 	DECINFO_NO=0,
 	DECINFO_FIRST,
 	DECINFO_SAP,
-	DECINFO_AUTO,
+	DECINFO_AUTO
 );
 
 GF_OPT_ENUM (GF_VttHeaderInjectionMode,
 	VTTH_SINGLE=0,
 	VTTH_SEG,
-	VTTH_ALL,
+	VTTH_ALL
 );
 
 typedef struct
@@ -1061,7 +1061,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, const u8 *data, u32 data_si
 		body_pck = ttml_get_body(root_pck);
 		if (body_pck) {
 			div_idx = 0;
-			nb_children = body_pck ? gf_list_count(body_pck->content) : 0;
+			nb_children = gf_list_count(body_pck->content);
 			for (k=0; k<nb_children; k++) {
 				GF_XMLNode  *div_pck;
 				div_pck = (GF_XMLNode *)gf_list_get(body_pck->content, k);
@@ -1464,18 +1464,18 @@ GF_Err writegen_process(GF_Filter *filter)
 			char szInfo[100];
 			const GF_PropertyValue *p;
 			gf_dynstrcat(&y4m_hdr, "YUV4MPEG2", NULL);
-			sprintf(szInfo, " W%d", ctx->w);
+			sprintf(szInfo, " W%u", ctx->w);
 			gf_dynstrcat(&y4m_hdr, szInfo, NULL);
-			sprintf(szInfo, " H%d", ctx->h);
+			sprintf(szInfo, " H%u", ctx->h);
 			gf_dynstrcat(&y4m_hdr, szInfo, NULL);
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS);
 			if (p) {
-				sprintf(szInfo, " F%d:%d", p->value.frac.num, p->value.frac.den);
+				sprintf(szInfo, " F%d:%u", p->value.frac.num, p->value.frac.den);
 				gf_dynstrcat(&y4m_hdr, szInfo, NULL);
 			}
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_SAR);
 			if (p && (p->value.frac.num>0)) {
-				sprintf(szInfo, " A%d:%d", p->value.frac.num, p->value.frac.den);
+				sprintf(szInfo, " A%d:%u", p->value.frac.num, p->value.frac.den);
 				gf_dynstrcat(&y4m_hdr, szInfo, NULL);
 			}
 			u32 ilce = gf_filter_pck_get_interlaced(pck);
@@ -1652,7 +1652,7 @@ GF_Err writegen_process(GF_Filter *filter)
 		if (!empty_seg) {
 			if (ctx->dump_srt) {
 				char szCID[100];
-				sprintf(szCID, "%d\n", ctx->sample_num);
+				sprintf(szCID, "%u\n", ctx->sample_num);
 				gf_bs_write_data(ctx->bs, (u8*)szCID, (u32) strlen(szCID));
 			}
 			webvtt_timestamps_dump(ctx->bs, start, end, timescale, ctx->dump_srt, forced);

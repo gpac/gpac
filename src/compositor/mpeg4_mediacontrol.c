@@ -294,12 +294,11 @@ void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range
 		}
 		/*get last segment in consecutive range so that we never issue stop/play between consecutive segments*/
 		prev_seg = desc;
-		last_seg = NULL;
 		duration = desc->Duration;
 		i=1+ctrl->current_seg;
 		while ((last_seg = (GF_Segment *)gf_list_enum(ctrl->seg, &i))) {
 			if (prev_seg->startTime + prev_seg->Duration != last_seg->startTime) {
-				last_seg = NULL;
+				//last_seg = NULL;
 				break;
 			}
 			prev_seg = last_seg;
@@ -476,7 +475,12 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		stack->paused = GF_FALSE;
 		/*the object has already been started, and media start time is not 0, restart*/
 		if (stack->stream->num_open) {
-			if (need_restart  || (stack->media_start > 0) || (gf_list_count(stack->seg)>0 )  || (stack->media_speed!=FIX_ONE ) ) {
+			//we also restart for media speed != 1 to retrigger filters
+			if (need_restart
+				|| (stack->media_start > 0)
+				|| (gf_list_count(stack->seg)>0 )
+				|| (stack->media_speed && (stack->media_speed!=FIX_ONE))
+			) {
 				mediacontrol_restart(odm);
 			} else if (stack->media_speed == 0) {
 				mediacontrol_pause(odm);

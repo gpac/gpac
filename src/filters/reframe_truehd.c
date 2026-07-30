@@ -321,7 +321,7 @@ static void truehd_check_dur(GF_Filter *filter, GF_TrueHDDmxCtx *ctx)
 		if (e) break;
 
 		if (hdr.sync) {
-			if ((sr>=0) && (sr != hdr.sample_rate)) {
+			if ((sr>0) && (sr != hdr.sample_rate)) {
 				duration *= hdr.sample_rate;
 				duration /= sr;
 

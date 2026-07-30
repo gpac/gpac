@@ -409,7 +409,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 				char szStatus[1024];
 				u32 max_buf=0;
 				u64 bdur = gf_filter_pid_query_buffer_duration_and_max(ctx->pid, &max_buf);
-				sprintf(szStatus, "info=\"%d Hz %d ch %s\" time=" LLU "/%u buffer=%d/%d ms", ctx->sr, ctx->nb_ch, gf_audio_fmt_name(ctx->afmt), ctx->last_cts, ctx->timescale, (u32) (bdur/1000), (u32)(max_buf/1000));
+				sprintf(szStatus, "info=\"%u Hz %u ch %s\" time=" LLU "/%u buffer=%u/%u ms", ctx->sr, ctx->nb_ch, gf_audio_fmt_name(ctx->afmt), ctx->last_cts, ctx->timescale, (u32) (bdur/1000), (u32)(max_buf/1000));
 				gf_filter_update_status(ctx->filter, -1, szStatus);
 			}
 
@@ -674,6 +674,8 @@ static void aout_finalize(GF_Filter *filter)
 		if (ctx->th) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] stopping audio thread\n"));
 			ctx->audio_th_state = 2;
+			//var reset by thread, cppcheck cannot see it
+			//cppcheck-suppress knownConditionTrueFalse
 			while (ctx->audio_th_state != 3) {
 				gf_sleep(33);
 			}

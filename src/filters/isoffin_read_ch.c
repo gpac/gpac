@@ -314,7 +314,6 @@ u8 *isor_sample_alloc(u32 size, void *udta)
 	ISOMChannel *ch = (ISOMChannel *)udta;
 	if (ch->pck) {
 		if (size<ch->alloc_size) {
-			u32 size;
 			return (u8 *) gf_filter_pck_get_data(ch->pck, &size);
 		}
 		gf_filter_pck_expand(ch->pck, size - ch->alloc_size, &output, NULL, NULL);
@@ -1172,7 +1171,7 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 		if (!grp_size || !grp_data) continue;
 
 		//prepare prop name sample groups
-		if (grp_parameter) sprintf(szPName, "grp_%s_%d", gf_4cc_to_str(grp_type), grp_parameter);
+		if (grp_parameter) sprintf(szPName, "grp_%s_%u", gf_4cc_to_str(grp_type), grp_parameter);
 		else sprintf(szPName, "grp_%s", gf_4cc_to_str(grp_type));
 		if (grp_flags) {
 			char szPFLags[30];
@@ -1200,7 +1199,7 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 		if (!sai_size || !sai_data) continue;
 
 		//all other are mapped to sample groups
-		if (sai_parameter) sprintf(szPName, "sai_%s_%d", gf_4cc_to_str(sai_type), sai_parameter);
+		if (sai_parameter) sprintf(szPName, "sai_%s_%u", gf_4cc_to_str(sai_type), sai_parameter);
 		else sprintf(szPName, "sai_%s", gf_4cc_to_str(sai_type));
 
 		gf_filter_pck_set_property_dyn(pck, szPName, &PROP_DATA_NO_COPY(sai_data, sai_size) );

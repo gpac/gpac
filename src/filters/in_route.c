@@ -84,7 +84,7 @@ static void routein_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->repair_servers);
 	while (gf_list_count(ctx->seg_repair_reservoir)) {
-		RepairSegmentInfo *rsi = (struct _route_repair_seg_info *)gf_list_pop_back(ctx->seg_repair_reservoir);
+		RepairSegmentInfo *rsi = (RepairSegmentInfo *)gf_list_pop_back(ctx->seg_repair_reservoir);
 		if (!ctx->seg_range_reservoir && rsi->ranges)
 			ctx->seg_range_reservoir = gf_list_new();
 		gf_list_transfer(ctx->seg_range_reservoir, rsi->ranges);
@@ -201,7 +201,7 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
 	}
 
-	if (!tsio || (tsio->current_toi != finfo->toi)) {
+	if (!tsio || !finfo || (tsio->current_toi != finfo->toi)) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(tsio ? tsio->tsi : service_id));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(service_id));
 		if (!finfo) return;
@@ -346,7 +346,7 @@ static void routein_write_to_disk(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEvent
 		return;
 	}
 
-	sprintf(szPath, "%s/service%d/%s", ctx->odir, service_id, finfo->filename);
+	sprintf(szPath, "%s/service%u/%s", ctx->odir, service_id, finfo->filename);
 
 	out = gf_fopen(szPath, "wb");
 	if (!out) {
@@ -413,7 +413,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			routein_send_file(ctx, evt_param, finfo, evt);
 			break;
 		}
-		sprintf(szPath, "http://gmcast/service%d/%s", evt_param, finfo->filename);
+		sprintf(szPath, "http://gmcast/service%u/%s", evt_param, finfo->filename);
 		mime = finfo->mime ? finfo->mime : "application/dash+xml";
 		//also set x-mcast header to all manifest and variant
 		//if a clock info is present, also add it
@@ -548,7 +548,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			return;
 
 		if (!cache_entry) {
-			sprintf(szPath, "http://gmcast/service%d/%s", evt_param, finfo->filename);
+			sprintf(szPath, "http://gmcast/service%u/%s", evt_param, finfo->filename);
 			//we copy over the init segment, but only share the data pointer for segments
 			cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->blob, 0, 0, finfo->mime ? finfo->mime : "video/mp4", is_init ? GF_TRUE : GF_FALSE, finfo->download_ms);
 			if (cache_entry) {

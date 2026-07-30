@@ -1308,7 +1308,7 @@ void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_fiel
 			url = ((SFURL *)orig);
 			if (url->OD_ID>0) {
 				char tmp[50];
-				sprintf(tmp, "%d", url->OD_ID);
+				sprintf(tmp, "%u", url->OD_ID);
 				gf_free(((SFString*)dest)->buffer);
 				((SFString*)dest)->buffer = gf_strdup(tmp);
 			} else {

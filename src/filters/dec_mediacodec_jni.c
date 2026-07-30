@@ -213,7 +213,6 @@ create_surface_failed:
 
 static char * mcdec_get_decoder_name(JNIEnv * env, jobject mediaCodecList, jmethodID findId, jobject mediaFomat)
 {
-	jint res = 0;
 	jstring jdecoder_name;
 	char * decoder_name = NULL;
 
@@ -305,7 +304,6 @@ char * mcdec_find_decoder(const char * mime, u32 width, u32 height,  Bool * is_a
 	if(decoder_name){
 		*is_adaptive = GF_TRUE;
 		gf_free(decoder_name_tmp);
-		decoder_name_tmp = NULL;
 	} else {
 		*is_adaptive = GF_FALSE;
 		decoder_name = decoder_name_tmp;

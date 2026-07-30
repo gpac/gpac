@@ -126,7 +126,7 @@ u32 PrintBuiltInBoxes(char *arg_val, u32 do_cov);
 GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues, const char *init_seg, Bool skip_samples);
 #endif
 
-GF_FileType get_file_type_by_ext(const char *inName);
+GF_FileType get_file_type_by_ext(const char *name);
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
@@ -144,7 +144,7 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name);
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 void dump_isom_ismacryp(GF_ISOFile *file, const char *inName, Bool is_final_name);
-void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, const char *inName, Bool is_final_name, Bool is_convert, GF_TextDumpType dump_type);
+GF_Err dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, const char *inName, Bool is_final_name, Bool is_convert, GF_TextDumpType dump_type);
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
 
 

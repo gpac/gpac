@@ -131,7 +131,7 @@ static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		st->visual->compositor->hit_appear = NULL;
 		st->visual->compositor->prev_hit_appear = NULL;
 
-		while ( (a_visual = (struct _visual_manager *)gf_list_enum(st->visual->compositor->visuals, &i))) {
+		while ( (a_visual = (GF_VisualManager *)gf_list_enum(st->visual->compositor->visuals, &i))) {
 			if (a_visual->offscreen) {
 				CompositeTextureStack *a_st = (CompositeTextureStack *) gf_node_get_private(a_visual->offscreen);
 				a_st->prev_hit_appear = NULL;
@@ -321,6 +321,7 @@ static void composite_update(GF_TextureHandler *txh)
 		h = ((M_CompositeTexture2D*)txh->owner)->pixelHeight;
 	}
 
+#if !defined(GPAC_USE_GLES1X)
 	/*internal GPAC hacks for testing color spaces*/
 	if (w<-1) {
 		w = -w;
@@ -343,6 +344,7 @@ static void composite_update(GF_TextureHandler *txh)
 			new_pixel_format=GF_PIXEL_RGBX;
 		}
 	}
+#endif
 
 	if (w<0) w = 0;
 	if (h<0) h = 0;
@@ -379,15 +381,11 @@ static void composite_update(GF_TextureHandler *txh)
 		}
 
 		/*we don't use rect ext because of no support for texture transforms*/
-		if ((1)
-#ifndef GPAC_DISABLE_3D
-		        || compositor->gl_caps.npot_texture
-#endif
-		   ) {
-			st->txh.width = w;
-			st->txh.height = h;
-			st->sx = st->sy = FIX_ONE;
-		} else {
+		st->txh.width = w;
+		st->txh.height = h;
+		st->sx = st->sy = FIX_ONE;
+#if 0
+		if (!compositor->gl_caps.npot_texture) {
 			st->txh.width = 2;
 			while (st->txh.width<(u32)w) st->txh.width*=2;
 			st->txh.height = 2;
@@ -396,6 +394,7 @@ static void composite_update(GF_TextureHandler *txh)
 			st->sx = INT2FIX(st->txh.width) / w;
 			st->sy = INT2FIX(st->txh.height) / h;
 		}
+#endif
 
 		gf_sc_texture_allocate(txh);
 		txh->pixelformat = new_pixel_format;

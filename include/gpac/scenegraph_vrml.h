@@ -476,9 +476,9 @@ children: list of children SFNodes
 #define VRML_CHILDREN							\
 	CHILDREN									\
 	GF_ChildNodeItem *addChildren;							\
-	void (*on_addChildren)(GF_Node *pNode, struct _route *route);		\
+	void (*on_addChildren)(GF_Node *pNode, GF_Route *route);		\
 	GF_ChildNodeItem *removeChildren;						\
-	void (*on_removeChildren)(GF_Node *pNode, struct _route *route);		\
+	void (*on_removeChildren)(GF_Node *pNode, GF_Route *route);		\
 
 /*! generic VRML parent node*/
 typedef struct
@@ -944,7 +944,7 @@ GF_Err gf_node_proto_set_grouping(GF_Node *n);
 \param event_in_cbk the event callback function
 \return error if any
 */
-GF_Err gf_node_set_proto_eventin_handler(GF_Node *n, u32 fieldIndex, void (*event_in_cbk)(GF_Node *pThis, struct _route *route) );
+GF_Err gf_node_set_proto_eventin_handler(GF_Node *n, u32 fieldIndex, void (*event_in_cbk)(GF_Node *pThis, GF_Route *route) );
 
 /*! @} */
 

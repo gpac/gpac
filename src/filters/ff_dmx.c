@@ -38,7 +38,7 @@ GF_OPT_ENUM(GF_FFDemuxRawFrameCopyMode,
 	COPY_NO,
 	COPY_A,
 	COPY_V,
-	COPY_AV,
+	COPY_AV
 );
 
 typedef struct
@@ -617,7 +617,7 @@ restart:
 
 				if (pctx->pck_queue) {
 					while (gf_list_count(pctx->pck_queue)) {
-						GF_FilterPacket *pck_q = (struct __gf_filter_pck *)gf_list_pop_front(pctx->pck_queue);
+						GF_FilterPacket *pck_q = (GF_FilterPacket *)gf_list_pop_front(pctx->pck_queue);
 						gf_filter_pck_send(pck_q);
 					}
 					gf_list_del(pctx->pck_queue);
@@ -835,7 +835,7 @@ restart:
 				pctx->fake_dts_set = GF_TRUE;
 				if (pctx->pck_queue) {
 					while (gf_list_count(pctx->pck_queue)) {
-						GF_FilterPacket *pck_q = (struct __gf_filter_pck *)gf_list_pop_front(pctx->pck_queue);
+						GF_FilterPacket *pck_q = (GF_FilterPacket *)gf_list_pop_front(pctx->pck_queue);
 						gf_filter_pck_send(pck_q);
 					}
 					gf_list_del(pctx->pck_queue);

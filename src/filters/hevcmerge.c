@@ -272,12 +272,10 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, cons
 	if (!ctx->bs_nal_out) ctx->bs_nal_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs_nal_out, ctx->buffer_nal_no_epb, ctx->buffer_nal_no_epb_alloc);
 
-	gf_assert(hevc->s_info.header_size_bits >= 0);
-	gf_assert(hevc->s_info.entry_point_start_bits >= 0);
 	header_end = (u64)hevc->s_info.header_size_bits;
 
-	num_entry_point_start = (u32)hevc->s_info.entry_point_start_bits;
-	slice_qp_delta_start = (u32)hevc->s_info.slice_qp_delta_start_bits;
+	num_entry_point_start = hevc->s_info.entry_point_start_bits;
+	slice_qp_delta_start = hevc->s_info.slice_qp_delta_start_bits;
 
 	// nal_unit_header
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
@@ -739,7 +737,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 			return GF_OUT_OF_MEM;
 		}
 		// pass on the grid to insert empty columns
-		if (!nb_rel_pos && ctx->grid) {
+		if (!nb_rel_pos) {
 			for (j=0; j<max_cols-1; j++) {
 				gf_assert(ctx->grid[j].pos_x + ctx->grid[j].width <= ctx->grid[j+1].pos_x);
 				if (ctx->grid[j].pos_x + ctx->grid[j].width != ctx->grid[j+1].pos_x) {

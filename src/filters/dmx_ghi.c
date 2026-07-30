@@ -115,7 +115,7 @@ static void set_opids_props(GHIDmxCtx *ctx, GHIStream *st)
 {
 	u32 i, count = gf_list_count(st->opids);
 	for (i=0; i<count; i++) {
-		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_list_get(st->opids, i);
+		GF_FilterPid *opid = (GF_FilterPid *)gf_list_get(st->opids, i);
 
 		if (st->ipid)
 			gf_filter_pid_copy_properties(opid, st->ipid);
@@ -318,7 +318,7 @@ static Bool ghi_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			return GF_TRUE;
 		}
 		if (st->empty_seg) {
-			GF_FilterPid *opid = (struct __gf_filter_pid *)gf_list_get(st->opids, 0);
+			GF_FilterPid *opid = (GF_FilterPid *)gf_list_get(st->opids, 0);
 			GF_FilterPacket *dst = gf_filter_pck_new_alloc(opid, 0, NULL);
 			gf_filter_pck_set_dts(dst, st->seg_info.first_tfdt);
 			gf_filter_pck_set_cts(dst, st->seg_info.first_tfdt);
@@ -398,7 +398,7 @@ static GF_Err ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStr
 
 	u8 *obuf = NULL;
 	u32 obuf_alloc = 0;
-	GF_FilterPid *opid = (struct __gf_filter_pid *)gf_list_get(st->opids, 0);
+	GF_FilterPid *opid = (GF_FilterPid *)gf_list_get(st->opids, 0);
 	u32 i, nb_props = gf_list_count(st->x_children);
 	for (i=0; i<nb_props; i++) {
 		Bool is_str_list=GF_FALSE;
@@ -475,7 +475,7 @@ static GF_Err ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStr
 	gf_free(obuf);
 
 	for (i=1; i<gf_list_count(st->opids); i++) {
-		GF_FilterPid *a_opid = (struct __gf_filter_pid *)gf_list_get(st->opids, i);
+		GF_FilterPid *a_opid = (GF_FilterPid *)gf_list_get(st->opids, i);
 		GF_Err e = gf_filter_pid_copy_properties(a_opid, opid);
 		if (e) return e;
 	}
@@ -500,7 +500,7 @@ static GF_Err ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStr
 		}
 	}
 
-	GF_FilterPid *opid = (struct __gf_filter_pid *)gf_list_get(st->opids, 0);
+	GF_FilterPid *opid = (GF_FilterPid *)gf_list_get(st->opids, 0);
 	gf_bs_seek(bs, st->props_offset);
 	u32 end = st->props_offset + st->props_size;
 	gf_bs_skip_bytes(bs, 4);
@@ -663,7 +663,7 @@ static GF_Err ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStr
 
 	//copy props to other
 	for (i=1; i<gf_list_count(st->opids); i++) {
-		GF_FilterPid *a_opid = (struct __gf_filter_pid *)gf_list_get(st->opids, i);
+		GF_FilterPid *a_opid = (GF_FilterPid *)gf_list_get(st->opids, i);
 		GF_Err e = gf_filter_pid_copy_properties(a_opid, opid);
 		if (e) return e;
 	}
@@ -1095,7 +1095,6 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 			ghi_dmx_parse_seg(ctx, bs, st, 0);
 
 		if (ctx->gm && !ctx->force) {
-			GF_Err e;
 			if (st->segs_bin)
 				e = ghi_dmx_declare_opid_bin(filter, ctx, st, bs);
 			else
@@ -1177,7 +1176,7 @@ GF_Err ghi_dmx_process(GF_Filter *filter)
 			nb_inactive++;
 			continue;
 		}
-		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_list_get(st->opids, 0);
+		GF_FilterPid *opid = (GF_FilterPid *)gf_list_get(st->opids, 0);
 		pck = gf_filter_pid_get_packet(st->ipid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(st->ipid)) {

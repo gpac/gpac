@@ -170,7 +170,7 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (NeAACDecInit2(ctx->codec, (unsigned char *)p->value.data.ptr, p->value.data.size, (unsigned long*)&ctx->sample_rate, (u8*)&ctx->num_channels) < 0)
 	{
 #ifndef GPAC_DISABLE_AV_PARSERS
-		s8 res;
+		s32 res;
 		u8 *dsi;
 		const char *s_base_object_type;
 		u32 dsi_len;
@@ -202,7 +202,7 @@ base_object_type_error: /*error case*/
 		a_cfg.nb_chan = a_cfg.nb_chan > 2 ? 1 : a_cfg.nb_chan;
 
 		gf_m4a_write_config(&a_cfg, &dsi, &dsi_len);
-		res = NeAACDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
+		res = (s32) NeAACDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
 		gf_free(dsi);
 		if (res < 0)
 #endif

@@ -83,7 +83,7 @@ enum
 GF_OPT_ENUM (GF_TSMuxInputDescriptorAction,
 	IN_TEMI_DROP=0,
 	IN_TEMI_FWD,
-	IN_TEMI_NTP,
+	IN_TEMI_NTP
 );
 
 typedef struct
@@ -695,7 +695,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		while (tspid->ctx->temi_fwd) {
 			u32 p4cc;
 			const char *pname;
-			const GF_PropertyValue *p = gf_filter_pck_enum_properties(pck, &pidx, &p4cc, &pname);
+			p = gf_filter_pck_enum_properties(pck, &pidx, &p4cc, &pname);
 			if (!p) break;
 			if (pname && !strncmp(pname, "temi_l", 6)) {
 				GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
@@ -2077,11 +2077,11 @@ static GF_Err tsmux_process(GF_Filter *filter)
 
 			if (ctx->total_bytes_in) ohead =  ((Double) (total_bytes_out - ctx->total_bytes_in)*100 / ctx->total_bytes_in);
 
-			sprintf(szStatus, "done mux_clock=%d ms s_rate=%d kbps r_bytes=" LLD " s_bytes=" LLD " ohead=%02.02f %%", gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000, ctx->total_bytes_in, total_bytes_out, ohead);
+			sprintf(szStatus, "done mux_clock=%u ms s_rate=%u kbps r_bytes=" LLU " s_bytes=" LLU " ohead=%02.02f %%", gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000, ctx->total_bytes_in, total_bytes_out, ohead);
 			gf_filter_update_status(filter, 10000, szStatus);
 		} else {
 
-			sprintf(szStatus, "sys_clock=%d ms mux_clock=%d ms s_rate=%d kbps", gf_m2ts_get_sys_clock(ctx->mux), gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000);
+			sprintf(szStatus, "sys_clock=%u ms mux_clock=%u ms s_rate=%u kbps", gf_m2ts_get_sys_clock(ctx->mux), gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000);
 			gf_filter_update_status(filter, 0, szStatus);
 		}
 	}
@@ -2181,7 +2181,7 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 		ctx->pack_buffer = (u8 *)gf_malloc(188*ctx->nb_pack);
 		if (!ctx->pack_buffer) return GF_OUT_OF_MEM;
 	}
-	
+
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
 		gf_m2ts_get_sys_clock(ctx->mux);

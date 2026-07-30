@@ -817,7 +817,7 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 	src_pck = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i=0;i<count; i++) {
-		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
+		src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_packets, i);
 		if (gf_filter_pck_get_cts(src_pck) == ctx->frame_ptr.frame_par.pts) {
 			if (gf_filter_pck_get_mark(src_pck))
 				ohevc_set_out_props(ctx, src_pck);
@@ -871,7 +871,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	src_pck = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i=0;i<count; i++) {
-		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
+		src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_packets, i);
 		if (gf_filter_pck_get_cts(src_pck) == cts) break;
 		src_pck = NULL;
 	}
@@ -1246,7 +1246,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 		}
 		gf_filter_pid_set_eos(ctx->opid);
 		while (gf_list_count(ctx->src_packets)) {
-			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
+			GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_packets);
 			gf_filter_pck_unref(pck);
 		}
 		return GF_EOS;
@@ -1388,7 +1388,7 @@ static void ohevcdec_finalize(GF_Filter *filter)
 	gf_free(ctx->inject_buffer);
 
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);

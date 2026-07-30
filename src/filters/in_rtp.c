@@ -395,7 +395,7 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		if (reset_stream) {
 			while (gf_list_count(stream->pck_queue)) {
-				GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(stream->pck_queue);
+				GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_front(stream->pck_queue);
 				gf_filter_pck_send(pck);
 			}
 		}
@@ -657,7 +657,6 @@ static GF_Err rtpin_process(GF_Filter *filter)
 					ctx->eos_probe_start = gf_sys_clock() - ctx->udp_timeout;
 				else if (e==GF_EOS) {
 					ctx->eos_probe_start = gf_sys_clock() - ctx->udp_timeout;
-					e = GF_OK;
 				}
 			}
 			break;
@@ -708,7 +707,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			stream->stat_stop_time = gf_sys_clock();
 			if (stream->pck_queue) {
 				while (gf_list_count(stream->pck_queue)) {
-					GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(stream->pck_queue);
+					GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_front(stream->pck_queue);
 					gf_filter_pck_send(pck);
 				}
 			}

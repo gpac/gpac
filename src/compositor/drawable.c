@@ -1436,8 +1436,10 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 			asp->line_color = GF_COL_ARGB_FIXED(clamped_stroke_opacity, props->color->color.red, props->color->color.green, props->color->color.blue);
 		} else if (props->stroke->color.type == SVG_COLOR_RGBCOLOR) {
 			asp->line_color = GF_COL_ARGB_FIXED(clamped_stroke_opacity, props->stroke->color.red, props->stroke->color.green, props->stroke->color.blue);
-		} else if (props->stroke->color.type >= SVG_COLOR_ACTIVE_BORDER) {
-			asp->line_color = tr_state->visual->compositor->sys_colors[SVG_COLOR_ACTIVE_BORDER - 3];
+		} else if ((props->stroke->color.type >= SVG_COLOR_ACTIVE_BORDER)
+			&& (props->stroke->color.type - SVG_COLOR_ACTIVE_BORDER < GF_ARRAY_LENGTH(tr_state->visual->compositor->sys_colors) )
+		) {
+			asp->line_color = tr_state->visual->compositor->sys_colors[props->stroke->color.type - SVG_COLOR_ACTIVE_BORDER];
 			asp->line_color |= ((u32) (clamped_stroke_opacity*255)) << 24;
 		}
 	}

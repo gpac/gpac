@@ -129,7 +129,7 @@ found:
 		gf_strlcpy(User, test, 1024);
 		if (psep) {
 			gf_strlcpy(Pass, psep+1, 1024);
-			if (psep) psep[0] = ':';
+			psep[0] = ':';
 		}
 
 		sep_auth[0] = '@';

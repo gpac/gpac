@@ -251,6 +251,11 @@ struct __dash_client
 
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic);
 
+typedef struct _dash_srd_desc
+{
+	u32 srd_nb_rows, srd_nb_cols;
+	u32 id, width, height, srd_fw, srd_fh;
+} DASH_SRD;
 
 enum
 {
@@ -424,7 +429,7 @@ struct __dash_group
 	u32 target_new_rep;
 
 	u32 srd_x, srd_y, srd_w, srd_h, srd_row_idx, srd_col_idx;
-	struct _dash_srd_desc *srd_desc;
+	DASH_SRD *srd_desc;
 
 	/*current index of the base URL used*/
 	u32 current_base_url_idx;
@@ -494,12 +499,6 @@ struct __dash_group
 
 
 static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list, u32 period_idx);
-
-struct _dash_srd_desc
-{
-	u32 srd_nb_rows, srd_nb_cols;
-	u32 id, width, height, srd_fw, srd_fh;
-};
 
 void drm_decrypt(unsigned char * data, unsigned long dataSize, const char * decryptMethod, const char * keyfileURL, const unsigned char * keyIV);
 
@@ -724,14 +723,14 @@ static void gf_dash_group_timeline_setup_single(GF_MPD *mpd, GF_DASH_Group *grou
 			//which will not have the x-mcast-first-seg set
 			gf_dash_download_resource(group->dash, &(group->dash->mpd_dnload), group->dash->base_url, 0, 0, 1, NULL);
 
-			const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-mcast-first-seg");
+			val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-mcast-first-seg");
 			if (!val)
 				return;
 			u32 g_idx;
 			s32 pl_idx = -1;
 			for (g_idx = 0; g_idx<gf_list_count(group->dash->groups); g_idx++) {
 				GF_DASH_Group *agr = (GF_DASH_Group *)gf_list_get(group->dash->groups, g_idx);
-				GF_MPD_Representation *rep = (GF_MPD_Representation *)gf_list_get(agr->adaptation_set->representations, agr->active_rep_index);
+				rep = (GF_MPD_Representation *)gf_list_get(agr->adaptation_set->representations, agr->active_rep_index);
 				if (!rep->segment_list) continue;
 
 				u32 idx, nb_segs=gf_list_count(rep->segment_list->segment_URLs);
@@ -749,7 +748,7 @@ static void gf_dash_group_timeline_setup_single(GF_MPD *mpd, GF_DASH_Group *grou
 					GF_DASH_Group *agr = (GF_DASH_Group *)gf_list_get(group->dash->groups, g_idx);
 					agr->download_segment_index = pl_idx;
 					agr->timeline_setup = GF_TRUE;
-					GF_MPD_Representation *rep = (GF_MPD_Representation *)gf_list_get(agr->adaptation_set->representations, agr->active_rep_index);
+					rep = (GF_MPD_Representation *)gf_list_get(agr->adaptation_set->representations, agr->active_rep_index);
 					agr->nb_segments_in_rep = rep->segment_list ? gf_list_count(rep->segment_list->segment_URLs) : 0;
 				}
 				group->dash->mcast_clock_state = GF_DASH_MCAST_SYNC_SOURCE;
@@ -951,7 +950,7 @@ setup_multicast_clock:
 					gf_dynstrcat(&szTemplate, "%", NULL);
 					if (nb_space) {
 						char szFmt[20];
-						sprintf(szFmt, "0%d", nb_space+4);
+						sprintf(szFmt, "0%u", nb_space+4);
 						gf_dynstrcat(&szTemplate, szFmt, NULL);
 					}
 					gf_dynstrcat(&szTemplate, LLU_SUF, NULL);
@@ -959,7 +958,8 @@ setup_multicast_clock:
 					if (sscanf(val, szTemplate, &number) == 1) {
 						u32 startNum = 1;
 						u64 pto=0;
-						u32 segdur=0, timescale=1; //MPD timescale is 1 if not present
+						u32 segdur=0;
+						timescale=1; //MPD timescale is 1 if not present
 						Bool is_valid = GF_TRUE;
 						GF_MPD_SegmentTimeline *seg_timeline=NULL;
 						if (dyn_period->segment_template) {
@@ -1799,7 +1799,7 @@ update_download:
 				goto retry;
 			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] two consecutive failures, aborting the download %s.\n", url));
-		} else if (dash->in_error) {
+		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Download still in error for %s.\n", url));
 		}
 		break;
@@ -2309,7 +2309,7 @@ static GF_Err gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Rep
 		if (!rep->in_progress) {
 			e = gf_dash_download_resource(dash, &(dash->mpd_dnload), url ? url : rep->segment_list->xlink_href, 0, 0, 0, NULL);
 		}
-		if (!e || (e!=GF_NOT_READY))
+		if (e !=GF_NOT_READY)
 			e = dash->dash_io->get_status(dash->dash_io, dash->mpd_dnload);
 
 		gf_free(url);
@@ -4057,7 +4057,7 @@ retry_pending:
 				group->nb_parts = set->segment_template->nb_parts;
 			}
 		}
-		if (rep->playback.use_ssr && rep->segment_template) {
+		if (rep->segment_template) {
 			if (rep->segment_template->segment_timeline) {
 				GF_MPD_SegmentTimelineEntry *e = gf_dash_get_timeline_entry(set->segment_template->segment_timeline, group->download_segment_index);
 				if (e) group->nb_parts = e->nb_parts;
@@ -4410,7 +4410,7 @@ static s32 dash_do_rate_adaptation_legacy_rate(GF_DashClient *dash, GF_DASH_Grou
 	new_rep = NULL;
 
 	/* for each playable representation, if we still need to switch, evaluate it */
-	for (k = 0; k<gf_list_count(group->adaptation_set->representations) && do_switch; k++) {
+	for (k = 0; k<gf_list_count(group->adaptation_set->representations); k++) {
 		GF_MPD_Representation *arep = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, k);
 		if (!arep->playback.prev_max_available_speed) {
 			arep->playback.prev_max_available_speed = 1.0;
@@ -5191,10 +5191,6 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	if (!base_init_url) {
-		return GF_IO_ERR;
-	}
-
 	if (nb_segment_read) {
 		group->init_segment_is_media = GF_TRUE;
 		group->init_segment_start_number = start_number;
@@ -5478,7 +5474,7 @@ static void gf_dash_reset_groups(GF_DashClient *dash)
 	dash->groups = NULL;
 
 	while (gf_list_count(dash->SRDs)) {
-		struct _dash_srd_desc *srd = (struct _dash_srd_desc *)gf_list_last(dash->SRDs);
+		DASH_SRD *srd = (DASH_SRD *)gf_list_last(dash->SRDs);
 		gf_list_rem_last(dash->SRDs);
 		gf_free(srd);
 	}
@@ -5722,8 +5718,8 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 				if (group->adaptation_set->segment_template) {
 					rep->playback.use_ssr = group->adaptation_set->segment_template->nb_parts;
 					if (group->adaptation_set->segment_template->segment_timeline) {
-						GF_MPD_SegmentTimelineEntry *e = (GF_MPD_SegmentTimelineEntry *)gf_list_get(group->adaptation_set->segment_template->segment_timeline->entries, 0);
-						rep->playback.use_ssr = e->nb_parts;
+						GF_MPD_SegmentTimelineEntry *_e = (GF_MPD_SegmentTimelineEntry *)gf_list_get(group->adaptation_set->segment_template->segment_timeline->entries, 0);
+						rep->playback.use_ssr = _e->nb_parts;
 					}
 				}
 			}
@@ -5736,8 +5732,8 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 					if (rep->segment_template) {
 						rep->playback.use_ssr = rep->segment_template->nb_parts;
 						if (rep->segment_template->segment_timeline) {
-							GF_MPD_SegmentTimelineEntry *e = (GF_MPD_SegmentTimelineEntry *)gf_list_get(rep->segment_template->segment_timeline->entries, 0);
-							rep->playback.use_ssr = e->nb_parts;
+							GF_MPD_SegmentTimelineEntry *_e = (GF_MPD_SegmentTimelineEntry *)gf_list_get(rep->segment_template->segment_timeline->entries, 0);
+							rep->playback.use_ssr = _e->nb_parts;
 						}
 					}
 					continue;
@@ -6573,7 +6569,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 static u32 gf_dash_get_tiles_quality_rank(GF_DashClient *dash, GF_DASH_Group *tile_group)
 {
 	s32 res, res2;
-	struct _dash_srd_desc *srd = tile_group->srd_desc;
+	DASH_SRD *srd = tile_group->srd_desc;
 
 	//no SRD is max quality for now
 	if (!srd) return 0;
@@ -6624,7 +6620,7 @@ static u32 gf_dash_get_tiles_quality_rank(GF_DashClient *dash, GF_DASH_Group *ti
 }
 
 //used upon startup of the session only
-static void gf_dash_set_tiles_quality(GF_DashClient *dash, struct _dash_srd_desc *srd, Bool force_all)
+static void gf_dash_set_tiles_quality(GF_DashClient *dash, DASH_SRD *srd, Bool force_all)
 {
 	u32 i, count;
 	Bool tiles_use_lowest = (dash->first_select_mode==GF_DASH_SELECT_BANDWIDTH_HIGHEST_TILES) ? GF_TRUE : GF_FALSE;
@@ -6653,13 +6649,13 @@ static void gf_dash_set_tiles_quality(GF_DashClient *dash, struct _dash_srd_desc
 	}
 }
 
-static struct _dash_srd_desc *gf_dash_get_srd_desc(GF_DashClient *dash, u32 srd_id, Bool do_create)
+static DASH_SRD *gf_dash_get_srd_desc(GF_DashClient *dash, u32 srd_id, Bool do_create)
 {
 	u32 i, count;
-	struct _dash_srd_desc *srd;
+	DASH_SRD *srd;
 	count = dash->SRDs ? gf_list_count(dash->SRDs) : 0;
 	for (i=0; i<count; i++) {
-		srd = (struct _dash_srd_desc *)gf_list_get(dash->SRDs, i);
+		srd = (DASH_SRD *)gf_list_get(dash->SRDs, i);
 		if (srd->id==srd_id) return srd;
 	}
 	if (!do_create) return NULL;
@@ -6815,9 +6811,9 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			if (mpd_desc && mpd_desc->scheme_id_uri && !strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:srd:2014") && mpd_desc->value) {
 				u32 id, w, h, res;
 				w = h = 0;
-				res = sscanf(mpd_desc->value, "%d,%d,%d,%d,%d,%d,%d", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h, &w, &h);
+				res = sscanf(mpd_desc->value, "%u,%u,%u,%u,%u,%u,%u", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h, &w, &h);
 				if (res != 7) {
-					res = sscanf(mpd_desc->value, "%d,%d,%d,%d,%d", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h);
+					res = sscanf(mpd_desc->value, "%u,%u,%u,%u,%u", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h);
 					if (res!=5) res=0;
 				}
 				if (res) {
@@ -6870,9 +6866,9 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			if (mpd_desc && mpd_desc->scheme_id_uri && !strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:srd:2014") && mpd_desc->value) {
 				u32 id, w, h, res;
 				w = h = 0;
-				res = sscanf(mpd_desc->value, "%d,%d,%d,%d,%d,%d,%d", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h, &w, &h);
+				res = sscanf(mpd_desc->value, "%u,%u,%u,%u,%u,%u,%u", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h, &w, &h);
 				if (res != 7) {
-					res = sscanf(mpd_desc->value, "%d,%d,%d,%d,%d", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h);
+					res = sscanf(mpd_desc->value, "%u,%u,%u,%u,%u", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h);
 					if (res != 5) res=0;
 				}
 				if (res) {
@@ -7088,7 +7084,7 @@ retry_pending_rep:
 	//setup SRDs
 	for (as_i = 0; as_i<gf_list_count(dash->SRDs); as_i++) {
 		u32 cols[10], rows[10], nb_srd_it=0;
-		struct _dash_srd_desc *srd = (struct _dash_srd_desc *)gf_list_get(dash->SRDs, as_i);
+		DASH_SRD *srd = (DASH_SRD *)gf_list_get(dash->SRDs, as_i);
 
 		srd->srd_nb_rows = srd->srd_nb_cols = 0;
 
@@ -7976,7 +7972,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 	//get max qualities due to SRD descriptions
 	//for now, consider all non-SRDs group to run in max quality
 	for (i=0; i<gf_list_count(dash->SRDs); i++) {
-		struct _dash_srd_desc *srd = (struct _dash_srd_desc *)gf_list_get(dash->SRDs, i);
+		DASH_SRD *srd = (DASH_SRD *)gf_list_get(dash->SRDs, i);
 		u32 nb_q = MAX(srd->srd_nb_cols, srd->srd_nb_rows);
 		if (nb_q > nb_qualities) nb_qualities = nb_q;
 	}
@@ -9121,7 +9117,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	}
 
 	if (is_local && strncmp(manifest_url, "gfio://", 7)) {
-		FILE *f = gf_fopen(local_url, "rt");
+		f = gf_fopen(local_url, "rt");
 		if (!f) {
 			sep_query = (char *)strrchr(local_url, '?');
 			if (sep_query) sep_query[0] = 0;
@@ -10165,13 +10161,13 @@ GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, u32 depen
 		if (group->init_segment_is_media) {
 			if (seg_number) *seg_number = group->init_segment_start_number;
 			if (seg_time || seg_dur_ms) {
-				u64 segment_dur, res;
+				u64 segment_dur, segt;
 				u32 seg_scale;
 				u32 cur_grp_idx = group->download_segment_index;
 				group->download_segment_index = 0;
-				res = gf_dash_get_segment_start_time_with_timescale(group, &segment_dur, &seg_scale, NULL);
+				segt = gf_dash_get_segment_start_time_with_timescale(group, &segment_dur, &seg_scale, NULL);
 				if (seg_time) {
-					seg_time->num = res;
+					seg_time->num = segt;
 					seg_time->den = seg_scale;
 				}
 				if (seg_dur_ms) {
@@ -10744,7 +10740,6 @@ GF_EXPORT
 void gf_dash_debug_groups(GF_DashClient *dash, const u32 *dbg_groups_idx, u32 nb_groups)
 {
 	dash->dbg_grps_index = dbg_groups_idx;
-	dash->dbg_grps_index = dbg_groups_idx;
 	dash->nb_dbg_grps = nb_groups;
 }
 
@@ -10993,7 +10988,7 @@ char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx, u32 *segment_time
 
 			if (len < last_num - last_non_num) {
 				u32 pad = last_num - last_non_num - len;
-				snprintf(szVal, 100, "$Number%%0%dd$", pad);
+				snprintf(szVal, 100, "$Number%%0%ud$", pad);
 				gf_dynstrcat(&solved_template, szVal, NULL);
 			} else {
 				gf_dynstrcat(&solved_template, "$Number$", NULL);
@@ -11341,11 +11336,9 @@ Bool gf_dash_group_get_srd_info(GF_DashClient *dash, u32 idx, u32 *srd_id, u32 *
 	GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, idx);
 	if (!group || !group->srd_desc) return GF_FALSE;
 
-	if (group->srd_desc) {
-		if (srd_id) (*srd_id) = group->srd_desc->id;
-		if (srd_width) (*srd_width) = group->srd_desc->srd_fw;
-		if (srd_height) (*srd_height) = group->srd_desc->srd_fh;
-	}
+	if (srd_id) (*srd_id) = group->srd_desc->id;
+	if (srd_width) (*srd_width) = group->srd_desc->srd_fw;
+	if (srd_height) (*srd_height) = group->srd_desc->srd_fh;
 
 	if (srd_x) (*srd_x) = group->srd_x;
 	if (srd_y) (*srd_y) = group->srd_y;
@@ -11458,7 +11451,7 @@ GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u
 	group->hint_visible_height = (max_y > min_y) ? (max_y - min_y) : (min_y - max_y);
 
 	if (!group->groups_depending_on) {
-		count = group->srd_desc ? gf_list_count(dash->groups) : 0;
+		//count = group->srd_desc ? gf_list_count(dash->groups) : 0;
 		dash_check_group_visible(group, NULL, min_x, max_x, min_y, max_y, is_gaze);
 		return GF_OK;
 	}

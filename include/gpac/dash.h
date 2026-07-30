@@ -171,7 +171,7 @@ GF_OPT_ENUM (GF_DASHInitialSelectionMode,
 	/*! selects the highest bandwidth when starting - for tiles all low priority tiles will have the lower (below max) bandwidth selected*/
 	GF_DASH_SELECT_BANDWIDTH_HIGHEST,
 	/*! selects the highest bandwidth when starting - for tiles all low priority tiles will have their lowest bandwidth selected*/
-	GF_DASH_SELECT_BANDWIDTH_HIGHEST_TILES,
+	GF_DASH_SELECT_BANDWIDTH_HIGHEST_TILES
 );
 
 
@@ -738,7 +738,7 @@ GF_OPT_ENUM (GF_DASHLowLatencyMode,
 	/*! strict respect of segment availability start time*/
 	GF_DASH_LL_STRICT,
 	/*! allow fetching segments earlier than their availability start time in case of empty demux*/
-	GF_DASH_LL_EARLY_FETCH,
+	GF_DASH_LL_EARLY_FETCH
 );
 
 /*! allow early segment fetch in low latency mode
@@ -792,7 +792,7 @@ GF_OPT_ENUM (GF_DASHCrossASMode,
 	/*! cross adaptation set is enabled and only switches on the same codec*/
 	GF_DASH_XAS_CODEC,
 	/*! cross adaptation set is enabled and can switch to any codec*/
-	GF_DASH_XAS_ALL,
+	GF_DASH_XAS_ALL
 );
 
 /*! enable switching across adaptation sets
@@ -957,7 +957,7 @@ GF_OPT_ENUM(GF_DASHTileAdaptationMode,
 	/*! bitrate decreased for all tiles on the edge of the picture*/
 	GF_DASH_ADAPT_TILE_CENTER,
 	/*! bitrate decreased for all tiles on the center of the picture*/
-	GF_DASH_ADAPT_TILE_EDGES,
+	GF_DASH_ADAPT_TILE_EDGES
 );
 
 /*! sets tile adaptation mode

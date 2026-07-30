@@ -1020,14 +1020,13 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 		JS_FreeCString(c, (char *)data);
 
 	if (!strncmp(ctx->url, "http://", 7) || !strncmp(ctx->url, "https://", 8)) {
-		u32 flags = GF_NETIO_SESSION_NOTIFY_DATA;
 		//disable sync XHR in emscripten
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 		return GF_JS_EXCEPTION(c);
 #else
+		u32 flags = GF_NETIO_SESSION_NOTIFY_DATA;
 		if (!ctx->async)
 			flags |= GF_NETIO_SESSION_NOT_THREADED;
-#endif
 
 		if (ctx->cache != XHR_CACHETYPE_NORMAL) {
 			if (ctx->cache == XHR_CACHETYPE_NONE) {
@@ -1063,6 +1062,7 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 		if (!ctx->async) {
 			xml_http_terminate(ctx, e);
 		}
+#endif
 	} else {
 		e = xml_http_process_local(ctx);
 		if (e!=GF_OK) {

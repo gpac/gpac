@@ -240,7 +240,7 @@ mad_resync:
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MAD] Decoding failed error %s (%d)\n", mad_stream_errorstr(&ctx->stream), ctx->stream.error ) );
 		if (ctx->len==in_size) {
-			if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		//try resynchro

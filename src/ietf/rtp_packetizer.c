@@ -600,7 +600,7 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 #define SDP_ADD_INT(_name, _val) {\
 		if (!is_first) gf_dynstrcat(out_sdp_line, "; ", NULL); \
 		gf_dynstrcat(out_sdp_line, _name, NULL);\
-		sprintf(str_buf, "%d", _val);\
+		sprintf(str_buf, "%u", _val);\
 		gf_dynstrcat(out_sdp_line, str_buf, "=");\
 		is_first = GF_FALSE;\
 	}
@@ -618,7 +618,7 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	/*mandatory fields*/
 	if (builder->slMap.PL_ID) SDP_ADD_INT("profile-level-id", builder->slMap.PL_ID);
 
-	if (builder->rtp_payt == GF_RTP_PAYT_LATM) SDP_ADD_INT("cpresent", 0);
+	if (builder->rtp_payt == GF_RTP_PAYT_LATM) SDP_ADD_INT("cpresent", (u32) 0);
 
 	if (dsi && dsi_size) {
 		if (dsi_size>10000) {
@@ -657,7 +657,7 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	if (builder->slMap.IndexDeltaLength) SDP_ADD_INT("indexDeltaLength", builder->slMap.IndexDeltaLength);
 	if (builder->slMap.CTSDeltaLength) SDP_ADD_INT("CTSDeltaLength", builder->slMap.CTSDeltaLength);
 	if (builder->slMap.DTSDeltaLength) SDP_ADD_INT("DTSDeltaLength", builder->slMap.DTSDeltaLength);
-	if (builder->slMap.RandomAccessIndication) SDP_ADD_INT("randomAccessIndication", builder->slMap.RandomAccessIndication);
+	if (builder->slMap.RandomAccessIndication) SDP_ADD_INT("randomAccessIndication", (u32) builder->slMap.RandomAccessIndication);
 	if (builder->slMap.StreamStateIndication) SDP_ADD_INT("streamStateIndication", builder->slMap.StreamStateIndication);
 	if (builder->slMap.AuxiliaryDataSizeLength) SDP_ADD_INT("auxiliaryDataSizeLength", builder->slMap.AuxiliaryDataSizeLength);
 
@@ -665,11 +665,11 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	if (builder->slMap.IV_length) {
 		/*don't write default*/
 		/*SDP_ADD_STR("ISMACrypCryptoSuite", "AES_CTR_128");*/
-		if (builder->flags & GP_RTP_PCK_SELECTIVE_ENCRYPTION) SDP_ADD_INT("ISMACrypSelectiveEncryption", 1);
+		if (builder->flags & GP_RTP_PCK_SELECTIVE_ENCRYPTION) SDP_ADD_INT("ISMACrypSelectiveEncryption", (u32) 1);
 		SDP_ADD_INT("ISMACrypIVLength", builder->slMap.IV_length);
 		if (builder->slMap.IV_delta_length) SDP_ADD_INT("ISMACrypDeltaIVLength", builder->slMap.IV_delta_length);
 		if (builder->slMap.KI_length) SDP_ADD_INT("ISMACrypKeyIndicatorLength", builder->slMap.KI_length);
-		if (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) SDP_ADD_INT("ISMACrypKeyIndicatorPerAU", 1);
+		if (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) SDP_ADD_INT("ISMACrypKeyIndicatorPerAU", (u32) 1);
 	}
 
 exit:

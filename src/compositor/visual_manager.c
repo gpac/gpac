@@ -179,7 +179,7 @@ void visual_clean_contexts(GF_VisualManager *visual)
 	for nodes drawn on several visuals*/
 	count = gf_list_count(visual->compositor->visuals);
 	for (i=1; i<count; i++) {
-		GF_VisualManager *a_vis = (struct _visual_manager *)gf_list_get(visual->compositor->visuals, i);
+		GF_VisualManager *a_vis = (GF_VisualManager *)gf_list_get(visual->compositor->visuals, i);
 		ctx = a_vis->context;
 		while (ctx && ctx->drawable) {
 			if (ctx->flags & CTX_HAS_APPEARANCE)

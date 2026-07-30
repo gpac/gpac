@@ -98,9 +98,9 @@ GFINLINE static void overmask_argb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *s
 
 	cmode = do_composite_mode(surf->comp_mode, &srca, &dsta);
 	if (cmode==1) {
-		u8 dstr = dst[surf->idx_r];
-		u8 dstg = dst[surf->idx_g];
-		u8 dstb = dst[surf->idx_b];
+		u32 dstr = dst[surf->idx_r];
+		u32 dstg = dst[surf->idx_g];
+		u32 dstb = dst[surf->idx_b];
 //		dsta += srca;
 //		if (srca>0xFF) srca = 0xFF;
 		dstr += srcr;

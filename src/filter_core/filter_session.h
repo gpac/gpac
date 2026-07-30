@@ -291,7 +291,7 @@ typedef enum
 	TASK_TYPE_NONE=0,
 	//task udta is a GF_FilterEvent
 	TASK_TYPE_EVENT,
-	//task udta is a struct _gf_filter_setup_failure (simple free needed)
+	//task udta is a filter_setup_failure_stack (simple free needed)
 	TASK_TYPE_SETUP,
 	//task udta is a GF_UserTask structure (simple free needed), and task logname shall be freed
 	TASK_TYPE_USER,

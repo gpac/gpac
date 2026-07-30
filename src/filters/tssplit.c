@@ -207,7 +207,7 @@ static void m2tssplit_on_event_duration_probe(GF_M2TS_Demuxer *ts, u32 evt_type,
 	if (!tspck->pcr_plus_one || prober->abort) return;
 	if (prober->first_pcr_pid && (prober->first_pcr_pid != tspck->pid)) return;
 
-	if (tspck->pcr_plus_one && (tspck->pcr_plus_one < prober->first_pcr)) {
+	if (tspck->pcr_plus_one < prober->first_pcr) {
 		prober->first_pcr_pid = 0;
 	}
 	if (!prober->first_pcr_pid) {
@@ -560,7 +560,7 @@ static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *pa
 		GF_M2TSSplit_SPTS *stream = (GF_M2TSSplit_SPTS *)prog->user;
 		u32 known_streams = 0;
 		for (i=0; i<gf_list_count(prog->streams); i++) {
-			GF_M2TS_ES *es = (struct tag_m2ts_es *)gf_list_get(prog->streams, i);
+			GF_M2TS_ES *es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
 			switch (es->stream_type) {
 			case GF_M2TS_VIDEO_MPEG1:
 			case GF_M2TS_VIDEO_MPEG2:
@@ -696,17 +696,21 @@ GF_Err m2tssplit_initialize(GF_Filter *filter)
 {
 	GF_M2TSSplitCtx *ctx = (GF_M2TSSplitCtx *)gf_filter_get_udta(filter);
 	ctx->streams = gf_list_new();
+	if (!ctx->streams) return GF_OUT_OF_MEM;
 	ctx->dmx = gf_m2ts_demux_new();
+	if (!ctx->dmx) return GF_OUT_OF_MEM;
 	ctx->dmx->on_event = m2tssplit_on_event;
 	ctx->dmx->raw_mode = GF_M2TS_RAW_SPLIT;
 	ctx->dmx->user = ctx;
 	ctx->filter = filter;
 	ctx->bsw = gf_bs_new(ctx->tsbuf, 192, GF_BITSTREAM_WRITE);
+	if (!ctx->bsw) return GF_OUT_OF_MEM;
 	if (ctx->nb_pack<=1)
 		ctx->nb_pack = 0;
 
 	if (ctx->rt)
 		ctx->gendts = GF_TRUE;
+
 	return GF_OK;
 }
 

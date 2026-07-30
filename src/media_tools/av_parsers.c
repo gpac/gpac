@@ -53,7 +53,7 @@ static u32 gf_bs_read_int_log_idx3(GF_BitStream *bs, u32 nBits, const char *fnam
 #define gf_bs_read_int_log_idx(_bs, _nBits, _fname, _idx) gf_bs_read_int_log_idx3(_bs, _nBits, _fname, _idx, -1, -1)
 #define gf_bs_read_int_log_idx2(_bs, _nBits, _fname, _idx1, _idx2) gf_bs_read_int_log_idx3(_bs, _nBits, _fname, (s32) _idx1, (s32) _idx2, -1)
 
-#define gf_bs_read_bool_log(_bs, _fname) (gf_bs_read_int_log_idx3(_bs, 1, _fname, -1, -1, -1) ? GF_TRUE : GF_FALSE)
+#define gf_bs_read_bool_log(_bs, _fname) (Bool) gf_bs_read_int_log_idx3(_bs, 1, _fname, -1, -1, -1)
 #define gf_bs_read_bool_log_idx(_bs, _fname, _idx) (Bool) gf_bs_read_int_log_idx3(_bs, 1, _fname, _idx, -1, -1)
 #define gf_bs_read_bool_log_idx2(_bs, _fname, _idx1, _idx2) (Bool) gf_bs_read_int_log_idx3(_bs, 1, _fname, (s32) _idx1, (s32) _idx2, -1)
 
@@ -1345,7 +1345,7 @@ GF_EXPORT
 GF_Err gf_m4a_get_config(u8 *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
 {
 	GF_BitStream *bs;
-	if (!dsi || !dsi_size || (dsi_size < 2)) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!dsi || (dsi_size < 2)) return GF_NON_COMPLIANT_BITSTREAM;
 	bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
 	gf_m4a_parse_config(bs, cfg, GF_TRUE);
 	gf_bs_del(bs);
@@ -3372,7 +3372,7 @@ static void av1_set_frame_refs(AV1State *state, u8 last_frame_idx, u8 gold_frame
 	for (i = 0; i < AV1_REFS_PER_FRAME; i++)
 		ref_frame_idx[i] = -1;
 
-	ref_frame_idx[AV1_LAST_FRAME - AV1_LAST_FRAME] = last_frame_idx;
+	ref_frame_idx[ 0 /*AV1_LAST_FRAME - AV1_LAST_FRAME*/] = last_frame_idx;
 	ref_frame_idx[AV1_GOLDEN_FRAME - AV1_LAST_FRAME] = gold_frame_idx;
 
 	for (i = 0; i < AV1_NUM_REF_FRAMES; i++) {
@@ -3698,7 +3698,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		u32 i;
 		for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
 			u8 refFrame = AV1_LAST_FRAME + i;
-			u8 ridx = ref_frame_idx[i];
+			s8 ridx = ref_frame_idx[i];
 			if (ridx >= 0) {
 				u8 hint = state->RefOrderHint[ridx];
 				state->OrderHints[refFrame] = hint;
@@ -4834,9 +4834,10 @@ static GF_Err iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
 		// Read `DecoderConfig`.
 		u32 unused_size;
 		e = gf_odf_parse_descriptor(bs, &desc, &unused_size);
-		if (!desc || desc->tag != GF_ODF_DCD_TAG)
+		if (e || !desc || desc->tag != GF_ODF_DCD_TAG)
 		{
-			e = GF_NON_COMPLIANT_BITSTREAM;
+			if (!e)
+				e = GF_NON_COMPLIANT_BITSTREAM;
 			break;
 		}
 		// Check that the `DecoderSpecificInfo` is `AudioSpecificConfig`.
@@ -7827,7 +7828,6 @@ GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 			gf_bs_write_int(mod, flag, 1);
 		}
 		gf_bs_del(orig);
-		orig = NULL;
 		gf_free(no_emulation_buf);
 
 		/*set anti-emulation*/
@@ -8385,7 +8385,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			}
 			gf_bs_read_ue_log(bs, "five_minus_max_num_merge_cand");
 		}
-		si->slice_qp_delta_start_bits = (s32) (gf_bs_get_position(bs) - 1) * 8 + gf_bs_get_bit_position(bs);
+		si->slice_qp_delta_start_bits = (u32) (gf_bs_get_position(bs) - 1) * 8 + gf_bs_get_bit_position(bs);
 		si->slice_qp_delta = gf_bs_read_se_log(bs, "slice_qp_delta");
 
 		if (pps->slice_chroma_qp_offsets_present_flag) {
@@ -8458,7 +8458,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	}
 
 	gf_bs_align(bs);
-	si->payload_start_offset = (s32)gf_bs_get_position(bs);
+	si->payload_start_offset = (u32)gf_bs_get_position(bs);
 	return 0;
 }
 
@@ -9090,7 +9090,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		for (i = 0; i < vps->max_layers; i++)
 			for (j = 0; j < num_scalability_types; j++) {
 				if (dim_bit_offset[j + 1] <= 31)
-					vps->dimension_id[i][j] = ((vps->layer_id_in_nuh[i] & ((1 << dim_bit_offset[j + 1]) - 1)) >> dim_bit_offset[j]);
+					vps->dimension_id[i][j] = ((vps->layer_id_in_nuh[i] & (((u32)1 << dim_bit_offset[j + 1]) - 1)) >> dim_bit_offset[j]);
 				else
 					return GF_FALSE;
 			}
@@ -9166,7 +9166,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 
 	u32 DepthLayerFlag[64];
 	for (i = 0; i < vps->max_layers; i++) {
-		u32 j, smIdx, lId = vps->layer_id_in_nuh[i];
+		u32 smIdx, lId = vps->layer_id_in_nuh[i];
 		u32 scalID[16];
 		for (smIdx=0, j=0; smIdx < 16; smIdx++) {
 			if (vps->scalability_mask[smIdx])
@@ -9178,7 +9178,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	}
 
 	for (i = 0; i < vps->max_layers; i++) {
-		u32 j, iNuhLId = vps->layer_id_in_nuh[i];
+		iNuhLId = vps->layer_id_in_nuh[i];
 		vps->num_ref_list_layers[iNuhLId] = 0;
 		for (j = 0; j < vps->num_direct_ref_layers[iNuhLId]; j++) {
 			jNuhLId = vps->id_direct_ref_layers[iNuhLId][j];
@@ -10138,8 +10138,8 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 			}
 			u32 OctantNumY = 1 << ( cm_octant_depth + cm_y_part_num_log2 );
 			u32 PartNumY = 1 << cm_y_part_num_log2;
-			u32 CMResLSBits = MAX( 0, (10 + BitDepthCmInputY - BitDepthCmOutputY - cm_res_quant_bits  - (cm_delta_flc_bits_minus1 + 1 ) ) );
-			if ((s32)CMResLSBits<0) CMResLSBits=0;
+			s32 CMResLSBits = 10 + BitDepthCmInputY - BitDepthCmOutputY - cm_res_quant_bits  - (cm_delta_flc_bits_minus1 + 1 );
+			if (CMResLSBits<0) CMResLSBits=0;
 
 			hevc_color_map_octants(bs, cm_octant_depth, OctantNumY, PartNumY, CMResLSBits, 0, 0, 0, 0, 1 << cm_octant_depth);
 
@@ -10446,7 +10446,6 @@ GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 			gf_bs_write_int(mod, flag, 1);
 		}
 		gf_bs_del(orig);
-		orig = NULL;
 		gf_free(no_emulation_buf);
 
 		/*set anti-emulation*/
@@ -10694,7 +10693,8 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 		hdr->streams[0].fscod = fscod;
 		hdr->brcode = frmsizecod / 2;
 	}
-	if (ac3_mod >= 2 * sizeof(ac3_mod_to_total_chans) / sizeof(u32))
+
+	if (ac3_mod >= GF_ARRAY_LENGTH(ac3_mod_to_total_chans))
 		return GF_FALSE;
 
 	hdr->streams[0].channels = ac3_mod_to_total_chans[ac3_mod];
@@ -11476,14 +11476,12 @@ Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len)
 {
 	u8 tag[9];
 	GF_BitStream *bs = gf_bs_new(data, data_len, GF_BITSTREAM_READ);
-	gf_bs_read_data(bs, tag, 8);
-	tag[8]=0;
-
 	if (memcmp(data, "OpusHead", sizeof(char)*8)) {
 		gf_bs_del(bs);
 		return GF_FALSE;
 	}
 	/*Identification Header*/
+	gf_bs_read_data(bs, tag, 8);
 	ocfg->version = gf_bs_read_u8(bs); /*version*/
 	if (ocfg->version != 1) {
 		gf_bs_del(bs);
@@ -11922,7 +11920,7 @@ s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size, u64 *ch_layout)
 	u32 i;
 	s32 sync_pos=-1;
 
-	if (!ptr || !size || size<=3) return 0;
+	if (!ptr || size<=3) return 0;
 
 	for (i=0; i<size-3; i++) {
 		if ((ptr[i]==0xC0) && (ptr[i+1]== 0x01) && (ptr[i+2]==0xA5)) {
@@ -12891,7 +12889,7 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 			for (i=0; i<pps->num_slices_in_pic-1; i++) {
 				//TODO FIXME we assume single slice per tile
 				u32 SliceTopLeftTileIdx=0;
-				u32 RowHeightVal=0;
+				//u32 RowHeightVal=0;
 
 
 				u32 slice_width_in_tiles_minus1=0;
@@ -12906,7 +12904,7 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 					slice_height_in_tiles_minus1 = gf_bs_read_ue_log_idx(bs, "pps_slice_height_in_tiles_minus1", i);
 				}
 
-				if (!slice_width_in_tiles_minus1 && !slice_height_in_tiles_minus1 && (RowHeightVal > 1 )
+				if (!slice_width_in_tiles_minus1 && !slice_height_in_tiles_minus1 /* && (RowHeightVal > 1 ) */
 				) {
 					u32 j, num_exp_slices_in_tile = gf_bs_read_ue_log_idx(bs, "pps_num_exp_slices_in_tile", i);
 					for (j=0; j<num_exp_slices_in_tile; j++) {
@@ -14111,7 +14109,6 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 			gf_bs_write_int(mod, flag, 1);
 		}
 		gf_bs_del(orig);
-		orig = NULL;
 		gf_free(no_emulation_buf);
 
 		/*set anti-emulation*/
@@ -14238,7 +14235,7 @@ GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **d
 {
 	GF_BitStream *bs;
 	u8 level=0, interlace=0;
-	u8 profile=12;
+	u8 profile;
 	u8 *sqhdr = (u8 *) memchr(seq_hdr+1, 0x0F, seq_hdr_len);
 	if (sqhdr) {
 		u32 skip = (u32) (sqhdr - seq_hdr);
@@ -15160,7 +15157,7 @@ static Bool gf_ac4_bed_render_info(GF_BitStream *bs)
 
 static Bool gf_ac4_oamd_common_data(GF_BitStream *bs)
 {
-	u32 add_data_bytes, bits_used = 0;
+	u32 add_data_bytes, bits_used;
 	u64 pos;
 
 	if (gf_bs_read_bool_log(bs, "b_default_screen_size_ratio") == 0) {
@@ -15193,12 +15190,12 @@ static Bool gf_ac4_substream_info_ajoc(GF_BitStream *bs,
 									   u32 frame_rate_factor,
 									   u8 b_substreams_present)
 {
-	u32 i, n_fullband_dmx_signals, n_fullband_upmix_signals;
+	u32 i, n_fullband_upmix_signals;
 
 	substream->b_lfe = gf_bs_read_bool_log(bs, "b_lfe");
 	substream->b_static_dmx = gf_bs_read_bool_log(bs, "b_static_dmx");
 	if (substream->b_static_dmx) {
-		n_fullband_dmx_signals = 5;
+		//n_fullband_dmx_signals = 5;
 
 		if (default_presentation_flag) {
 			*channel_count += 5;
@@ -15206,7 +15203,7 @@ static Bool gf_ac4_substream_info_ajoc(GF_BitStream *bs,
 	} else {
 		// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.10 n_dmx_objects_minus1 = n_fullband_dmx_signals_minus1
 		substream->n_dmx_objects_minus1 = gf_bs_read_int_log(bs, 4, "n_fullband_dmx_signals_minus1");
-		n_fullband_dmx_signals = substream->n_dmx_objects_minus1 + 1;
+		u32 n_fullband_dmx_signals = substream->n_dmx_objects_minus1 + 1;
 
 		gf_ac4_bed_dyn_obj_assignment(bs, substream, n_fullband_dmx_signals, GF_FALSE);
 
@@ -15514,7 +15511,7 @@ static Bool gf_ac4_presentation_substream_info(GF_BitStream *bs)
 	gf_bs_read_bool_log(bs, "b_pres_ndot");
 	substream_index = gf_bs_read_int_log(bs, 2, "substream_index");
 	if (substream_index == 3) {
-		substream_index += gf_ac4_variable_bits(bs, 2);
+		/*substream_index += */gf_ac4_variable_bits(bs, 2);
 	}
 	return GF_TRUE;
 }

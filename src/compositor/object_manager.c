@@ -273,21 +273,22 @@ static Bool gf_odm_should_auto_select(GF_ObjectManager *odm)
 {
 	u32 i, count;
 	if (odm->type == GF_STREAM_SCENE) return GF_TRUE;
+	if (!odm->parentscene) return GF_FALSE;
 	//TODO- detect image media to start playback right away
 	//if (odm->type == GF_STREAM_VISUAL) return GF_TRUE;
 
-	if (odm->parentscene && !odm->parentscene->is_dynamic_scene) {
+	if (!odm->parentscene->is_dynamic_scene) {
 		return GF_FALSE;
 	}
 
-	if (odm->parentscene && odm->parentscene->root_od->addon) {
+	if (odm->parentscene->root_od->addon) {
 		if (odm->parentscene->root_od->addon->addon_type == GF_ADDON_TYPE_MAIN)
 			return GF_FALSE;
 	}
 
 	count = gf_list_count(odm->parentscene->resources);
 	for (i=0; i<count; i++) {
-		GF_ObjectManager *an_odm = (struct _od_manager *)gf_list_get(odm->parentscene->resources, i);
+		GF_ObjectManager *an_odm = (GF_ObjectManager *)gf_list_get(odm->parentscene->resources, i);
 		if (an_odm==odm) continue;
 		if (an_odm->type != odm->type) continue;
 		//same type - if the first one has been automatically activated, do not activate this one
@@ -536,8 +537,6 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 	        && (odm->ID==GF_MEDIA_EXTERNAL_ID)
 	        && (odm->flags & GF_ODM_REMOTE_OD)
 	   ) {
-		GF_Event evt;
-
 		if (odm->addon) {
 			Bool role_set = GF_FALSE;
 
@@ -563,12 +562,6 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 			if (odm->addon->addon_type == GF_ADDON_TYPE_ADDITIONAL) {
 				gf_scene_select_object(odm->parentscene, odm);
 			}
-			return;
-		}
-
-		if (!odm->parentscene) {
-			evt.type = GF_EVENT_STREAMLIST;
-			gf_sc_send_event(odm->parentscene->compositor, &evt);
 			return;
 		}
 	} else if (odm->parentscene) {
@@ -1604,7 +1597,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			gf_clock_set_time(odm->ck, clock_reference, timescale);
 			if (odm->parentscene) odm->parentscene->root_od->media_start_time = 0;
 		}
-		else if (has_pck && odm->owns_clock && !odm->ck->clock_init) {
+		else if (has_pck && odm->owns_clock) {
 			gf_clock_set_time(odm->ck, pck_time, gf_filter_pid_get_timescale(pid) );
 
 			if (gf_filter_pid_first_packet_is_blocking_ref(pid)) {
@@ -1628,7 +1621,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (scene->nb_buffering) {
 		GF_ObjectManager *an_odm;
 		u32 i=0;
-		while ((an_odm = (struct _od_manager *)gf_list_enum(scene->resources,&i))) {
+		while ((an_odm = (GF_ObjectManager *)gf_list_enum(scene->resources,&i))) {
 			if (odm==an_odm) continue;
 			if (!an_odm->pid) continue;
 
@@ -1697,7 +1690,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 
 				count = gf_list_count(in_scene->resources);
 				for (i=0; i<count; i++) {
-					GF_ObjectManager *an_odm = (struct _od_manager *)gf_list_get(in_scene->resources, i);
+					GF_ObjectManager *an_odm = (GF_ObjectManager *)gf_list_get(in_scene->resources, i);
 					if (an_odm->ck != odm->ck) continue;
 					an_odm->prev_clock_at_discontinuity_plus_one = 1 + clock_time;
 				}
@@ -1937,7 +1930,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 	if (odm->subscene && !odm->pid && odm->addon && !gf_list_count(odm->subscene->resources)) {
 		u32 i;
 		for (i=0; i<gf_list_count(odm->parentscene->resources); i++) {
-			GF_ObjectManager *par_odm = (struct _od_manager *)gf_list_get(odm->parentscene->resources, i);
+			GF_ObjectManager *par_odm = (GF_ObjectManager *)gf_list_get(odm->parentscene->resources, i);
 			if (!par_odm->pid) continue;
 			pid = gf_filter_pid_first_pid_for_source(par_odm->pid, odm->addon->root_od->scene_ns->source_filter);
 			if (!pid) continue;
@@ -2114,7 +2107,7 @@ void gf_odm_check_clock_mediatime(GF_ObjectManager *odm)
 		scene->root_od->media_current_time = 0;
 
 	for (i=0; i<gf_list_count(scene->resources); i++) {
-		GF_ObjectManager *anodm = (struct _od_manager *)gf_list_get(scene->resources, i);
+		GF_ObjectManager *anodm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
 		anodm->media_current_time = 0;
 	}
 }

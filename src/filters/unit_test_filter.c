@@ -257,7 +257,7 @@ static void ut_source_pck_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPac
 
 }
 
-static GF_Err ut_source_ifce_get_plane(struct _gf_filter_frame_interface *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+static GF_Err ut_source_ifce_get_plane(GF_FilterFrameInterface *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
 	PIDCtx *pctx = (PIDCtx *)frame->user_data;
 	memset(pctx->ifce_data, 0, 10);
@@ -387,16 +387,17 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 
 		if (pidctx->nb_packets==stack->max_pck) {
 			if (pidctx->sha_ctx) {
+				GF_PropertyValue phash;
 				u8 digest[GF_SHA1_DIGEST_SIZE];
 				gf_sha1_finish(pidctx->sha_ctx, digest);
 				pidctx->sha_ctx = NULL;
-				p.type = GF_PROP_DATA;
-				p.value.data.size = GF_SHA1_DIGEST_SIZE;
-				p.value.data.ptr = (u8 *) digest;
+				phash.type = GF_PROP_DATA;
+				phash.value.data.size = GF_SHA1_DIGEST_SIZE;
+				phash.value.data.ptr = (u8 *) digest;
 				//with this we test both:
 				//- SHA of send data is correct at the receiver side
 				//- property update on a PID
-				gf_filter_pid_set_property(pidctx->dst_pid, GF_4CC('s','h','a','1'), &p);
+				gf_filter_pid_set_property(pidctx->dst_pid, GF_4CC('s','h','a','1'), &phash);
 			}
 		}
 		//just for coverage: check keeping a reference to the packet
@@ -681,7 +682,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		if (p.value.longsint != -1000000) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing longsint value\n"));
 		}
-		sprintf(szFmt, LLU, val);
+		sprintf(szFmt, LLD, val);
 		p = gf_props_parse_value(GF_PROP_LUINT, "prop", szFmt, NULL, 0);
 		if (p.value.longuint != val) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing longuint value\n"));
@@ -749,7 +750,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing pcmfmt value\n"));
 		}
 
-		sprintf(szFmt, "%d@%p", (u32) sizeof(stack), stack);
+		sprintf(szFmt, "%u@%p", (u32) sizeof(stack), stack);
 		p = gf_props_parse_value(GF_PROP_DATA, "prop", szFmt, NULL, 0);
 		if ((p.value.data.size != (u32) sizeof(stack)) || memcmp(p.value.data.ptr, (char *) stack, sizeof(stack))) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing data value\n"));

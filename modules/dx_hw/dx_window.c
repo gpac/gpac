@@ -661,7 +661,6 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 {
 	u32 flags;
-	Bool use_fs_wnd = GF_TRUE;
 #ifndef _WIN32_WCE
 	RECT rc;
 #endif
@@ -718,7 +717,6 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 		} else {
 			styles = WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_OVERLAPPEDWINDOW;
 		}
-		use_fs_wnd = GF_FALSE;
 #ifdef UNICODE
 		ctx->os_hwnd = CreateWindow(L"GPAC DirectDraw Output", L"GPAC DirectDraw Output", styles, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #else
@@ -754,28 +752,12 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 		if (ctx->windowless) SetWindowless(vout, ctx->os_hwnd);
 	}
 
-	if (use_fs_wnd) {
 #ifdef _WIN32_WCE
-		ctx->fs_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC DirectDraw FS Output"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+	//fullscreen window on wince
+	ctx->fs_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC DirectDraw FS Output"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #else
-#ifdef UNICODE
-		ctx->fs_hwnd = CreateWindow(L"GPAC DirectDraw Output", L"GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
-#else
-		ctx->fs_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+	ctx->fs_hwnd = ctx->os_hwnd;
 #endif
-#endif
-		if (!ctx->fs_hwnd) {
-			return GF_FALSE;
-		}
-		ShowWindow(ctx->fs_hwnd, SW_HIDE);
-#ifdef _WIN64
-		SetWindowLongPtr(ctx->fs_hwnd, GWLP_USERDATA, (LONG_PTR) vout);
-#else
-		SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) vout);
-#endif
-	} else {
-		ctx->fs_hwnd = ctx->os_hwnd;
-	}
 
 	/*if visible set focus*/
 	if (!ctx->switch_res) SetFocus(ctx->os_hwnd);
@@ -819,12 +801,12 @@ u32 DD_WindowThread(void *par)
 				char *str_src = ctx->caption;
 				wchar_t *wcaption;
 				size_t len;
-				size_t len_res;
+				u32 len_res;
 				len = ((strlen(str_src)/2)*2 + 2) * sizeof(wchar_t);
 				wcaption = (wchar_t *)gf_malloc(len);
 				if (!wcaption) continue;
 				len_res = gf_utf8_mbstowcs(wcaption, len+1, &str_src);
-				if (len_res != -1) {
+				if (len_res != (u32) -1) {
 					SetWindowTextW(ctx->os_hwnd, wcaption);
 				}
 				gf_free(wcaption);

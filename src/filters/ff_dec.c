@@ -152,7 +152,7 @@ static void ffdec_finalize(GF_Filter *filter)
 	if (ctx->sws_ctx) sws_freeContext(ctx->sws_ctx);
 
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);
@@ -167,7 +167,7 @@ static void ffdec_finalize(GF_Filter *filter)
 	return;
 }
 
-static void ffdec_check_pix_fmt_change(struct _gf_ffdec_ctx *ctx, u32 pix_fmt)
+static void ffdec_check_pix_fmt_change(GF_FFDecodeCtx *ctx, u32 pix_fmt)
 {
 	if (ctx->pixel_fmt != pix_fmt) {
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pix_fmt));
@@ -262,7 +262,7 @@ static void ffdec_copy_props(GF_FFDecodeCtx *ctx, GF_FilterPacket *from_packet)
 
 
 
-static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
+static GF_Err ffdec_process_video(GF_Filter *filter, GF_FFDecodeCtx *ctx)
 {
 	AVPacket *pkt;
 	AVFrame *frame;
@@ -426,7 +426,7 @@ restart:
 			ctx->stride_uv = 0;
 			ctx->sar.num = ctx->sar.den = 0;
 			while (gf_list_count(ctx->src_packets)) {
-				GF_FilterPacket *ref_pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
+				GF_FilterPacket *ref_pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_packets);
 				gf_filter_pck_unref(ref_pck);
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure pending and all frames flushed, reconfiguring\n", gf_filter_pid_get_name(ctx->in_pid) ));
@@ -476,7 +476,7 @@ restart:
 	count = gf_list_count(ctx->src_packets);
 	for (i=0; i<count; i++) {
 		u64 cts;
-		pck_src = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
+		pck_src = (GF_FilterPacket *)gf_list_get(ctx->src_packets, i);
 		cts = gf_filter_pck_get_cts(pck_src);
 		if (cts == frame->pts)
 			break;
@@ -627,7 +627,7 @@ restart:
 }
 
 
-static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
+static GF_Err ffdec_process_audio(GF_Filter *filter, GF_FFDecodeCtx *ctx)
 {
 	s32 gotpic;
 #if (LIBAVCODEC_VERSION_MAJOR < 59)
@@ -854,7 +854,7 @@ dispatch_next:
 	//and use the first entry in src packets to match in order to copy the properties
 	//a nicer approach would be to count delay frames (number of frames used to initialize)
 	//and backmerge properties from the last packet in to the last-nb_init_frames
-	src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, 0);
+	src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_packets, 0);
 
 	if (src_pck) {
 		pck_timescale = gf_filter_pck_get_timescale(src_pck);
@@ -932,7 +932,7 @@ static void ffsub_packet_destructor(GF_Filter *filter, GF_FilterPid *PID, GF_Fil
 
 }
 
-static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
+static GF_Err ffdec_process_subtitle(GF_Filter *filter, GF_FFDecodeCtx *ctx)
 {
 	AVPacket *pkt;
 	AVSubtitle subs;
@@ -1491,7 +1491,7 @@ static Bool ffdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	//play request, detach all pending source packets and trigger a reconfig to start from a clean state
 	else if (evt->base.type==GF_FEVT_STOP) {
 		while (gf_list_count(ctx->src_packets)) {
-			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
+			GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_packets);
 			gf_filter_pck_unref(pck);
 			//for video, this will reset the decoder
 			ctx->flush_done = GF_TRUE;

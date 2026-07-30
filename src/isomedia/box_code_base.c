@@ -127,8 +127,7 @@ void chpl_box_del(GF_Box *s)
 /*this is using chpl format according to some NeroRecode samples*/
 GF_Err chpl_box_read(GF_Box *s,GF_BitStream *bs)
 {
-	GF_Err e;
-	GF_ChapterEntry *ce=NULL;
+	GF_ChapterEntry *ce;
 	u32 nb_chaps, len, i, count;
 	GF_ChapterListBox *ptr = (GF_ChapterListBox *)s;
 
@@ -139,22 +138,21 @@ GF_Err chpl_box_read(GF_Box *s,GF_BitStream *bs)
 
 	count = 0;
 	while (nb_chaps) {
+		ISOM_DECREASE_SIZE(ptr, 9)
 		GF_SAFEALLOC(ce, GF_ChapterEntry);
 		if (!ce) return GF_OUT_OF_MEM;
-		ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 9)
 		ce->start_time = gf_bs_read_u64(bs);
 		len = gf_bs_read_u8(bs);
 		if (ptr->size<len) {
-			e = GF_ISOM_INVALID_FILE;
-			goto exit;
+			gf_free(ce);
+			return GF_ISOM_INVALID_FILE;
 		}
+		gf_list_add(ptr->list, ce);
 		if (len) {
 			ce->name = (char *)gf_malloc(len+1);
-			if (!ce->name) {
-				e = GF_OUT_OF_MEM;
-				goto exit;
-			}
-			ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, len)
+			if (!ce->name) return GF_OUT_OF_MEM;
+
+			ISOM_DECREASE_SIZE(ptr, len)
 			gf_bs_read_data(bs, (u8 *)ce->name, len);
 			ce->name[len] = 0;
 		} else {
@@ -165,19 +163,13 @@ GF_Err chpl_box_read(GF_Box *s,GF_BitStream *bs)
 			GF_ChapterEntry *ace = (GF_ChapterEntry *) gf_list_get(ptr->list, i);
 			if (ace->start_time >= ce->start_time) {
 				gf_list_insert(ptr->list, ce, i);
-				ce = NULL;
 				break;
 			}
 		}
-		if (ce) gf_list_add(ptr->list, ce);
 		count++;
 		nb_chaps--;
-		ce = NULL;
 	}
 	return GF_OK;
-exit:
-	gf_free(ce);
-	return e;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -634,10 +626,6 @@ GF_Err url_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->size) {
 		u32 location_size = (u32) ptr->size;
-		if (location_size < 1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in svhd box\n", ptr->size));
-			return GF_ISOM_INVALID_FILE;
-		}
 		ptr->location = (char*)gf_malloc(location_size);
 		if (! ptr->location) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, (u8 *)ptr->location, location_size);
@@ -1777,10 +1765,6 @@ GF_Err hdlr_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->size) {
 		u32 name_size = (u32) ptr->size;
-		if (name_size < 1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in hdlr\n", ptr->size));
-			return GF_ISOM_INVALID_FILE;
-		}
 		ptr->nameUTF8 = (char*)gf_malloc(name_size);
 		if (!ptr->nameUTF8) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, (u8 *)ptr->nameUTF8, name_size);
@@ -3677,7 +3661,7 @@ GF_Err elng_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ExtendedLanguageBox *ptr = (GF_ExtendedLanguageBox *)s;
 
-	if (ptr && ptr->size > GF_UINT_MAX)
+	if (ptr->size > GF_UINT_MAX)
 		return GF_ISOM_INVALID_FILE;
 
 	if (ptr->size) {
@@ -4426,9 +4410,9 @@ GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 			if (ptr->esd) {
 
 				gf_list_del_item(ptr->child_boxes, (GF_Box *)ptr->esd);
-
-				for (u32 i=0; i<gf_list_count(ptr->child_boxes); i++) {
-					GF_Box *inner_box = (GF_Box *)gf_list_get(ptr->child_boxes, i);
+				u32 j;
+				for (j=0; j<gf_list_count(ptr->child_boxes); j++) {
+					GF_Box *inner_box = (GF_Box *)gf_list_get(ptr->child_boxes, j);
 					if (inner_box->child_boxes) {
 						gf_list_del_item(inner_box->child_boxes, (GF_Box *)ptr->esd);
 					}
@@ -6779,8 +6763,7 @@ GF_Err traf_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 	case GF_ISOM_BOX_TYPE_UUID:
 		if ( ((GF_UUIDBox *)a)->internal_4cc==GF_ISOM_BOX_UUID_PSEC) {
 			BOX_FIELD_ASSIGN(sample_encryption, GF_SampleEncryptionBox)
-			if (!is_rem)
-				ptr->sample_encryption->traf = ptr;
+			ptr->sample_encryption->traf = ptr;
 			return GF_OK;
 		} else if ( ((GF_UUIDBox *)a)->internal_4cc==GF_ISOM_BOX_UUID_TFXD) {
 			BOX_FIELD_ASSIGN(tfxd, GF_MSSTimeExtBox)
@@ -6793,8 +6776,7 @@ GF_Err traf_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		}
 	case GF_ISOM_BOX_TYPE_SENC:
 		BOX_FIELD_ASSIGN(sample_encryption, GF_SampleEncryptionBox)
-		if (!is_rem)
-			ptr->sample_encryption->traf = ptr;
+		ptr->sample_encryption->traf = ptr;
 		return GF_OK;
 	case GF_GPAC_BOX_TYPE_SREF:
 	case GF_ISOM_BOX_TYPE_CDRF:
@@ -7352,8 +7334,7 @@ GF_Err trak_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_MDIA:
 		BOX_FIELD_ASSIGN(Media, GF_MediaBox)
-		if (!is_rem)
-			((GF_MediaBox *)a)->mediaTrack = ptr;
+		((GF_MediaBox *)a)->mediaTrack = ptr;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_TRGR:
 		BOX_FIELD_ASSIGN(groups, GF_TrackGroupBox)
@@ -7408,11 +7389,11 @@ GF_Err trak_box_read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<gf_list_count(ptr->Media->information->sampleTable->child_boxes); i++) {
 		GF_Box *a = (GF_Box *)gf_list_get(ptr->Media->information->sampleTable->child_boxes, i);
 		if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
-			ptr->sample_encryption = (struct __sample_encryption_box *) a;
+			ptr->sample_encryption = (GF_SampleEncryptionBox *) a;
 			break;
 		}
 		else if (a->type == GF_ISOM_BOX_TYPE_SENC) {
-			ptr->sample_encryption = (struct __sample_encryption_box *)a;
+			ptr->sample_encryption = (GF_SampleEncryptionBox *)a;
 			break;
 		}
 	}
@@ -9799,7 +9780,6 @@ GF_Err leva_box_read(GF_Box *s, GF_BitStream *bs)
 	for (i = 0; i < ptr->level_count; i++) {
 		GF_LevelAssignment *level = &ptr->levels[i];
 		u8 tmp;
-		if (!level || ptr->size < 5) return GF_BAD_PARAM;
 		ISOM_DECREASE_SIZE(ptr, 5)
 
 		level->track_id = gf_bs_read_u32(bs);
@@ -12228,7 +12208,6 @@ GF_Err extr_box_size(GF_Box *s)
 GF_Box *fdsa_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_HintSample, GF_ISOM_BOX_TYPE_FDSA);
-	if (!tmp) return NULL;
 	tmp->packetTable = gf_list_new();
 	tmp->hint_subtype = GF_ISOM_BOX_TYPE_FDP_STSD;
 	return (GF_Box*)tmp;
@@ -14462,7 +14441,7 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 			tag_size-=2;
 			prop_type = gf_bs_read_u16(bs);
 			prop_size -= 6;
-			if (ptr->size < prop_size && data) {
+			if (ptr->size < prop_size) {
 				gf_free(data);
 			}
 			ISOM_DECREASE_SIZE_NO_ERR(ptr, prop_size)
@@ -14817,7 +14796,7 @@ GF_Err extl_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->size) {
 		u32 name_size = (u32) ptr->size;
-		if (name_size < 1 || name_size >= GF_UINT_MAX-1) {
+		if (name_size >= GF_UINT_MAX-1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in hdlr\n", ptr->size));
 			return GF_ISOM_INVALID_FILE;
 		}

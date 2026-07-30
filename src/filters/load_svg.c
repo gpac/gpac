@@ -127,8 +127,6 @@ static GF_Err svgin_process(GF_Filter *filter)
 	if (svgin->load_file) {
 		const GF_PropertyValue *p;
 		pck = gf_filter_pid_get_packet(svgin->in_pid);
-		const u8 *data;
-		u32 size;
 		if (!pck) return GF_OK;
 		data = gf_filter_pck_get_data(pck, &size);
 		if (svgin->fio) {

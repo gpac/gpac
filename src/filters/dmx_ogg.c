@@ -226,7 +226,7 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(0xFE) );
 
 	st_name = gf_stream_type_name(st->info.streamType);
-	sprintf(szName, "%c%d", st_name[0], id);
+	sprintf(szName, "%c%u", st_name[0], id);
 	gf_filter_pid_set_name(st->opid, szName);
 
 	//opus DSI is formatted as box (ffmpeg compat) we might want to change that to avoid the box header

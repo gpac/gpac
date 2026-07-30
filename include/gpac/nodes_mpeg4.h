@@ -248,7 +248,7 @@ typedef struct _tagAnchor
 	MFString parameter;	/*exposedField*/
 	MFURL url;	/*exposedField*/
 	SFBool activate;	/*eventIn*/
-	void (*on_activate)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_activate)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 } M_Anchor;
 
 
@@ -365,7 +365,7 @@ typedef struct _tagBackground
 {
 	BASE_NODE
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat groundAngle;	/*exposedField*/
 	MFColor groundColor;	/*exposedField*/
 	MFURL backUrl;	/*exposedField*/
@@ -384,7 +384,7 @@ typedef struct _tagBackground2D
 {
 	BASE_NODE
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFColor backColor;	/*exposedField*/
 	MFURL url;	/*exposedField*/
 	SFBool isBound;	/*eventOut*/
@@ -441,7 +441,7 @@ typedef struct _tagColorInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFColor keyValue;	/*exposedField*/
 	SFColor value_changed;	/*eventOut*/
@@ -479,9 +479,9 @@ typedef struct _tagConditional
 {
 	BASE_NODE
 	SFBool activate;	/*eventIn*/
-	void (*on_activate)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_activate)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool reverseActivate;	/*eventIn*/
-	void (*on_reverseActivate)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_reverseActivate)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFCommandBuffer buffer;	/*exposedField*/
 	SFBool isActive;	/*eventOut*/
 } M_Conditional;
@@ -515,7 +515,7 @@ typedef struct _tagCoordinateInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec3f keyValue;	/*exposedField*/
 	MFVec3f value_changed;	/*eventOut*/
@@ -526,7 +526,7 @@ typedef struct _tagCoordinateInterpolator2D
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec2f keyValue;	/*exposedField*/
 	MFVec2f value_changed;	/*eventOut*/
@@ -597,7 +597,7 @@ typedef struct _tagElevationGrid
 {
 	BASE_NODE
 	MFFloat set_height;	/*eventIn*/
-	void (*on_set_height)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_height)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *normal;	/*exposedField*/
 	GF_Node *texCoord;	/*exposedField*/
@@ -630,13 +630,13 @@ typedef struct _tagExtrusion
 {
 	BASE_NODE
 	MFVec2f set_crossSection;	/*eventIn*/
-	void (*on_set_crossSection)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_crossSection)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFRotation set_orientation;	/*eventIn*/
-	void (*on_set_orientation)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_orientation)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFVec2f set_scale;	/*eventIn*/
-	void (*on_set_scale)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_scale)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFVec3f set_spine;	/*eventIn*/
-	void (*on_set_spine)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_spine)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool beginCap;	/*field*/
 	SFBool ccw;	/*field*/
 	SFBool convex;	/*field*/
@@ -799,7 +799,7 @@ typedef struct _tagFog
 	SFString fogType;	/*exposedField*/
 	SFFloat visibilityRange;	/*exposedField*/
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool isBound;	/*eventOut*/
 } M_Fog;
 
@@ -850,13 +850,13 @@ typedef struct _tagIndexedFaceSet
 {
 	BASE_NODE
 	MFInt32 set_colorIndex;	/*eventIn*/
-	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_colorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_coordIndex;	/*eventIn*/
-	void (*on_set_coordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_coordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_normalIndex;	/*eventIn*/
-	void (*on_set_normalIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_normalIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_texCoordIndex;	/*eventIn*/
-	void (*on_set_texCoordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_texCoordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	GF_Node *normal;	/*exposedField*/
@@ -878,11 +878,11 @@ typedef struct _tagIndexedFaceSet2D
 {
 	BASE_NODE
 	MFInt32 set_colorIndex;	/*eventIn*/
-	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_colorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_coordIndex;	/*eventIn*/
-	void (*on_set_coordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_coordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_texCoordIndex;	/*eventIn*/
-	void (*on_set_texCoordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_texCoordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	GF_Node *texCoord;	/*exposedField*/
@@ -898,9 +898,9 @@ typedef struct _tagIndexedLineSet
 {
 	BASE_NODE
 	MFInt32 set_colorIndex;	/*eventIn*/
-	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_colorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_coordIndex;	/*eventIn*/
-	void (*on_set_coordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_coordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	MFInt32 colorIndex;	/*field*/
@@ -913,9 +913,9 @@ typedef struct _tagIndexedLineSet2D
 {
 	BASE_NODE
 	MFInt32 set_colorIndex;	/*eventIn*/
-	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_colorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_coordIndex;	/*eventIn*/
-	void (*on_set_coordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_coordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	MFInt32 colorIndex;	/*field*/
@@ -994,7 +994,7 @@ typedef struct _tagListeningPoint
 {
 	BASE_NODE
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool jump;	/*exposedField*/
 	SFRotation orientation;	/*exposedField*/
 	SFVec3f position;	/*exposedField*/
@@ -1045,7 +1045,7 @@ typedef struct _tagNavigationInfo
 {
 	BASE_NODE
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat avatarSize;	/*exposedField*/
 	SFBool headlight;	/*exposedField*/
 	SFFloat speed;	/*exposedField*/
@@ -1066,7 +1066,7 @@ typedef struct _tagNormalInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec3f keyValue;	/*exposedField*/
 	MFVec3f value_changed;	/*eventOut*/
@@ -1085,7 +1085,7 @@ typedef struct _tagOrientationInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFRotation keyValue;	/*exposedField*/
 	SFRotation value_changed;	/*eventOut*/
@@ -1162,7 +1162,7 @@ typedef struct _tagPositionInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec3f keyValue;	/*exposedField*/
 	SFVec3f value_changed;	/*eventOut*/
@@ -1173,7 +1173,7 @@ typedef struct _tagPositionInterpolator2D
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec2f keyValue;	/*exposedField*/
 	SFVec2f value_changed;	/*eventOut*/
@@ -1265,7 +1265,7 @@ typedef struct _tagScalarInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFFloat keyValue;	/*exposedField*/
 	SFFloat value_changed;	/*eventOut*/
@@ -1362,7 +1362,7 @@ typedef struct _tagTermCap
 {
 	BASE_NODE
 	SFTime evaluate;	/*eventIn*/
-	void (*on_evaluate)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_evaluate)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFInt32 capability;	/*exposedField*/
 	SFInt32 value;	/*eventOut*/
 } M_TermCap;
@@ -1451,37 +1451,37 @@ typedef struct _tagValuator
 {
 	BASE_NODE
 	SFBool inSFBool;	/*eventIn*/
-	void (*on_inSFBool)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inSFBool)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFColor inSFColor;	/*eventIn*/
-	void (*on_inSFColor)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inSFColor)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFColor inMFColor;	/*eventIn*/
-	void (*on_inMFColor)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inMFColor)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat inSFFloat;	/*eventIn*/
-	void (*on_inSFFloat)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inSFFloat)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat inMFFloat;	/*eventIn*/
-	void (*on_inMFFloat)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inMFFloat)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFInt32 inSFInt32;	/*eventIn*/
-	void (*on_inSFInt32)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inSFInt32)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 inMFInt32;	/*eventIn*/
-	void (*on_inMFInt32)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inMFInt32)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFRotation inSFRotation;	/*eventIn*/
-	void (*on_inSFRotation)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inSFRotation)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFRotation inMFRotation;	/*eventIn*/
-	void (*on_inMFRotation)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inMFRotation)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFString inSFString;	/*eventIn*/
-	void (*on_inSFString)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inSFString)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFString inMFString;	/*eventIn*/
-	void (*on_inMFString)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inMFString)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFTime inSFTime;	/*eventIn*/
-	void (*on_inSFTime)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inSFTime)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFVec2f inSFVec2f;	/*eventIn*/
-	void (*on_inSFVec2f)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inSFVec2f)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFVec2f inMFVec2f;	/*eventIn*/
-	void (*on_inMFVec2f)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inMFVec2f)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFVec3f inSFVec3f;	/*eventIn*/
-	void (*on_inSFVec3f)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inSFVec3f)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFVec3f inMFVec3f;	/*eventIn*/
-	void (*on_inMFVec3f)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_inMFVec3f)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool outSFBool;	/*eventOut*/
 	SFColor outSFColor;	/*eventOut*/
 	MFColor outMFColor;	/*eventOut*/
@@ -1514,7 +1514,7 @@ typedef struct _tagViewpoint
 {
 	BASE_NODE
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat fieldOfView;	/*exposedField*/
 	SFBool jump;	/*exposedField*/
 	SFRotation orientation;	/*exposedField*/
@@ -1960,7 +1960,7 @@ typedef struct _tagHierarchical3DMesh
 {
 	BASE_NODE
 	SFInt32 triangleBudget;	/*eventIn*/
-	void (*on_triangleBudget)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_triangleBudget)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat level;	/*exposedField*/
 	MFURL url;	/*field*/
 	SFBool doneLoading;	/*eventOut*/
@@ -2038,7 +2038,7 @@ typedef struct _tagServerCommand
 {
 	BASE_NODE
 	SFBool trigger;	/*eventIn*/
-	void (*on_trigger)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_trigger)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool enable;	/*exposedField*/
 	MFURL url;	/*exposedField*/
 	SFString command;	/*exposedField*/
@@ -2123,7 +2123,7 @@ typedef struct _tagCoordinateInterpolator4D
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec4f keyValue;	/*exposedField*/
 	MFVec4f value_changed;	/*eventOut*/
@@ -2232,13 +2232,13 @@ typedef struct _tagMeshGrid
 {
 	BASE_NODE
 	MFInt32 set_colorIndex;	/*eventIn*/
-	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_colorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_coordIndex;	/*eventIn*/
-	void (*on_set_coordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_coordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_normalIndex;	/*eventIn*/
-	void (*on_set_normalIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_normalIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_texCoordIndex;	/*eventIn*/
-	void (*on_set_texCoordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_texCoordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	SFInt32 displayLevel;	/*exposedField*/
@@ -2276,7 +2276,7 @@ typedef struct _tagNurbsCurve
 {
 	BASE_NODE
 	MFInt32 set_colorIndex;	/*eventIn*/
-	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_colorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	MFVec4f controlPoint;	/*exposedField*/
 	SFInt32 tessellation;	/*exposedField*/
@@ -2291,7 +2291,7 @@ typedef struct _tagNurbsCurve2D
 {
 	BASE_NODE
 	MFInt32 set_colorIndex;	/*eventIn*/
-	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_colorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	MFVec3f controlPoint;	/*exposedField*/
 	SFInt32 tessellation;	/*exposedField*/
@@ -2306,9 +2306,9 @@ typedef struct _tagNurbsSurface
 {
 	BASE_NODE
 	MFInt32 set_colorIndex;	/*eventIn*/
-	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_colorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_texColorIndex;	/*eventIn*/
-	void (*on_set_texColorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_texColorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	MFVec4f controlPoint;	/*exposedField*/
 	GF_Node *texCoord;	/*exposedField*/
@@ -2412,7 +2412,7 @@ typedef struct _tagPositionAnimator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFVec2f fromTo;	/*exposedField*/
 	MFFloat key;	/*exposedField*/
 	MFRotation keyOrientation;	/*exposedField*/
@@ -2432,7 +2432,7 @@ typedef struct _tagPositionAnimator2D
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFVec2f fromTo;	/*exposedField*/
 	MFFloat key;	/*exposedField*/
 	SFInt32 keyOrientation;	/*exposedField*/
@@ -2452,7 +2452,7 @@ typedef struct _tagPositionInterpolator4D
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec4f keyValue;	/*exposedField*/
 	SFVec4f value_changed;	/*eventOut*/
@@ -2598,7 +2598,7 @@ typedef struct _tagScalarAnimator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFVec2f fromTo;	/*exposedField*/
 	MFFloat key;	/*exposedField*/
 	SFInt32 keyType;	/*exposedField*/
@@ -2634,19 +2634,19 @@ typedef struct _tagSubdivisionSurface
 	BASE_NODE
 	GF_ChildNodeItem *sectors;	/*exposedField*/
 	MFInt32 set_colorIndex;	/*eventIn*/
-	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_colorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_coordIndex;	/*eventIn*/
-	void (*on_set_coordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_coordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_cornerVertexIndex;	/*eventIn*/
-	void (*on_set_cornerVertexIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_cornerVertexIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_creaseEdgeIndex;	/*eventIn*/
-	void (*on_set_creaseEdgeIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_creaseEdgeIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_creaseVertexIndex;	/*eventIn*/
-	void (*on_set_creaseVertexIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_creaseVertexIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_dartVertexIndex;	/*eventIn*/
-	void (*on_set_dartVertexIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_dartVertexIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_texCoordIndex;	/*eventIn*/
-	void (*on_set_texCoordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_texCoordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	GF_Node *texCoord;	/*exposedField*/
@@ -2811,7 +2811,7 @@ typedef struct _tagViewport
 {
 	BASE_NODE
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFVec2f position;	/*exposedField*/
 	SFVec2f size;	/*exposedField*/
 	SFFloat orientation;	/*exposedField*/
@@ -3060,15 +3060,15 @@ typedef struct _tagMusicScore
 {
 	BASE_NODE
 	SFBool executeCommand;	/*eventIn*/
-	void (*on_executeCommand)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_executeCommand)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFString gotoLabel;	/*eventIn*/
-	void (*on_gotoLabel)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_gotoLabel)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFInt32 gotoMeasure;	/*eventIn*/
-	void (*on_gotoMeasure)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_gotoMeasure)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFTime highlightTimePosition;	/*eventIn*/
-	void (*on_highlightTimePosition)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_highlightTimePosition)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFVec3f mousePosition;	/*eventIn*/
-	void (*on_mousePosition)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_mousePosition)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFString argumentsOnExecute;	/*exposedField*/
 	SFString commandOnExecute;	/*exposedField*/
 	SFInt32 firstVisibleMeasure;	/*exposedField*/
@@ -3196,7 +3196,7 @@ typedef struct _tagEnvironmentTest
 {
 	BASE_NODE
 	SFBool evaluate;	/*eventIn*/
-	void (*on_evaluate)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_evaluate)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool enabled;	/*exposedField*/
 	SFInt32 parameter;	/*exposedField*/
 	SFString compareValue;	/*exposedField*/
@@ -3212,7 +3212,7 @@ typedef struct _tagKeyNavigator
 {
 	BASE_NODE
 	SFBool setFocus;	/*eventIn*/
-	void (*on_setFocus)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_setFocus)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *sensor;	/*exposedField*/
 	GF_Node *left;	/*exposedField*/
 	GF_Node *right;	/*exposedField*/
@@ -3237,9 +3237,9 @@ typedef struct _tagStorage
 {
 	BASE_NODE
 	SFBool forceSave;	/*eventIn*/
-	void (*on_forceSave)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_forceSave)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool forceRestore;	/*eventIn*/
-	void (*on_forceRestore)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_forceRestore)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool _auto;	/*exposedField*/
 	SFInt32 expireAfter;	/*field*/
 	SFString name;	/*field*/

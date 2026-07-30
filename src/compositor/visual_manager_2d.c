@@ -470,11 +470,9 @@ static u32 register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx
 		if ((*first_opaque==NULL) && needs_redraw) *first_opaque = ctx;
 	}
 
-#ifndef GPAC_DISABLE_3D
 	if (ctx->flags & CTX_HYBOGL_NO_CLEAR) {
 		return 2;
 	}
-#endif
 
 	for (i=0; i<ra->count; i++) {
 		if (needs_redraw) {
@@ -511,6 +509,7 @@ static u32 register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx
 	/*not found, add rect*/
 	if (needs_redraw) {
 		ra_add(ra, rc);
+		if (!ra->list) return 0;
 #ifdef TRACK_OPAQUE_REGIONS
 		ra->list[ra->count-1].opaque_node_index = is_transparent ? 0 : ctx_idx;
 #endif
@@ -593,9 +592,8 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	/*if the aspect ratio has changed redraw everything*/
 	redraw_all = tr_state->invalidate_all;
 
-#ifndef GPAC_DISABLE_3D
 	if (visual->compositor->hybrid_opengl && !visual->offscreen) redraw_all_on_background_change = GF_FALSE;
-#endif
+
 	/*check for background changes for transparent nodes*/
 #ifndef GPAC_DISABLE_VRML
 	bck = (M_Background2D*)gf_list_get(visual->back_stack, 0);

@@ -391,7 +391,6 @@ void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *
 
 	}
 	gf_list_del(anim_values.values);
-	anim_values.values = NULL;
 }
 
 #if 0 //unused

@@ -773,13 +773,13 @@ static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *r
 	if (all_filters) {
 		while (gf_list_count(all_filters)) {
 			i=0;
-			GF_FilterRegister *f = (struct __gf_filter_register *)gf_list_pop_back(all_filters);
+			GF_FilterRegister *f = (GF_FilterRegister *)gf_list_pop_back(all_filters);
 			if (f->caps)
 				gf_free((void *)f->caps);
 
 			while (f->args) {
 				GF_FilterArgs *arg = (GF_FilterArgs *) &f->args[i];
-				if (!arg || !arg->arg_name) break;
+				if (!arg->arg_name) break;
 				i++;
 				gf_free((void *) arg->arg_default_val);
 				gf_free((void *) arg->min_max_enum);
@@ -795,7 +795,7 @@ static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *r
 	i=nb_skip_begin;
 	while (reg->args) {
 		GF_FilterArgs *arg = (GF_FilterArgs *) &reg->args[i];
-		if (!arg || !arg->arg_name) break;
+		if (!arg->arg_name) break;
 		i++;
 		gf_free((void *) arg->arg_default_val);
 		gf_free((void *) arg->min_max_enum);

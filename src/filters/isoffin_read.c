@@ -483,7 +483,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_isom_reset_data_offset(read->mov, NULL);
 	}
 
-	if (read->pid && prop->value.string) {
+	if (read->pid) {
 		const char *next_url = prop->value.string;
 		u64 sr, er;
 		u32 crc = gf_crc_32((u8*)next_url, (u32) strlen(next_url) );
@@ -1098,16 +1098,15 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				//new segment will be loaded, reset
 				gf_isom_reset_tables(read->mov, GF_TRUE);
 				gf_isom_reset_data_offset(read->mov, NULL);
-				read->refresh_fragmented = GF_TRUE;
 				read->mem_blob.size = 0;
 
 				read->bytes_removed = evt->play.hint_start_offset;
 
-				//send a seek request
+				read->refresh_fragmented = GF_TRUE;
 				read->is_partial_download = GF_TRUE;
 				read->wait_for_source = GF_TRUE;
-				read->refresh_fragmented = GF_TRUE;
 
+				//send a seek request
 				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, read->pid);
 				fevt.seek.start_offset = read->bytes_removed;
 				gf_filter_pid_send_event(read->pid, &fevt);
@@ -1220,7 +1219,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				isor_reset_reader(ach);
 				ach->playing = 1;
 				ach->sample_num = 0;
-				ach->start = gf_timestamp_rescale(ch->start, ch->timescale, ach->timescale);
+				//ach->start = gf_timestamp_rescale(ch->start, ch->timescale, ach->timescale);
 				ach->orig_start = ch->orig_start;
 				ach->start = (u64) (ach->orig_start * ach->timescale);
 				ach->eos_sent = 0;

@@ -92,7 +92,7 @@ void timesensor_update_time(GF_TimeNode *st)
 	if (!TS->isActive) {
 		if (currentTime < stack->start_time) return;
 		/*special case: if we're greater than both start and stop time don't activate*/
-		if (!TS->isActive && (TS->stopTime > stack->start_time) && (currentTime >= TS->stopTime)) {
+		if ((TS->stopTime > stack->start_time) && (currentTime >= TS->stopTime)) {
 			stack->time_handle.needs_unregister = GF_TRUE;
 			return;
 		}

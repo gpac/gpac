@@ -381,7 +381,6 @@ static GF_Err routedmx_setup_socket(GF_ROUTEDmx *routedmx, const char *log_name,
 		}
 	} else {
 		e = gf_sk_bind(sock, (char*) routedmx->ip_ifce, dst_port, dst_ip, dst_port, GF_SOCK_REUSE_PORT);
-		if (e) return e;
 		if (!e)
 			e = gf_sk_connect(sock, dst_ip, dst_port, NULL);
 		if (e) {
@@ -424,11 +423,13 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 		return NULL;
 	}
 	routedmx->blob_mx = gf_mx_new("ROUTEBlob");
+#ifndef GPAC_DISABLE_THREADS
 	if (!routedmx->blob_mx) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to allocate ROUTE blob mutex\n", log_name));
 		gf_route_dmx_del(routedmx);
 		return NULL;
 	}
+#endif
 
 	if (!sock_buffer_size) sock_buffer_size = GF_ROUTE_SOCK_SIZE;
 	routedmx->unz_buffer_size = sock_buffer_size;
@@ -1105,7 +1106,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 	u32 fdt_idx=0;
 	while ( (fdt = (GF_XMLNode *)gf_list_enum(root->content, &fdt_idx)) ) {
 		GF_XMLAttribute *att;
-		if (!fdt || strcmp(fdt->name, "File"))
+		if (strcmp(fdt->name, "File"))
 			continue;
 
 		u32 toi=0;
@@ -1135,11 +1136,10 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		u32 prev_flute_type = 0;
 		u32 prev_flute_crc = 0;
 		Bool is_obj_update = GF_FALSE;
-		u32 i;
 		Bool is_manifest = GF_FALSE;
 		for (i=0; i<gf_list_count(s->objects); i++) {
 			obj = (GF_LCTObject *)gf_list_get(s->objects, i);
-			if ((obj->tsi==tsi) && obj->rlct_file && !strcmp(obj->rlct_file->filename, content_location)) {
+			if ((obj->tsi==tsi) && obj->rlct_file && content_location && !strcmp(obj->rlct_file->filename, content_location)) {
 				obj->toi = toi;
 				if (strstr(obj->rlct_file->filename, ".mpd") || strstr(obj->rlct_file->filename, ".m3u8"))
 					is_manifest = GF_TRUE;
@@ -1282,6 +1282,9 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 			}
 			obj->blob.mx = routedmx->blob_mx;
 		}
+		//only to avoid cppcheck warning
+		if (!obj) return GF_OUT_OF_MEM;
+
 		obj->toi = toi;
 		obj->tsi = tsi;
 		obj->blob.flags = 0;
@@ -1359,7 +1362,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 						obj->ll_maps_alloc = 0;
 						obj->ll_maps_count = 0;
 						if (query_sep) query_sep[0] = 0;
-						else if (frag_sep) frag_sep[0] = 0;
+						else frag_sep[0] = 0;
 						return GF_OUT_OF_MEM;
 					}
 				}
@@ -1468,7 +1471,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 	Bool has_stsid_session=GF_FALSE;
 	while ( (mcast_sess = (GF_XMLNode *)gf_list_enum(root->content, &s_idx)) ) {
 		Bool is_cfg_session=GF_FALSE;
-		if (!mcast_sess || !mcast_sess->name) continue;
+		if (!mcast_sess->name) continue;
 		if (!strcmp(mcast_sess->name, "MulticastGatewayConfigurationTransportSession")) {
 			is_cfg_session = GF_TRUE;
 		} else if (strcmp(mcast_sess->name, "MulticastSession"))
@@ -1485,7 +1488,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 		u32 trs_idx=0;
 		while ( (tr_sess = (GF_XMLNode *)gf_list_enum(mcast_sess->content, &trs_idx)) ) {
 			u32 j;
-			if (!tr_sess || !tr_sess->name) continue;
+			if (!tr_sess->name) continue;
 			if (!strcmp(tr_sess->name, "PresentationManifestLocator") && !is_cfg_session) {
 				const char *trp_obj_uri = _xml_get_attr(tr_sess, "transportObjectURI");
 				tr_sess = (GF_XMLNode *)gf_list_get(tr_sess->content, 0);
@@ -2026,7 +2029,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 					gf_mx_p(routedmx->blob_mx);
 					obj->payload = (u8 *)gf_realloc(obj->payload, obj->total_length+1);
 					if (!obj->payload) {
-						obj->alloc_size = obj->total_length = 0;
+						obj->total_length = 0;
 					}
 					obj->alloc_size = obj->total_length;
 					obj->blob.size = obj->total_length;
@@ -2099,7 +2102,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		if (obj->alloc_size < total_len) {
 			gf_mx_p(routedmx->blob_mx);
 			obj->payload = (u8 *)gf_realloc(obj->payload, total_len+1);
-			if (!obj->payload) obj->alloc_size = total_len = 0;
+			if (!obj->payload) total_len = 0;
 			obj->alloc_size = total_len;
 			obj->blob.size = total_len;
 			obj->blob.data = (u8 *)obj->payload;
@@ -2142,7 +2145,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		if (obj->alloc_size < total_len) {
 			gf_mx_p(routedmx->blob_mx);
 			obj->payload = (u8 *)gf_realloc(obj->payload, total_len+1);
-			if (!obj->payload) obj->alloc_size = total_len = 0;
+			if (!obj->payload) total_len = 0;
 			obj->alloc_size = total_len;
 			obj->blob.size = total_len;
 			obj->blob.data = (u8*) obj->payload;
@@ -2160,7 +2163,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		if (obj->alloc_size < total_len) {
 			gf_mx_p(routedmx->blob_mx);
 			obj->payload = (u8 *)gf_realloc(obj->payload, obj->total_length+1);
-			if (!obj->payload) obj->alloc_size = total_len = 0;
+			if (!obj->payload) total_len = 0;
 			obj->alloc_size = obj->total_length;
 			obj->blob.size = obj->total_length;
 			obj->blob.data = (u8 *)obj->payload;
@@ -2303,8 +2306,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			obj->nb_frags += start_frag - end_frag + 1;
 
 			obj->nb_bytes = 0;
-			u32 i;
-			for(i=0; i < obj->nb_frags; i++) {
+			for (i=0; i < obj->nb_frags; i++) {
 				obj->nb_bytes += obj->frags[i].size;
 			}
 		}
@@ -2998,12 +3000,12 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 			while (payload[i] && strchr("\r\n", payload[i]) == NULL) i++;
 
 			if (!strnicmp(payload, "Content-Type: ", 14)) {
-				u32 copy = MIN(i-14, 100);
+				u32 copy = MIN(i-14, 99);
 				memcpy(szContentType, payload+14, copy);
 				szContentType[copy]=0;
 			}
 			else if (!strnicmp(payload, "Content-Location: ", 18)) {
-				u32 copy = MIN(i-18, 1024);
+				u32 copy = MIN(i-18, 1023);
 				memcpy(szContentLocation, payload+18, copy);
 				szContentLocation[copy]=0;
 			} else {
@@ -3509,7 +3511,7 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 
 	e = gf_route_service_gather_object(routedmx, s, tsi, toi, start_offset, routedmx->buffer + pos, nb_read-pos, (u32) transfert_length, B, GF_FALSE, rlct, &gather_object, ESI, fdt_symbol_length);
 
-	start_offset += (nb_read ) * ESI;
+	//start_offset += (nb_read ) * ESI;
 
 	if (e==GF_EOS) {
 		gf_route_dmx_process_object(routedmx, s, gather_object);

@@ -41,13 +41,13 @@ typedef struct {
 GF_OPT_ENUM (SCTE35DecOpMode,
 	EVTE=0,     // outputs Event Tracks
 	M2TS_SEC,   // outputs m2ts entire splice_info_section
-	PASSTHRU,   // passthru
+	PASSTHRU   // passthru
 );
 
 GF_OPT_ENUM (SCTE35DecDataMode,
 	PROP=0, // scte35 data is carried as a property
 	RAW,    // packet data contains the scte35 payload (m2ts section)
-	BOX,    // packet data contains the emib/emeb boxes
+	BOX    // packet data contains the emib/emeb boxes
 );
 
 typedef struct {
@@ -147,7 +147,7 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	SCTE35DecCtx *ctx = (SCTE35DecCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		GF_FilterPid *out_pid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
+		GF_FilterPid *out_pid = (GF_FilterPid *)gf_filter_pid_get_udta(pid);
 		if (out_pid == ctx->opid)
 			ctx->opid = NULL;
 		if (out_pid)
@@ -727,7 +727,7 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const u8 *data, u32 size
 		return e;
 	}
 
-	if ((ctx->mode != PASSTHRU) || (ctx->mode == PASSTHRU && needs_idr)) {
+	if ((ctx->mode != PASSTHRU) || needs_idr) {
 		e = scte35dec_schedule(ctx, dts, emib);
 		if (e) return e;
 	} else {
@@ -779,9 +779,11 @@ static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 cts)
 	if (!evt) return GF_FALSE;
 	Bool is_splice = (evt->dts + evt->emib->presentation_time_delta == cts) ? GF_TRUE : GF_FALSE;
 	if (is_splice) {
-		Event *evt = (Event *)gf_list_pop_front(ctx->ordered_events);
-		gf_isom_box_del((GF_Box*)evt->emib);
-		gf_free(evt);
+		evt = (Event *)gf_list_pop_front(ctx->ordered_events);
+		if (evt) {
+			gf_isom_box_del((GF_Box*)evt->emib);
+			gf_free(evt);
+		}
 	}
 	return is_splice;
 }

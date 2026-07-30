@@ -2370,7 +2370,7 @@ u64 gf_timestamp_rescale(u64 value, u64 timescale, u64 new_timescale)
 		Double res = (Double) value;
 		res *= new_timescale;
 		res /= timescale;
-		return (res < (Double) GF_UINT64_MAX ? (u64)res : GF_UINT64_MAX);
+		return (res < (Double) GF_UINT64_MAX) ? (u64)res : GF_UINT64_MAX;
 	}
 	return int_part * new_timescale + frac_part;
 }
@@ -2885,12 +2885,12 @@ const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100])
 	ms = (u32) (dur);
 
 	if (h<=24) {
-		snprintf(szDur, 99, "%02d:%02d:%02d.%03d", (u32) h, m, s, ms);
+		snprintf(szDur, 99, "%02u:%02u:%02u.%03u", (u32) h, m, s, ms);
 	} else {
 		u32 d = (u32) (h / 24);
 		h = (u32) (h-24*d);
 		if (d<=365) {
-			snprintf(szDur, 99, "%d Days, %02d:%02d:%02d.%03d", d, (u32) h, m, s, ms);
+			snprintf(szDur, 99, "%u Days, %02u:%02u:%02u.%03u", d, (u32) h, m, s, ms);
 		} else {
 			u32 y=0;
 			while (d>365) {
@@ -2898,7 +2898,7 @@ const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100])
 				d-=365;
 				if (y%4) d--;
 			}
-			snprintf(szDur, 99, "%d Years %d Days, %02d:%02d:%02d.%03d", y, d, (u32) h, m, s, ms);
+			snprintf(szDur, 99, "%u Years %u Days, %02u:%02u:%02u.%03u", y, d, (u32) h, m, s, ms);
 		}
 	}
 	return szDur;

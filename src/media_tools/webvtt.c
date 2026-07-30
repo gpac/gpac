@@ -282,8 +282,10 @@ static GF_Err wvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)
 	if (cue->pre_text) {
 		GF_Box *b = boxstring_new_with_data(GF_ISOM_BOX_TYPE_VTTA, cue->pre_text, NULL);
 		e = gf_isom_box_size(b);
-		if (!e) e = gf_isom_box_write(b, bs);
+		if (!e)
+			e = gf_isom_box_write(b, bs);
 		gf_isom_box_del(b);
+		if (e) return e;
 	}
 
 	cuebox = (GF_VTTCueBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_VTCC_CUE);
@@ -299,7 +301,8 @@ static GF_Err wvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)
 	}
 	/* TODO: check if a time box should be written */
 	e = gf_isom_box_size((GF_Box *)cuebox);
-	if (!e) e = gf_isom_box_write((GF_Box *)cuebox, bs);
+	if (!e)
+		e = gf_isom_box_write((GF_Box *)cuebox, bs);
 
 	gf_isom_box_del((GF_Box *)cuebox);
 	return e;
@@ -785,16 +788,6 @@ static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *sam
 	return GF_OK;
 }
 
-#define REM_TRAIL_MARKS(__str, __sep) while (1) {	\
-		u32 _len = (u32) strlen(__str);		\
-		if (!_len) break;	\
-		_len--;				\
-		if (strchr(__sep, __str[_len])) { \
-			had_marks = GF_TRUE; \
-			__str[_len] = 0;	\
-		} else break;	\
-	}
-
 extern char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type, Bool *in_progress);
 
 GF_Err gf_webvtt_parse_timestamp(GF_WebVTTParser *parser, GF_WebVTTTimestamp *ts, const char *line)
@@ -958,7 +951,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 	char *prevLine = NULL;
 	char *header = NULL;
 	u32 header_len = 0;
-	Bool had_marks = GF_FALSE;
+	Bool had_marks;
 	u32 is_resume = ext_file ? 1 : 9;
 
 	if (!parser) return GF_BAD_PARAM;
@@ -982,8 +975,17 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 			break;
 		}
 		had_marks = GF_FALSE;
-		REM_TRAIL_MARKS(szLine, "\r\n")
 		len = (u32) strlen(szLine);
+		while (len) {
+			if (strchr("\r\n", szLine[len-1])) {
+				had_marks = GF_TRUE;
+				szLine[len-1] = 0;
+				len--;
+			} else {
+				break;
+			}
+		}
+
 		if (parser->is_srt && sOK && !strncmp(sOK, "WEBVTT", 6)) {
 			parser->is_srt = GF_FALSE;
 			parser->state = WEBVTT_PARSER_STATE_WAITING_SIGNATURE;
@@ -1408,7 +1410,6 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 		}
 		gf_webvtt_sample_del(prev_wsample);
 		gf_list_rem_last(parser->samples);
-		prev_wsample = NULL;
 	} else {
 		/* nothing to do */
 	}
@@ -1420,8 +1421,10 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 	return GF_OK;
 }
 
+GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample, Bool box_mode);
 static GF_Err gf_webvtt_parse_iso_sample(GF_WebVTTParser *parser, u32 timescale, GF_ISOSample *iso_sample, u32 duration, Bool merge, Bool box_mode)
 {
+	GF_Err e;
 	if (merge) {
 		u64             start;
 		u64             end;
@@ -1429,15 +1432,13 @@ static GF_Err gf_webvtt_parse_iso_sample(GF_WebVTTParser *parser, u32 timescale,
 		start = (iso_sample->DTS * 1000) / timescale;
 		end = (iso_sample->DTS + duration) * 1000 / timescale;
 		cues = gf_webvtt_parse_iso_cues(iso_sample, start, end);
-		gf_webvtt_merge_cues(parser, start, cues);
+		e = gf_webvtt_merge_cues(parser, start, cues);
 		gf_list_del(cues);
 	} else {
-		GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample, Bool box_mode);
-
-		gf_webvtt_dump_iso_sample((FILE *)parser->user, timescale, iso_sample, box_mode);
+		e = gf_webvtt_dump_iso_sample((FILE *)parser->user, timescale, iso_sample, box_mode);
 	}
 
-	return GF_OK;
+	return e;
 }
 #endif //GPAC_DISABLE_MEDIA_IMPORT
 
@@ -1518,7 +1519,7 @@ GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, Bool box_m
 
 GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample, Bool box_mode)
 {
-	GF_Err e = GF_OK;
+	GF_Err e;
 	GF_BitStream *bs;
 	GF_Box *box = NULL;
 

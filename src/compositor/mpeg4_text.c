@@ -278,8 +278,9 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		if (!str) continue;
 
 		if (use_pass) {
-			u32 j=0, len = (u32) strlen(str);
+			u32 len = (u32) strlen(str);
 			if (len>=100) len=99;
+			j=0;
 			while (j<len) {
 				if (str[j] == 0x1)
 					szBuf[j] = str[j];

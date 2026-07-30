@@ -482,7 +482,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			gf_odf_hevc_cfg_del(hevcc);
 			break;
 		}
-		break;
+
 		case GF_ISOM_SUBTYPE_VVC1:
 		case GF_ISOM_SUBTYPE_VVI1:
 		case GF_ISOM_SUBTYPE_VVS1:
@@ -502,7 +502,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			gf_odf_vvc_cfg_del(vvcc);
 			break;
 		}
-		break;
+
 		case GF_ISOM_SUBTYPE_3GP_QCELP:
 			required_rate = 8000;
 			hintType = GF_RTP_PAYT_QCELP;
@@ -926,27 +926,27 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	snprintf(tmp_buf, 100, "m=%s 0 RTP/%s %d", mediaName, tkHint->rtp_p->slMap.IV_length ? "SAVP" : "AVP", tkHint->rtp_p->PayloadType);
 	gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	if (tkHint->bandwidth) {
-		snprintf(tmp_buf, 100, "b=AS:%d", tkHint->bandwidth);
+		snprintf(tmp_buf, 100, "b=AS:%u", tkHint->bandwidth);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 	if (tkHint->nb_chan) {
-		snprintf(tmp_buf, 100, "a=rtpmap:%d %s/%d/%d", tkHint->rtp_p->PayloadType, payloadName, tkHint->rtp_p->sl_config.timestampResolution, tkHint->nb_chan);
+		snprintf(tmp_buf, 100, "a=rtpmap:%d %s/%u/%u", tkHint->rtp_p->PayloadType, payloadName, tkHint->rtp_p->sl_config.timestampResolution, tkHint->nb_chan);
 	} else {
-		snprintf(tmp_buf, 100, "a=rtpmap:%d %s/%d", tkHint->rtp_p->PayloadType, payloadName, tkHint->rtp_p->sl_config.timestampResolution);
+		snprintf(tmp_buf, 100, "a=rtpmap:%d %s/%u", tkHint->rtp_p->PayloadType, payloadName, tkHint->rtp_p->sl_config.timestampResolution);
 	}
 	gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	/*control for MPEG-4*/
 	if (AddSystemInfo) {
-		snprintf(tmp_buf, 100, "a=mpeg4-esid:%d", gf_isom_get_track_id(tkHint->file, tkHint->TrackNum));
+		snprintf(tmp_buf, 100, "a=mpeg4-esid:%u", gf_isom_get_track_id(tkHint->file, tkHint->TrackNum));
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 	/*control for QTSS/DSS*/
-	snprintf(tmp_buf, 100, "a=control:trackID=%d", gf_isom_get_track_id(tkHint->file, tkHint->HintTrack));
+	snprintf(tmp_buf, 100, "a=control:trackID=%u", gf_isom_get_track_id(tkHint->file, tkHint->HintTrack));
 	gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 
 	/*H263 extensions*/
 	if (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_H263) {
-		snprintf(tmp_buf, 100, "a=cliprect:0,0,%d,%d", Height, Width);
+		snprintf(tmp_buf, 100, "a=cliprect:0,0,%u,%u", Height, Width);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 	/*AMR*/
@@ -1003,7 +1003,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	}
 	/*EVRC/SMV in non header-free mode*/
 	else if ((tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_EVRC_SMV) && (tkHint->rtp_p->auh_size>1)) {
-		snprintf(tmp_buf, 100, "a=fmtp:%d maxptime=%d", tkHint->rtp_p->PayloadType, tkHint->rtp_p->auh_size*20);
+		snprintf(tmp_buf, 100, "a=fmtp:%d maxptime=%u", tkHint->rtp_p->PayloadType, tkHint->rtp_p->auh_size*20);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 	/*H264/AVC*/
@@ -1133,7 +1133,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 #endif
 	/*extensions for some mobile phones*/
 	if (Width && Height) {
-		snprintf(tmp_buf, 100, "a=framesize:%d %d-%d", tkHint->rtp_p->PayloadType, Width, Height);
+		snprintf(tmp_buf, 100, "a=framesize:%d %u-%u", tkHint->rtp_p->PayloadType, Width, Height);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 
@@ -1199,7 +1199,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 
 	tmp_buf[200] = 0;
 	if (bandwidth) {
-		snprintf(tmp_buf, 200, "b=AS:%d", bandwidth);
+		snprintf(tmp_buf, 200, "b=AS:%u", bandwidth);
 		gf_isom_sdp_add_line(file, tmp_buf);
 	}
     //xtended attribute for copyright

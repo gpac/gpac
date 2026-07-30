@@ -139,6 +139,30 @@ static GFINLINE s32 gf_trig_prenorm(GF_Point2D *vec)
 #define ANGLE_RAD_TO_DEG(_th) ((s32) ( (((fix_s64)_th)*5729582)/100000))
 #define ANGLE_DEG_TO_RAD(_th) ((s32) ( (((fix_s64)_th)*100000)/5729582))
 
+static GFINLINE Fixed gf_fixed_arshift(Fixed v, u32 s)
+{
+	if (!s) return v;
+	if (s >= (u32) (sizeof(Fixed) * 8))
+		return (v < 0) ? (Fixed) -1 : 0;
+
+	if (v >= 0)
+		return (Fixed) (((u32) v) >> s);
+
+	{
+		const u64 mag = (u64) (-(fix_s64) v);
+		const u64 bias = ((u64) 1 << s) - 1;
+		return (Fixed) (- (fix_s64) ((mag + bias) >> s));
+	}
+}
+
+static GFINLINE Fixed gf_fixed_lshift(Fixed v, u32 s)
+{
+	if (!s) return v;
+	if (s >= (u32) (sizeof(Fixed) * 8))
+		return 0;
+	return (Fixed) (((u32) v) << s);
+}
+
 static GFINLINE void gf_trig_pseudo_polarize(GF_Point2D *vec)
 {
 	Fixed         theta;
@@ -164,14 +188,14 @@ static GFINLINE void gf_trig_pseudo_polarize(GF_Point2D *vec)
 
 	if ( y < 0 ) {
 		/* Rotate positive */
-		yi     = y + ( x << 1 );
-		x      = x - ( y << 1 );
+		yi     = y + (Fixed) (((u32) x) << 1);
+		x      = x - (Fixed) (((u32) y) << 1);
 		y      = yi;
 		theta -= *arctanptr++;  /* Subtract angle */
 	} else {
 		/* Rotate negative */
-		yi     = y - ( x << 1 );
-		x      = x + ( y << 1 );
+		yi     = y - (Fixed) (((u32) x) << 1);
+		x      = x + (Fixed) (((u32) y) << 1);
 		y      = yi;
 		theta += *arctanptr++;  /* Add angle */
 	}
@@ -180,14 +204,14 @@ static GFINLINE void gf_trig_pseudo_polarize(GF_Point2D *vec)
 	do {
 		if ( y < 0 ) {
 			/* Rotate positive */
-			yi     = y + ( x >> i );
-			x      = x - ( y >> i );
+			yi     = y + gf_fixed_arshift(x, (u32) i);
+			x      = x - gf_fixed_arshift(y, (u32) i);
 			y      = yi;
 			theta -= *arctanptr++;
 		} else {
 			/* Rotate negative */
-			yi     = y - ( x >> i );
-			x      = x + ( y >> i );
+			yi     = y - gf_fixed_arshift(x, (u32) i);
+			x      = x + gf_fixed_arshift(y, (u32) i);
 			y      = yi;
 			theta += *arctanptr++;
 		}
@@ -502,7 +526,7 @@ static void gf_trig_pseudo_rotate(GF_Point2D*  vec, Fixed theta)
 }
 
 /* these macros return 0 for positive numbers, and -1 for negative ones */
-#define GF_SIGN_LONG( x )   ( (x) >> ( 32 - 1 ) )
+#define GF_SIGN_LONG( x )   ( ((x) < 0) ? -1 : 0 )
 #define GF_SIGN_INT( x )    ( (x) >> ( 32 - 1 ) )
 #define GF_SIGN_INT32( x )  ( (x) >> 31 )
 #define GF_SIGN_INT16( x )  ( (x) >> 15 )
@@ -522,14 +546,14 @@ static void gf_v2d_rotate(GF_Point2D *vec, Fixed angle)
 		v.y = gf_trig_downscale( v.y );
 
 		if ( shift > 0 ) {
-			s32 half = 1L << ( shift - 1 );
+			s32 half = (s32) (1u << ((u32) shift - 1));
 
-			vec->x = ( v.x + half + GF_SIGN_LONG( v.x ) ) >> shift;
-			vec->y = ( v.y + half + GF_SIGN_LONG( v.y ) ) >> shift;
+			vec->x = gf_fixed_arshift(v.x + half + GF_SIGN_LONG(v.x), (u32) shift);
+			vec->y = gf_fixed_arshift(v.y + half + GF_SIGN_LONG(v.y), (u32) shift);
 		} else {
 			shift  = -shift;
-			vec->x = v.x << shift;
-			vec->y = v.y << shift;
+			vec->x = gf_fixed_lshift(v.x, (u32) shift);
+			vec->y = gf_fixed_lshift(v.y, (u32) shift);
 		}
 	}
 }
@@ -819,6 +843,7 @@ void gf_mx2d_add_rotation(GF_Matrix2D *_this, Fixed cx, Fixed cy, Fixed angle)
 
 	gf_mx2d_add_translation(_this, -cx, -cy);
 
+	//cppcheck-suppress redundantAssignment
 	tmp.m[0] = gf_cos(angle);
 	tmp.m[4] = tmp.m[0];
 	tmp.m[3] = gf_sin(angle);
@@ -835,6 +860,7 @@ void gf_mx2d_add_scale(GF_Matrix2D *_this, Fixed scale_x, Fixed scale_y)
 	GF_Matrix2D tmp;
 	if (!_this || ((scale_x==FIX_ONE) && (scale_y==FIX_ONE)) ) return;
 	gf_mx2d_init(tmp);
+	//cppcheck-suppress redundantAssignment
 	tmp.m[0] = scale_x;
 	tmp.m[4] = scale_y;
 	gf_mx2d_add_matrix(_this, &tmp);
@@ -851,6 +877,7 @@ void gf_mx2d_add_scale_at(GF_Matrix2D *_this, Fixed scale_x, Fixed scale_y, Fixe
 	if (angle) {
 		gf_mx2d_add_rotation(_this, cx, cy, -angle);
 	}
+	//cppcheck-suppress redundantAssignment
 	tmp.m[0] = scale_x;
 	tmp.m[4] = scale_y;
 	gf_mx2d_add_matrix(_this, &tmp);

@@ -136,8 +136,8 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 					Fixed pN = p*N;
 					u32 k = FIX2INT(p*N);
 					if (k==N) k--;
-					vk = (struct __svg_number *)gf_list_get(table, k);
-					vk1 = (struct __svg_number *)gf_list_get(table, k+1);
+					vk = (SVG_Number *)gf_list_get(table, k);
+					vk1 = (SVG_Number *)gf_list_get(table, k+1);
 					p = 255 * ( vk->value + gf_mulfix( pN - INT2FIX(k), (vk1->value - vk->value)) );
 					ptr[0] = (u8) MIN(MAX(0, p), 255);
 					ptr += 4;
@@ -156,7 +156,7 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 						k++;
 					}
 					if (k) k--;
-					vk = (struct __svg_number *)gf_list_get(table, k);
+					vk = (SVG_Number *)gf_list_get(table, k);
 					p = 255 * vk->value;
 					ptr[0] = (u8) MIN(MAX(0, p), 255);
 					ptr += 4;

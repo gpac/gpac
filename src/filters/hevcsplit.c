@@ -472,9 +472,6 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, const u8 *in_sli
 	if (!ctx->bs_nal_out) ctx->bs_nal_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs_nal_out, ctx->output_no_epb, ctx->output_no_epb_alloc);
 
-
-	gf_assert(hevc->s_info.header_size_bits >= 0);
-	gf_assert(hevc->s_info.entry_point_start_bits >= 0);
 	header_end = (u64) hevc->s_info.header_size_bits;
 
 	num_entry_point_start = (u32) hevc->s_info.entry_point_start_bits;
@@ -724,7 +721,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	codecid = p ? p->value.uint : 0;
-	if (!codecid || (codecid != GF_CODECID_HEVC)) {
+	if (codecid != GF_CODECID_HEVC) {
 		return GF_NOT_SUPPORTED;
 	}
 

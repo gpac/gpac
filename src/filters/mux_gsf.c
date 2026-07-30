@@ -645,6 +645,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 
 		if ( gsfmx_is_prop_skip(ctx, prop_4cc, prop_name, sep_l) )
 			continue;
+
 		if (!prop_name)
 			prop_name = gf_4cc_to_str(prop_4cc);
 
@@ -658,7 +659,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG)) {
 			char dump[GF_PROP_DUMP_ARG_SIZE];
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFMux] Write pid %d %s property to %s\n", gst->idx, prop_name ? prop_name : gf_props_4cc_get_name(prop_4cc), gf_props_dump(prop_4cc, p, dump, GF_PROP_DUMP_DATA_NONE) ) );
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFMux] Write pid %d %s property to %s\n", gst->idx, prop_4cc ? gf_props_4cc_get_name(prop_4cc) : prop_name, gf_props_dump(prop_4cc, p, dump, GF_PROP_DUMP_DATA_NONE) ) );
 		}
 #endif
 	}

@@ -444,7 +444,7 @@ Bool SDP_IsDynamicPayload(GF_SDPMedia *media, char *payt)
 	char buf[10];
 	i=0;
 	while ((map = (GF_RTPMap*)gf_list_enum(media->RTPMaps, &i))) {
-		sprintf(buf, "%d", map->PayloadType);
+		sprintf(buf, "%u", map->PayloadType);
 		if (!strcmp(payt, buf)) return GF_TRUE;
 	}
 	return GF_FALSE;

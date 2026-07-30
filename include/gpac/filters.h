@@ -2749,7 +2749,7 @@ struct __gf_filter_register
 	\param session the filter session
 	\param freg the filter register to destroy
 	*/
-	void (*register_free)(GF_FilterSession *session, struct __gf_filter_register *freg);
+	void (*register_free)(GF_FilterSession *session, GF_FilterRegister *freg);
 	/*! user data of register loader, not inspected/modified by filter session*/
 	void *udta;
 

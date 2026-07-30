@@ -224,7 +224,8 @@ static void gf_smil_timing_get_first_interval(SMIL_Timing_RTI *rti)
 
 	/* this is the first time we check the interval */
 	gf_smil_timing_get_interval_end(rti, rti->current_interval);
-	if ((0) && rti->current_interval->end == -2) {
+#if 0
+	if (rti->current_interval->end == -2) {
 		/* TODO: check if the interval can be discarded (i.e. if end is specified with an invalid end value (return -2)),
 		   probably yes, but next time we call the evaluation of interval, we should call get_first_interval */
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Wrong Interval\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
@@ -232,7 +233,7 @@ static void gf_smil_timing_get_first_interval(SMIL_Timing_RTI *rti)
 		rti->current_interval->end = -1;
 		return;
 	}
-
+#endif
 	gf_smil_timing_compute_active_duration(rti, rti->current_interval);
 	gf_smil_timing_print_interval(rti, GF_TRUE, rti->current_interval);
 }
@@ -281,7 +282,7 @@ static Bool gf_smil_timing_get_next_interval(SMIL_Timing_RTI *rti, Bool current,
 static Bool gf_smil_timing_add_to_sg(GF_SceneGraph *sg, SMIL_Timing_RTI *rti)
 {
 	if (rti->current_interval->begin != -1) {
-		SMIL_Timing_RTI *cur_rti = NULL;
+		SMIL_Timing_RTI *cur_rti;
 		u32 i;
 
 		for (i = 0; i < gf_list_count(sg->smil_timed_elements); i++) {
@@ -339,7 +340,6 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 	e->timingp->repeatDur	= all_atts.repeatDur;
 	e->timingp->restart		= all_atts.restart;
 	timingp = e->timingp;
-	if (!timingp) return;
 
 	if (tag == TAG_SVG_audio || tag == TAG_SVG_video) {
 		/* if the dur attribute is not set, then it should be set to media
@@ -504,7 +504,7 @@ Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 	   because of the start/end/repeat of the previous notifications */
 	while (gf_list_count(sg->modified_smil_timed_elements)) {
 		/* first remove the modified smil timed element */
-		rti = (struct _smil_timing_rti *)gf_list_get(sg->modified_smil_timed_elements, 0);
+		rti = (SMIL_Timing_RTI *)gf_list_get(sg->modified_smil_timed_elements, 0);
 		gf_list_rem(sg->modified_smil_timed_elements, 0);
 
 		/* then remove it in the list of non modified (if it was there) */
@@ -797,8 +797,7 @@ force_end:
 				/*??? what is this ???*/
 				//ret = 0;
 			}
-		} else if ((rti->status == SMIL_STATUS_DONE) &&
-		           timingp->restart && (*timingp->restart == SMIL_RESTART_NEVER)) {
+		} else if (rti->status == SMIL_STATUS_DONE) {
 			/* the timed element is done and cannot restart, we don't need to evaluate it anymore */
 			GF_SceneGraph * sg = rti->timed_elt->sgprivate->scenegraph;
 			while (sg->parent_scene) sg = sg->parent_scene;
@@ -915,7 +914,8 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 	} else {
 		/* we don't have the right to modify the end of an element if it's not in unresolved state */
 		if (rti->current_interval->end == -1) gf_smil_timing_get_interval_end(rti, rti->current_interval);
-		if ((0) && rti->current_interval->end == -2) {
+#if 0
+		if (rti->current_interval->end == -2) {
 			/* TODO: check if the interval can be discarded if end = -2,
 			   probably no, because the interval is currently running*/
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Wrong Interval\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
@@ -923,7 +923,7 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 			rti->current_interval->end = -1;
 			return;
 		}
-
+#endif
 		gf_smil_timing_compute_active_duration(rti, rti->current_interval);
 		gf_smil_timing_print_interval(rti, GF_TRUE, rti->current_interval);
 	}
@@ -1046,7 +1046,7 @@ void gf_smil_timing_resume(GF_Node *node)
 
 void gf_smil_set_evaluation_callback(GF_Node *node, gf_sg_smil_evaluate smil_evaluate)
 {
-	if (node && ((SVGTimedAnimBaseElement *)node)->timingp  && ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
+	if (node && ((SVGTimedAnimBaseElement *)node)->timingp && ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
 		SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
 		rti->evaluate = smil_evaluate;
 	}

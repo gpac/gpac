@@ -530,7 +530,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 					/*store lights for alpha draw*/
 					dl = (DirectionalLightContext*)gf_malloc(sizeof(DirectionalLightContext));
 					if (!dl) break;
-					
+
 					dl->dlight = l->node;
 					memcpy(&dl->light_matrix, &tr_state->model_matrix, sizeof(GF_Matrix));
 					gf_list_add(tr_state->local_lights, dl);

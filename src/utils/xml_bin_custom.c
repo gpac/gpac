@@ -50,12 +50,12 @@ static void xml_scte35_parse_splice_time(GF_XMLNode *root, GF_BitStream *bs)
 
 			Bool time_specified_flag = GF_TRUE;
 			gf_bs_write_int(bs, time_specified_flag, 1);
-			if (time_specified_flag == GF_TRUE) {
+//			if (time_specified_flag == GF_TRUE) {
 				gf_bs_write_int(bs, 0xFF/*reserved*/, 6);
 				gf_bs_write_long_int(bs, ptsTime, 33);
-			} else {
-				gf_bs_write_int(bs, 0xFF/*reserved*/, 7);
-			}
+//			} else {
+//				gf_bs_write_int(bs, 0xFF/*reserved*/, 7);
+//			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown attribute \"%s\" in SpliceTime\n", att->name));
 		}
@@ -482,7 +482,7 @@ static void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 		} else if (!stricmp(att->name, "value")) {
 			emib->value = gf_strdup(att->value);
 		} else if (!stricmp(att->name, "presentation_time_delta")) {
-			if (sscanf(att->value, LLD, &emib->presentation_time_delta) != 1)
+			if (sscanf(att->value, LLU, &emib->presentation_time_delta) != 1)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Invalid value for presentation_time_delta=\"%s\"\n", att->value));
 		} else if (!stricmp(att->name, "event_duration")) {
 			if (sscanf(att->value, "%u", &emib->event_duration) != 1)
@@ -500,10 +500,10 @@ static void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 				continue;
 			}
 			emib->message_data_size = len;
-			for (u32 i=0; i<len; ++i, ptr+=2) {
-				int val=0;
+			for (u32 k=0; k<len; ++k, ptr+=2) {
+				u32 val=0;
 				sscanf(ptr, "%02x", &val);
-				emib->message_data[i] = (u8)val;
+				emib->message_data[k] = (u8)val;
 			}
 		} else if (!stricmp(att->name, "Size")) {
 		} else if (!stricmp(att->name, "Type")) {
@@ -596,7 +596,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 		j=0;
 		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
 			if (!stricmp(att->name, "bits")) {
-				XML_SCAN_INT("%d", nb_bits);
+				XML_SCAN_INT("%u", nb_bits);
 			} else if (!stricmp(att->name, "value")) {
 				XML_SCAN_INT(LLD, value);
 			} else if (!stricmp(att->name, "float")) {
@@ -673,7 +673,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 		if (use_file && !szFile)
 			szFile = base_media_file;
 
-		if (nb_bits && nb_bits > 64) {
+		if (nb_bits > 64) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Error encoding value on too many bits (max: 64, got: %u)\n", nb_bits));
 			e = GF_BAD_PARAM;
 			goto exit;

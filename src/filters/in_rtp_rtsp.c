@@ -310,7 +310,7 @@ GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, const char *sessi
 		) {
 			/*locate session by control - if no control was provided for the session, use default
 			session*/
-			if (!in_session) in_session = rtpin_rtsp_check(rtp, session_control ? session_control : "*");
+			in_session = rtpin_rtsp_check(rtp, session_control ? session_control : "*");
 			/*none found, try to create one*/
 			if (!in_session) in_session = rtpin_rtsp_new(rtp, session_control);
 			/*cannot add an RTSP session for this channel, check if multicast*/

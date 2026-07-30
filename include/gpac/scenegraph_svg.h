@@ -1051,7 +1051,7 @@ typedef enum
 \param normalized_simple_time SMIL normalized time
 \param state SMIL evaluation state
 */
-typedef void gf_sg_smil_evaluate(struct _smil_timing_rti *rti, Fixed normalized_simple_time, GF_SGSMILTimingEvalState state);
+typedef void gf_sg_smil_evaluate(SMIL_Timing_RTI *the_rti, Fixed normalized_simple_time, GF_SGSMILTimingEvalState state);
 /*! sets the SMIL evaluation callback for a node
 \param smil_time the target SMIL node
 \param smil_evaluate the callback function

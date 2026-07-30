@@ -265,13 +265,13 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 		}
 		/*do not use %hud here, broken on Win32 (sscanf returns 1)*/
 		else if (!stricmp(param_name, "server_port")) {
-			sscanf(param_val, "%d-%d", &v1, &v2);
+			sscanf(param_val, "%u-%u", &v1, &v2);
 			tmp->port_first = (u16) v1;
 			tmp->port_last = (u16) v2;
 		}
 		/*do not use %hud here, broken on Win32 (sscanf returns 1)*/
 		else if (!stricmp(param_name, "client_port")) {
-			sscanf(param_val, "%d-%d", &v1, &v2);
+			sscanf(param_val, "%u-%u", &v1, &v2);
 			tmp->client_port_first = (u16) v1;
 			tmp->client_port_last = (u16) v2;
 		}

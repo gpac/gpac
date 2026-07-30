@@ -617,7 +617,7 @@ enum
 enum
 {
 	//can be safely type-casted to sample entry
-	GF_ISOM_SAMPLE_ENTRY_GENERIC = 0,
+	GF_ISOM_SAMPLE_ENTRY_GENERIC = GF_4CC('b','a','s','e'),
 	//can be safely type-casted to Video sample entry
 	GF_ISOM_SAMPLE_ENTRY_VIDEO = GF_4CC('v','i','d','e'),
 	//can be safely type-casted to Audio sample entry
@@ -2543,7 +2543,7 @@ typedef struct
 
 typedef struct
 {
-	u16 item_ID;
+	u32 item_ID;
 	u16 construction_method;
 	u16 data_reference_index;
 	u64 base_offset;
@@ -2569,7 +2569,7 @@ typedef struct
 typedef	struct
 {
 	GF_ISOM_FULL_BOX
-	u16 item_ID;
+	u32 item_ID;
 } GF_PrimaryItemBox;
 
 typedef struct
@@ -2581,7 +2581,7 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	u16 item_ID;
+	u32 item_ID;
 	u16 item_protection_index;
 	u32 item_type;
 	/*zero-terminated strings*/
@@ -4858,7 +4858,6 @@ GF_GenericDTE *NewDTE(u8 type);
 void DelDTE(GF_GenericDTE *dte);
 GF_Err ReadDTE(GF_GenericDTE *dte, GF_BitStream *bs);
 GF_Err WriteDTE(GF_GenericDTE *dte, GF_BitStream *bs);
-GF_Err OffsetDTE(GF_GenericDTE *dte, u32 offset, u32 HintSampleNumber);
 
 /*****************************************************
 		RTP Sample
@@ -5045,7 +5044,7 @@ GF_Box *gf_isom_clone_config_box(GF_Box *box);
 
 GF_Err gf_isom_box_dump(void *ptr, FILE * trace);
 GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, Bool subtree_root);
-GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace, u16 parent_internal_flags);
+void gf_isom_box_array_dump(GF_List *list, FILE * trace, u16 parent_internal_flags);
 
 void gf_isom_registry_disable(u32 boxCode, Bool disable);
 

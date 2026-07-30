@@ -602,6 +602,7 @@ GF_Path *gf_font_span_create_path(GF_TextSpan *span)
 	GF_Path *path = gf_path_new();
 
 	gf_mx2d_init(mat);
+	//cppcheck-suppress redundantAssignment
 	mat.m[0] = gf_mulfix(span->font_scale, span->x_scale);
 	mat.m[4] = gf_mulfix(span->font_scale, span->y_scale);
 	if (span->flags & GF_TEXT_SPAN_FLIP) gf_mx2d_add_scale(&mat, FIX_ONE, -FIX_ONE);
@@ -1445,6 +1446,7 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 		glyph_idx = 0;
 		dx = span->off_x;
 		dy = span->off_y;
+		Bool picked = GF_FALSE;
 		for (j=0; j<span->nb_glyphs; j++) {
 			GF_Rect rc;
 			if (!span->glyphs[j]) {
@@ -1470,11 +1472,14 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 			rc.height = INT2FIX(span->font->ascent + span->font->descent);
 
 			if (use_dom_events && !compositor->sel_buffer) {
-				if (svg_drawable_is_over(drawable, loc_x, loc_y, &asp, tr_state, &rc))
-					goto picked;
+				if (svg_drawable_is_over(drawable, loc_x, loc_y, &asp, tr_state, &rc)) {
+					picked = GF_TRUE;
+					break;
+				}
 			} else {
 				if ( (loc_x >= rc.x) && (loc_y <= rc.y) && (loc_x <= rc.x + rc.width) && (loc_y >= rc.y - rc.height) ) {
-					goto picked;
+					picked = GF_TRUE;
+					break;
 				}
 //				if (gf_path_point_over(span->glyphs[j]->path, loc_x, loc_y)) goto picked;
 			}
@@ -1485,10 +1490,12 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 				dy -= span->font_scale * span->glyphs[j]->vert_advance;
 			}
 		}
+		if (picked) break;
+		span = NULL;
 	}
-	return;
+	if (!span)
+		return;
 
-picked:
 	compositor->hit_local_point.x = x;
 	compositor->hit_local_point.y = y;
 	compositor->hit_local_point.z = 0;

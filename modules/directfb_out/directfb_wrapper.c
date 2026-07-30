@@ -180,6 +180,7 @@ static DFBEnumerationResult enum_input_device(DFBInputDeviceID device_id, DFBInp
 	DeviceInfo **devices = data;
 
 	DeviceInfo *device = malloc(sizeof(DeviceInfo) );
+	if (!device) { *devices = NULL; return 0; }
 
 	device->device_id = device_id;
 	device->desc = desc;
@@ -204,9 +205,9 @@ void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx, char *dfb_system)
 	DeviceInfo *devices = NULL;
 
 	//fake arguments and DirectFBInit()
-	{
-		int i, argc=2, argc_ro=2;
-		char **argv = malloc(argc*sizeof(char*));
+	int i, argc=2, argc_ro=2;
+	char **argv = malloc(argc*sizeof(char*));
+	if (argv) {
 		char *argv_ro[2];
 		//http://directfb.org/wiki/index.php/Configuring_DirectFB
 		argv_ro[0]=argv[0]=strdup("gpac");
@@ -238,7 +239,7 @@ void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx, char *dfb_system)
 
 	/* create a list of input devices */
 	ctx->dfb->EnumInputDevices(ctx->dfb, enum_input_device, &devices );
-	if (devices->desc.type & DIDTF_JOYSTICK) {
+	if (devices && (devices->desc.type & DIDTF_JOYSTICK)) {
 		// for mouse
 		DFBCHECK(ctx->dfb->GetInputDevice(ctx->dfb, devices->device_id, &(ctx->mouse)));
 	}

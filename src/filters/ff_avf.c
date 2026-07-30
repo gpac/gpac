@@ -709,7 +709,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 
 			//merge properties from source if any
 			if (gf_list_count(ctx->src_packets) && can_merge_props) {
-				GF_FilterPacket *src_pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->src_packets);
+				GF_FilterPacket *src_pck = (GF_FilterPacket *)gf_list_pop_front(ctx->src_packets);
 				if (src_pck) {
 					gf_filter_pck_merge_properties(src_pck, pck);
 					gf_filter_pck_unref(src_pck);
@@ -805,7 +805,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 
 			//merge properties from source if any
 			if (gf_list_count(ctx->src_packets) && can_merge_props) {
-				GF_FilterPacket *src_pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->src_packets);
+				GF_FilterPacket *src_pck = (GF_FilterPacket *)gf_list_pop_front(ctx->src_packets);
 				if (src_pck) {
 					gf_filter_pck_merge_properties(src_pck, pck);
 					gf_filter_pck_unref(src_pck);
@@ -1065,7 +1065,7 @@ static void ffavf_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->opids);
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);

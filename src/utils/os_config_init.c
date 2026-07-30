@@ -89,13 +89,13 @@ static Bool check_file_exists(const char *name, const char *path, char outPath[G
 	if (! gf_dir_exists(path)) return GF_FALSE;
 
 	if (!strcmp(name, TEST_MODULE)) {
-		Bool res = GF_FALSE;
 #if defined(GPAC_STATIC_MODULES) || defined(GPAC_MP4BOX_MINI)
-		res = GF_TRUE;
+
 #else
+		Bool res = GF_FALSE;
 		gf_enum_directory(path, GF_FALSE, mod_enum, &res, NULL);
-#endif
 		if (!res) return GF_FALSE;
+#endif
 		if (outPath != path) gf_strlcpy(outPath, path, GF_MAX_PATH);
 		return GF_TRUE;
 	}
@@ -333,7 +333,13 @@ typedef struct
 	const char *dli_sname;
 	void *dli_saddr;
 } _Dl_info;
+#ifdef __cplusplus
+extern "C" {
+#endif
 int dladdr(void *, _Dl_info *);
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
@@ -502,7 +508,7 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 		if ((path_type==GF_PATH_MODULES) && strstr(app_path, "/lib")) {
 			gf_strcat(app_path, "/gpac");
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
-			char *sep = strrchr(app_path, '/');
+			sep = strrchr(app_path, '/');
 			if (sep) sep[0]=0;
 		}
 
@@ -1031,7 +1037,7 @@ static Bool delete_tmp_files(void *cbck, char *item_name, char *item_path, GF_Fi
 static void check_default_cred_file(GF_Config *cfg, char szPath[GF_MAX_PATH])
 {
 #ifndef GPAC_CONFIG_EMSCRIPTEN
-	char key[16];
+	char key[16] = {0};
 	u64 v1, v2;
 	const char *opt = gf_cfg_get_key(cfg, "core", "cred");
 	if (opt) return;
@@ -1047,14 +1053,14 @@ static void check_default_cred_file(GF_Config *cfg, char szPath[GF_MAX_PATH])
 	v2 = gf_rand(); v2<<=32; v2 |= gf_rand();
 	v1 |= gf_sys_clock_high_res();
 #ifndef GPAC_64_BITS
-	v2 |= (u64) (u32) cfg;
-	v2 ^= (u64) (u32) szPath;
+	v2 |= (u64) cfg;
+	v2 ^= (u64) szPath;
 #else
 	v2 |= (u64) cfg;
 	v2 ^= (u64) szPath;
 #endif
-	* ( (u64*) &key[0] ) = v1;
-	* ( (u64*) &key[8] ) = v2;
+	memcpy(&key[0], &v1, sizeof(v1));
+	memcpy(&key[8], &v2, sizeof(v2));
 	FILE *crd = gf_fopen(szPath, "w");
 	if (!crd) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Failed to create credential key in %s, credentials will not be stored\n", szPath));

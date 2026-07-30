@@ -240,13 +240,9 @@ Bool gf_rtp_is_disc(GF_RTPChannel *ch);
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, "\r\n");	\
 	}	\
 
-#define RTSP_WRITE_INT(buf, buf_size, pos, d, sig)	{	\
+#define RTSP_WRITE_INT(buf, buf_size, pos, d)	{	\
 	char temp[50]; \
-	if (sig < 0) { \
-		sprintf(temp, "%d", d);		\
-	} else { \
-		sprintf(temp, "%u", d);		\
-	}	\
+	sprintf(temp, "%u", d);		\
 	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp); \
 	}
 

@@ -69,7 +69,7 @@ Bool scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 			if (root->subscene) {
 				u32 i, count = gf_list_count(root->subscene->resources);
 				for (i=0; i<count; i++) {
-					GF_ObjectManager *anodm = (struct _od_manager *)gf_list_get(root->subscene->resources, i);
+					GF_ObjectManager *anodm = (GF_ObjectManager *)gf_list_get(root->subscene->resources, i);
 					anodm->ck = NULL;
 					if (anodm->scene_ns==root->scene_ns)
 					 	anodm->scene_ns = NULL;
@@ -193,7 +193,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 			//if not external OD, look for ODM with same ID
 			if (mo->OD_ID != GF_MEDIA_EXTERNAL_ID) {
 				for (j=0; j<gf_list_count(scene->resources); j++) {
-					GF_ObjectManager *an_odm = (struct _od_manager *)gf_list_get(scene->resources, j);
+					GF_ObjectManager *an_odm = (GF_ObjectManager *)gf_list_get(scene->resources, j);
 					if (an_odm->ID == mo->OD_ID) {
 						mo->odm = an_odm;
 						break;
@@ -289,7 +289,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	otherwise we may have another modules declaring an object with ID 0 from
 	another thread, which will assert (only one object with a givne OD ID)*/
 	for (i=0; i<gf_list_count(scene->resources); i++) {
-		GF_ObjectManager *an_odm = (struct _od_manager *)gf_list_get(scene->resources, i);
+		GF_ObjectManager *an_odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
 
 		if (an_odm->ID == GF_MEDIA_EXTERNAL_ID) continue;
 
@@ -415,7 +415,7 @@ void gf_scene_ns_del(GF_SceneNamespace *sns, GF_Scene *root_scene)
 	}
 	if (sns->clocks) {
 		while (gf_list_count(sns->clocks)) {
-			GF_Clock *ck = (struct _object_clock *)gf_list_pop_back(sns->clocks);
+			GF_Clock *ck = (GF_Clock *)gf_list_pop_back(sns->clocks);
 			gf_clock_del(ck);
 		}
 		gf_list_del(sns->clocks);
@@ -439,7 +439,6 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, const ch
 	GF_Err e;
 	char *frag;
 	char *url_with_args = NULL;
-	Bool reloc_result=GF_FALSE;
 
     if (addon_parent_ns) {
 		parent_url = NULL;
@@ -491,7 +490,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, const ch
 		}
 	}
 
-	odm->scene_ns = gf_scene_ns_new(scene->compositor->root_scene, odm, serviceURL, (odm->addon || reloc_result) ? NULL : parent_url);
+	odm->scene_ns = gf_scene_ns_new(scene->compositor->root_scene, odm, serviceURL, odm->addon ? NULL : parent_url);
 
 	if (!odm->scene_ns) {
 		gf_scene_message(scene, serviceURL, "Cannot create scene service", GF_OUT_OF_MEM);

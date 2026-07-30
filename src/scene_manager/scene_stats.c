@@ -619,6 +619,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 static GF_Err gf_sm_stat_au(GF_List *commandList, GF_StatManager *st)
 {
 	u32 i, count;
+	if (!commandList || !st) return GF_BAD_PARAM;
 	count = gf_list_count(commandList);
 	for (i=0; i<count; i++) {
 		GF_Command *com = (GF_Command *)gf_list_get(commandList, i);

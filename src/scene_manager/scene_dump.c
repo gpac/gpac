@@ -424,7 +424,6 @@ static void scene_dump_utf_string(GF_SceneDumper *sdump, Bool escape_xml, char *
 	u16 *uniLine;
 	if (!str) return;
 	len = 1 + (u32) strlen(str);
-	if (!len) return;
 	uniLine = (u16*)gf_malloc(sizeof(u16) * len*4);
 	if (!uniLine) return;
 
@@ -2354,11 +2353,11 @@ static GF_Err gf_dump_vrml_route(GF_SceneDumper *sdump, GF_Route *r, u32 dump_ty
 			to_node_p = (char *) to_name;
 		} else {
 			id = gf_node_get_id(r->ToNode);
-			sprintf(toNodeBuf, "node_%d", id);
+			sprintf(toNodeBuf, "node_%u", id);
 		}
 	} else {
-		sprintf(fromNodeBuf, "N%d", id-1);
-		sprintf(toNodeBuf, "N%d", gf_node_get_id(r->ToNode) - 1);
+		sprintf(fromNodeBuf, "N%u", id-1);
+		sprintf(toNodeBuf, "N%u", gf_node_get_id(r->ToNode) - 1);
 	}
 	if (sdump->XMLDump) {
 		gf_fprintf(sdump->trace, "<ROUTE");
@@ -2564,7 +2563,7 @@ static GF_Err DumpSceneReplace(GF_SceneDumper *sdump, GF_Command *com)
 		if (!sdump->X3DDump) StartElement(sdump, "Scene");
 		if (!sdump->X3DDump && com->use_names) {
 			StartAttribute(sdump, "USENAMES");
-			gf_fprintf(sdump->trace, "%s", com->use_names ? "true" : "false");
+			gf_fprintf(sdump->trace, "%s", "true");
 			EndAttribute(sdump);
 		}
 		if (!sdump->X3DDump) EndElementHeader(sdump, GF_TRUE);
@@ -2618,11 +2617,11 @@ static GF_Err DumpProtoInsert(GF_SceneDumper *sdump, GF_Command *com)
 #ifndef GPAC_DISABLE_SVG
 static char *lsr_format_node_id(GF_Node *n, u32 NodeID, char *str)
 {
-	if (!n) sprintf(str, "N%d", NodeID-1);
+	if (!n) sprintf(str, "N%u", NodeID-1);
 	else {
 		const char *name = gf_node_get_name_and_id(n, &NodeID);
 		if (name) sprintf(str, "%s", name);
-		else sprintf(str, "N%d", NodeID - 1);
+		else sprintf(str, "N%u", NodeID - 1);
 	}
 	return str;
 }
@@ -3170,7 +3169,7 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 	}
 
 	if (n->sgprivate->tag==TAG_LSR_conditional) {
-		GF_DOMUpdates *up = svg->children ? (GF_DOMUpdates *)svg->children->node : NULL;
+		GF_DOMUpdates *up = (GF_DOMUpdates *)svg->children->node;
 		sdump->indent++;
 		if (up && (up->sgprivate->tag==TAG_DOMUpdates)) {
 			if (gf_list_count(up->updates)) {

@@ -32,32 +32,32 @@
 
 
 #define GF_LSR_READ_INT(_codec, _val, _nbBits, _str) {\
-	if (_nbBits/8 > gf_bs_available(lsr->bs)) {\
+	(_val) = gf_bs_read_int(_codec->bs, _nbBits);	\
+	if (gf_bs_is_overflow(_codec->bs)) {\
 		lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;\
 		(_val) = 0;\
-	} else {\
-		(_val) = gf_bs_read_int(_codec->bs, _nbBits);	\
+	} else { \
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", _str, _nbBits, _val)); \
 	}\
 }
 
 #define GF_LSR_READ_SINT(_codec, _val, _nbBits, _str) {\
-	if (_nbBits/8 > gf_bs_available(lsr->bs)) {\
+	(_val) = (s32) gf_bs_read_int(_codec->bs, _nbBits);	\
+	if (gf_bs_is_overflow(_codec->bs)) {\
 		lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;\
 		(_val) = 0;\
-	} else {\
-		(_val) = (s32) gf_bs_read_int(_codec->bs, _nbBits);	\
+	} else { \
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", _str, _nbBits, _val)); \
 	}\
 }
 
-#define GF_LSR_READ_BOOL(_codec, _val, _nbBits, _str) {\
-	if (_nbBits/8 > gf_bs_available(lsr->bs)) {\
+#define GF_LSR_READ_BOOL(_codec, _val, _str) {\
+	(_val) = gf_bs_read_bool(_codec->bs);	\
+	if (gf_bs_is_overflow(_codec->bs)) {\
 		lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;\
 		(_val) = GF_FALSE;\
-	} else {\
-(_val) = gf_bs_read_int(_codec->bs, _nbBits) ? GF_TRUE : GF_FALSE;	\
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", _str, _nbBits, _val)); \
+	} else { \
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t1\t\t%d\n", _str, _val)); \
 	}\
 }
 
@@ -146,7 +146,7 @@ GF_Err gf_laser_decoder_configure_stream(GF_LASeRCodec *codec, u16 ESID, u8 *dsi
 	}
 	info->cfg.colorComponentBits = gf_bs_read_int(bs, 4);
 	info->cfg.colorComponentBits += 1;
-	info->cfg.resolution = gf_bs_read_int(bs, 4);
+	info->cfg.resolution = (s32) gf_bs_read_int(bs, 4);
 	if (info->cfg.resolution>7) info->cfg.resolution -= 16;
 	info->cfg.coord_bits = gf_bs_read_int(bs, 5);
 	info->cfg.scale_bits_minus_coord_bits = gf_bs_read_int(bs, 4);
@@ -305,6 +305,10 @@ static void lsr_read_extension(GF_LASeRCodec *lsr, const char *name)
 	if (len) lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
 }
 
+#define CHECK_RESERVED(_val) \
+		if (_val) GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] Reserved bit not 0\n"));
+
+
 static void lsr_read_extend_class(GF_LASeRCodec *lsr, char **out_data, u32 *out_len, const char *name)
 {
 	u32 len, blen;
@@ -430,12 +434,13 @@ static void lsr_read_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *na
 	if (flag) {
 		u32 len = lsr_read_vluimsbf5(lsr, "len");
 		GF_LSR_READ_INT(lsr, flag, len, "reserved");
+		CHECK_RESERVED(flag)
 	}
 
 	n = gf_sg_find_node(lsr->sg, nID);
 	if (!n) {
 		char NodeID[1024];
-		sprintf(NodeID, "N%d", nID-1);
+		sprintf(NodeID, "N%u", nID-1);
 		gf_free(href->string);
 		href->string = gf_strdup(NodeID);
 		if (href->type!=0xFF && gf_list_find(lsr->deferred_hrefs, href)<0) {
@@ -459,6 +464,7 @@ static u32 lsr_read_codec_IDREF_command(GF_LASeRCodec *lsr, const char *name)
 	if (flag) {
 		u32 len = lsr_read_vluimsbf5(lsr, "len");
 		GF_LSR_READ_INT(lsr, flag, len, "reserved");
+		CHECK_RESERVED(flag)
 	}
 	return nID;
 }
@@ -701,6 +707,7 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 		if (val) {
 			u32 len = lsr_read_vluimsbf5(lsr, "len");
 			GF_LSR_READ_INT(lsr, val, len, "reserved");
+			CHECK_RESERVED(val)
 		}
 	}
 }
@@ -798,6 +805,7 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 	if (val) {
 		u32 len = lsr_read_vluimsbf5(lsr, "len");
 		GF_LSR_READ_INT(lsr, val, len, "reserved");
+		CHECK_RESERVED(val)
 	}
 
 	/*update all pending HREFs*/
@@ -896,8 +904,8 @@ static Fixed lsr_translate_coords(GF_LASeRCodec *lsr, u32 val, u32 nb_bits)
 		else
 			neg = (s32)val - (1 << nb_bits);
 		if (neg < -FIX_ONE / 2)
-			return 2 * gf_divfix(INT2FIX(neg/2), lsr->res_factor);
-		return gf_divfix(INT2FIX(neg), lsr->res_factor);
+			return 2 * gf_divfix((Fixed) (((s64) (neg / 2)) * FIX_ONE), lsr->res_factor);
+		return gf_divfix((Fixed) (((s64) neg) * FIX_ONE), lsr->res_factor);
 	} else {
 		if (val > FIX_ONE / 2)
 			return 2 * gf_divfix(INT2FIX(val/2), lsr->res_factor);
@@ -1437,7 +1445,7 @@ static void lsr_read_duration_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, SMIL_D
 	} else {
 		Bool sign;
 		u32 now;
-		GF_LSR_READ_BOOL(lsr, sign, 1, "sign");
+		GF_LSR_READ_BOOL(lsr, sign, "sign");
 		now = lsr_read_vluimsbf5(lsr, "value");
 		smil->clock_value = now;
 		smil->clock_value /= lsr->time_resolution;
@@ -1476,7 +1484,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 						switch (extID) {
 						case 0:
 							lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_syncMaster, GF_TRUE, GF_FALSE, &info);
-							GF_LSR_READ_BOOL(lsr, *(SVG_Boolean *)info.far_ptr, 1, "syncMaster");
+							GF_LSR_READ_BOOL(lsr, *(SVG_Boolean *)info.far_ptr, "syncMaster");
 							break;
 						case 1:
 							lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_focusHighlight, GF_TRUE, GF_FALSE, &info);
@@ -1488,7 +1496,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 							break;
 						case 3:
 							lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_fullscreen, GF_TRUE, GF_FALSE, &info);
-							GF_LSR_READ_BOOL(lsr, *(SVG_Boolean *)info.far_ptr, 1, "fullscreen");
+							GF_LSR_READ_BOOL(lsr, *(SVG_Boolean *)info.far_ptr, "fullscreen");
 							break;
 						case 4:
 							lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_requiredFonts, GF_TRUE, GF_FALSE, &info);
@@ -1646,6 +1654,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 			for (j=0; j<fcount; j++) {
 				u32 fval;
 				GF_LSR_READ_INT(lsr, fval, 6, "feature");
+				if (fval) continue;
 				if (lsr->last_error) return;
 			}
 		}
@@ -1740,6 +1749,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 		case TAG_XLINK_ATT_type:
 			/*TODO FIXME*/
 			GF_LSR_READ_INT(lsr, field_rare, 3, "xlink:type");
+			if (field_rare && lsr->last_error) return;
 			break;
 		case TAG_XLINK_ATT_role:
 			lsr_read_any_uri(lsr, (XMLRI *) info.far_ptr, "xlink:role");
@@ -1750,10 +1760,12 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 		case TAG_XLINK_ATT_actuate:
 			/*TODO FIXME*/
 			GF_LSR_READ_INT(lsr, field_rare, 2, "xlink:actuate");
+			if (field_rare && lsr->last_error) return;
 			break;
 		case TAG_XLINK_ATT_show:
 			/*TODO FIXME*/
 			GF_LSR_READ_INT(lsr, field_rare, 3, "xlink:show");
+			if (field_rare && lsr->last_error) return;
 			break;
 		case TAG_SVG_ATT_end:
 			lsr_read_smil_times(lsr, NULL, 0, (SMIL_Times*)info.far_ptr, "end", GF_FALSE);
@@ -1774,7 +1786,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 static void lsr_read_fill(GF_LASeRCodec *lsr, GF_Node *n)
 {
 	Bool has_fill;
-	GF_LSR_READ_BOOL(lsr, has_fill, 1, "fill");
+	GF_LSR_READ_BOOL(lsr, has_fill, "fill");
 	if (has_fill) {
 		GF_FieldInfo info;
 		lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_fill, GF_TRUE, GF_FALSE, &info);
@@ -1785,7 +1797,7 @@ static void lsr_read_fill(GF_LASeRCodec *lsr, GF_Node *n)
 static void lsr_read_stroke(GF_LASeRCodec *lsr, GF_Node *n)
 {
 	Bool has_stroke;
-	GF_LSR_READ_BOOL(lsr, has_stroke, 1, "has_stroke");
+	GF_LSR_READ_BOOL(lsr, has_stroke, "has_stroke");
 	if (has_stroke) {
 		GF_FieldInfo info;
 		lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_stroke, GF_TRUE, GF_FALSE, &info);
@@ -1795,7 +1807,7 @@ static void lsr_read_stroke(GF_LASeRCodec *lsr, GF_Node *n)
 static void lsr_read_href(GF_LASeRCodec *lsr, GF_Node *n)
 {
 	Bool has_href;
-	GF_LSR_READ_BOOL(lsr, has_href, 1, "has_href");
+	GF_LSR_READ_BOOL(lsr, has_href, "has_href");
 	if (has_href) {
 		GF_FieldInfo info;
 		lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_XLINK_ATT_href, GF_TRUE, GF_FALSE, &info);
@@ -1806,7 +1818,7 @@ static void lsr_read_href(GF_LASeRCodec *lsr, GF_Node *n)
 static void lsr_read_accumulate(GF_LASeRCodec *lsr, GF_Node *n)
 {
 	Bool v;
-	GF_LSR_READ_BOOL(lsr, v, 1, "has_accumulate");
+	GF_LSR_READ_BOOL(lsr, v, "has_accumulate");
 	if (v) {
 		GF_FieldInfo info;
 		lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_accumulate, GF_TRUE, GF_FALSE, &info);
@@ -1816,7 +1828,7 @@ static void lsr_read_accumulate(GF_LASeRCodec *lsr, GF_Node *n)
 static void lsr_read_additive(GF_LASeRCodec *lsr, GF_Node *n)
 {
 	Bool v;
-	GF_LSR_READ_BOOL(lsr, v, 1, "has_additive");
+	GF_LSR_READ_BOOL(lsr, v, "has_additive");
 	if (v) {
 		GF_FieldInfo info;
 		lsr->last_error = gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_additive, GF_TRUE, GF_FALSE, &info);
@@ -3493,7 +3505,7 @@ static void lsr_read_preserve_aspect_ratio(GF_LASeRCodec *lsr, GF_Node *n)
 	par = (SVG_PreserveAspectRatio *)info.far_ptr;
 
 	GF_LSR_READ_INT(lsr, flag, 1, "choice (meetOrSlice)");
-	GF_LSR_READ_BOOL(lsr, par->defer, 1, "choice (defer)");
+	GF_LSR_READ_BOOL(lsr, par->defer, "choice (defer)");
 	GF_LSR_READ_INT(lsr, flag, 4, "alignXandY");
 	switch (flag) {
 	case 1:
@@ -3560,7 +3572,7 @@ static GF_Node *lsr_read_a(GF_LASeRCodec *lsr)
 	lsr_read_fill(lsr, elt);
 	lsr_read_stroke(lsr, elt);
 	lsr_read_eRR(lsr, elt);
-	GF_LSR_READ_BOOL(lsr, flag, 1, "hasTarget");
+	GF_LSR_READ_BOOL(lsr, flag, "hasTarget");
 	if (flag) {
 		GF_FieldInfo info;
 		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_SVG_ATT_target, GF_TRUE, GF_FALSE, &info);
@@ -3634,7 +3646,7 @@ static GF_Node *lsr_read_animateMotion(GF_LASeRCodec *lsr, SVG_Element *parent)
 	lsr_read_anim_restart(lsr, elt);
 	lsr_read_anim_value(lsr, elt, TAG_SVG_ATT_to, "to");
 	lsr_read_float_list(lsr, elt, TAG_SVG_ATT_keyPoints, NULL, "keyPoints");
-	GF_LSR_READ_BOOL(lsr, flag, 1, "hasPath");
+	GF_LSR_READ_BOOL(lsr, flag, "hasPath");
 	if (flag) lsr_read_path_type(lsr, elt, TAG_SVG_ATT_path, NULL, "path");
 
 	lsr_read_rotate_type(lsr, elt);
@@ -3845,6 +3857,7 @@ static GF_Node *lsr_read_foreignObject(GF_LASeRCodec *lsr)
 		}
 	*/
 	GF_LSR_READ_INT(lsr, flag, 1, "opt_group");
+	if (flag) lsr->last_error = GF_NOT_SUPPORTED;
 	return elt;
 }
 
@@ -4346,7 +4359,7 @@ static GF_Node *lsr_read_text(GF_LASeRCodec *lsr, u32 same_type)
 		GF_LSR_READ_INT(lsr, flag, 1, "editable");
 		if (flag) {
 			lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_SVG_ATT_editable, GF_TRUE, GF_FALSE, &info);
-			*(SVG_Boolean*)info.far_ptr = flag ? GF_TRUE : GF_FALSE;
+			*(SVG_Boolean*)info.far_ptr = GF_TRUE;
 		}
 		lsr_read_float_list(lsr, elt, TAG_SVG_ATT_text_rotate, NULL, "rotate");
 		lsr_read_coord_list(lsr, elt, TAG_SVG_ATT_text_x, "x");
@@ -4448,10 +4461,10 @@ static GF_Node *lsr_read_video(GF_LASeRCodec *lsr, SVG_Element *parent)
 	lsr_read_clip_time(lsr, elt, TAG_SVG_ATT_clipBegin, "clipBegin");
 	lsr_read_clip_time(lsr, elt, TAG_SVG_ATT_clipEnd, "clipEnd");
 
-	GF_LSR_READ_BOOL(lsr, flag, 1, "hasFullscreen");
+	GF_LSR_READ_BOOL(lsr, flag, "hasFullscreen");
 	if (flag) {
 		lsr->last_error = gf_node_get_attribute_by_tag(elt, TAG_SVG_ATT_fullscreen, GF_TRUE, GF_FALSE, &info);
-		GF_LSR_READ_BOOL(lsr, *(SVG_Boolean *)info.far_ptr, 1, "fullscreen");
+		GF_LSR_READ_BOOL(lsr, *(SVG_Boolean *)info.far_ptr, "fullscreen");
 	}
 
 	lsr_read_sync_reference(lsr, elt);
@@ -5073,7 +5086,7 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 
 	switch (fieldType) {
 	case SVG_Boolean_datatype:
-		GF_LSR_READ_BOOL(lsr, *(SVG_Boolean*)val, 1, "val");
+		GF_LSR_READ_BOOL(lsr, *(SVG_Boolean*)val, "val");
 		break;
 	case SVG_Paint_datatype:
 		lsr_read_paint(lsr, (SVG_Paint*)val, "val");
@@ -5107,7 +5120,7 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 			GF_LSR_READ_INT(lsr, has_escape, 1, "escapeFlag");
 			if (has_escape) {
 				GF_LSR_READ_INT(lsr, escape_val, 2, "escapeEnum");
-				((SVG_Point_Angle*)val)->angle = 0;
+				((SVG_Point_Angle*)val)->angle = 90*escape_val;
 			}
 			else {
 				((SVG_Point_Angle*)val)->angle = lsr_read_fixed_16_8(lsr, "rotate");
@@ -5153,7 +5166,7 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 				GF_LSR_READ_INT(lsr, has_escape, 1, "escapeFlag");
 				if (has_escape) {
 					GF_LSR_READ_INT(lsr, escape_val, 2, "escapeEnum");
-					n->type = SVG_NUMBER_AUTO;//only lineIncrement
+					n->type = (escape_val==0) ? SVG_NUMBER_VALUE : SVG_NUMBER_AUTO;//only lineIncrement
 				} else {
 					n->type = SVG_NUMBER_VALUE;
 					n->value = lsr_read_fixed_16_8(lsr, "val");
@@ -5226,7 +5239,7 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 att_tag
 			is_escape = GF_FALSE;
 			GF_LSR_READ_INT(lsr, is_default, 1, "isDefault");
 			if (!is_default) {
-				GF_LSR_READ_BOOL(lsr, is_escape, 1, "isEscape");
+				GF_LSR_READ_BOOL(lsr, is_escape, "isEscape");
 				if (is_escape) {
 					GF_LSR_READ_INT(lsr, escape_val, 2, "escapeEnumVal");
 				} else {
@@ -5933,6 +5946,7 @@ static GF_Err lsr_read_save(GF_LASeRCodec *lsr, GF_List *com_list)
 		u32 flag;
 		lsr_read_vluimsbf5(lsr, "ref[[i]]");
 		GF_LSR_READ_INT(lsr, flag, 1, "reserved");
+		CHECK_RESERVED(flag)
 
 		lsr_get_attribute_name(lsr);
 		if (lsr->last_error) return lsr->last_error;
@@ -6164,7 +6178,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 	/*
 	 *	1 - laser unit header
 	 */
-	GF_LSR_READ_BOOL(lsr, reset_encoding_context, 1, "resetEncodingContext");
+	GF_LSR_READ_BOOL(lsr, reset_encoding_context, "resetEncodingContext");
 	GF_LSR_READ_INT(lsr, flag, 1, "opt_group");
 	if (flag) lsr_read_extension(lsr, "ext");
 

@@ -103,14 +103,14 @@ void ttmldec_update_size_info(GF_TTMLDec *ctx)
 	ctx->vp_w = w;
 	ctx->vp_h = h;
 
-	sprintf(szVB, "0 0 %d %d", w, h);
+	sprintf(szVB, "0 0 %u %u", w, h);
 	gf_node_get_attribute_by_tag(root, TAG_SVG_ATT_viewBox, GF_TRUE, GF_FALSE, &info);
 	gf_svg_parse_attribute(root, &info, szVB, 0);
 
 	/*apply*/
 	gf_sg_set_scene_size_info(ctx->scenegraph, w, h, GF_TRUE);
 
-	sprintf(szVB, "0 0 %d %d", w, h);
+	sprintf(szVB, "0 0 %u %u", w, h);
 	gf_node_get_attribute_by_tag(root, TAG_SVG_ATT_viewBox, GF_TRUE, GF_FALSE, &info);
 	gf_svg_parse_attribute(root, &info, szVB, 0);
 

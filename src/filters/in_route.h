@@ -76,7 +76,7 @@ GF_OPT_ENUM (ROUTEInRepairISO,
 	REPAIR_ISO_SIMPLE,
 	REPAIR_ISO_PARTIAL,
 	REPAIR_ISO_DEPS,
-	REPAIR_ISO_DEPX,
+	REPAIR_ISO_DEPX
 );
 
 typedef struct _route_repair_seg_info RepairSegmentInfo;

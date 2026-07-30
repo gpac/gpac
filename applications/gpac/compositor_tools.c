@@ -321,7 +321,7 @@ static void print_time(u64 time)
 	m = (u32) (time / 1000 / 60 - h*60);
 	s = (u32) (time / 1000 - h*3600 - m*60);
 	ms = (u32) (time - (h*3600 + m*60 + s) * 1000);
-	fprintf(stderr, "%02d:%02d:%02d.%03d", h, m, s, ms);
+	fprintf(stderr, "%02u:%02u:%02u.%03u", h, m, s, ms);
 }
 
 static u32 rti_update_time_ms = 200;
@@ -339,10 +339,10 @@ static void update_rti(const char *legend)
 	if (display_rti) {
 		char szMsg[1024];
 		if (rti.total_cpu_usage && (bench_mode<2) ) {
-			sprintf(szMsg, "FPS %02.02f CPU %2d (%02d) Mem %d kB",
+			sprintf(szMsg, "FPS %02.02f CPU %2u (%02u) Mem %u kB",
 			        gf_sc_get_fps(compositor, GF_FALSE), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024));
 		} else {
-			sprintf(szMsg, "FPS %02.02f CPU %02d Mem %d kB",
+			sprintf(szMsg, "FPS %02.02f CPU %02u Mem %u kB",
 			        gf_sc_get_fps(compositor, GF_FALSE), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 		}
 
@@ -356,7 +356,7 @@ static void update_rti(const char *legend)
 		}
 	}
 	if (rti_logs) {
-		fprintf(rti_logs, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t%s",
+		fprintf(rti_logs, "%u\t%u\t%u\t%u\t%u\t%s",
 		        gf_sys_clock(),
 		        gf_sc_get_time_in_ms(compositor),
 		        rti.total_cpu_usage,
@@ -392,9 +392,9 @@ static void set_window_caption()
 		if (pid) {
 			p = gf_filter_pid_get_info_str(pid, "info:track", &pe);
 			if (p) {
-				char szBuf[10];
-				sprintf(szBuf, "%02d", p->value.frac.num);
-				gf_dynstrcat(&caption, szBuf, " ");
+				char szTmp[10];
+				sprintf(szTmp, "%02d", p->value.frac.num);
+				gf_dynstrcat(&caption, szTmp, " ");
 			}
 			p = gf_filter_pid_get_info_str(pid, "info:artist", &pe);
 			if (p && p->value.string)
@@ -716,7 +716,7 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 			eos_seen = GF_FALSE;
 			if (playback_speed != FIX_ONE)
 				gf_sc_set_speed(compositor, playback_speed);
-		} else if (is_connected) {
+		} else {
 			fprintf(stderr, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
 			is_connected = GF_FALSE;
 			duration_ms = 0;
@@ -753,8 +753,8 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 #ifdef DESKTOP_GUI
 		if (forced_width && forced_height) {
 			GF_Event size;
-			u32 nw = forced_width ? forced_width : evt->size.width;
-			u32 nh = forced_height ? forced_height : evt->size.height;
+			u32 nw = forced_width;
+			u32 nh = forced_height;
 
 			if ((nw != evt->size.width) || (nh != evt->size.height)) {
 				size.type = GF_EVENT_SIZE;
@@ -868,7 +868,10 @@ static void on_rti_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *f
 	}
 }
 
-static void init_rti_logs(char *rti_file, Bool use_rtix)
+static char *rti_file=NULL;
+Bool use_rtix = GF_FALSE;
+
+static void init_rti_logs()
 {
 	if (rti_logs) gf_fclose(rti_logs);
 	rti_logs = gf_fopen(rti_file, "wt");
@@ -890,8 +893,6 @@ static void init_rti_logs(char *rti_file, Bool use_rtix)
 }
 
 
-static char *rti_file=NULL;
-Bool use_rtix = GF_FALSE;
 char *send_command = NULL;
 u32 initial_service_id = 0;
 Bool auto_exit = GF_FALSE;
@@ -922,7 +923,7 @@ Bool mp4c_parse_arg(char *arg, char *arg_val)
 #ifdef DESKTOP_GUI
 	else if (!stricmp(arg, "-size")) {
 		/*usage of %ud breaks sscanf on MSVC*/
-		if (arg_val && (sscanf(arg_val, "%dx%d", &forced_width, &forced_height) != 2)) {
+		if (arg_val && (sscanf(arg_val, "%ux%u", &forced_width, &forced_height) != 2)) {
 			forced_width = forced_height = 0;
 		}
 	}
@@ -988,7 +989,7 @@ void load_compositor(GF_Filter *filter)
 	const char *str;
 
 	char szArgs[20];
-	sprintf(szArgs, "%d", window_flags);
+	sprintf(szArgs, "%u", window_flags);
 	gf_opts_set_key("temp", "window-flags", szArgs);
 
 
@@ -1009,11 +1010,11 @@ void load_compositor(GF_Filter *filter)
 
 	if (compositor_mode!=LOAD_MP4C) return;
 
-	if (rti_file) init_rti_logs(rti_file, use_rtix);
+	if (rti_file) init_rti_logs();
 
 	GF_SystemRTInfo rti;
 	if (gf_sys_get_rti(0, &rti, 0) && (compositor_mode==LOAD_MP4C))
-		fprintf(stderr, "System info: %d MB RAM - %d cores\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores);
+		fprintf(stderr, "System info: %u MB RAM - %u cores\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores);
 
 	if (bench_mode) {
 		gf_opts_discard_changes();
@@ -1028,9 +1029,9 @@ void load_compositor(GF_Filter *filter)
 
 	if (forced_width && forced_height) {
 /*		char dim[50];
-		sprintf(dim, "%d", forced_width);
+		sprintf(dim, "%u", forced_width);
 		gf_opts_set_key("Temp", "DefaultWidth", dim);
-		sprintf(dim, "%d", forced_height);
+		sprintf(dim, "%u", forced_height);
 		gf_opts_set_key("Temp", "DefaultHeight", dim);
 */
 	}
@@ -1240,7 +1241,7 @@ Bool mp4c_handle_prompt(u8 char_val)
 			fprintf(stderr, "Cannot read absolute URL, aborting\n");
 			break;
 		}
-		if (rti_file) init_rti_logs(rti_file, use_rtix);
+		if (rti_file) init_rti_logs();
 		gf_sc_connect_from_time(compositor, szBuf, GF_FALSE, 0, GF_FALSE, NULL);
 	}
 		break;
@@ -1296,7 +1297,7 @@ Bool mp4c_handle_prompt(u8 char_val)
 				print_time((u64) res);
 				fprintf(stderr, "\nEnter seek time (Format: s, m:s or h:m:s):\n");
 				h = m = s = 0;
-				r =scanf("%d:%d:%d", &h, &m, &s);
+				r =scanf("%u:%u:%u", &h, &m, &s);
 				if (r==2) {
 					s = m;
 					m = h;
@@ -1449,7 +1450,7 @@ Bool mp4c_handle_prompt(u8 char_val)
 	{
 		u32 http_bitrate = gf_sc_get_option(compositor, GF_OPT_HTTP_MAX_RATE);
 		do {
-			fprintf(stderr, "Enter new http bitrate in bps (0 for none) - current limit: %d\n", http_bitrate);
+			fprintf(stderr, "Enter new http bitrate in bps (0 for none) - current limit: %u\n", http_bitrate);
 		} while (1 > scanf("%ud", &http_bitrate));
 
 		gf_sc_set_option(compositor, GF_OPT_HTTP_MAX_RATE, http_bitrate);
@@ -1484,12 +1485,13 @@ static void mp4c_take_screenshot(Bool for_coverage)
 	u32 nb_pass, nb_views, offscreen_view = 0;
 	GF_VideoSurface fb;
 	GF_Err e;
+	szFileName[0] = 0;
 	nb_pass = 1;
 	nb_views = gf_sc_get_option(compositor, GF_OPT_NUM_STEREO_VIEWS);
 	if (nb_views>1) {
-		fprintf(stderr, "Auto-stereo mode detected - type number of view to dump (0 is main output, 1 to %d offscreen view, %d for all offscreen, %d for all offscreen and main)\n", nb_views, nb_views+1, nb_views+2);
+		fprintf(stderr, "Auto-stereo mode detected - type number of view to dump (0 is main output, 1 to %u offscreen view, %u for all offscreen, %u for all offscreen and main)\n", nb_views, nb_views+1, nb_views+2);
 		if (!for_coverage) {
-			if (scanf("%d", &offscreen_view) != 1) {
+			if (scanf("%u", &offscreen_view) != 1) {
 				offscreen_view = 0;
 			}
 		}
@@ -1509,7 +1511,7 @@ static void mp4c_take_screenshot(Bool for_coverage)
 	while (nb_pass) {
 		nb_pass--;
 		if (offscreen_view) {
-			sprintf(szFileName, "view%d_dump.png", offscreen_view);
+			sprintf(szFileName, "view%u_dump.png", offscreen_view);
 			e = gf_sc_get_offscreen_buffer(compositor, &fb, offscreen_view-1, GF_SC_GRAB_DEPTH_NONE);
 		} else {
 			sprintf(szFileName, "gpac_video_dump_" LLU ".png", gf_net_get_utc() );

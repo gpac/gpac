@@ -720,7 +720,7 @@ GF_OPT_ENUM (GF_DashProfile,
 	/*! industry profile DASH-IF ISOBMFF low latency */
 	GF_DASH_PROFILE_DASHIF_LL,
 	/*! industry profile DASH-IF CMAF Ingest */
-	GF_DASH_PROFILE_DASHIF_INGEST,
+	GF_DASH_PROFILE_DASHIF_INGEST
  );
 
 
@@ -761,7 +761,7 @@ GF_OPT_ENUM (GF_DashDynamicMode,
 	/*! DASH Presentation is dynamic and this is the last segmenting operation in the period. This can only be used when DASH segmenter context is used, will close the period*/
 	GF_DASH_DYNAMIC_LAST,
 	/*! same as GF_DASH_DYNAMIC but prevents all segment cleanup */
-	GF_DASH_DYNAMIC_DEBUG,
+	GF_DASH_DYNAMIC_DEBUG
 );
 
 /*!
@@ -774,7 +774,7 @@ GF_OPT_ENUM (GF_DASH_ContentLocationMode,
 	/*! content protection descriptor is at the representation level*/
 	GF_DASH_CPMODE_REPRESENTATION,
 	/*! content protection descriptor is at the adaptation set and representation level*/
-	GF_DASH_CPMODE_BOTH,
+	GF_DASH_CPMODE_BOTH
 );
 
 /*! DASH segmenter*/
@@ -971,7 +971,7 @@ GF_OPT_ENUM (GF_DASHPSSHMode,
 	//! PSSH box in MPD only
 	GF_DASH_PSSH_MPD,
 	//! Drop PSSH info from mpd and init seg
-	GF_DASH_PSSH_NONE,
+	GF_DASH_PSSH_NONE
 );
 
 /*!

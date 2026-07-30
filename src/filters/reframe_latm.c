@@ -276,7 +276,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 		sr_idx = acfg.base_sr_index;
 		duration += ctx->frame_size;
 		cur_dur += ctx->frame_size;
-		if (cur_dur > ctx->index * GF_M4ASampleRates[sr_idx]  && sr_idx < GF_ARRAY_LENGTH(GF_M4ASampleRates) && GF_M4ASampleRates[sr_idx]) {
+		if ((sr_idx < GF_ARRAY_LENGTH(GF_M4ASampleRates)) && GF_M4ASampleRates[sr_idx] && (cur_dur > ctx->index * GF_M4ASampleRates[sr_idx])) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = (LATMIdx *)gf_realloc(ctx->indexes, sizeof(LATMIdx)*ctx->index_alloc_size);

@@ -332,6 +332,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 			size  = MIN(left, 0x800 - hsize);
 			memcpy(packet + i, buf + hsize, size);
 
+			//cppcheck-suppress knownConditionTrueFalse
 			if (size != left) {
 				while (gf_fread(buf, sizeof(buf), ctx->mdia)) {
 					if (buf[buf[0x16] + 0x17] == (vslang->idx | 0x20)) {

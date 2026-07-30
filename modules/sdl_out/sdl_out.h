@@ -74,7 +74,7 @@ typedef struct
 
 
 	Bool disable_vsync;
-
+	//cppcheck-suppress syntaxError
 #if SDL_VERSION_ATLEAST(2,0,0)
 	char szCaption[100];
 	Bool enable_defer_mode;

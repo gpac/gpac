@@ -396,7 +396,7 @@ GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 
 	if (*max_size < comp_size) {
 		*max_size = block_size;
-		*data = (char*)gf_realloc(*data, block_size);
+		*data = (u8*)gf_realloc(*data, block_size);
 		if (! *data) return GF_OUT_OF_MEM;
 	}
 

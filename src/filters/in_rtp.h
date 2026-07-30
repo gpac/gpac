@@ -50,7 +50,7 @@ typedef struct __rtpin_stream GF_RTPInStream;
 GF_OPT_ENUM (GF_RTPInRTSP_Mode,
 	RTP_TRANSPORT_AUTO=0,
 	RTP_TRANSPORT_TCP_ONLY,
-	RTP_TRANSPORT_UDP_ONLY,
+	RTP_TRANSPORT_UDP_ONLY
 );
 
 enum
@@ -58,7 +58,7 @@ enum
 	RETRY_RTSP_NONE=0,
 	RETRY_RTSP_NORMAL,
 	RETRY_RTSP_FORCE_TCP,
-	RETRY_RTSP_PENDING = 1<<8,
+	RETRY_RTSP_PENDING = 1<<8
 };
 
 /*the rtsp/rtp client*/
@@ -191,7 +191,7 @@ void rtpin_do_authenticate(GF_RTPIn *ctx);
 enum
 {
 	/*channel is setup and waits for connection request*/
-	RTP_Setup,
+	RTP_Setup = 1,
 	/*waiting for server reply*/
 	RTP_WaitingForAck,
 	/*connection OK*/

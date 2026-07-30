@@ -168,7 +168,7 @@ void hmux_fetch_data(GF_DownloadSession *sess, u8 *obuffer, u32 size, u32 *nb_by
 
 GF_Err hmux_send_payload(GF_DownloadSession *sess, u8 *data, u32 size)
 {
-	GF_Err e = GF_OK;
+	GF_Err e;
 	if (sess->hmux_send_data) {
 		e = gf_sk_probe(sess->sock);
 		if (e) return e;

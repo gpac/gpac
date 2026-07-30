@@ -44,7 +44,7 @@ typedef struct
 	jack_port_t **jackPorts;
 	jack_nframes_t currentBlockSize;
 	u32 numChannels;
-	char *buffer;
+	u8 *buffer;
 	u32 bufferSz;
 	u32 bytesPerSample;
 	Bool isActive;
@@ -117,8 +117,7 @@ process_callback (jack_nframes_t nframes, void *arg)
 	ctx = (JackContext *)dr->opaque;
 	toRead = nframes * ctx->numChannels;
 	bytesToRead = toRead * ctx->bytesPerSample;
-	dr->FillBuffer (dr->audio_renderer, (void *) ctx->buffer,
-	                         bytesToRead);
+	dr->FillBuffer (dr->audio_renderer, ctx->buffer, bytesToRead);
 
 	if (ctx->bytesPerSample == 2)
 	{
@@ -166,19 +165,16 @@ onBufferSizeChanged (jack_nframes_t nframes, void *arg)
 		return 0;
 	if (ctx->channels != NULL)
 		gf_free(ctx->channels);
-	ctx->channels = NULL;
-	ctx->channels = gf_calloc (ctx->numChannels, sizeof (jack_default_audio_sample_t *));
+
+	ctx->channels = (jack_default_audio_sample_t **) gf_malloc (ctx->numChannels * sizeof (jack_default_audio_sample_t *));
 	if (ctx->channels == NULL)
 	{
 		Jack_cleanup (ctx);
 		return 2;
 	}
-	for (channel = 0; channel < ctx->numChannels; channel++)
-	{
-		ctx->channels[channel] =
-		    jack_port_get_buffer (ctx->jackPorts[channel], nframes);
-		if (ctx->channels[channel] == NULL)
-		{
+	for (channel = 0; channel < ctx->numChannels; channel++) {
+		ctx->channels[channel] = (jack_default_audio_sample_t *) jack_port_get_buffer (ctx->jackPorts[channel], nframes);
+		if (ctx->channels[channel] == NULL) {
 			Jack_cleanup (ctx);
 			return 3;
 		}
@@ -186,7 +182,7 @@ onBufferSizeChanged (jack_nframes_t nframes, void *arg)
 
 	if (ctx->buffer != NULL)
 		gf_free(ctx->buffer);
-	ctx->buffer = gf_calloc (realBuffSize, sizeof (char));
+	ctx->buffer = (u8*) gf_malloc(realBuffSize);
 	if (ctx->buffer == NULL)
 	{
 		Jack_cleanup (ctx);
@@ -218,7 +214,7 @@ Jack_Setup (GF_AudioOutput * dr, void *os_handle, u32 num_buffers,
 	ctx->autoConnect = gf_module_get_bool((GF_BaseInterface *)dr, "auto-connect");
 
 	if (!gf_module_get_bool((GF_BaseInterface *)dr, "start-server"))
-		options |= JackNoStartServer;
+		options = (jack_options_t) (options | JackNoStartServer);
 
 	ctx->jack = jack_client_open (ctx->jackClientName, options, &status, NULL);
 	if (status & JackNameNotUnique)
@@ -277,7 +273,7 @@ Jack_Configure(GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels, u32 *aud
 	        ("[Jack] Jack_ConfigureOutput channels=%d, srate=%d audio format %s\n",
 	         *NbChannels, *SampleRate, gf_audio_fmt_name(*audioFormat) ));
 	if (ctx->jackPorts == NULL)
-		ctx->jackPorts = gf_calloc (ctx->numChannels, sizeof (jack_port_t *));
+		ctx->jackPorts = (jack_port_t **) gf_malloc (ctx->numChannels * sizeof (jack_port_t *));
 	if (ctx->jackPorts == NULL)
 	{
 		goto exit_cleanup;
@@ -286,7 +282,7 @@ Jack_Configure(GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels, u32 *aud
 	{
 		for (channels = 0; channels < ctx->numChannels; channels++)
 		{
-			snprintf (port_name, JACK_PORT_NAME_MAX_SZ, "playback_%d",
+			snprintf (port_name, JACK_PORT_NAME_MAX_SZ, "playback_%u",
 			          channels + 1);
 			ctx->jackPorts[channels] =
 			    jack_port_register (ctx->jack, port_name, JACK_DEFAULT_AUDIO_TYPE,
@@ -492,7 +488,7 @@ GF_BaseInterface *LoadInterface (u32 InterfaceType)
 {
 	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
 	{
-		return NewJackOutput ();
+		return (GF_BaseInterface *) NewJackOutput ();
 	}
 	return NULL;
 }

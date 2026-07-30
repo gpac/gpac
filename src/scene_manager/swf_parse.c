@@ -356,7 +356,7 @@ static char *swf_get_string(SWFReader *read)
 
 	name = (char *)gf_malloc(read->size);
 	if (!name) return NULL;
-	
+
 	while (1) {
 		if (i>=read->size) {
 			read->ioerr = GF_NON_COMPLIANT_BITSTREAM;
@@ -1906,7 +1906,7 @@ static GF_Err swf_def_sound(SWFReader *read)
 		u8 *frame;
 		GF_Err e=GF_OK;
 
-		snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_sound_%d.mp3", snd->ID);
+		snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_sound_%u.mp3", snd->ID);
 		if (read->localPath) {
 			snd->szFileName = gf_strdup(read->localPath);
 			gf_dynstrcat(&snd->szFileName, szName, NULL);
@@ -2058,9 +2058,9 @@ static GF_Err swf_soundstream_hdr(SWFReader *read)
 	case 2:
 		read->sound_stream = snd;
 		if (read->localPath) {
-			snprintf(szName, GF_ARRAY_LENGTH(szName), "%s/swf_soundstream_%d.mp3", read->localPath, read->current_sprite_id);
+			snprintf(szName, GF_ARRAY_LENGTH(szName), "%s/swf_soundstream_%u.mp3", read->localPath, read->current_sprite_id);
 		} else {
-			snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_soundstream_%d.mp3", read->current_sprite_id);
+			snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_soundstream_%u.mp3", read->current_sprite_id);
 		}
 		read->sound_stream->szFileName = gf_strdup(szName);
 		read->setup_sound(read, read->sound_stream, GF_FALSE);
@@ -2118,7 +2118,7 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 		bytes[3] = swf_read_int(read, 8);
 		hdr = GF_4CC(bytes[0], bytes[1], bytes[2], bytes[3]);
 		size = gf_mp3_frame_size(hdr);
-		if (!size || size < 4 || tot_size >= read->size) {
+		if (size < 4 || tot_size >= read->size) {
 			e = GF_ISOM_INVALID_MEDIA;
 			break;
 		}
@@ -2191,9 +2191,9 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 	/*dump file*/
 	if (read->localPath) {
-		snprintf(szName, GF_ARRAY_LENGTH(szName), "%s/swf_jpeg_%d.jpg", read->localPath, ID);
+		snprintf(szName, GF_ARRAY_LENGTH(szName), "%s/swf_jpeg_%u.jpg", read->localPath, ID);
 	} else {
-		snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_jpeg_%d.jpg", ID);
+		snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_jpeg_%u.jpg", ID);
 	}
 
 	if (version!=3) {
@@ -2297,9 +2297,9 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 			/*write png*/
 			if (read->localPath) {
-				snprintf(szName, GF_ARRAY_LENGTH(szName), "%s/swf_png_%d.png", read->localPath, ID);
+				snprintf(szName, GF_ARRAY_LENGTH(szName), "%s/swf_png_%u.png", read->localPath, ID);
 			} else {
-				snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_png_%d.png", ID);
+				snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_png_%u.png", ID);
 			}
 
 			osize = w*h*4;
@@ -2308,19 +2308,25 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 				gf_free(raw);
 				return GF_OUT_OF_MEM;
 			}
-			gf_img_png_enc(raw, w, h, w*4, GF_PIXEL_RGBA, (u8 *)buf, &osize);
-
-			file = gf_fopen(szName, "wb");
-			if (gf_fwrite(buf, osize, file)!=osize) e = GF_IO_ERR;
-			gf_fclose(file);
-
+			e = gf_img_png_enc(raw, w, h, w*4, GF_PIXEL_RGBA, (u8 *)buf, &osize);
+			if (!e) {
+				file = gf_fopen(szName, "wb");
+				if (file) {
+					if (gf_fwrite(buf, osize, file)!=osize) e = GF_IO_ERR;
+					gf_fclose(file);
+				} else {
+					e = GF_IO_ERR;
+				}
+			}
+			if (e) {
+				gf_free(buf);
+				return e;
+			}
 		}
 		gf_free(raw);
 #endif //GPAC_DISABLE_AV_PARSERS
 	}
 	gf_free(buf);
-	if (e) return e;
-
 	return read->setup_image(read, ID, szName);
 }
 
@@ -2548,7 +2554,7 @@ GF_Err swf_parse_tag(SWFReader *read)
 
 	diff -= swf_get_file_pos(read);
 	if (diff<0) {
-		swf_report(read, GF_IO_ERR, "tag %s over-read of %d bytes (size %d)", swf_get_tag_name(read->tag), -1*diff, read->size);
+		swf_report(read, GF_IO_ERR, "tag %s over-read of %d bytes (size %u)", swf_get_tag_name(read->tag), -1*diff, read->size);
 		return GF_IO_ERR;
 	} else {
 		gf_bs_skip_bytes(read->bs, diff);
@@ -2560,7 +2566,7 @@ GF_Err swf_parse_tag(SWFReader *read)
 	}
 
 	if (read->ioerr) {
-		swf_report(read, GF_IO_ERR, "bitstream IO err (tag size %d)", read->size);
+		swf_report(read, GF_IO_ERR, "bitstream IO err (tag size %u)", read->size);
 		return read->ioerr;
 	}
 	return e;

@@ -348,7 +348,7 @@ void wcdec_on_video(GF_WCDecCtx *ctx, u64 timestamp, char *format, u32 width, u3
 	GF_FilterPacket *src_pck = NULL;
 	u32 i, count = gf_list_count(ctx->src_pcks);
 	for (i=0; i<count; i++) {
-		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_pcks, i);
+		src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_pcks, i);
 		if (!src_pck) {
 			continue;
 		}
@@ -429,7 +429,7 @@ void wcdec_on_audio(GF_WCDecCtx *ctx, u64 timestamp, char *format, u32 num_frame
 	GF_FilterPacket *src_pck = NULL;
 	u32 i, count = gf_list_count(ctx->src_pcks);
 	for (i=0; i<count; i++) {
-		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_pcks, i);
+		src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_pcks, i);
 		if (!src_pck) {
 			continue;
 		}
@@ -598,7 +598,7 @@ void wcdec_finalize(GF_Filter *filter)
     wcdec_del(EM_CAST_PTR ctx);
 
     while (gf_list_count(ctx->src_pcks)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_pcks);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_pcks);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_pcks);

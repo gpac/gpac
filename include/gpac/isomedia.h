@@ -2344,7 +2344,7 @@ GF_OPT_ENUM (GF_ISOCompressMode,
 	/*! only moof, sidx and ssix boxes are compressed*/
 	GF_ISOM_COMP_MOOF_SSIX,
 	/*! all (moov, moof, sidx and ssix) boxes are compressed*/
-	GF_ISOM_COMP_ALL,
+	GF_ISOM_COMP_ALL
 );
 
 enum

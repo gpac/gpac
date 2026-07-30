@@ -84,14 +84,14 @@ GF_OPT_ENUM (GF_DashAbsoluteURLMode,
 	/*! use absolute URL only in master playlist*/
     GF_DASH_ABS_URL_MASTER,
 	/*! use absolute URL everywhere*/
-    GF_DASH_ABS_URL_BOTH,
+    GF_DASH_ABS_URL_BOTH
 );
 
 GF_OPT_ENUM (GF_DashHLSLowLatencyType,
     GF_DASH_LL_HLS_OFF,
     GF_DASH_LL_HLS_BR,
     GF_DASH_LL_HLS_SF,
-    GF_DASH_LL_HLS_BRSF,
+    GF_DASH_LL_HLS_BRSF
 );
 
 /*! formats the segment name according to its template

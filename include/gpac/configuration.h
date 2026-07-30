@@ -221,16 +221,6 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_LIBCAPTION
 #define GPAC_HAS_MPEGHDECODER
 
-/*Configuration for Symbian*/
-#elif defined(__SYMBIAN32__)
-
-#ifndef GPAC_FIXED_POINT
-#define GPAC_FIXED_POINT
-#endif
-
-#define GPAC_HAS_QJS
-#define GPAC_HAS_JPEG
-#define GPAC_HAS_PNG
 
 #else
 #error "Unknown target platform used with static configuration file"

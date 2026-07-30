@@ -372,7 +372,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	/* setup the decoder decoding parameters using the current image and user parameters */
 	opj_setup_decoder(dinfo, parameters);
 
-	cio = opj_cio_open((opj_common_ptr)dinfo, data+start_offset, size-start_offset);
+	cio = opj_cio_open((opj_common_ptr)dinfo, (u8*) data+start_offset, size-start_offset);
 	/* decode the stream and fill the image structure */
 	image = opj_decode_with_info(dinfo, cio, &cinfo);
 #endif

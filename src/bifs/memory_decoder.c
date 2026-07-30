@@ -326,7 +326,6 @@ static GF_Err BM_XReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_
 		inf->pos = pos;
 	}
 
-	fromNode = NULL;
 	if (gf_bs_read_int(bs, 1)) {
 		id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
 		fromNode = gf_sg_find_node(codec->current_graph, id);

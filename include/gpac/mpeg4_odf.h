@@ -588,7 +588,7 @@ typedef struct __tag_laser_config
 	u8 fullRequestHost;
 	u16 time_resolution;
 	u8 colorComponentBits;
-	s8 resolution;
+	s32 resolution;
 	u8 coord_bits;
 	u8 scale_bits_minus_coord_bits;
 	u8 newSceneIndicator;

@@ -49,11 +49,12 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 
 	if (compositor->edited_text)
 		return GF_FALSE;
-	if (compositor->text_selection )
+	if (compositor->text_selection)
 		return compositor->hit_text ? GF_TRUE : GF_FALSE;
+
 	switch (event->type) {
 	case GF_EVENT_MOUSEMOVE:
-		if (compositor->text_selection && compositor->hit_text)
+		if (compositor->hit_text)
 			return GF_TRUE;
 		break;
 	case GF_EVENT_MOUSEDOWN:
@@ -339,7 +340,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 							GF_ChildNodeItem *children = ((GF_ParentNode *) compositor->focus_node)->children;
 							gf_node_list_del_child(&children, tbreak);
 							gf_node_unregister(tbreak, compositor->focus_node);
-							if (child->next && (gf_node_get_tag(child->next->node)==TAG_DOMText) ) {
+							if (gf_node_get_tag(child->next->node)==TAG_DOMText) {
 								GF_DOMText *n1 = (GF_DOMText *)child->node;
 								GF_DOMText *n2 = (GF_DOMText *)child->next->node;
 
@@ -361,7 +362,6 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 					break;
 				}
 				child = child->next;
-				continue;
 			}
 			/*load of an empty text*/
 			if (!res && !cmd_type) {
@@ -1937,25 +1937,32 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 			/*if text is no longer edited, this is focus change so process as usual*/
 		}
 		/*FIXME - this is not working for mixed docs*/
-		if (compositor->focus_uses_dom_events)
+		if (compositor->focus_uses_dom_events) {
+#ifndef GPAC_DISABLE_SVG
 			ret = exec_event_dom(compositor, ev);
+#endif
+		} else {
 #ifndef GPAC_DISABLE_VRML
-		else
 			ret = exec_vrml_key_event(compositor, compositor->focus_node, ev, GF_FALSE);
 #endif
+		}
 
 		if (ev->type==GF_EVENT_KEYDOWN) {
 			switch (ev->key.key_code) {
 			case GF_KEY_ENTER:
-				if ((0) && compositor->focus_text_type) {
+#if 0
+				if (compositor->focus_text_type) {
 					exec_text_input(compositor, NULL);
 					ret = GF_TRUE;
+				} else
+#endif
+
 #ifndef GPAC_DISABLE_VRML
-				} else if (compositor->keynav_node && ((M_KeyNavigator*)compositor->keynav_node)->select) {
+				if (compositor->keynav_node && ((M_KeyNavigator*)compositor->keynav_node)->select) {
 					gf_sc_change_key_navigator(compositor, ((M_KeyNavigator*)compositor->keynav_node)->select);
 					ret = GF_TRUE;
-#endif
 				}
+#endif
 				break;
 			case GF_KEY_TAB:
 				if (gf_sc_focus_switch_ring(compositor, (ev->key.flags & GF_KEY_MOD_SHIFT) ? GF_TRUE : GF_FALSE, NULL, 0))
@@ -1966,9 +1973,12 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 			case GF_KEY_LEFT:
 			case GF_KEY_RIGHT:
 				if (compositor->focus_uses_dom_events) {
+#ifndef GPAC_DISABLE_SVG
 					if (gf_sc_svg_focus_navigate(compositor, ev->key.key_code))
 						ret = GF_TRUE;
+#endif
 				}
+
 #ifndef GPAC_DISABLE_VRML
 				else if (compositor->keynav_node) {
 					GF_Node *next_nav = NULL;
@@ -1995,7 +2005,8 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 				break;
 			}
 		}
-		return ret;
+		if (ret) return GF_TRUE;
+		return GF_FALSE;
 	}
 	/*pick even, call visual handler*/
 	return visual_execute_event(compositor->visual, tr_state, ev, children);

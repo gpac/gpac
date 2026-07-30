@@ -1430,7 +1430,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 			tile_name = NULL;
 			if (item_name) {
 				char szTmp[50];
-				sprintf(szTmp, "-Tile%d", i+1);
+				sprintf(szTmp, "-Tile%u", i+1);
 				gf_dynstrcat(&tile_name, item_name, NULL);
 				gf_dynstrcat(&tile_name, szTmp, NULL);
 			}

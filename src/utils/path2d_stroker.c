@@ -1032,7 +1032,7 @@ Exit:
 
 
 
-static s32 FT_Stroker_BeginSubPath(FT_Stroker *stroker, GF_Point2D*  to)
+static void FT_Stroker_BeginSubPath(FT_Stroker *stroker, GF_Point2D*  to)
 {
 	/* We cannot process the first point, because there is not enough      */
 	/* information regarding its corner/cap.  The latter will be processed */
@@ -1043,7 +1043,7 @@ static s32 FT_Stroker_BeginSubPath(FT_Stroker *stroker, GF_Point2D*  to)
 
 	/* record the subpath start point index for each border */
 	stroker->subpath_start = *to;
-	return 0;
+	return;
 }
 
 static s32 ft_stroker_add_reverse_left( FT_Stroker *stroker, Bool     open )
@@ -1247,9 +1247,7 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 		}
 		closed_subpath = (outline->tags[outline->contours[n]]==GF_PATH_CLOSE) ? 1 : 0;
 
-		error = FT_Stroker_BeginSubPath(stroker, &v_start);
-		if ( error )
-			goto Exit;
+		FT_Stroker_BeginSubPath(stroker, &v_start);
 
 		/*subpath is a single point, force a lineTo to start for the stroker to compute lineCap*/
 		if (point==limit) {

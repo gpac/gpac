@@ -64,7 +64,6 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(moof->TrackList, &i))) {
-		u32 prev_sample_count;
 		if (!traf->tfhd) {
 			trak = NULL;
 			traf->trex = NULL;
@@ -87,7 +86,9 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			return GF_ISOM_INVALID_FILE;
 		}
 
-		prev_sample_count = trak->Media->information->sampleTable->SampleSize ? trak->Media->information->sampleTable->SampleSize->sampleCount : 0;
+#ifndef GPAC_DISABLE_ISOM_WRITE
+		u32 prev_sample_count = trak->Media->information->sampleTable->SampleSize ? trak->Media->information->sampleTable->SampleSize->sampleCount : 0;
+#endif
 		e = MergeTrack(trak, traf, moof, mov->current_top_box_start, moof->compressed_diff, &base_data_offset);
 		if (e) return e;
 		trak->first_traf_merged = GF_TRUE;
@@ -319,7 +320,6 @@ static GF_Err convert_compact_sample_groups(u32 all_samples, GF_List *child_boxe
 		if (csgp->type != GF_ISOM_BOX_TYPE_CSGP) continue;
 
 		if (!all_samples) {
-			u32 j=0;
 			for (j=0; j<gf_list_count(child_boxes); j++) {
 				GF_TrackFragmentRunBox *trun = (GF_TrackFragmentRunBox *)gf_list_get(child_boxes, j);
 				if (trun->type != GF_ISOM_BOX_TYPE_TRUN) continue;
@@ -435,7 +435,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				//signal mdat end - note that if multiple mdats are used per fragment and hidden data is present at the end of
 				//N(>1) mdats, the prediction may not be true and we will expose offsets that could be incomplete when
 				//processing non-local files (http, pipes...)
-				u64 mdat_end = gf_bs_get_size(mov->movieFileMap->bs) + *bytesMissing;
+				mdat_end = gf_bs_get_size(mov->movieFileMap->bs) + *bytesMissing;
 				gf_isom_push_mdat_end(mov, mdat_end, GF_TRUE);
 			}
 

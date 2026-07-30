@@ -177,9 +177,9 @@ next_line:
 			unsigned short *l = parser->line_cache;
 			unsigned short *dst = l;
 			Bool is_ret = GF_FALSE;
-			u32 last_space_pos, last_space_pos_stream;
 			u32 go = BT_LINE_SIZE - 1;
-			last_space_pos = last_space_pos_stream = 0;
+			u32 last_space_pos = 0;
+			//u32 last_space_pos_stream = 0;
 			while (go && !gf_gzeof(parser->gz_in) ) {
 				c1 = gf_gzgetc(parser->gz_in);
 				c2 = gf_gzgetc(parser->gz_in);
@@ -395,7 +395,7 @@ next_line:
 				buf = parser->line_buffer+parser->line_pos;
 				while (buf && *buf && strchr(" \t", buf[0]))
 					buf++;
-				sscanf(buf, "%dx%d", &parser->def_w, &parser->def_h);
+				sscanf(buf, "%ux%u", &parser->def_w, &parser->def_h);
 			}
 			goto next_line;
 		}
@@ -1909,7 +1909,7 @@ next_field:
 					url->url = gf_strdup(str);
 				} else {
 					char szURL[20];
-					sprintf(szURL, "%d", url->OD_ID);
+					sprintf(szURL, "%u", url->OD_ID);
 					if (strcmp(szURL, str)) {
 						url->OD_ID = 0;
 						url->url = gf_strdup(str);
@@ -1958,11 +1958,13 @@ next_field:
 			GF_Node *n = gf_bt_sf_node(parser, str, NULL, isDEF ? szDefName : NULL);
 			isDEF = GF_FALSE;
 			if (!n) goto err;
-			if ((0) && isDEF) {
+#if 0
+			if (isDEF) {
 				u32 ID = gf_bt_get_def_id(parser, szDefName);
 				isDEF = GF_FALSE;
 				gf_node_set_id(n, ID, szDefName);
 			}
+#endif
 			gf_sg_proto_add_node_code(proto, n);
 		}
 	}

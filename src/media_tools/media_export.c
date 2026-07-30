@@ -71,7 +71,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, const char *szName, u3
 #ifndef GPAC_DISABLE_VOBSUB
 	FILE *fidx, *fsub;
 	u32 width, height, i, count, di;
-	GF_ISOSample *samp;
+	GF_ISOSample *samp = NULL;
 	char *lang = NULL;
 
 	if (!szName) {
@@ -1267,7 +1267,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	if (dumper->flags & GF_EXPORT_RAW_SAMPLES) {
 		e = gf_dynstrcat(&args, "writegen:frame", NULL);
 		if (dumper->sample_num && !e) {
-			sprintf(szSubArgs, ":sstart=%d:send=%d", dumper->sample_num, dumper->sample_num);
+			sprintf(szSubArgs, ":sstart=%u:send=%u", dumper->sample_num, dumper->sample_num);
 			e = gf_dynstrcat(&args, szSubArgs, NULL);
 		}
 		remux = e ? NULL : gf_fs_load_filter(fsess, args, &e);
@@ -1326,7 +1326,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	//force a reframer filter, connected to our input
 	e = gf_dynstrcat(&args, "reframer:SID=1", NULL);
 	if (dumper->trackID && !e) {
-		sprintf(szSubArgs, "#PID=%d", dumper->trackID);
+		sprintf(szSubArgs, "#PID=%u", dumper->trackID);
 		e = gf_dynstrcat(&args, szSubArgs, NULL);
 	}
 	if (!e)
@@ -1374,13 +1374,13 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	if (dumper->track_type) {
 		const char *mtype = (dumper->track_type==1) ? "video" : ((dumper->track_type==2) ? "audio" : "text");
 		if (dumper->trackID) {
-			sprintf(szSubArgs, "%s%d", mtype, dumper->trackID);
+			sprintf(szSubArgs, "%s%u", mtype, dumper->trackID);
 		} else {
 			sprintf(szSubArgs, "%s", mtype);
 		}
 	}
 	else if (dumper->trackID) {
-		sprintf(szSubArgs, "PID=%d", dumper->trackID);
+		sprintf(szSubArgs, "PID=%u", dumper->trackID);
 	}
 	if (remux) {
 		gf_filter_set_source(file_out, remux, (dumper->trackID || dumper->track_type) ? szSubArgs : NULL);

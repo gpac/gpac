@@ -1960,8 +1960,9 @@ Bool visual_3d_setup_appearance(GF_TraverseState *tr_state)
 
 void visual_3d_draw(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
-	if (mesh && tr_state->visual->compositor->clipframe) {
-		void gf_mx_apply_bbox_4x4(GF_Matrix *mx, GF_BBox *box);
+	if (!mesh) return;
+
+	if (tr_state->visual->compositor->clipframe) {
 		GF_Matrix mx;
 		GF_BBox bounds = mesh->bounds;
 		gf_mx_copy(mx, tr_state->camera->modelview);

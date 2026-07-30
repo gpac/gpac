@@ -602,7 +602,7 @@ GF_Err WriteDTE(GF_GenericDTE *_dte, GF_BitStream *bs)
 	}
 }
 
-GF_Err OffsetDTE(GF_GenericDTE *dte, u32 offset, u32 HintSampleNumber)
+void OffsetDTE(GF_GenericDTE *dte, u32 offset, u32 HintSampleNumber)
 {
 	GF_SampleDTE *sDTE;
 	//offset shifting is only true for intra sample reference
@@ -610,16 +610,15 @@ GF_Err OffsetDTE(GF_GenericDTE *dte, u32 offset, u32 HintSampleNumber)
 	case 2:
 		break;
 	default:
-		return GF_OK;
+		return;
 	}
 
 	sDTE = (GF_SampleDTE *)dte;
 	//we only adjust for intra HintTrack reference
-	if (sDTE->trackRefIndex != (s8) -1) return GF_OK;
+	if (sDTE->trackRefIndex != (s8) -1) return;
 	//and in the same sample
-	if (sDTE->sampleNumber != HintSampleNumber) return GF_OK;
+	if (sDTE->sampleNumber != HintSampleNumber) return;
 	sDTE->byteOffset += offset;
-	return GF_OK;
 }
 
 GF_RTPPacket *gf_isom_hint_rtp_new()
@@ -720,13 +719,11 @@ GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 GF_Err gf_isom_hint_rtp_offset(GF_RTPPacket *ptr, u32 offset, u32 HintSampleNumber)
 {
 	u32 count, i;
-	GF_Err e;
-
+	if (!ptr) return GF_BAD_PARAM;
 	count = gf_list_count(ptr->DataTable);
 	for (i=0; i<count; i++) {
 		GF_GenericDTE *dte = (GF_GenericDTE *)gf_list_get(ptr->DataTable, i);
-		e = OffsetDTE(dte, offset, HintSampleNumber);
-		if (e) return e;
+		OffsetDTE(dte, offset, HintSampleNumber);
 	}
 	return GF_OK;
 }

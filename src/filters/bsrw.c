@@ -254,30 +254,30 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		tc_out->hours = ctx->tcsc_val.hours;
 		break;
 	case BSRW_TC_UTC: {
-		u64 now = 0;
+		u64 clock_utc = 0;
 		//check sender NTP on packet
 		const GF_PropertyValue *date = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
-		if (date) now = gf_net_ntp_to_utc(date->value.longuint);
+		if (date) clock_utc = gf_net_ntp_to_utc(date->value.longuint);
 		//otherwise check UTC date mapping
 		else if ((date = gf_filter_pck_get_property(pck, GF_PROP_PCK_UTC_TIME))) {
-			now = date->value.longuint;
+			clock_utc = date->value.longuint;
 		} else {
 			//otherwise use the current time
-			now = gf_net_get_utc();
+			clock_utc = gf_net_get_utc();
 			//safety check: two consecutives gf_net_get_utc() calls could return the same value
-			if (now == ctx->last_tc_utc_now) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[BSRW] system call for getting provided the same value (" LLU "), increment by 1 frame. Consider adding a reframer with 'rt' option in your graph.\n", now));
-				now += gf_timestamp_rescale(1, max_fps, 1000)+1;
+			if (clock_utc == ctx->last_tc_utc_now) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[BSRW] system call for getting provided the same value (" LLU "), increment by 1 frame. Consider adding a reframer with 'rt' option in your graph.\n", clock_utc));
+				clock_utc += gf_timestamp_rescale(1, max_fps, 1000)+1;
 			}
-			ctx->last_tc_utc_now = now;
+			ctx->last_tc_utc_now = clock_utc;
 		}
 
 		//get tm struct
-		time_t utc_now = (time_t) (now / 1000);
+		time_t utc_now = (time_t) (clock_utc / 1000);
 		struct tm *tm = gf_gmtime(&utc_now);
 
 		//convert to timecode
-		tc_out->n_frames = (u16) gf_timestamp_rescale(now % 1000, 1000, max_fps);
+		tc_out->n_frames = (u16) gf_timestamp_rescale(utc_now % 1000, 1000, max_fps);
 		tc_out->seconds = (u8) tm->tm_sec;
 		tc_out->minutes = (u8) tm->tm_min;
 		tc_out->hours = (u8) tm->tm_hour;
@@ -340,7 +340,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 	if (!bs) return GF_OUT_OF_MEM;
 
 	while (gf_bs_available(bs)) {
-		u8 nal_type=0;
+		u8 nal_type;
 		u32 nal_size = gf_bs_read_int(bs, 8*pctx->nalu_size_length);
 		u64 pos = gf_bs_get_position(bs);
 		//AVC
@@ -485,7 +485,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		gf_bs_seek(bs_w, pos);
 	}
 
-	u32 rw_sei_size = 0;
+	u32 rw_sei_size;
 	u8 *rw_sei_payload = NULL;
 	gf_bs_seek(bs, 0);
 	while (gf_bs_available(bs)) {
@@ -974,9 +974,7 @@ static GF_Err av1_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 		prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_SEI_LOADED);
 		if (!prop)
 			gf_filter_pid_negotiate_property(pctx->ipid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE));
-	}
 
-	if (ctx->tc) {
 		pctx->rewrite_packet = av1_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;

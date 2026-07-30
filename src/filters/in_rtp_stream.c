@@ -77,7 +77,7 @@ void rtpin_stream_reset_queue(GF_RTPInStream *stream)
 {
 	if (!stream->pck_queue) return;
 	while (gf_list_count(stream->pck_queue)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(stream->pck_queue);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(stream->pck_queue);
 		gf_filter_pck_discard(pck);
 	}
 }
@@ -114,7 +114,7 @@ static void rtpin_stream_queue_pck(GF_RTPInStream *stream, GF_FilterPacket *pck,
 	//with i,j,k >0
 	while (stream->first_in_rtp_pck) {
 		u64 prev_cts;
-		GF_FilterPacket *prev = (struct __gf_filter_pck *)gf_list_get(stream->pck_queue, 0);
+		GF_FilterPacket *prev = (GF_FilterPacket *)gf_list_get(stream->pck_queue, 0);
 		if (!prev) break;
 		prev_cts = gf_filter_pck_get_cts(prev);
 		if (prev_cts>cts) break;
@@ -125,7 +125,7 @@ static void rtpin_stream_queue_pck(GF_RTPInStream *stream, GF_FilterPacket *pck,
 	gf_list_add(stream->pck_queue, pck);
 	//flush if too high, in case we had a msimatch filtering out packets from a previous PLAY or we have TS loop
 	while (gf_list_count(stream->pck_queue)>30) {
-		GF_FilterPacket *prev = (struct __gf_filter_pck *)gf_list_pop_front(stream->pck_queue);
+		GF_FilterPacket *prev = (GF_FilterPacket *)gf_list_pop_front(stream->pck_queue);
 		gf_filter_pck_send(prev);
 	}
 }
@@ -360,17 +360,17 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 		} else if (!stricmp(att->Name, "rvc-config")) {
 			rvc_config_att = att->Value;
 		} else if (!stricmp(att->Name, "mid")) {
-			sscanf(att->Value, "L%d", &mid);
+			sscanf(att->Value, "L%u", &mid);
 		} else if (!stricmp(att->Name, "depend")) {
 			char buf[3000];
 			memset(buf, 0, 3000);
-			sscanf(att->Value, "%*d lay L%d %*s %2999s", &base_stream, buf);
+			sscanf(att->Value, "%*d lay L%u %*s %2999s", &base_stream, buf);
 			if (!strlen(buf))
 				sscanf(att->Value, "%*d lay %2999s", buf);
 			//we only check first indicated dependency
 			char *sep = strchr(buf, ':');
 			if (sep) sep[0] = 0;
-			sscanf(buf, "L%d", &prev_stream);
+			sscanf(buf, "L%u", &prev_stream);
 		}
 	}
 	if (!base_stream && mid) base_stream = mid;
@@ -674,7 +674,7 @@ static void rtpin_adjust_sync(GF_RTPIn *ctx)
 	u64 max_ntp_us = 0;
 
 	for (i=0; i<count; i++) {
-		GF_RTPInStream *stream = (struct __rtpin_stream *)gf_list_get(ctx->streams, i);
+		GF_RTPInStream *stream = (GF_RTPInStream *)gf_list_get(ctx->streams, i);
 		if (!stream->rtcp_init) return;
 
 		if (max_ntp_us < stream->init_ntp_us) {
@@ -684,7 +684,7 @@ static void rtpin_adjust_sync(GF_RTPIn *ctx)
 
 	for (i=0; i<count; i++) {
 		s64 ntp_diff_us;
-		GF_RTPInStream *stream = (struct __rtpin_stream *)gf_list_get(ctx->streams, i);
+		GF_RTPInStream *stream = (GF_RTPInStream *)gf_list_get(ctx->streams, i);
 
 		ntp_diff_us = max_ntp_us;
 		ntp_diff_us -= stream->init_ntp_us;

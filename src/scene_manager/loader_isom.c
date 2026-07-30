@@ -80,7 +80,7 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 						mi->duration = (u32) (dur * 1000);
 						continue;
 					}
-						break;
+
 					default:
 						break;
 					}
@@ -434,7 +434,6 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 		}
 	}
 	gf_odf_desc_del((GF_Descriptor *) esd);
-	esd = NULL;
 
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {

@@ -364,9 +364,13 @@ GF_EXPORT
 void gf_sc_reset_graphics(GF_Compositor *compositor)
 {
 	if (compositor) {
+#ifndef GPAC_DISABLE_THREADS
 		Bool locked = gf_mx_try_lock(compositor->mx);
 		compositor->reset_graphics = 1;
 		if (locked) gf_mx_v(compositor->mx);
+#else
+		compositor->reset_graphics = 1;
+#endif
 	}
 }
 
@@ -630,11 +634,13 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 
 		e = gf_filter_request_opengl(compositor->filter);
 		if (e) return e;
-#ifndef GPAC_DISABLE_3D
+#ifdef GPAC_DISABLE_3D
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] No support for OpenGL, cannot run in GL mode.\n"));
+		compositor->drv = GF_SC_DRV_OFF;
+		return GF_NOT_SUPPORTED;
+#else
 		gf_sc_load_opengl_extensions(compositor, GF_TRUE);
-		if (!compositor->gl_caps.fbo)
-#endif
-		{
+		if (!compositor->gl_caps.fbo) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] No support for OpenGL framebuffer object, cannot run in GL mode.\n"));
 			compositor->drv = GF_SC_DRV_OFF;
 			return GF_NOT_SUPPORTED;
@@ -642,6 +648,7 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 		compositor->video_out = &gl_vout;
 		compositor->video_out->opaque = compositor;
 		return GF_OK;
+#endif
 	}
 
 	//player mode
@@ -680,7 +687,7 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	if (compositor->player) {
 		void gpac_force_step_mode(Bool for_display);
-		gpac_force_step_mode(compositor->player ? GF_TRUE : GF_FALSE);
+		gpac_force_step_mode(GF_TRUE);
 	}
 #endif
 
@@ -761,7 +768,9 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	const char *sOpt;
 
 	compositor->mx = gf_mx_new("Compositor");
+#ifndef GPAC_DISABLE_THREADS
 	if (!compositor->mx) return GF_OUT_OF_MEM;
+#endif
 
 	/*load proto modules*/
 	compositor->proto_modules = gf_list_new();
@@ -908,7 +917,9 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->event_queue_back = gf_list_new();
 	if (!compositor->event_queue_back) return GF_OUT_OF_MEM;
 	compositor->evq_mx = gf_mx_new("EventQueue");
+#ifndef GPAC_DISABLE_THREADS
 	if (!compositor->evq_mx) return GF_OUT_OF_MEM;
+#endif
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 	compositor->cached_groups = gf_list_new();
@@ -1509,8 +1520,6 @@ void gf_sc_lock(GF_Compositor *compositor, Bool doLock)
 GF_EXPORT
 GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 {
-	Bool lock_ok;
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("sc_set_size %dx%d\n", NewWidth, NewHeight));
 	if (compositor->osize.x && compositor->osize.y) {
 		NewWidth = compositor->osize.x;
@@ -1527,8 +1536,9 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	}
 	/*EXTRA CARE HERE: the caller (user app) is likely a different thread than the compositor one, and depending on window
 	manager we may get called here as a result of a message sent to user but not yet returned */
-	lock_ok = gf_mx_try_lock(compositor->mx);
-
+#ifndef GPAC_DISABLE_THREADS
+	Bool lock_ok = gf_mx_try_lock(compositor->mx);
+#endif
 	compositor->new_width = NewWidth;
 	compositor->new_height = NewHeight;
 	compositor->msg_type |= GF_SR_CFG_SET_SIZE;
@@ -1539,7 +1549,9 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	if ((compositor->display_width == NewWidth) && (compositor->display_height == NewHeight) ) {
 		compositor->msg_type |= GF_SR_CFG_WINDOWSIZE_NOTIF;
 	}
+#ifndef GPAC_DISABLE_THREADS
 	if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
+#endif
 
 	//forward scene size event before actual resize in case the user cancels the resize
 	{
@@ -2196,10 +2208,9 @@ void gf_sc_unregister_time_node(GF_Compositor *compositor, GF_TimeNode *tn)
 
 static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 {
-	Bool force_pause;
-
+//	Bool force_pause;
 //	force_pause = compositor->audio_renderer->Frozen ? 0 : 1;
-	force_pause = GF_FALSE;
+//	force_pause = GF_FALSE;
 
 #ifndef GPAC_DISABLE_LOG
 	compositor->visual_config_time = 0;
@@ -2215,8 +2226,8 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			time = gf_sys_clock();
 		}
 #endif
-		if (force_pause)
-			gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_PAUSE);
+//		if (force_pause)
+//			gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_PAUSE);
 
 #ifndef GPAC_DISABLE_3D
 		if (compositor->autoconfig_opengl) {
@@ -2274,8 +2285,8 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #endif
 		}
 
-		if (force_pause )
-			gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_RESUME);
+//		if (force_pause )
+//			gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_RESUME);
 
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) {
@@ -2404,7 +2415,6 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 
 		if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
 			compositor->visual->type_3d = 0;
-			compositor->visual->camera.is_3D = GF_FALSE;
 		}
 		compositor->visual->camera.is_3D = (compositor->visual->type_3d>1) ? GF_TRUE : GF_FALSE;
 		if (!compositor->visual->camera.is_3D)
@@ -3616,7 +3626,9 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		break;
 	case GF_EVENT_VIDEO_SETUP:
 	{
+#ifndef GPAC_DISABLE_THREADS
 		Bool locked = gf_mx_try_lock(compositor->mx);
+#endif
 		if (event->setup.hw_reset) {
 			gf_sc_reset_graphics(compositor);
 			compositor->reset_graphics = 2;
@@ -3624,7 +3636,9 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 
 		if (event->setup.back_buffer)
 			compositor->recompute_ar = 1;
+#ifndef GPAC_DISABLE_THREADS
 		if (locked) gf_mx_v(compositor->mx);
+#endif
 	}
 	break;
 	case GF_EVENT_SIZE:
@@ -3637,7 +3651,9 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			/*EXTRA CARE HERE: the caller (video output) is likely a different thread than the compositor one, and the
 			compositor may be locked on the video output (flush or whatever)!!
 			*/
+#ifndef GPAC_DISABLE_THREADS
 			Bool lock_ok = gf_mx_try_lock(compositor->mx);
+#endif
 			if ((compositor->display_width!=event->size.width)
 					|| (compositor->display_height!=event->size.height)
 					|| (compositor->new_width && (compositor->new_width!=event->size.width))
@@ -3676,7 +3692,9 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 					}
 				}
 			}
+#ifndef GPAC_DISABLE_THREADS
 			if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
+#endif
 		}
 		return GF_FALSE;
 
@@ -4403,7 +4421,7 @@ GF_Err gf_sc_set_speed(GF_Compositor *compositor, Fixed speed)
 			GF_ObjectManager *odm;
 			if (!ns->owner || !ns->owner->subscene) continue;
 
-			while ( (odm = (struct _od_manager *)gf_list_enum(ns->owner->subscene->resources, &k))) {
+			while ( (odm = (GF_ObjectManager *)gf_list_enum(ns->owner->subscene->resources, &k))) {
 				const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_PLAYBACK_MODE);
 				if (!p || (p->value.uint!=GF_PLAYBACK_MODE_REWIND))
 					return GF_NOT_SUPPORTED;
@@ -4429,7 +4447,7 @@ GF_Err gf_sc_set_speed(GF_Compositor *compositor, Fixed speed)
 					u32 k=0;
 					GF_ObjectManager *odm;
 					GF_Scene *scene = ns->owner->subscene;
-					while ( (odm = (struct _od_manager *)gf_list_enum(scene->resources, &k))) {
+					while ( (odm = (GF_ObjectManager *)gf_list_enum(scene->resources, &k))) {
 						gf_odm_set_speed(odm, speed, GF_FALSE);
 					}
 				}
@@ -4731,6 +4749,8 @@ void gf_sc_connect_from_time(GF_Compositor *compositor, const char *URL, u64 sta
 		/*disconnect*/
 		gf_sc_disconnect(compositor);
 	}
+	if (is_self) return;
+	
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Compositor] Connecting to %s\n", URL));
 
 	gf_assert(!compositor->root_scene);
@@ -4818,7 +4838,6 @@ GF_Err gf_sc_dump_scene_ex(GF_Compositor *compositor, char *rad_name, char **fil
 
 	if (!compositor || !compositor->root_scene) return GF_BAD_PARAM;
 	if (!scene_od) {
-		if (!compositor->root_scene) return GF_BAD_PARAM;
 		odm = compositor->root_scene->root_od;
 	} else {
 		odm = scene_od;
@@ -4894,7 +4913,6 @@ GF_Err gf_sc_scene_update(GF_Compositor *compositor, const char *type, char *com
 
 	if (type && (!stricmp(type, "application/ecmascript") || !stricmp(type, "js")) )  {
 #if defined(GPAC_HAS_QJS) && !defined(GPAC_DISABLE_SVG)
-		u32 tag;
 		GF_Node *root = gf_sg_get_root_node(compositor->root_scene->graph);
 		if (!root) return GF_BAD_PARAM;
 		tag = gf_node_get_tag(root);
@@ -4950,7 +4968,7 @@ GF_Err gf_sc_scene_update(GF_Compositor *compositor, const char *type, char *com
 			else if (sscanf(com, "%lf", &end)==1) {
 				u32 count = gf_list_count(compositor->root_scene->declared_addons);
 				for (i=0; i<count; i++) {
-					GF_AddonMedia *addon = (struct _gf_addon_media *)gf_list_get(compositor->root_scene->declared_addons, i);
+					GF_AddonMedia *addon = (GF_AddonMedia *)gf_list_get(compositor->root_scene->declared_addons, i);
 					if (addon->is_splicing && (addon->splice_end<0) ) {
 						addon->splice_end = end;
 						break;
@@ -5120,7 +5138,7 @@ const void *gf_sc_get_main_pid(GF_Compositor *compositor)
 	if (odm->pid) return odm->pid;
 
 	if (odm->subscene) {
-		GF_ObjectManager *anodm = (struct _od_manager *)gf_list_get(odm->subscene->resources, 0);
+		GF_ObjectManager *anodm = (GF_ObjectManager *)gf_list_get(odm->subscene->resources, 0);
 		if (!anodm) return NULL;
 		return anodm->pid;
 	}
@@ -5214,7 +5232,7 @@ u32 gf_sc_get_elapsed_time_in_ms(GF_Compositor *compositor)
 	count = gf_list_count(compositor->root_scene->namespaces);
 	for (i=0; i<count; i++) {
 		GF_SceneNamespace *sns = (GF_SceneNamespace *)gf_list_get(compositor->root_scene->namespaces, i);
-		GF_Clock *ck = (struct _object_clock *)gf_list_get(sns->clocks, 0);
+		GF_Clock *ck = (GF_Clock *)gf_list_get(sns->clocks, 0);
 		if (ck) return gf_clock_elapsed_time(ck);
 	}
 	return 0;

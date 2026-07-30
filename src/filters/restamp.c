@@ -57,7 +57,7 @@ typedef struct
 GF_OPT_ENUM (GF_VideoFrameCopyMode,
 	RESTAMP_RAWV_NO=0,
 	RESTAMP_RAWV_FORCE,
-	RESTAMP_RAWV_DYN,
+	RESTAMP_RAWV_DYN
 );
 
 typedef struct
@@ -91,7 +91,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_pid_set_udta(pid, NULL);
 			gf_list_del_item(ctx->pids, pctx);
 			while (gf_list_count(pctx->packets)) {
-				GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(pctx->packets);
+				GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_front(pctx->packets);
 				gf_filter_pck_unref(pck);
 			}
 			gf_list_del(pctx->packets);
@@ -208,7 +208,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 	}
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (prop && (ctx->fps.num) && prop->value.lfrac.den) {
+	if (prop && prop->value.lfrac.den) {
 		GF_Fraction64 ndur = prop->value.lfrac;
 		if (ctx->fps.num>0) {
 			if (fps_scaler.num) {
@@ -308,7 +308,7 @@ ts_done:
 	if (ctx->align) {
 		if (is_ref_ts) {
 			//compute duration
-			u32 dur = gf_filter_pck_get_duration(pck);
+			dur = gf_filter_pck_get_duration(pck);
 			if (!dur || ((pctx->last_original_ts < ots) && (dur > ots - pctx->last_original_ts)))
 				dur = (u32) (ots - pctx->last_original_ts);
 
@@ -321,7 +321,7 @@ ts_done:
 
 			//we have sent a previous packet, check the diff between new TS and last one
 			if (pctx->last_ts_ref_plus_one) {
-				s64 diff = ts;
+				diff = ts;
 				u64 pred_ts = pctx->last_ts_ref_plus_one-1 + pctx->min_ref_dur;
 				pctx->ref_ts_diff = 0;
 				diff -= pred_ts;
@@ -419,7 +419,7 @@ static GF_Err restamp_process(GF_Filter *filter)
 			if (!pck) {
 				if (gf_filter_pid_is_eos(pctx->ipid)) {
 					if (pctx->packets) {
-						pck = (struct __gf_filter_pck *)gf_list_pop_front(pctx->packets);
+						pck = (GF_FilterPacket *)gf_list_pop_front(pctx->packets);
 						is_ref = GF_TRUE;
 					}
 					if (!pck) {
@@ -435,11 +435,11 @@ static GF_Err restamp_process(GF_Filter *filter)
 			}
 
 			if (ctx->reorder && !is_ref) {
-				u64 ts = gf_filter_pck_get_cts(pck);
+				ts = gf_filter_pck_get_cts(pck);
 				u32 j;
 				Bool can_flush=GF_FALSE;
 				for (j=0; j<gf_list_count(pctx->packets); j++) {
-					GF_FilterPacket *tmp = (struct __gf_filter_pck *)gf_list_get(pctx->packets, j);
+					GF_FilterPacket *tmp = (GF_FilterPacket *)gf_list_get(pctx->packets, j);
 					u64 ats = gf_filter_pck_get_cts(tmp);
 					if (ats>ts) {
 						gf_filter_pck_ref(&pck);
@@ -457,7 +457,7 @@ static GF_Err restamp_process(GF_Filter *filter)
 				gf_filter_pid_drop_packet(pctx->ipid);
 				if (!can_flush)
 					break;
-				pck = (struct __gf_filter_pck *)gf_list_pop_front(pctx->packets);
+				pck = (GF_FilterPacket *)gf_list_pop_front(pctx->packets);
 				is_ref = GF_TRUE;
 			}
 
@@ -591,7 +591,7 @@ static void restamp_finalize(GF_Filter *filter)
 		RestampPid *pctx = (RestampPid *)gf_list_pop_back(ctx->pids);
 		if (pctx->pck_ref) gf_filter_pck_unref(pctx->pck_ref);
 		while (gf_list_count(pctx->packets)) {
-			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(pctx->packets);
+			GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_front(pctx->packets);
 			gf_filter_pck_unref(pck);
 		}
 		gf_list_del(pctx->packets);

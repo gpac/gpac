@@ -43,7 +43,7 @@ static void format_sftime_string(Fixed _val, char *str)
 	h = (u32) (val/3600);
 	m = (u32) (val/60) - h*60;
 	s = (u32) (val) - h*3600 - m*60;
-	sprintf(str, "%s%02d:%02d:%02d", neg ? "-" : "", h, m, s);
+	sprintf(str, "%s%02u:%02u:%02u", neg ? "-" : "", h, m, s);
 }
 
 static void valuator_get_output(M_Valuator *p, GenMFField *inMFField, u32 inType, Bool do_sum, u32 i, SFVec4f *output, u32 *num_out)

@@ -364,7 +364,6 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 	if (!cam || (cam->navigate_mode==GF_NAVIGATE_NONE)) return GF_FALSE;
 
 	keys = compositor->key_states;
-	if (!cam->navigate_mode && !(keys & GF_KEY_MOD_ALT) ) return GF_FALSE;
 	x = y = 0;
 	/*renorm between -1, 1*/
 	if (ev->type <= GF_EVENT_LAST_MOUSE) {
@@ -735,8 +734,6 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 #endif
 
 	if (navigation_mode==GF_NAVIGATE_NONE) return GF_FALSE;
-	if (!navigation_mode && !(keys & GF_KEY_MOD_ALT) ) return GF_FALSE;
-
 
 	x = y = 0;
 	/*renorm between -1, 1*/

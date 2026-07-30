@@ -1077,7 +1077,7 @@ GF_Err store_senc_info(GF_SampleEncryptionBox *ptr, GF_BitStream *bs)
 
 	pos = gf_bs_get_position(bs);
 	if (pos>0xFFFFFFFFULL) {
-		if (ptr->cenc_saio && !ptr->cenc_saio->version) {
+		if (!ptr->cenc_saio->version) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] saio offset larger than 32-bits but box version 0 enforced. Retry without \"saio32\" option\n"));
 			return GF_BAD_PARAM;
 		}

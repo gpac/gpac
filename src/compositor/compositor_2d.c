@@ -220,7 +220,7 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 	visual_3d_setup(visual);
 	visual->compositor->traverse_state->camera = &visual->camera;
 
-
+	if (!compositor->vp_width || !compositor->vp_height) return GF_BAD_PARAM;
 	glViewport(0, 0, compositor->vp_width, compositor->vp_height);
 
 	visual->camera.vp.x = visual->camera.vp.y = 0;
@@ -584,6 +584,8 @@ Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *
 	}
 #undef ROUND_FIX
 
+	//cppcheck does not get the use_blit=false in macros
+	//cppcheck-suppress knownConditionTrueFalse
 	if (disable_blit) *disable_blit = use_blit ? GF_FALSE : GF_TRUE;
 	return GF_TRUE;
 }

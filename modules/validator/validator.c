@@ -100,7 +100,7 @@ static void validator_xvs_add_snapshot_node(GF_Validator *validator, const char 
 	att->name = gf_strdup("time");
 	att->value = (char*)gf_malloc(100);
 	if (!att->value) return;
-	sprintf(att->value, "%d", scene_time);
+	sprintf(att->value, "%u", scene_time);
 
 	att = (GF_XMLAttribute *) gf_malloc(sizeof(GF_XMLAttribute));
 	if (!att) {
@@ -130,7 +130,7 @@ static char *validator_get_snapshot_name(GF_Validator *validator, Bool is_refere
 	char dumpname[GF_MAX_PATH];
 	dot = (char*)gf_file_ext_start(name);
 	dot[0] = 0;
-	sprintf(dumpname, "%s-%s-%03d.png", name, (is_reference?"reference":"newest"), number);
+	sprintf(dumpname, "%s-%s-%03u.png", name, (is_reference?"reference":"newest"), number);
 	dot[0] = '.';
 	return gf_strdup(dumpname);
 }
@@ -525,7 +525,7 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 		att->name = gf_strdup("unicode-char");
 		att->value = (char*)gf_malloc(100);
 		if (!att->value) return;
-		sprintf(att->value, "%d", event->character.unicode_char);
+		sprintf(att->value, "%u", event->character.unicode_char);
 		break;
 	}
 	/* adding an extra text node for line break in serialization */

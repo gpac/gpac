@@ -152,7 +152,7 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 	if ((done != total || prev_pos ) && ((pos!=prev_pos) || (pc!=prev_pc))) {
 		prev_pos = pos;
 		prev_pc = pc;
-		fprintf(stderr, "%s: |%s| (%02d/100)%c", szT, szProg[pos], pc, gf_prog_lf);
+		fprintf(stderr, "%s: |%s| (%02u/100)%c", szT, szProg[pos], pc, gf_prog_lf);
 		fflush(stderr);
 	}
 	if (done==total) {
@@ -493,20 +493,20 @@ static Bool is_mintty = GF_FALSE;
 GF_EXPORT
 void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 {
-	u32 color_code;
-
 	if (gf_sys_is_test_mode() || gpac_no_color_logs)
 		return;
-	color_code = code & 0xFFFF;
 #if defined(GPAC_CONFIG_WIN32) || defined(WIN32)
 	WORD attribs=0;
 	if (!is_mintty && (console == NULL)) {
 		CONSOLE_SCREEN_BUFFER_INFO console_info;
+#ifndef _WIN32_WCE
 		const char *shellv = getenv("SHELL");
 		if (shellv) {
 			is_mintty = GF_TRUE;
 			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Console] Detected MSys/MinGW/Cygwin TTY, will use VT for coloring\n"))
-		} else {
+		} else
+#endif
+		{
 			console = GetStdHandle(STD_ERROR_HANDLE);
 			if (console != INVALID_HANDLE_VALUE) {
 				GetConsoleScreenBufferInfo(console, &console_info);
@@ -518,6 +518,7 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 
 	if (is_mintty) goto win32_ismtty;
 
+	u32 color_code = code & 0xFFFF;
 	switch(color_code) {
 	case GF_CONSOLE_RED:
 		attribs = FOREGROUND_INTENSITY | FOREGROUND_RED;
@@ -636,8 +637,7 @@ win32_ismtty:
 
 
 #if !defined(_WIN32_WCE)
-
-	switch(color_code) {
+	switch (code & 0xFFFF) {
 	case GF_CONSOLE_RED: fprintf(std, "\x1b[31m"); break;
 	case GF_CONSOLE_BLUE:
 		fprintf(std, "\x1b[34m");
@@ -727,7 +727,7 @@ Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 {
 	if (logs_extras) {
 		gf_mx_p(logs_mx);
-		u32 count = logs_extras ? gf_list_count(logs_extras) : 0; //avoid race condition
+		u32 count = gf_list_count(logs_extras); //logs_extras can be NULL after mx grab but gf_list_count(NULL) is 0
 		for (u32 i=0;i<count;i++) {
 			GF_LogExtra *lf = (GF_LogExtra *) gf_list_get(logs_extras, i);
 			u32 j;
@@ -2295,12 +2295,13 @@ s32 gf_lang_find(const char *lang_or_rfc_5646_code)
 
 	if (!lang_or_rfc_5646_code) return -1;
 
-	len = (u32)strlen(lang_or_rfc_5646_code);
 	sep = (char *) strchr(lang_or_rfc_5646_code, '-');
 	if (sep) {
 		sep[0] = 0;
 		len = (u32) strlen(lang_or_rfc_5646_code);
 		sep[0] = '-';
+	} else {
+		len = (u32)strlen(lang_or_rfc_5646_code);
 	}
 
 	for (i=0; i<count; i++) {

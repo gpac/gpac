@@ -38,7 +38,7 @@
 GF_OPT_ENUM (GF_FFSWScaleAspectRatioMode,
 	FFSWS_KEEPAR_OFF=0,
 	FFSWS_KEEPAR_FULL,
-	FFSWS_KEEPAR_NOSRC,
+	FFSWS_KEEPAR_NOSRC
 );
 
 typedef struct
@@ -658,7 +658,6 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->ow = ctx->osize.x;
 		ctx->oh = ctx->osize.y;
 	}
-	ctx->offset_w = ctx->offset_h = 0;
 
 	u32 final_w = ctx->ow;
 	u32 final_h = ctx->oh;

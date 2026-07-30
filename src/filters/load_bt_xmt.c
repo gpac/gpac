@@ -285,7 +285,7 @@ static Bool ctxload_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
+		GF_FilterPid *opid = (GF_FilterPid *)gf_filter_pid_get_udta(ipid);
 		//we found our pid, set it up
 		if (opid == com->attach_scene.on_pid) {
 			if (!priv->scene) {

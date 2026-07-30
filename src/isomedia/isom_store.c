@@ -162,7 +162,7 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 		if (trak->extl) continue;
 
 		stbl = (trak->Media && trak->Media->information) ? trak->Media->information->sampleTable : NULL;
-		if (!stbl || !stbl->SampleSize || !stbl->ChunkOffset || !stbl->SampleToChunk || !stbl->SampleSize) {
+		if (!stbl || !stbl->SampleSize || !stbl->ChunkOffset || !stbl->SampleToChunk) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[Isom] Box '%s' missing from track, cannot write\n",
 				!trak->Media ? "mdia" :
 				!trak->Media->information ? "minf" :
@@ -316,7 +316,6 @@ static GF_Err shift_chunk_offsets(GF_SampleToChunkBox *stsc, GF_MediaBox *mdia, 
 			if (new_stco64) {
 				*new_stco = (GF_Box *) new_stco64;
 				_stco = (GF_Box *) new_stco64;
-				new_stco64 = NULL;
 			}
 		} else {
 			GF_ChunkLargeOffsetBox *stco64 = (GF_ChunkLargeOffsetBox *) _stco;
@@ -701,6 +700,7 @@ static GF_Err store_meta_item_sample_ref_offsets(GF_ISOFile *movie, GF_List *wri
 	u32 i, count;
 	TrackWriter *writer;
 	GF_Box *stco;
+	GF_Err e;
 	GF_SampleToChunkBox *stsc;
 	u64 max_base_offset = 0;
 	u64 max_ext_offset = 0;
@@ -719,10 +719,13 @@ static GF_Err store_meta_item_sample_ref_offsets(GF_ISOFile *movie, GF_List *wri
 			stco = writer->stbl->ChunkOffset;
 			s32 stsc_pos = gf_list_del_item(writer->stbl->child_boxes, stsc);
 			s32 stco_pos = gf_list_del_item(writer->stbl->child_boxes, stco);
+			if ((stsc_pos<0) || (stco_pos<0)) return GF_OUT_OF_MEM;
 			writer->stbl->SampleToChunk = writer->stsc;
 			writer->stbl->ChunkOffset = writer->stco;
-			gf_list_insert(writer->stbl->child_boxes, writer->stsc, stsc_pos);
-			gf_list_insert(writer->stbl->child_boxes, writer->stco, stco_pos);
+			e = gf_list_insert(writer->stbl->child_boxes, writer->stsc, stsc_pos);
+			if (e) return e;
+			e = gf_list_insert(writer->stbl->child_boxes, writer->stco, stco_pos);
+			if (e) return e;
 			writer->stco = stco;
 			writer->stsc = stsc;
 		}
@@ -789,11 +792,14 @@ static GF_Err store_meta_item_sample_ref_offsets(GF_ISOFile *movie, GF_List *wri
 			writer->stco = writer->stbl->ChunkOffset;
 			s32 stsc_pos = gf_list_del_item(writer->stbl->child_boxes, writer->stsc);
 			s32 stco_pos = gf_list_del_item(writer->stbl->child_boxes, writer->stco);
+			if ((stsc_pos<0) || (stco_pos<0)) return GF_OUT_OF_MEM;
 
 			writer->stbl->SampleToChunk = stsc;
 			writer->stbl->ChunkOffset = stco;
-			gf_list_insert(writer->stbl->child_boxes, stsc, stsc_pos);
-			gf_list_insert(writer->stbl->child_boxes, stco, stco_pos);
+			e = gf_list_insert(writer->stbl->child_boxes, stsc, stsc_pos);
+			if (e) return e;
+			e = gf_list_insert(writer->stbl->child_boxes, stco, stco_pos);
+			if (e) return e;
 		}
 	}
 	return GF_OK;

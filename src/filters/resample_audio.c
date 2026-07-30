@@ -442,7 +442,7 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (ctx->speed > FIX_ONE) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, ctx->ipid);
-		evt.buffer_req.max_buffer_us = FIX2INT( ctx->speed * 100000 );
+		evt.buffer_req.max_buffer_us = 1000 * FIX2INT( ctx->speed * 100 );
 		gf_filter_pid_send_event(ctx->ipid, &evt);
 	}
 
@@ -463,7 +463,7 @@ static Bool resample_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->speed > FIX_ONE) {
 			GF_FilterEvent anevt;
 			GF_FEVT_INIT(anevt, GF_FEVT_BUFFER_REQ, ctx->ipid);
-			anevt.buffer_req.max_buffer_us = FIX2INT( ctx->speed * 100000 );
+			anevt.buffer_req.max_buffer_us = 1000 * FIX2INT( ctx->speed * 100 );
 			gf_filter_pid_send_event(ctx->ipid, &anevt);
 		}
 		//reset output ts

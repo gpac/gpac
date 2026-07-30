@@ -885,11 +885,6 @@ force_scene_rap:
 						samp->dataLength = 0;
 					}
 				}
-
-				/*apply commands */
-				if (samp->DTS > last_rap + rap_delay) {
-					e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
-				}
 			}
 
 			/*carousel generation*/

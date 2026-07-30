@@ -537,7 +537,7 @@ static JSValue js_bs_data_io(JSContext *ctx, JSValueConst this_val, int argc, JS
 {
 	s32 nb_bytes=0;
 	s64 offset=0;
-	size_t data_size;
+	size_t data_size=0;
 	u8 *data=NULL;
 	GET_JSBS
 	if (!bs) return GF_JS_EXCEPTION(ctx);
@@ -997,7 +997,7 @@ static JSValue js_sys_enable_userws(JSContext *ctx, JSValueConst this_val, int a
 
 static void js_sys_rmt_client_finalizer(JSRuntime *rt, JSValue val) {
 
-	RMT_ClientCtx* client = (struct __rmt_clientctx *)JS_GetOpaque(val, js_sys_rmt_client_class_id);
+	RMT_ClientCtx* client = (RMT_ClientCtx *)JS_GetOpaque(val, js_sys_rmt_client_class_id);
 	if (!client) return;
 
 	JS_Sys_Task *task = (JS_Sys_Task *) gf_rmt_client_get_on_data_task(client);
@@ -1025,7 +1025,7 @@ static void js_sys_rmt_client_finalizer(JSRuntime *rt, JSValue val) {
 
 static void js_sys_rmt_client_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func) {
 
-	RMT_ClientCtx* client = (struct __rmt_clientctx *)JS_GetOpaque(val, js_sys_rmt_client_class_id);
+	RMT_ClientCtx* client = (RMT_ClientCtx *)JS_GetOpaque(val, js_sys_rmt_client_class_id);
 	if (!client) return;
 
 	// JS_Sys_Task* task = gf_rmt_client_get_on_data_task(client);
@@ -1112,7 +1112,7 @@ static void js_sys_rmt_client_on_data(void *udta, const u8* payload, u64 size, B
 
 static JSValue js_sys_rmt_client_prop_get(JSContext *ctx, JSValueConst this_val, int magic) {
 
-	RMT_ClientCtx* client = (struct __rmt_clientctx *)JS_GetOpaque(this_val, js_sys_rmt_client_class_id);
+	RMT_ClientCtx* client = (RMT_ClientCtx *)JS_GetOpaque(this_val, js_sys_rmt_client_class_id);
 	if (!client)
 		return JS_UNDEFINED;
 
@@ -1129,7 +1129,7 @@ static JSValue js_sys_rmt_client_prop_get(JSContext *ctx, JSValueConst this_val,
 
 static JSValue js_sys_rmt_client_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic) {
 
-	RMT_ClientCtx* client = (struct __rmt_clientctx *)JS_GetOpaque(this_val, js_sys_rmt_client_class_id);
+	RMT_ClientCtx* client = (RMT_ClientCtx *)JS_GetOpaque(this_val, js_sys_rmt_client_class_id);
 	if (!client)
 		return GF_JS_EXCEPTION(ctx);
 
@@ -1201,7 +1201,7 @@ static JSValue js_sys_rmt_client_prop_set(JSContext *ctx, JSValueConst this_val,
 
 static JSValue js_sys_rmt_client_send(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
 
-	RMT_ClientCtx* client = (struct __rmt_clientctx *)JS_GetOpaque(this_val, js_sys_rmt_client_class_id);
+	RMT_ClientCtx* client = (RMT_ClientCtx *)JS_GetOpaque(this_val, js_sys_rmt_client_class_id);
 	if (!client)
 		return GF_JS_EXCEPTION(ctx);
 
@@ -1686,7 +1686,7 @@ static Bool js_enum_dir_fct(void *cbck, char *file_name, char *file_path, GF_Fil
 	JSValue obj;
 	enum_dir_cbk *cbk = (enum_dir_cbk*)cbck;
 
-	if (file_name && (file_name[0]=='.')) return GF_FALSE;
+	if (!file_name || (file_name[0]=='.')) return GF_FALSE;
 
 	obj = JS_NewObject(cbk->c);
 	JS_SetPropertyStr(cbk->c, obj, "name", JS_NewString(cbk->c, file_name) );
@@ -1756,6 +1756,8 @@ static JSValue js_sys_enum_directory(JSContext *ctx, JSValueConst this_val, int 
 		}
 	}
 
+	//cppcheck does not get the dir= branch
+	//cppcheck-suppress knownConditionTrueFalse
 	if ( (!dir || !strlen(dir) ) && (!url || !strlen(url))) browse_root = GF_TRUE;
 
 	if (browse_root) {
@@ -1946,6 +1948,9 @@ static JSValue js_sys_rand64(JSContext *ctx, JSValueConst this_val, int argc, JS
 
 static JSValue js_sys_getenv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+#if defined(_WIN32_WCE)
+	return JS_NULL;
+#else
 	const char *str, *val;
 	if (!argc) return GF_JS_EXCEPTION(ctx);
 	str = JS_ToCString(ctx, argv[0]);
@@ -1953,6 +1958,7 @@ static JSValue js_sys_getenv(JSContext *ctx, JSValueConst this_val, int argc, JS
 	val = getenv(str);
 	JS_FreeCString(ctx, str);
 	return val ? JS_NewString(ctx, val) : JS_NULL;
+#endif
 }
 
 static JSValue js_sys_get_utc(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -2380,7 +2386,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 				}
 
 				if (!sep) break;
-				if (sep) sep[0] = '\n';
+				sep[0] = '\n';
 				cur = sep+1;
 				continue;
 			}
@@ -2572,9 +2578,9 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 					u32 sidx, re, cur_seg=0;
 					//u64 start = mpd->availabilityStartTime + p->start;
 					for (sidx=0; sidx<gf_list_count(mpd_stl->entries); sidx++) {
-						GF_MPD_SegmentTimelineEntry *e = (GF_MPD_SegmentTimelineEntry *)gf_list_get(mpd_stl->entries, sidx);
+						GF_MPD_SegmentTimelineEntry *e_stl = (GF_MPD_SegmentTimelineEntry *)gf_list_get(mpd_stl->entries, sidx);
 						//if (e->start_time) start = e->start_time;
-						for (re=0; re<e->repeat_count+1; re++) {
+						for (re=0; re<e_stl->repeat_count+1; re++) {
 							JSValue sego = JS_NewObject(ctx);
 							gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA, cur_seg, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
 
@@ -3278,19 +3284,19 @@ static void amix_set_s32(u8 *data, Double val)
 }
 static Double amix_get_flt(u8 *data)
 {
-	return (Double) *(Float *)data;
+	return (Double) *(Float *)(void *)data;
 }
 static void amix_set_flt(u8 *data, Double val)
 {
-	*(Float *)data = (Float) val;
+	*(Float *)(void *)data = (Float) val;
 }
 static Double amix_get_dbl(u8 *data)
 {
-	return *(Double *)data;
+	return *(Double *)(void *)data;
 }
 static void amix_set_dbl(u8 *data, Double val)
 {
-	*(Double *)data = val;
+	*(Double *)(void *)data = val;
 }
 
 
@@ -4617,7 +4623,7 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 			return NULL;
 		}
 
-		const char *fext = gf_file_ext_start(module_name);
+		fext = gf_file_ext_start(module_name);
         int res = js_module_test_json(ctx, attributes);
         if ((fext && !stricmp(fext, ".json")) || res > 0) {
             /* compile as JSON or JSON5 depending on "type" */

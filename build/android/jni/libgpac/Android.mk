@@ -437,7 +437,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/url.c \
 	../../../../src/utils/utf.c \
 	../../../../src/utils/xml_bin_custom.c \
-	../../../../src/utils/xml_parser.c \
-	../../../../src/utils/zutil.c
+	../../../../src/utils/xml_parser.c
 
 include $(BUILD_SHARED_LIBRARY)

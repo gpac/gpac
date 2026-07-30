@@ -236,7 +236,7 @@ static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt,
 
 	if (strlen(parser->err_msg)+30 < GF_ARRAY_LENGTH(parser->err_msg)) {
 		char szM[20];
-		snprintf(szM, 20, " - Line %d: ", parser->line + 1);
+		snprintf(szM, 20, " - Line %u: ", parser->line + 1);
 		gf_strcat(parser->err_msg, szM);
 		len = (u32) strlen(parser->err_msg);
 		u32 buffer_offset = linepos ? linepos : parser->current_pos;
@@ -1647,7 +1647,7 @@ const char *gf_xml_sax_get_error(GF_SAXParser *parser)
 }
 
 
-struct _peek_type
+struct peek_type
 {
 	GF_SAXParser *parser;
 	char *res;
@@ -1655,7 +1655,7 @@ struct _peek_type
 
 static void on_peek_node_start(void *cbk, const char *name, const char *ns, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
-	struct _peek_type *pt = (struct _peek_type*)cbk;
+	struct peek_type *pt = (struct peek_type*)cbk;
 	gf_free(pt->res);
 	pt->res = gf_strdup(name);
 	pt->parser->suspended = GF_TRUE;
@@ -1665,7 +1665,7 @@ GF_EXPORT
 char *gf_xml_get_root_type(const char *file, GF_Err *ret)
 {
 	GF_Err e;
-	struct _peek_type pt;
+	struct peek_type pt;
 	pt.res = NULL;
 	pt.parser = gf_xml_sax_new(on_peek_node_start, NULL, NULL, &pt);
 	e = gf_xml_sax_parse_file(pt.parser, file, NULL);
@@ -2119,7 +2119,7 @@ char *gf_xml_dom_serialize_root(GF_XMLNode *node, Bool content_only, Bool no_esc
 	gf_dynstrcat(&str, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n", NULL);
 	if (!str) return NULL;
 
-	alloc_size = size = (u32) strlen(str);
+	size = (u32) strlen(str);
 	alloc_size = size + 1;
 	gf_xml_dom_node_serialize(node, content_only, no_escape, &str, &alloc_size, &size);
 	return str;

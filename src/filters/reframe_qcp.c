@@ -178,7 +178,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 		/*get frame rate idx*/
 		if (ctx->vrat_rate_flag) {
 			idx = gf_fgetc(stream);
-			chunk_size-=1;
+			//chunk_size-=1;
 			for (i=0; i<ctx->rate_table_count; i++) {
 				if (ctx->rate_table[i].rate_idx==idx) {
 					size = ctx->rate_table[i].pck_size;
@@ -300,7 +300,7 @@ static const char *QCP_SMV_GUID = "\x75\x2B\x7C\x8D\x97\xA7\x46\xED\x98\x5E\xD5\
 
 static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, const u8 *data, u32 size, GF_BitStream *file_bs)
 {
-	u8 magic[12], GUID[17], name[81], fmt[162];
+	u8 magic[12], GUID[17], fmt[162];
 	u32 riff_size, chunk_size, i, avg_bps;
 	Bool has_pad;
 	const GF_PropertyValue *p;
@@ -344,8 +344,7 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, const 
 	GUID[16]=0;
 	/*version = */gf_bs_read_u16_le(bs);
 	chunk_size -= 18;
-	gf_bs_read_data(bs, name, 80);
-	name[80]=0;
+	gf_bs_skip_bytes(bs, 80); //name, unused
 	chunk_size -= 80;
 	avg_bps = gf_bs_read_u16_le(bs);
 	ctx->pck_size = gf_bs_read_u16_le(bs);

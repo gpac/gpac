@@ -1837,10 +1837,9 @@ static JSValue jsf_filter_set_source_internal(JSContext *ctx, JSValueConst this_
 	if (!jsf && !jsfi) return GF_JS_EXCEPTION(ctx);
 
 	GF_Filter *src = NULL;
-	if (!src) {
-		GF_JSFilterCtx *f_from = (GF_JSFilterCtx *)JS_GetOpaque(argv[0], jsf_filter_class_id);
-		if (f_from) src = f_from->filter;
-	}
+	GF_JSFilterCtx *f_from = (GF_JSFilterCtx *)JS_GetOpaque(argv[0], jsf_filter_class_id);
+	if (f_from) src = f_from->filter;
+
 	if (!src) {
 		GF_JSFilterInstanceCtx *fi_from = (GF_JSFilterInstanceCtx *)JS_GetOpaque(argv[0], jsf_filter_inst_class_id);
 		if (fi_from) src = fi_from->filter;
@@ -4371,15 +4370,17 @@ static JSValue jsf_pck_append_data(JSContext *ctx, JSValueConst this_val, int ar
 
 	if (JS_IsString(argv[0])  || JS_IsInteger(argv[0])) {
 		u32 len;
-		const char *str = NULL;
+		const char *str = JS_ToCString(ctx, argv[0]);
 
 		if (JS_IsInteger(argv[0])) {
 			JS_ToUint32(ctx, &len, argv[0]);
-		} else {
-			str = JS_ToCString(ctx, argv[0]);
-			if (!str) return GF_JS_EXCEPTION(ctx);
-			len = (u32) strlen(str);
+			if (str) {
+				JS_FreeCString(ctx, str);
+				str = NULL;
+			}
 		}
+		if (str)
+			len = (u32) strlen(str);
 
 		e = gf_filter_pck_expand(pck, len, &data_start, &new_start, &data_size);
 		if (!new_start || e) {
@@ -4586,6 +4587,7 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		if (pctx->pck_head) {
 			JS_FreeValue(jsf->ctx, pctx->pck_head->jsobj);
 			//might be set to NULL while freeing above obj
+			//cppcheck-suppress knownConditionTrueFalse
 			if (pctx->pck_head) {
 				pctx->pck_head->jsobj = JS_UNDEFINED;
 				pctx->pck_head->jspid = NULL;
@@ -5035,7 +5037,7 @@ static void jsfilter_finalize(GF_Filter *filter)
 			gf_mx_p(jsf->filter->session->filters_mx);
 			count = gf_list_count(jsf->filter->session->filters);
 			for (i=0; i<count; i++) {
-				GF_Filter *a_f = (struct __gf_filter *)gf_list_get(jsf->filter->session->filters, i);
+				GF_Filter *a_f = (GF_Filter *)gf_list_get(jsf->filter->session->filters, i);
 				if (a_f == jsf->filter) continue;
 				jsfs_on_filter_destroyed(a_f);
 			}

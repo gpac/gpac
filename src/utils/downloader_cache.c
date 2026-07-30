@@ -410,7 +410,7 @@ GF_Err gf_cache_flush_disk_cache ( const DownloadedCacheEntry entry, Bool succes
 	gf_cfg_set_key(cfg, CACHE_SECTION_NAME, CACHE_SECTION_KEY_URL, entry->url);
 
 	if (entry->range_start || entry->range_end) {
-		sprintf(buff, LLD "-" LLD, entry->range_start, entry->range_end);
+		sprintf(buff, LLU "-" LLU, entry->range_start, entry->range_end);
 		gf_cfg_set_key(cfg, CACHE_SECTION_NAME, CACHE_SECTION_KEY_RANGE, buff);
 	}
 
@@ -421,7 +421,7 @@ GF_Err gf_cache_flush_disk_cache ( const DownloadedCacheEntry entry, Bool succes
 	if (entry->diskLastModified)
 		gf_cfg_set_key(cfg, CACHE_SECTION_NAME, CACHE_SECTION_KEY_LAST_MODIFIED, entry->diskLastModified);
 
-	snprintf(buff, 16, "%d", entry->contentLength);
+	snprintf(buff, 16, "%u", entry->contentLength);
 	gf_cfg_set_key(cfg, CACHE_SECTION_NAME, CACHE_SECTION_KEY_CONTENT_SIZE, buff);
 	//save and destroy
 	gf_cfg_del(cfg);
@@ -468,7 +468,7 @@ static void gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry
 	keyValue = gf_cfg_get_key(cfg, CACHE_SECTION_NAME, CACHE_SECTION_KEY_RANGE);
 	if (keyValue) {
 		u64 s, e;
-		sscanf(keyValue, LLD "-" LLD, &s, &e);
+		sscanf(keyValue, LLU "-" LLU, &s, &e);
 		/*mark as corrupted if not same range (we don't support this for the time being ...*/
 		if ((s!=entry->range_start) || (e!=entry->range_end)) {
 			entry->flags |= CORRUPTED;
@@ -487,7 +487,7 @@ static void gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry
 
 	if ( the_cache ) {
 		char * endPtr;
-		const char * keyValue = gf_cfg_get_key(cfg, CACHE_SECTION_NAME, CACHE_SECTION_KEY_INWRITE);
+		keyValue = gf_cfg_get_key(cfg, CACHE_SECTION_NAME, CACHE_SECTION_KEY_INWRITE);
 		if (keyValue) {
 			entry->cacheSize = 0;
 			entry->flags |= IN_PROGRESS;
@@ -536,7 +536,7 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	tmp[0] = '\0';
 	/*generate hash of the full url*/
 	if (start_range && end_range) {
-		snprintf(tmp, GF_MAX_PATH, "%s_" LLD "-" LLD, url, start_range, end_range );
+		snprintf(tmp, GF_MAX_PATH, "%s_" LLU "-" LLU, url, start_range, end_range );
 	} else {
 		gf_strcpy ( tmp, url );
 	}

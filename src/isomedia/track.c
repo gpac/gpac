@@ -273,8 +273,7 @@ default_sync:
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		    moov->mvex &&
 #endif
-		    esd->decoderConfig && esd->decoderConfig->streamType &&
-		    (esd->decoderConfig->streamType==GF_STREAM_VISUAL)
+		    esd->decoderConfig && (esd->decoderConfig->streamType==GF_STREAM_VISUAL)
 		) {
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 0;
 			esd->slConfig->useRandomAccessPointFlag = 1;
@@ -380,7 +379,7 @@ GF_Err SetTrackDurationEx(GF_TrackBox *trak, Bool keep_utc)
 {
 	u64 trackDuration=0xFFFFFFFF;
 	u32 i;
-	GF_Err e = GF_OK;
+	GF_Err e;
 
 	//the total duration is the media duration: adjust it in case...
 	if (!trak->extl) {

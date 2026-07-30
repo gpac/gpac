@@ -409,7 +409,7 @@ rescan_fonts:
 	ftpriv->font_fixed = NULL;
 
 	//error and we rescanned font dirs, restore default fonts
-	if (e && ftpriv->cache_checked)
+	if (ftpriv->cache_checked)
 		rescan = 2;
 
 	if (!rescan) {

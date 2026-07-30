@@ -755,6 +755,7 @@ GF_EXPORT
 Float gf_bs_read_float(GF_BitStream *bs)
 {
 	char buf [4] = "\0\0\0";
+	Float value;
 #ifdef NO_OPTS
 	s32 i;
 	for (i = 0; i < 32; i++)
@@ -765,17 +766,20 @@ Float gf_bs_read_float(GF_BitStream *bs)
 	buf[1] = gf_bs_read_int(bs, 8);
 	buf[0] = gf_bs_read_int(bs, 8);
 #endif
-	return (* (Float *) buf);
+	memcpy(&value, buf, sizeof(value));
+	return value;
 }
 
 GF_EXPORT
 Double gf_bs_read_double(GF_BitStream *bs)
 {
 	char buf [8] = "\0\0\0\0\0\0\0";
+	Double value;
 	s32 i;
 	for (i = 0; i < 64; i++)
 		buf[7-i/8] |= gf_bs_read_bit(bs) << (7 - i%8);
-	return (* (Double *) buf);
+	memcpy(&value, buf, sizeof(value));
+	return value;
 }
 
 GF_EXPORT
@@ -968,7 +972,7 @@ void gf_bs_write_long_int(GF_BitStream *bs, s64 _value, s32 nBits)
 	u64 value = (u64) _value;
 	value <<= max_shift - nBits;
 	while (--nBits >= 0) {
-		BS_WriteBit (bs, ((s64)value) < 0);
+		BS_WriteBit (bs, (value & 0x8000000000000000ULL) != 0);
 		value <<= 1;
 	}
 }

@@ -771,7 +771,7 @@ u64 gf_gzseek(void *file, u64 _offset, int whence)
 		if (s->inbuf == Z_NULL) {
 			s->inbuf = (Byte*)ALLOC(Z_BUFSIZE); /* for seeking */
 			if (s->inbuf == Z_NULL) return -1L;
-			zmemzero(s->inbuf, Z_BUFSIZE);
+			memset(s->inbuf, 0, Z_BUFSIZE);
 		}
 		while (offset > 0)  {
 			uInt size = Z_BUFSIZE;

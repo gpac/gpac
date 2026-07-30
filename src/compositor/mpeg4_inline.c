@@ -408,7 +408,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 
 		if (gf_mo_get_od_id(pl->url) != GF_MEDIA_EXTERNAL_ID) {
 			if (gf_mo_get_od_id(pl->url) == gf_mo_get_od_id(lib_url)) {
-				if (!pl->mo->odm || !pl->mo->odm->subscene) return NULL;
+				if (!pl->mo->odm->subscene) return NULL;
 				return pl->mo->odm->subscene->graph;
 			}
 		}
@@ -437,7 +437,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 				gf_free(url2);
 
 				if (!ok) continue;
-				if (!pl->mo->odm || !pl->mo->odm->subscene) return NULL;
+				if (!pl->mo->odm->subscene) return NULL;
 				return pl->mo->odm->subscene->graph;
 			}
 			check_scene = check_scene->root_od->parentscene;
@@ -536,7 +536,7 @@ static void storage_parse_sf(void *ptr, u32 fieldType, char *opt)
 	Float v1, v2, v3;
 	switch (fieldType) {
 	case GF_SG_VRML_SFBOOL:
-		sscanf(opt, "%d", ((SFBool *)ptr));
+		sscanf(opt, "%d", ((s32 *)ptr));
 		break;
 	case GF_SG_VRML_SFINT32:
 		sscanf(opt, "%d",  ((SFInt32 *)ptr) );
@@ -599,7 +599,7 @@ static void gf_storage_load(M_Storage *storage)
 
 	for (i=0; i<count; i++) {
 		GF_FieldInfo info;
-		sprintf(szID, "%d", i);
+		sprintf(szID, "%u", i);
 		opt = gf_opts_get_key(section, szID);
 		if (!opt) break;
 		if (!storage->storageList.vals[i].node) break;
@@ -683,7 +683,7 @@ void gf_storage_save(M_Storage *storage)
 	for (i=0; i<storage->storageList.count; i++) {
 		char *val;
 		GF_FieldInfo info;
-		sprintf(szID, "%d", i);
+		sprintf(szID, "%u", i);
 
 		if (!storage->storageList.vals[i].node) break;
 		if (gf_node_get_field(storage->storageList.vals[i].node, storage->storageList.vals[i].fieldIndex, &info) != GF_OK) break;
@@ -728,11 +728,11 @@ static void gf_storage_traverse(GF_Node *n, void *rs, Bool is_destroy)
 	}
 }
 
-static void on_force_restore(GF_Node *n, struct _route *_route)
+static void on_force_restore(GF_Node *n, GF_Route *_route)
 {
 	if (n) gf_storage_load((M_Storage *)n);
 }
-static void on_force_save(GF_Node *n, struct _route *_route)
+static void on_force_save(GF_Node *n, GF_Route *_route)
 {
 	if (n) gf_storage_save((M_Storage *)n);
 }

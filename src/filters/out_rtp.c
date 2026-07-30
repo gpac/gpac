@@ -601,8 +601,6 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 
 	stream->rtp_timescale = gf_rtp_streamer_get_timescale(stream->rtp);
 
-
-	payt++;
 	stream->microsec_ts_scale_frac.num = 1000000;
 	stream->microsec_ts_scale_frac.den = stream->timescale;
 

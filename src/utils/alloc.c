@@ -24,7 +24,9 @@
  */
 
 #if defined(__GNUC__) && __GNUC__ >= 4
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #endif
 #include <stdio.h>
 #include <stdarg.h>
@@ -676,9 +678,11 @@ static void register_address(void *ptr, size_t size, const char *filename, int l
 	if (gpac_allocations_lock == 0) {
 		gf_assert(!memory_add);
 		gf_assert(!memory_rem);
+		//cppcheck-suppress intToPointerCast
 		gpac_allocations_lock = (GF_Mutex*)1; /*must be non-null to avoid a recursive infinite call*/
 		gpac_allocations_lock = gf_mx_new("gpac_allocations_lock");
 	}
+	//cppcheck-suppress intToPointerCast
 	else if (gpac_allocations_lock == (void*)1) {
 		/*we're initializing the mutex (ie called by the gf_mx_new() above)*/
 		return;

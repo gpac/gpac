@@ -1860,10 +1860,8 @@ static GF_Err gf_netcap_send_pcap(GF_NetcapFilter *nf, GF_Socket *sock, const u8
 		chk_sum += (((sock->cap_info->host_addr_v4>>16)&0xFF)<<8) | ((sock->cap_info->host_addr_v4>>24)&0xFF);
 		chk_sum += ((sock->cap_info->peer_addr_v4&0xFF)<<8) | ((sock->cap_info->peer_addr_v4>>8)&0xFF);
 		chk_sum += (((sock->cap_info->peer_addr_v4>>16)&0xFF)<<8) | ((sock->cap_info->peer_addr_v4>>24)&0xFF);
-		if (chk_sum>0xFFFF) {
-			u32 high = chk_sum>0xFFFF;
-			chk_sum += high;
-		}
+		chk_sum = (chk_sum & 0xFFFF) + (chk_sum >> 16);
+		chk_sum = (chk_sum & 0xFFFF) + (chk_sum >> 16);
 		gf_bs_write_u16(nf->cap_bs, ~chk_sum);
 		gf_bs_write_u32_le(nf->cap_bs, sock->cap_info->host_addr_v4);
 		gf_bs_write_u32_le(nf->cap_bs, sock->cap_info->peer_addr_v4);
@@ -2250,7 +2248,7 @@ GF_Err gf_sk_connect_ex(GF_Socket *sock, const char *PeerName, u16 PortNumber, c
 				}
 			}
 			if (aip->ai_family==AF_INET) {
-				sock->cap_info->peer_addr_v4 = inet_addr_from_name(PeerName);
+				//sock->cap_info->peer_addr_v4 = inet_addr_from_name(PeerName);
 				sock->cap_info->peer_addr_v4 = ((struct sockaddr_in *)aip->ai_addr)->sin_addr.s_addr;
 			} else {
 				memcpy(sock->cap_info->peer_addr_v6, (u8*) &((struct sockaddr_in6 *)aip->ai_addr)->sin6_addr, sizeof(bin128));
@@ -2506,7 +2504,7 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 	u32 ip_add;
 	size_t addrlen;
 	struct sockaddr_in LocalAdd;
-	struct hostent *Host = NULL;
+	struct hostent *Host;
 #endif
 	s32 ret = 0;
 	s32 optval;
@@ -2662,11 +2660,12 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 					gf_free(*dst_sock_addr);
 					*dst_sock_addr = NULL;
 				}
+				int last_err = LASTSOCKERROR;
 				sock_close(sock);
-				if (!(options & GF_SOCK_REUSE_PORT) && (LASTSOCKERROR == EADDRINUSE)) {
+				if (!(options & GF_SOCK_REUSE_PORT) && (last_err == EADDRINUSE)) {
 					return GF_IP_CONNECTION_FAILURE;
 				}
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] bind failed: %s\n", gf_errno_str(LASTSOCKERROR) ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] bind failed: %s\n", gf_errno_str(last_err) ));
 				continue;
 			}
 		}
@@ -2915,8 +2914,7 @@ static GF_Err gf_sk_send_internal(GF_Socket *sock, const u8 *buffer, u32 length,
 		if (sock->cap_info->nf->read_socks==NULL)
 			return gf_netcap_send(sock, buffer, length, written);
 
-		if (sock->cap_info->nf->read_socks)
-			return GF_OK;
+		return GF_OK;
 	}
 #endif
 
@@ -3013,7 +3011,7 @@ Bool gf_sk_is_multicast_address(const char *multi_IPAdd)
 	if (gf_net_is_ipv6(multi_IPAdd)) {
 		/*IPV6 multicast address*/
 		sep = strchr(multi_IPAdd, ':');
-		if (sep) sep = strchr(multi_IPAdd, ':');
+		if (sep) sep = strchr(sep+1, ':');
 		if (sep && !strnicmp(multi_IPAdd, "ff", 2)) return GF_TRUE;
 		//mapped address
 		if (!strnicmp(multi_IPAdd, "::ffff:", 7)) multi_IPAdd+=7;
@@ -3122,6 +3120,10 @@ static u32 inet_addr_from_name(const char *local_interface)
 	if (strchr(local_interface, '.'))
 		return inet_addr(local_interface);
 
+#if !defined(GPAC_WIN_HAS_ADAPTER_INFO) && !defined(GPAC_HAS_IFADDRS)
+	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] Cannot resolve interface %s\n", local_interface));
+	return 0xFFFFFFFF;
+#else
 	Bool name_match = GF_FALSE;
 	u32 ret = 0;
 
@@ -3183,6 +3185,7 @@ static u32 inet_addr_from_name(const char *local_interface)
 		return htonl(INADDR_ANY);
 	}
 	return ret;
+#endif
 }
 
 GF_EXPORT
@@ -3285,6 +3288,7 @@ static Bool get_ifce_enum(void *cbk, const char *name, const char *IP, u32 flags
 
 Bool gf_net_get_adapter_ip(const char *ip_or_name, char **ipv4, char **ipv6)
 {
+#if defined(GPAC_WIN_HAS_ADAPTER_INFO) || defined(GPAC_HAS_IFADDRS)
 	GetIPInfo info;
 	info.ip_or_name = ip_or_name;
 	info.res_v4 = info.res_v6 = NULL;
@@ -3295,10 +3299,13 @@ Bool gf_net_get_adapter_ip(const char *ip_or_name, char **ipv4, char **ipv6)
 	if (!res) return GF_FALSE;
 	if (ipv4) *ipv4 = info.res_v4;
 	else gf_free(info.res_v4);
-	
+
 	if (ipv6) *ipv6 = info.res_v6;
 	else gf_free(info.res_v6);
 	return GF_TRUE;
+#else
+	return GF_FALSE;
+#endif
 }
 
 GF_EXPORT
@@ -3401,7 +3408,7 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 #if defined(GPAC_HAS_IFADDRS)
 			//get sockaddr if this is an IP address and compare with enumerated interface
 			aip = NULL;
-			if (ifce_ip_or_name && strpbrk(ifce_ip_or_name, ".:")) {
+			if (strpbrk(ifce_ip_or_name, ".:")) {
 				aip = gf_sk_get_ipv6_addr(ifce_ip_or_name, MultiPortNumber, ifce_ipv6 ? AF_INET6 : AF_UNSPEC, AI_PASSIVE, type);
 			}
 			struct ifaddrs *ifap=NULL, *ifa;
@@ -4052,7 +4059,7 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, u8 *buffer, u32 length, u32 *Byte
 		if (sock!=nf->read_sock_selected) return GF_IP_NETWORK_EMPTY;
 		u32 to_read = length;
 		if ((s32) to_read > nf->pck_len) to_read = nf->pck_len;
-		u32 res = gf_bs_read_data(nf->cap_bs, buffer, to_read);
+		res = gf_bs_read_data(nf->cap_bs, buffer, to_read);
 		if (nf->read_sock_selected->cap_info->patch_offset) {
 			if (nf->read_sock_selected->cap_info->patch_offset-1<res) {
 				buffer[nf->read_sock_selected->cap_info->patch_offset-1] = nf->read_sock_selected->cap_info->patch_val;

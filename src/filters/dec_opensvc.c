@@ -376,7 +376,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	src_pck = NULL;
 	for (i=0; i<count; i++) {
 		u64 acts;
-		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
+		src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_packets, i);
 		acts = gf_filter_pck_get_cts(src_pck);
 		if (acts==min_cts) {
 			gf_filter_pck_unref(pck_ref);
@@ -538,7 +538,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YUV) );
 	}
 
-	src_pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->src_packets);
+	src_pck = (GF_FilterPacket *)gf_list_pop_front(ctx->src_packets);
 
 	if (src_pck && gf_filter_pck_get_seek_flag(src_pck)) {
 		gf_filter_pck_unref(src_pck);
@@ -576,7 +576,7 @@ static void osvcdec_finalize(GF_Filter *filter)
 	GF_OSVCDecCtx *ctx = (GF_OSVCDecCtx*) gf_filter_get_udta(filter);
 	if (ctx->codec) SVCDecoder_close(ctx->codec);
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);

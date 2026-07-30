@@ -102,7 +102,7 @@ GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	}
 
 	if (is_remove) {
-		out_pid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
+		out_pid = (GF_FilterPid *)gf_filter_pid_get_udta(pid);
 		if (ctx->out_pid==out_pid)
 			ctx->out_pid = NULL;
 		if (out_pid)
@@ -164,9 +164,9 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
+		GF_FilterPid *opid = (GF_FilterPid *)gf_filter_pid_get_udta(pid);
 
-		GF_ObjectManager *odm = (struct _od_manager *)gf_filter_pid_get_udta(opid);
+		GF_ObjectManager *odm = (GF_ObjectManager *)gf_filter_pid_get_udta(opid);
 		//object clock shall be valid
 		if (!odm || !odm->ck) continue;
 
@@ -238,7 +238,7 @@ static Bool bifs_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
+		GF_FilterPid *opid = (GF_FilterPid *)gf_filter_pid_get_udta(ipid);
 		//we found our pid, set it up
 		if (opid == com->attach_scene.on_pid) {
 			if (!ctx->odm) {

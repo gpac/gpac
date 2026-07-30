@@ -260,8 +260,7 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 	else ID = 0;
 
 	/*write OD_ID*/
-	if (!url->count) {
-		gf_assert(0);
+	if (!url || !url->count) {
 		return;
 	}
 	i = url->count - 1;
@@ -274,7 +273,7 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 		        || (ID && odl->od && odl->od->objectDescriptorID==ID)
 		        || (ID && (odl->ID==ID))
 		   ) {
-			if (url && (gf_list_find(odl->mf_urls, url)<0) ) gf_list_add(odl->mf_urls, url);
+			if (gf_list_find(odl->mf_urls, url)<0) gf_list_add(odl->mf_urls, url);
 			return;
 		}
 	}
@@ -392,9 +391,9 @@ static u32 xmt_locate_stream(GF_XMTParser *parser, char *stream_name)
 	while ((esdl = (XMT_ESDLink *)gf_list_enum(parser->esd_links, &i))) {
 		if (esdl->desc_name && !strcmp(esdl->desc_name, stream_name)) return esdl->ESID;
 		if (esdl->ESID) {
-			sprintf(szN, "es%d", esdl->ESID);
+			sprintf(szN, "es%u", esdl->ESID);
 			if (!strcmp(szN, stream_name)) return esdl->ESID;
-			sprintf(szN, "%d", esdl->ESID);
+			sprintf(szN, "%u", esdl->ESID);
 			if (!strcmp(szN, stream_name)) return esdl->ESID;
 		}
 	}
@@ -582,10 +581,9 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 			j=0;
 			while ((the_url = (MFURL *)gf_list_enum(l->mf_urls, &j))) {
 				u32 k;
-				char *seg = NULL;
 				for (k = 0; k < the_url->count; k++) {
 					SFURL* url = &the_url->vals[k];
-					seg = NULL;
+					char *seg = NULL;
 					if (url->url) seg = strstr(url->url, "#");
 					if (seg) {
 						sprintf(szURL, "od:%d#%s", l->od->objectDescriptorID, seg+1);
@@ -618,9 +616,9 @@ static void xmt_remove_link_for_descriptor(GF_XMTParser* parser, GF_Descriptor* 
 	// recursively remove sub descriptors links
 	if (desc->tag == GF_ODF_IOD_TAG || desc->tag == GF_ODF_OD_TAG) {
 		GF_Descriptor* subdesc = NULL;
-		u32 i=0;
+		i=0;
 		while ((subdesc = (GF_Descriptor *)gf_list_enum(((GF_ObjectDescriptor*)desc)->ESDescriptors, &i))) {
-			if (subdesc) xmt_remove_link_for_descriptor(parser, subdesc);
+			xmt_remove_link_for_descriptor(parser, subdesc);
 		}
 	}
 
@@ -2512,7 +2510,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 				}
 			}
 
-			u32 i, num_defs = gf_list_count(parser->def_nodes);
+			u32 num_defs = gf_list_count(parser->def_nodes);
 			for (i = 0; i < num_defs; i++) {
 				GF_Node *n = (GF_Node *)gf_list_get(parser->def_nodes, i);
 				if (n->sgprivate->num_instances == 1)
@@ -2591,7 +2589,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 					if (iNode) {
 						GF_FieldInfo idxF;
 						parser->command->toNodeID = gf_node_get_id(iNode);
-						GF_Err e = gf_node_get_field_by_name(iNode, idxField, &idxF);
+						e = gf_node_get_field_by_name(iNode, idxField, &idxF);
 						if (!e && idxF.far_ptr) {
 							parser->command->toFieldIndex = idxF.fieldIndex;
 							position = 0;
@@ -3162,7 +3160,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 				goto attach_node;
 			}
 		}
-	} else if (top && top->node && top->node->sgprivate->tag==tag) {
+	} else if (top->node && top->node->sgprivate->tag==tag) {
 		node = top->node;
 		gf_list_rem_last(parser->nodes);
 		gf_free(top);
@@ -3458,7 +3456,7 @@ attach_node:
 				xmt_remove_od_links_for_node(parser, node);
 			}
 			gf_node_unregister(node, NULL);
-			node_processed = GF_TRUE;
+			//node_processed = GF_TRUE;
 		}
 	} else if (parser->current_node_tag==tag) {
 		gf_list_rem_last(parser->nodes);

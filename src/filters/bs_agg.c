@@ -132,7 +132,7 @@ static GF_Err avc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 	count = gf_list_count(pctx->ipids);
 	for (i=0; i<count; i++) {
 		const GF_PropertyValue *dsi, *dsi_enh, *prop;
-		GF_FilterPid *ipid = (struct __gf_filter_pid *)gf_list_get(pctx->ipids, i);
+		GF_FilterPid *ipid = (GF_FilterPid *)gf_list_get(pctx->ipids, i);
 		prop = gf_filter_pid_get_property(ipid, GF_PROP_PID_DEPENDENCY_ID);
 		if (!prop || !prop->value.uint) base = ipid;
 
@@ -285,7 +285,7 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 	count = gf_list_count(pctx->ipids);
 	for (i=0; i<count; i++) {
 		const GF_PropertyValue *dsi, *dsi_enh, *prop;
-		GF_FilterPid *ipid = (struct __gf_filter_pid *)gf_list_get(pctx->ipids, i);
+		GF_FilterPid *ipid = (GF_FilterPid *)gf_list_get(pctx->ipids, i);
 		prop = gf_filter_pid_get_property(ipid, GF_PROP_PID_DEPENDENCY_ID);
 		if (!prop || !prop->value.uint) base = ipid;
 
@@ -430,14 +430,14 @@ err_exit:
 
 static GF_Err none_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *c_opid)
 {
-	GF_FilterPid *ipid = (struct __gf_filter_pid *)gf_list_get(c_opid->ipids, 0);
+	GF_FilterPid *ipid = (GF_FilterPid *)gf_list_get(c_opid->ipids, 0);
 	gf_filter_pid_copy_properties(c_opid->opid, ipid);
 	return GF_OK;
 }
 
 static GF_Err none_process(BSAggCtx *ctx, BSAggOut *c_opid)
 {
-	GF_FilterPid *ipid = (struct __gf_filter_pid *)gf_list_get(c_opid->ipids, 0);
+	GF_FilterPid *ipid = (GF_FilterPid *)gf_list_get(c_opid->ipids, 0);
 	while (1) {
 		GF_Err e;
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
@@ -514,7 +514,7 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 	for (i=0; i<count; i++) {
 		u64 ts;
 		u32 timescale;
-		GF_FilterPid *pid = (struct __gf_filter_pid *)gf_list_get(pctx->ipids, i);
+		GF_FilterPid *pid = (GF_FilterPid *)gf_list_get(pctx->ipids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(pid)) {
@@ -550,7 +550,7 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 		u64 ts;
 		u32 timescale;
 		u32 svc_layer_id=0, svc_temporal_id=0;
-		GF_FilterPid *pid = (struct __gf_filter_pid *)gf_list_get(pctx->ipids, i);
+		GF_FilterPid *pid = (GF_FilterPid *)gf_list_get(pctx->ipids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
 		if (!pck) continue;
 
@@ -568,7 +568,7 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 
 		size=0;
 		while (size<pck_size) {
-			u32 nal_type=0;
+			u32 nal_type;
 			u32 layer_id = 0;
 			u32 temporal_id = 0;
 			u32 nal_hdr = nalu_size_length;
@@ -730,7 +730,7 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 		if (size && !pctx->pck) {
 			pctx->pck = gf_filter_pck_new_alloc(pctx->opid, 4, NULL);
 			if (!pctx->pck) {
-				e = GF_OUT_OF_MEM;
+				process_error = GF_OUT_OF_MEM;
 				break;
 			}
 			gf_filter_pck_merge_properties_filter(pck, pctx->pck, bsagg_filter_prop, ctx);
@@ -741,7 +741,7 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 		if (e) process_error = e;
 	}
 
-	if (!tot_size) return process_error;
+	if (!tot_size || process_error) return process_error;
 
 	//realloc packet to total size
 	u8 *output=NULL;
@@ -788,7 +788,7 @@ static Bool bs_agg_is_base(BSAggOut *pctx, u32 codec_id, u32 dep_id, u32 rec_lev
 	u32 i, count = gf_list_count(pctx->ipids);
 	if (rec_level>count) return GF_FALSE;
 	for (i=0; i<count; i++) {
-		GF_FilterPid *ipid = (struct __gf_filter_pid *)gf_list_get(pctx->ipids, i);
+		GF_FilterPid *ipid = (GF_FilterPid *)gf_list_get(pctx->ipids, i);
 		const GF_PropertyValue *p = gf_filter_pid_get_property(ipid, GF_PROP_PID_ID);
 		if (p && (p->value.uint==dep_id)) return GF_TRUE;
 		p = gf_filter_pid_get_property(ipid, GF_PROP_PID_DEPENDENCY_ID);

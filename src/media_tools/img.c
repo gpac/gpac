@@ -179,7 +179,6 @@ j2k_restart:
 					jp2h_start = (u32) gf_bs_get_position(bs);
 					goto j2k_restart;
 				case GF_ISOM_BOX_TYPE_IHDR:
-				{
 					*height = gf_bs_read_u32(bs);
 					*width = gf_bs_read_u32(bs);
 					/*nb_comp = gf_bs_read_u16(bs);
@@ -199,8 +198,7 @@ j2k_restart:
 						*dsi_len = jp2h_size;
 					}
 					goto exit;
-				}
-				break;
+
 				default:
 					gf_bs_skip_bytes(bs, size-8);
 					break;

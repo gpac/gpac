@@ -251,15 +251,15 @@ void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src)
 }
 
 
+#ifdef ENABLE_AOUT
 static GF_Err get_best_samplerate(GF_AudioMixer *am, u32 *out_sr, u32 *out_ch, u32 *out_fmt)
 {
 	if (!am->ar) return GF_OK;
-#ifdef ENABLE_AOUT
 	if (!am->ar->audio_out || !am->ar->audio_out->QueryOutputSampleRate) return GF_OK;
 	return am->ar->audio_out->QueryOutputSampleRate(am->ar->audio_out, out_sr, out_ch, out_fmt);
-#endif
 	return GF_OK;
 }
+#endif
 
 GF_EXPORT
 void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outFMT, u64 *outChCfg)
@@ -289,12 +289,16 @@ GF_Err gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, 
 	am->bit_depth = gf_audio_fmt_bit_depth(am->afmt);
 	if (!am->force_channel_out)
 		am->nb_channels = outCH;
-	if (get_best_samplerate(am, &outSR, &outCH, &outFMT) == GF_OK) {
+#ifdef ENABLE_AOUT
+	if (get_best_samplerate(am, &outSR, &outCH, &outFMT) == GF_OK)
+#endif
+	{
 		am->sample_rate = outSR;
 		if (outCH>2) am->channel_layout = outChCfg;
 		else if (outCH==2) am->channel_layout = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
 		else am->channel_layout = GF_AUDIO_CH_FRONT_CENTER;
 	}
+
 	/*if main mixer recfg output*/
 	if (am->ar)	am->ar->need_reconfig = GF_TRUE;
 	am->must_reconfig = GF_FALSE;
@@ -377,7 +381,8 @@ s32 input_sample_flt(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 pl
 #ifdef GPAC_BIG_ENDIAN
 	psamp = swap_32(psamp);
 #endif
-	Float samp = *(Float *)&psamp;
+	Float samp;
+	memcpy(&samp, &psamp, sizeof(Float));
 	TRUNC_FLT_DBL(samp);
 }
 s32 input_sample_fltp(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
@@ -386,7 +391,8 @@ s32 input_sample_fltp(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 p
 #ifdef GPAC_BIG_ENDIAN
 	psamp = swap_32(psamp);
 #endif
-	Float samp = *(Float *)&psamp;
+	Float samp;
+	memcpy(&samp, &psamp, sizeof(Float));
 	TRUNC_FLT_DBL(samp);
 }
 s32 input_sample_flt_be(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
@@ -395,7 +401,8 @@ s32 input_sample_flt_be(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32
 #ifndef GPAC_BIG_ENDIAN
 	psamp = swap_32(psamp);
 #endif
-	Float samp = *(Float *)&psamp;
+	Float samp;
+	memcpy(&samp, &psamp, sizeof(Float));
 	TRUNC_FLT_DBL(samp);
 }
 s32 input_sample_dbl(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
@@ -404,7 +411,8 @@ s32 input_sample_dbl(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 pl
 #ifdef GPAC_BIG_ENDIAN
 	psamp = swap_64(psamp);
 #endif
-	Double samp = *(Double *)&psamp;
+	Double samp;
+	memcpy(&samp, &psamp, sizeof(samp));
 	TRUNC_FLT_DBL(samp);
 }
 s32 input_sample_dblp(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
@@ -413,7 +421,8 @@ s32 input_sample_dblp(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 p
 #ifdef GPAC_BIG_ENDIAN
 	psamp = swap_64(psamp);
 #endif
-	Double samp = *(Double *)&psamp;
+	Double samp;
+	memcpy(&samp, &psamp, sizeof(samp));
 	TRUNC_FLT_DBL(samp);
 }
 s32 input_sample_dbl_be(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
@@ -422,7 +431,8 @@ s32 input_sample_dbl_be(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32
 #ifndef GPAC_BIG_ENDIAN
 	psamp = swap_64(psamp);
 #endif
-	Double samp = *(Double *)&psamp;
+	Double samp;
+	memcpy(&samp, &psamp, sizeof(samp));
 	TRUNC_FLT_DBL(samp);
 }
 
@@ -1353,8 +1363,8 @@ do_mix:
 				samp /= MIX_S24_SCALE;
 				if (samp > GF_S24_MAX) samp = GF_S24_MAX;
 				else if (samp < GF_S24_MIN) samp = GF_S24_MIN;
-				out_s24[2] = (samp>>16) & 0xFF;
-				out_s24[1] = (samp>>8) & 0xFF;
+				out_s24[2] = (((u32)samp)>>16) & 0xFF;
+				out_s24[1] = (((u32)samp)>>8) & 0xFF;
 				out_s24[0] = samp & 0xFF;
 				out_s24 += 3;
 				out_mix += 1;
@@ -1369,8 +1379,8 @@ do_mix:
 				samp /= MIX_S24_SCALE;
 				if (samp > GF_S24_MAX) samp = GF_S24_MAX;
 				else if (samp < GF_S24_MIN) samp = GF_S24_MIN;
-				out_s24[2] = (samp>>16) & 0xFF;
-				out_s24[1] = (samp>>8) & 0xFF;
+				out_s24[2] = (((u32)samp)>>16) & 0xFF;
+				out_s24[1] = (((u32)samp)>>8) & 0xFF;
 				out_s24[0] = samp & 0xFF;
 				out_s24 += 3;
 				out_mix += am->nb_channels;
@@ -1384,8 +1394,8 @@ do_mix:
 				samp /= MIX_S24_SCALE;
 				if (samp > GF_S24_MAX) samp = GF_S24_MAX;
 				else if (samp < GF_S24_MIN) samp = GF_S24_MIN;
-				out_s24[0] = (samp>>16) & 0xFF;
-				out_s24[1] = (samp>>8) & 0xFF;
+				out_s24[0] = (((u32)samp)>>16) & 0xFF;
+				out_s24[1] = (((u32)samp)>>8) & 0xFF;
 				out_s24[2] = samp & 0xFF;
 				out_s24 += 3;
 				out_mix += 1;
@@ -1401,7 +1411,7 @@ do_mix:
 				else if (samp < GF_SHORT_MIN) samp = GF_SHORT_MIN;
 
 #ifdef GPAC_BIG_ENDIAN
-				(*out_s16) = swap_16(samp);
+				(*out_s16) = swap_16((u16) samp);
 #else
 				(*out_s16) = samp;
 #endif
@@ -1419,7 +1429,7 @@ do_mix:
 				if (samp > GF_SHORT_MAX) samp = GF_SHORT_MAX;
 				else if (samp < GF_SHORT_MIN) samp = GF_SHORT_MIN;
 #ifdef GPAC_BIG_ENDIAN
-				(*out_s16) = swap_16(samp);
+				(*out_s16) = swap_16((u16) samp);
 #else
 				(*out_s16) = samp;
 #endif
@@ -1437,7 +1447,7 @@ do_mix:
 				else if (samp < GF_SHORT_MIN) samp = GF_SHORT_MIN;
 
 #ifndef GPAC_BIG_ENDIAN
-				(*out_s16) = swap_16(samp);
+				(*out_s16) = swap_16((u16) samp);
 #else
 				(*out_s16) = samp;
 #endif

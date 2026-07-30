@@ -233,7 +233,6 @@
 		71CCF3411277045100339E12 /* url.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2401277045100339E12 /* url.c */; };
 		71CCF3421277045100339E12 /* utf.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2411277045100339E12 /* utf.c */; };
 		71CCF3431277045100339E12 /* xml_parser.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2421277045100339E12 /* xml_parser.c */; };
-		71CCF3451277045100339E12 /* zutil.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2441277045100339E12 /* zutil.c */; };
 		71CCF3461277045100339E12 /* zutil.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF2451277045100339E12 /* zutil.h */; };
 		71CCF3B112770A8C00339E12 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF36012770A8C00339E12 /* avparse.h */; };
 		71CCF3B212770A8C00339E12 /* base_coding.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF36112770A8C00339E12 /* base_coding.h */; };
@@ -839,7 +838,6 @@
 		71CCF2401277045100339E12 /* url.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = url.c; sourceTree = "<group>"; };
 		71CCF2411277045100339E12 /* utf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = utf.c; sourceTree = "<group>"; };
 		71CCF2421277045100339E12 /* xml_parser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = xml_parser.c; sourceTree = "<group>"; };
-		71CCF2441277045100339E12 /* zutil.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = zutil.c; sourceTree = "<group>"; };
 		71CCF2451277045100339E12 /* zutil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zutil.h; sourceTree = "<group>"; };
 		71CCF36012770A8C00339E12 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = avparse.h; sourceTree = "<group>"; };
 		71CCF36112770A8C00339E12 /* base_coding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = base_coding.h; sourceTree = "<group>"; };
@@ -1701,7 +1699,6 @@
 				71CCF2411277045100339E12 /* utf.c */,
 				3F04FCB92C9CB139002BC889 /* xml_bin_custom.c */,
 				71CCF2421277045100339E12 /* xml_parser.c */,
-				71CCF2441277045100339E12 /* zutil.c */,
 				71CCF2451277045100339E12 /* zutil.h */,
 			);
 			name = utils;
@@ -2724,7 +2721,6 @@
 				71CCF3431277045100339E12 /* xml_parser.c in Sources */,
 				92EB6DEC20E4E19700A97A49 /* dasher.c in Sources */,
 				92E9DFB12215CEA700628420 /* ftgrays.c in Sources */,
-				71CCF3451277045100339E12 /* zutil.c in Sources */,
 				7141FF301292CB9200FCB27D /* alloc.c in Sources */,
 				92359C8A250F657B00525A42 /* in_route.c in Sources */,
 				970A26C913434D2C0007362C /* m3u8.c in Sources */,

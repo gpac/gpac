@@ -316,14 +316,17 @@ static void pipeout_finalize(GF_Filter *filter)
 static void pout_write_marker(GF_PipeOutCtx *ctx)
 {
 	if (ctx->marker) {
-		u32 nb_write;
 #ifdef WIN32
-		if (! WriteFile(ctx->pipe, PIPE_FLUSH_MARKER, 8, (LPDWORD) &nb_write, NULL)) {
+		u32 nb_write=0;
+		if (! WriteFile(ctx->pipe, PIPE_FLUSH_MARKER, 8, (LPDWORD) &nb_write, NULL))
+			nb_write = 0;
+		//cppcheck-suppress knownConditionTrueFalse
+		if (nb_write != 8) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to write marker: error %d\n", GetLastError() ));
 			return;
 		}
 #else
-		nb_write = (s32) write(ctx->fd, PIPE_FLUSH_MARKER, 8);
+		u32 nb_write = (s32) write(ctx->fd, PIPE_FLUSH_MARKER, 8);
 		if (nb_write != 8) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to write marker: %s\n", gf_errno_str(errno)));
 			return;
@@ -389,8 +392,8 @@ static GF_Err pipeout_process(GF_Filter *filter)
 #else
 			ctx->fd<0
 #endif
-			) {
-			GF_Err e = pipeout_setup_file(ctx, explicit_overwrite);
+		) {
+			e = pipeout_setup_file(ctx, explicit_overwrite);
 			if (e) {
 				gf_filter_setup_failure(filter, e);
 				return e;
@@ -409,6 +412,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 		GF_FilterFrameInterface *hwf = gf_filter_pck_get_frame_interface(pck);
 		if (pck_data) {
 #ifdef WIN32
+			nb_write = 0;
 			if (! WriteFile(ctx->pipe, pck_data, pck_size, (LPDWORD) &nb_write, NULL)) {
 				nb_write = 0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: error %d\n", nb_write, pck_size, GetLastError() ));
@@ -442,7 +446,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 					u32 j, write_h, lsize;
 					const u8 *out_ptr;
 					u32 out_stride = i ? stride_uv : stride;
-					GF_Err e = hwf->get_plane(hwf, i, &out_ptr, &out_stride);
+					e = hwf->get_plane(hwf, i, &out_ptr, &out_stride);
 					if (e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to fetch plane data from hardware frame, cannot write\n"));
 						break;

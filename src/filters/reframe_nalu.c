@@ -42,7 +42,7 @@ GF_OPT_ENUM (GF_DolbyVisionSignalingMode,
 	DVMODE_AUTO,
 	DVMODE_FORCE,
 	DVMODE_CLEAN,
-	DVMODE_SINGLE,
+	DVMODE_SINGLE
 );
 
 typedef struct
@@ -62,7 +62,7 @@ typedef struct
 GF_OPT_ENUM (GF_GOPBufferingMode,
 	STRICT_POC_OFF = 0,
 	STRICT_POC_ON,
-	STRICT_POC_ERROR,
+	STRICT_POC_ERROR
 );
 
 typedef struct
@@ -770,7 +770,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 			for (i=0; i<gf_list_count(ctx->pck_queue); i++) {
 				s32 poc;
 				u64 poc_ts, dts;
-				GF_FilterPacket *q_pck = (struct __gf_filter_pck *)gf_list_get(ctx->pck_queue, i);
+				GF_FilterPacket *q_pck = (GF_FilterPacket *)gf_list_get(ctx->pck_queue, i);
 
 				if (q_pck == ctx->first_pck_in_au) break;
 
@@ -796,7 +796,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 
 		while (gf_list_count(ctx->pck_queue) ) {
 			u64 dts;
-			GF_FilterPacket *q_pck = (struct __gf_filter_pck *)gf_list_get(ctx->pck_queue, 0);
+			GF_FilterPacket *q_pck = (GF_FilterPacket *)gf_list_get(ctx->pck_queue, 0);
 
 			if (q_pck == ctx->first_pck_in_au) break;
 
@@ -2094,7 +2094,7 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->cts = 0;
 
 		while (gf_list_count(ctx->pck_queue)) {
-			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->pck_queue);
+			GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->pck_queue);
 			gf_filter_pck_discard(pck);
 		}
 		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
@@ -3832,7 +3832,7 @@ naldmx_flush:
 					u32 i, count = gf_list_count(ctx->pck_queue);
 					for (i=0; i<count; i++) {
 						u64 dts, cts;
-						GF_FilterPacket *q_pck = (struct __gf_filter_pck *)gf_list_get(ctx->pck_queue, i);
+						GF_FilterPacket *q_pck = (GF_FilterPacket *)gf_list_get(ctx->pck_queue, i);
 						gf_assert(q_pck);
 						dts = gf_filter_pck_get_dts(q_pck);
 						if (dts == GF_FILTER_NO_TS) continue;
@@ -4072,7 +4072,7 @@ naldmx_flush:
 	if ((ctx->nb_nalus>nalu_before) && gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
 
-		sprintf(szStatus, "NALU=%u I=%u P=%u B=%u SI=%u SP=%u IDR=%u CRA=%u SEI=%d", ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_idr, ctx->nb_cra, ctx->nb_sei);
+		sprintf(szStatus, "NALU=%u I=%u P=%u B=%u SI=%u SP=%u IDR=%u CRA=%u SEI=%u", ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_idr, ctx->nb_cra, ctx->nb_sei);
 		gf_filter_update_status(filter, -1, szStatus);
 	}
 	if (ctx->full_au_source && ctx->poc_probe_done) {
@@ -4222,7 +4222,7 @@ static void naludmx_finalize(GF_Filter *filter)
 	gf_free(ctx->nal_store);
 	if (ctx->pck_queue) {
 		while (gf_list_count(ctx->pck_queue)) {
-			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->pck_queue);
+			GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->pck_queue);
 			gf_filter_pck_discard(pck);
 		}
 		gf_list_del(ctx->pck_queue);

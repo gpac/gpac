@@ -72,13 +72,13 @@ static GF_Node *s2b_get_node(SWFReader *read, u32 ID)
 {
 	GF_Node *n;
 	char szDEF[1024];
-	sprintf(szDEF, "Shape%d", ID);
+	sprintf(szDEF, "Shape%u", ID);
 	n = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	if (n) return n;
-	sprintf(szDEF, "Text%d", ID);
+	sprintf(szDEF, "Text%u", ID);
 	n = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	if (n) return n;
-	sprintf(szDEF, "Button%d", ID);
+	sprintf(szDEF, "Button%u", ID);
 	n = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	if (n) return n;
 	return NULL;
@@ -229,7 +229,7 @@ static GF_Node *s2b_get_appearance(SWFReader *read, GF_Node *parent, u32 fill_co
 
 	if (read->load->swf_import_flags & GF_SM_SWF_REUSE_APPEARANCE) {
 		char szDEF[1024];
-		sprintf(szDEF, "FILLAPP_%d", gf_list_count(read->apps));
+		sprintf(szDEF, "FILLAPP_%u", gf_list_count(read->apps));
 		read->load->ctx->max_node_id++;
 		ID = read->load->ctx->max_node_id;
 
@@ -254,6 +254,10 @@ static GF_Rect s2b_get_center_bounds(SWFShape *shape, SWFShapeRec *srec)
 		if (srec->path->pts[i].x>=xM) xM = srec->path->pts[i].x;
 		if (srec->path->pts[i].y<=ym) ym = srec->path->pts[i].y;
 		if (srec->path->pts[i].y>=yM) yM = srec->path->pts[i].y;
+	}
+	if ((xM == FIX_MIN) || ( yM == FIX_MIN) || (xm == FIX_MAX) || (ym == FIX_MAX)) {
+		memset(&rc, 0, sizeof(GF_Rect));
+		return rc;
 	}
 	rc.width = xM-xm;
 	rc.height = yM-ym;
@@ -316,6 +320,7 @@ static GF_Node *s2b_get_gradient(SWFReader *read, GF_Node *parent, SWFShape *sha
 	rc = s2b_get_center_bounds(shape, srec);
 
 	gf_mx2d_init(mx);
+	//cppcheck-suppress redundantAssignment
 	mx.m[0] = gf_invfix(rc.width);
 	mx.m[2] = - gf_divfix(rc.x, rc.width);
 	mx.m[4] = gf_invfix(rc.height);
@@ -341,6 +346,7 @@ static GF_Node *s2b_get_gradient(SWFReader *read, GF_Node *parent, SWFShape *sha
 
 	/*matrix from local coordinates to texture coordiantes (Y-flip for BIFS texture coordinates)*/
 	gf_mx2d_init(mx);
+	//cppcheck-suppress redundantAssignment
 	mx.m[0] = gf_invfix(rc.width);
 	mx.m[2] = - gf_divfix(rc.x, rc.width);
 	mx.m[4] = gf_invfix(rc.height);
@@ -362,7 +368,7 @@ static GF_Node *s2b_get_bitmap(SWFReader *read, GF_Node *parent, SWFShape *shape
 	M_Appearance *app;
 	char szDEF[100];
 
-	sprintf(szDEF, "Bitmap%d", srec->img_id);
+	sprintf(szDEF, "Bitmap%u", srec->img_id);
 	bmp = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	if (!bmp) return NULL;
 	app = (M_Appearance *) s2b_new_node(read, TAG_MPEG4_Appearance);
@@ -717,7 +723,7 @@ static GF_Err swf_bifs_define_shape(SWFReader *read, SWFShape *shape, SWFFont *p
 				gf_list_add(parent_font->glyphs, n);
 				gf_node_register(n, NULL);
 			} else {
-				sprintf(szDEF, "Shape%d", shape->ID);
+				sprintf(szDEF, "Shape%u", shape->ID);
 				read->load->ctx->max_node_id++;
 				ID = read->load->ctx->max_node_id;
 				gf_node_set_id(n, ID, szDEF);
@@ -731,7 +737,7 @@ static GF_Err swf_bifs_define_shape(SWFReader *read, SWFShape *shape, SWFFont *p
 	c = NULL;
 	if (read->flags & GF_SM_SWF_USE_IC2D) {
 		c = (M_Coordinate2D *)gf_node_new(read->load->scene_graph, TAG_MPEG4_Coordinate2D);
-		sprintf(szDEF, "ShapePts%d", shape->ID);
+		sprintf(szDEF, "ShapePts%u", shape->ID);
 		read->load->ctx->max_node_id++;
 		ID = read->load->ctx->max_node_id;
 		gf_node_set_id((GF_Node*)c, ID, szDEF);
@@ -767,7 +773,7 @@ static GF_Node *s2b_get_glyph(SWFReader *read, u32 fontID, u32 gl_index, GF_Node
 	GF_Node *n, *glyph;
 	SWFFont *ft;
 
-	sprintf(szDEF, "FT%d_GL%d", fontID, gl_index);
+	sprintf(szDEF, "FT%u_GL%u", fontID, gl_index);
 	n = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	if (n) {
 		gf_node_register(n, par);
@@ -777,16 +783,16 @@ static GF_Node *s2b_get_glyph(SWFReader *read, u32 fontID, u32 gl_index, GF_Node
 	/*first use of glyph in file*/
 	ft = swf_find_font(read, fontID);
 	if (!ft) {
-		swf_report(read, GF_BAD_PARAM, "Cannot find font %d - skipping glyph", fontID);
+		swf_report(read, GF_BAD_PARAM, "Cannot find font %u - skipping glyph", fontID);
 		return NULL;
 	}
 	if (ft->nbGlyphs <= gl_index) {
-		swf_report(read, GF_BAD_PARAM, "Glyph #%d not found in font %d - skipping", gl_index, fontID);
+		swf_report(read, GF_BAD_PARAM, "Glyph #%u not found in font %u - skipping", gl_index, fontID);
 		return NULL;
 	}
 	n = (GF_Node*)gf_list_get(ft->glyphs, gl_index);
 	if (gf_node_get_tag(n) != TAG_MPEG4_Shape) {
-		swf_report(read, GF_BAD_PARAM, "Glyph #%d in font %d not a shape (translated in %s) - skipping", gl_index, fontID, gf_node_get_class_name(n));
+		swf_report(read, GF_BAD_PARAM, "Glyph #%u in font %u not a shape (translated in %s) - skipping", gl_index, fontID, gf_node_get_class_name(n));
 		return NULL;
 	}
 	glyph = ((M_Shape *)n)->geometry;
@@ -942,7 +948,7 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 	if (tr) {
 		char szDEF[1024];
 		u32 ID;
-		sprintf(szDEF, "Text%d", text->ID);
+		sprintf(szDEF, "Text%u", text->ID);
 		read->load->ctx->max_node_id++;
 		ID = read->load->ctx->max_node_id;
 		gf_node_set_id((GF_Node *)tr, ID, szDEF);
@@ -1092,7 +1098,7 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 	if (tr) {
 		char szDEF[1024];
 		u32 ID;
-		sprintf(szDEF, "Text%d", text->ID);
+		sprintf(szDEF, "Text%u", text->ID);
 		read->load->ctx->max_node_id++;
 		ID = read->load->ctx->max_node_id;
 		gf_node_set_id((GF_Node*)tr, ID, szDEF);
@@ -1119,7 +1125,7 @@ static void swf_bifs_end_of_clip(SWFReader *read)
 	for (i=0; i<read->max_depth; i++) {
 		/*and write command*/
 		com = gf_sg_command_new(read->load->scene_graph, GF_SG_INDEXED_REPLACE);
-		sprintf(szDEF, "CLIP%d_DL", read->current_sprite_id);
+		sprintf(szDEF, "CLIP%u_DL", read->current_sprite_id);
 		com->node = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 
 		gf_node_register(com->node, NULL);
@@ -1143,7 +1149,7 @@ static Bool swf_bifs_allocate_depth(SWFReader *read, u32 depth)
 	GF_Node *disp, *empty;
 	if (read->max_depth > depth) return GF_TRUE;
 
-	sprintf(szDEF, "CLIP%d_DL", read->current_sprite_id);
+	sprintf(szDEF, "CLIP%u_DL", read->current_sprite_id);
 	disp = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 
 	empty = gf_sg_find_node_by_name(read->load->scene_graph, "Shape0");
@@ -1280,7 +1286,7 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 	((M_AnimationStream *)n)->startTime = 0;
 
 	n = s2b_new_node(read, TAG_MPEG4_MediaControl);
-	sprintf(szDEF, "CLIP%d_CTRL", read->current_sprite_id);
+	sprintf(szDEF, "CLIP%u_CTRL", read->current_sprite_id);
 	read->load->ctx->max_node_id++;
 	ID = read->load->ctx->max_node_id;
 	gf_node_set_id(n, ID, szDEF);
@@ -1297,7 +1303,7 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 
 	/*create sprite grouping node*/
 	n = s2b_new_node(read, TAG_MPEG4_Group);
-	sprintf(szDEF, "CLIP%d_DL", read->current_sprite_id);
+	sprintf(szDEF, "CLIP%u_DL", read->current_sprite_id);
 
 	read->load->ctx->max_node_id++;
 	ID = read->load->ctx->max_node_id;
@@ -1347,7 +1353,7 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd, Bool soundstr
 	/*soundstream header, only declare the associated MediaControl node for later actions*/
 	if (!snd->ID && !soundstream_first_block) {
 		n = s2b_new_node(read, TAG_MPEG4_MediaControl);
-		sprintf(szDEF, "CLIP%d_SND", read->current_sprite_id);
+		sprintf(szDEF, "CLIP%u_SND", read->current_sprite_id);
 		read->load->ctx->max_node_id++;
 		ID = read->load->ctx->max_node_id;
 		gf_node_set_id(n, ID, szDEF);
@@ -1409,7 +1415,7 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd, Bool soundstr
 
 	/*regular sound: set an ID to do play/stop*/
 	if (snd->ID) {
-		sprintf(szDEF, "Sound%d", snd->ID);
+		sprintf(szDEF, "Sound%u", snd->ID);
 		read->load->ctx->max_node_id++;
 		ID = read->load->ctx->max_node_id;
 		gf_node_set_id(n, ID, szDEF);
@@ -1425,7 +1431,7 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd, Bool soundstr
 			((M_AudioClip*)n)->startTime = snd->frame_delay_ms/1000.0;
 		}
 
-		sprintf(szDEF, "CLIP%d_SND", read->current_sprite_id);
+		sprintf(szDEF, "CLIP%u_SND", read->current_sprite_id);
 		n = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 
 		/*assign URL*/
@@ -1495,7 +1501,7 @@ static GF_Err swf_bifs_setup_image(SWFReader *read, u32 ID, char *fileName)
 	((M_Appearance *)par)->texture = n;
 	gf_node_register(n, par);
 
-	sprintf(szDEF, "Bitmap%d", ID);
+	sprintf(szDEF, "Bitmap%u", ID);
 	read->load->ctx->max_node_id++;
 	ID = read->load->ctx->max_node_id;
 	gf_node_set_id(n, ID, szDEF);
@@ -1612,7 +1618,7 @@ static GF_Err swf_bifs_start_sound(SWFReader *read, SWFSound *snd, Bool stop)
 	SFTime t = 0;
 	char szDEF[100];
 
-	sprintf(szDEF, "Sound%d", snd->ID);
+	sprintf(szDEF, "Sound%u", snd->ID);
 	sound2D = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	/*check flags*/
 	if (sound2D)
@@ -1627,7 +1633,7 @@ static void s2b_control_sprite(SWFReader *read, GF_List *dst, u32 ID, Bool stop,
 	GF_Node *obj;
 	char szDEF[100];
 	SFFloat t;
-	sprintf(szDEF, "CLIP%d_CTRL", ID);
+	sprintf(szDEF, "CLIP%u_CTRL", ID);
 	obj = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	if (!obj) return;
 
@@ -1648,7 +1654,7 @@ static void s2b_control_sprite(SWFReader *read, GF_List *dst, u32 ID, Bool stop,
 	t = stop ? 0 : FIX_ONE;
 	s2b_set_field(read, dst, obj, "mediaSpeed", -1, GF_SG_VRML_SFFLOAT, &t, rev_order);
 
-	sprintf(szDEF, "CLIP%d_SND", ID);
+	sprintf(szDEF, "CLIP%u_SND", ID);
 	obj = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	if (!obj) return;
 	if (set_time) {
@@ -1671,7 +1677,7 @@ static GF_Err swf_bifs_place_obj(SWFReader *read, u32 depth, u32 ID, u32 prev_id
 	obj = s2b_get_node(read, ID);
 	is_sprite = GF_FALSE;
 	if (!obj) {
-		sprintf(szDEF, "CLIP%d_DL", ID);
+		sprintf(szDEF, "CLIP%u_DL", ID);
 		obj = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 		if (obj) is_sprite = GF_TRUE;
 	}
@@ -1682,7 +1688,7 @@ static GF_Err swf_bifs_place_obj(SWFReader *read, u32 depth, u32 ID, u32 prev_id
 
 	/*and write command*/
 	com = gf_sg_command_new(read->load->scene_graph, GF_SG_INDEXED_REPLACE);
-	sprintf(szDEF, "CLIP%d_DL", read->current_sprite_id);
+	sprintf(szDEF, "CLIP%u_DL", read->current_sprite_id);
 	com->node = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	gf_node_register(com->node, NULL);
 	f = gf_sg_command_field_new(com);
@@ -1727,7 +1733,7 @@ static GF_Err swf_bifs_remove_obj(SWFReader *read, u32 depth, u32 ID)
 	GF_CommandField *f;
 
 	com = gf_sg_command_new(read->load->scene_graph, GF_SG_INDEXED_REPLACE);
-	sprintf(szDEF, "CLIP%d_DL", read->current_sprite_id);
+	sprintf(szDEF, "CLIP%u_DL", read->current_sprite_id);
 	com->node = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	gf_node_register(com->node, NULL);
 	f = gf_sg_command_field_new(com);
@@ -1848,7 +1854,7 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 	read->btn = btn;
 
 	btn_root = s2b_new_node(read, TAG_MPEG4_Transform2D);
-	sprintf(szName, "Button%d", btn->ID);
+	sprintf(szName, "Button%u", btn->ID);
 	read->load->ctx->max_node_id++;
 	ID = read->load->ctx->max_node_id;
 	gf_node_set_id((GF_Node *)btn_root, ID, szName);
@@ -1863,7 +1869,7 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 		if (!br->hitTest) continue;
 		character = s2b_get_node(read, br->character_id);
 		if (!character) {
-			sprintf(szName, "CLIP%d_DL", br->character_id);
+			sprintf(szName, "CLIP%u_DL", br->character_id);
 			character = gf_sg_find_node_by_name(read->load->scene_graph, szName);
 		}
 		if (character) {
@@ -1872,31 +1878,31 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 		}
 	}
 	/*add touch sensor to the color transform*/
-	sprintf(szName, "BTN%d_TS", read->btn->ID);
+	sprintf(szName, "BTN%u_TS", read->btn->ID);
 	btn_ts = s2b_button_add_child(read, n, TAG_MPEG4_TouchSensor, szName, -1);
 
 	s2b_insert_symbol(read, (GF_Node *)btn_root);
 
 	/*isActive handler*/
-	sprintf(szName, "BTN%d_CA", read->btn->ID);
+	sprintf(szName, "BTN%u_CA", read->btn->ID);
 	n = s2b_button_add_child(read, btn_root, TAG_MPEG4_Conditional, szName, -1);
 	read->btn_active = ((M_Conditional*)n)->buffer.commandList;
 	s2b_button_add_route(read, btn_ts, 4, n, 0);
 
 	/*!isActive handler*/
-	sprintf(szName, "BTN%d_CNA", read->btn->ID);
+	sprintf(szName, "BTN%u_CNA", read->btn->ID);
 	n = s2b_button_add_child(read, btn_root, TAG_MPEG4_Conditional, szName, -1);
 	read->btn_not_active = ((M_Conditional*)n)->buffer.commandList;
 	s2b_button_add_route(read, btn_ts, 4, n, 1);
 
 	/*isOver handler*/
-	sprintf(szName, "BTN%d_CO", read->btn->ID);
+	sprintf(szName, "BTN%u_CO", read->btn->ID);
 	n = s2b_button_add_child(read, btn_root, TAG_MPEG4_Conditional, szName, -1);
 	read->btn_over = ((M_Conditional*)n)->buffer.commandList;
 	s2b_button_add_route(read, btn_ts, 5, n, 0);
 
 	/*!isOver handler*/
-	sprintf(szName, "BTN%d_CNO", read->btn->ID);
+	sprintf(szName, "BTN%u_CNO", read->btn->ID);
 	n = s2b_button_add_child(read, btn_root, TAG_MPEG4_Conditional, szName, -1);
 	read->btn_not_over = ((M_Conditional*)n)->buffer.commandList;
 	s2b_button_add_route(read, btn_ts, 5, n, 1);
@@ -1912,10 +1918,10 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 		character = s2b_get_node(read, br->character_id);
 
 		if (!character) {
-			sprintf(szName, "CLIP%d_DL", br->character_id);
+			sprintf(szName, "CLIP%u_DL", br->character_id);
 			character = gf_sg_find_node_by_name(read->load->scene_graph, szName);
 			if (character) {
-				sprintf(szName, "CLIP%d_CTRL", br->character_id);
+				sprintf(szName, "CLIP%u_CTRL", br->character_id);
 				sprite_ctrl = gf_sg_find_node_by_name(read->load->scene_graph, szName);
 			}
 		}
@@ -1923,7 +1929,7 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 			SFInt32 choice = 0;
 			n = s2b_wrap_node(read, character, &br->mx, &br->cmx);
 
-			sprintf(szName, "BTN%d_R%d", btn->ID, i+1);
+			sprintf(szName, "BTN%u_R%u", btn->ID, i+1);
 			button = (M_Switch *) s2b_button_add_child(read, btn_root, TAG_MPEG4_Switch, szName, pos);
 			pos++;
 

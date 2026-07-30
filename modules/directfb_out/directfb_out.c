@@ -230,7 +230,7 @@ static GF_Err DirectFBVid_Blit(GF_VideoOutput *driv, GF_VideoSurface *video_src,
 
 static GF_GPACArg DirectFBArgs[] = {
 	GF_DEF_ARG("devsys", NULL, "device for DFB", "false", NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("flipmode", NULL, "fliping mode for directFB\n" flip
+	GF_DEF_ARG("flipmode", NULL, "fliping mode for directFB\n"
 	"- waitsync: wait for vsync\n"
 	"- wait: wait only\n"
 	"- sync: sync only\n"

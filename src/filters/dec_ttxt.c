@@ -1078,7 +1078,7 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 			char_offset = srec->endCharOffset;
 		}
 
-		if (srec->endCharOffset<char_count) {
+		if (srec && (srec->endCharOffset < char_count)) {
 			GF_SAFEALLOC(tc, TTDTextChunk);
 			if (!tc) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));

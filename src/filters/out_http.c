@@ -47,20 +47,20 @@
 GF_OPT_ENUM (GF_HTTPOutFilterOperationMode,
 	MODE_DEFAULT=0,
 	MODE_PUSH,
-	MODE_SOURCE,
+	MODE_SOURCE
 );
 
 GF_OPT_ENUM (GF_HTTPOutCORSMode,
 	CORS_AUTO=0,
 	CORS_OFF,
-	CORS_ON,
+	CORS_ON
 );
 
 enum
 {
 	SKIP_RES_NO=0,
 	SKIP_RES_FILE,
-	SKIP_RES_PUSH,
+	SKIP_RES_PUSH
 };
 
 typedef struct
@@ -718,9 +718,9 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path, HTTP_DI
 	gf_dynstrcat(&listing, szHost, NULL);
 	gf_dynstrcat(&listing, " Port ", NULL);
 	if (ctx->port.nb_items>1)
-		sprintf(szHost, "%d and %d ", ctx->port.vals[0], ctx->port.vals[1]);
+		sprintf(szHost, "%u and %u ", ctx->port.vals[0], ctx->port.vals[1]);
 	else
-		sprintf(szHost, "%d", ctx->port.vals[0]);
+		sprintf(szHost, "%u", ctx->port.vals[0]);
 	gf_dynstrcat(&listing, szHost, NULL);
 	gf_dynstrcat(&listing, "</address>\n</body></html>", NULL);
 	return listing;
@@ -1081,7 +1081,7 @@ static u32 httpout_auth_check(HTTP_DIRInfo *di, const char *auth_header, Bool fo
 	char *sep = (char *) strstr(auth_header, "Basic ");
 	if (!sep) return 403; //no support for other auth schemes, return forbidden
 
-	char szUsrPass[200], *user=NULL, *pass=NULL;
+	char szUsrPass[200], *user=NULL, *pass;
 
 	u32 len = gf_base64_decode((u8*)sep+6, (u32) strlen(sep)-6, (u8*)szUsrPass, 100);
 	szUsrPass[len]=0;
@@ -1476,8 +1476,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->cbk_close = NULL;
 		sess->cbk_throttle = NULL;
 
-		u32 i=0, nb_hdrs=0;
+		u32 nb_hdrs=0;
 		char **hdrs=NULL;
+		i=0;
 		while (1) {
 			const char *name, *val;
 			if (gf_dm_sess_enum_headers(sess->http_sess, &i, &name, &val)!=GF_OK)
@@ -2180,7 +2181,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	} else {
 		gf_dm_sess_set_header(sess->http_sess, "Connection", "keep-alive");
 		if (sess->ctx->timeout) {
-			sprintf(szFmt, "timeout=%d", sess->ctx->timeout);
+			sprintf(szFmt, "timeout=%u", sess->ctx->timeout);
 			gf_dm_sess_set_header(sess->http_sess, "Keep-Alive", szFmt);
 		}
 	}
@@ -2188,7 +2189,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	if (response_body) {
 		body_size = (u32) strlen(response_body);
 		gf_dm_sess_set_header(sess->http_sess, "Content-Type", "text/html");
-		sprintf(szFmt, "%d", body_size);
+		sprintf(szFmt, "%u", body_size);
 		gf_dm_sess_set_header(sess->http_sess, "Content-Length", szFmt);
 	}
 	//for HEAD/GET only
@@ -2276,27 +2277,27 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 			if (sr || br || nb_ch) {
 				if (sr && br && nb_ch)
-					sprintf(szFmt, "samplerate=%d;channels=%d;bitrate=%d", sr, nb_ch, br);
+					sprintf(szFmt, "samplerate=%u;channels=%u;bitrate=%u", sr, nb_ch, br);
 				else if (sr && nb_ch)
-					sprintf(szFmt, "samplerate=%d;channels=%d", sr, nb_ch);
+					sprintf(szFmt, "samplerate=%u;channels=%u", sr, nb_ch);
 				else if (sr && br)
-					sprintf(szFmt, "samplerate=%d;bitrate=%d", sr, br);
+					sprintf(szFmt, "samplerate=%u;bitrate=%u", sr, br);
 				else if (nb_ch && br)
-					sprintf(szFmt, "channels=%d;bitrate=%d", nb_ch, br);
+					sprintf(szFmt, "channels=%u;bitrate=%u", nb_ch, br);
 				else if (nb_ch)
-					sprintf(szFmt, "channels=%d", nb_ch);
+					sprintf(szFmt, "channels=%u", nb_ch);
 				else
-					sprintf(szFmt, "bitrate=%d", br);
+					sprintf(szFmt, "bitrate=%u", br);
 
 				gf_dm_sess_set_header(sess->http_sess, "ice-audio-info", szFmt);
 			}
 			if (w && h) {
-				sprintf(szFmt, "width=%d;height=%d", w, h);
+				sprintf(szFmt, "width=%u;height=%u", w, h);
 				gf_dm_sess_set_header(sess->http_sess, "ice-video-info", szFmt);
 			}
 
 			if (br) {
-				sprintf(szFmt, "%d", br);
+				sprintf(szFmt, "%u", br);
 				gf_dm_sess_set_header(sess->http_sess, "icy-br", szFmt);
 			}
 			gf_dm_sess_set_header(sess->http_sess, "icy-pub", "1");
@@ -2451,7 +2452,7 @@ exit:
 		if (response_body)
 			gf_dm_sess_set_header(sess->http_sess, "Content-Type", "text/plain");
 
-		sprintf(szFmt, "%d", body_size);
+		sprintf(szFmt, "%u", body_size);
 		gf_dm_sess_set_header(sess->http_sess, "Content-Length", szFmt);
 	}
 	else if (is_options) {
@@ -3088,7 +3089,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	GF_Err e;
 	u16 port, def_port;
 	char *ip;
-	const char *ext = NULL;
+	const char *ext;
 	char *sep, *url;
 	GF_HTTPOutCtx *ctx = (GF_HTTPOutCtx *) gf_filter_get_udta(filter);
 
@@ -3245,8 +3246,8 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	if (ctx->hmode==MODE_SOURCE)
 		gf_filter_get_download_manager(ctx->filter);
 
-	Bool use_tcp = GF_TRUE;
 #ifdef GPAC_HAS_NGTCP2
+	Bool use_tcp = GF_TRUE;
 	Bool use_h3 = GF_TRUE;
 	const char *opt = gf_opts_get_key("core", "h3");
 	if (opt && !strcmp(opt, "no")) use_h3 = GF_FALSE;
@@ -3281,9 +3282,11 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] QUIC Server running on port %u\n", q_port));
 		}
 	}
+
+	if (use_tcp)
 #endif
 
-	if (use_tcp) {
+	{
 		ctx->server_sock = gf_sk_new_ex(GF_SOCK_TYPE_TCP, gf_filter_get_netcap_id(filter) );
 		e = gf_sk_bind(ctx->server_sock, NULL, ctx->port.vals[0], ip, 0, GF_SOCK_REUSE_PORT);
 		if (!e) e = gf_sk_listen(ctx->server_sock, ctx->maxc);
@@ -3324,7 +3327,6 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		JSValue global_obj, ret;
 		u8 *buf;
 		u32 buf_len;
-		GF_Err e;
 		u32 flags = JS_EVAL_TYPE_GLOBAL;
 
 		e = gf_file_load_data(ctx->js, &buf, &buf_len);
@@ -5903,7 +5905,7 @@ GF_Err gf_httpout_send_request(GF_HTTPOutSession *sess, void *udta,
 	sess->upload_type = 0;
 	sess->rt_udta = udta;
 	if (reply && !sess->body_or_file && (sess->method_type==GF_HTTP_GET)) {
-		if (!read && reply) {
+		if (!read) {
 			sess->reply = 500;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Missing required callback function read for GET method\n"));
 			return GF_BAD_PARAM;

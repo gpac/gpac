@@ -56,7 +56,7 @@ enum
 };
 
 
-struct __texture_wrapper
+typedef struct __texture_wrapper
 {
 	u32 flags;
 
@@ -96,12 +96,12 @@ struct __texture_wrapper
 #ifdef GF_SR_USE_DEPTH
 	char *depth_data;
 #endif
-};
+} TextureWrapper;
 
 GF_Err gf_sc_texture_allocate(GF_TextureHandler *txh)
 {
 	if (txh->tx_io) return GF_OK;
-	GF_SAFEALLOC(txh->tx_io, struct __texture_wrapper);
+	GF_SAFEALLOC(txh->tx_io, TextureWrapper);
 	if (!txh->tx_io) return GF_OUT_OF_MEM;
 	return GF_OK;
 }
@@ -140,7 +140,7 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 
 
 
-static void release_txio(struct __texture_wrapper *tx_io)
+static void release_txio(TextureWrapper *tx_io)
 {
 
 #ifndef GPAC_DISABLE_3D
@@ -189,7 +189,7 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 void gf_sc_texture_cleanup_hw(GF_Compositor *compositor)
 {
 	while (gf_list_count(compositor->textures_gc)) {
-		struct __texture_wrapper *tx_io = (struct __texture_wrapper *) gf_list_last(compositor->textures_gc);
+		TextureWrapper *tx_io = (TextureWrapper *) gf_list_last(compositor->textures_gc);
 		gf_list_rem_last(compositor->textures_gc);
 
 		release_txio(tx_io);
@@ -752,7 +752,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		Bool load_tx = GF_FALSE;
 		if (!txh->data) return GF_FALSE;
 		if (!txh->tx_io) {
-			GF_SAFEALLOC(txh->tx_io, struct __texture_wrapper);
+			GF_SAFEALLOC(txh->tx_io, TextureWrapper);
 			if (!txh->tx_io) return GF_FALSE;
 		}
 		if (!txh->tx_io->tx_raster) {

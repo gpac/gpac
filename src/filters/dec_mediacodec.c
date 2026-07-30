@@ -211,7 +211,7 @@ GF_Err mcdec_init_m4vp2_dec(GF_MCDecCtx *ctx)
 	GF_BitStream *bs;
 	u8 *dsi_data;
 	u32 dsi_size;
-	GF_FilterPid *ipid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, 0);
+	GF_FilterPid *ipid = (GF_FilterPid *)gf_list_get(ctx->streams, 0);
 	const GF_PropertyValue *dcd = gf_filter_pid_get_property(ipid, GF_PROP_PID_DECODER_CONFIG);
 
 	if (!dcd) return GF_NON_COMPLIANT_BITSTREAM;
@@ -575,7 +575,7 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 	codecid = p->value.uint;
 
-	base_pid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, 0);
+	base_pid = (GF_FilterPid *)gf_list_get(ctx->streams, 0);
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
 	if (!p && base_pid && (base_pid != pid)) return GF_REQUIRES_NEW_INSTANCE;
 	else if (p) {
@@ -584,7 +584,7 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->codecid != GF_CODECID_HEVC) return GF_REQUIRES_NEW_INSTANCE;
 
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			GF_FilterPid *ipid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, i);
+			GF_FilterPid *ipid = (GF_FilterPid *)gf_list_get(ctx->streams, i);
 			const GF_PropertyValue *p_dep;
 			if (ipid==pid) continue;
 
@@ -901,7 +901,7 @@ static GF_Err mcdec_process(GF_Filter *filter)
 	min_dts = 0;
 	for (i=0; i<count; i++) {
 		u64 dts;
-		GF_FilterPid *pid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, i);
+		GF_FilterPid *pid = (GF_FilterPid *)gf_list_get(ctx->streams, i);
 
 		pck = gf_filter_pid_get_packet(pid);
 		if (!pck) {

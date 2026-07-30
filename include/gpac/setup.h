@@ -190,99 +190,6 @@ typedef unsigned int size_t;
 #endif	/*END WIN32 non win-ce*/
 /*end WIN32 config*/
 
-/*start SYMBIAN config*/
-#elif defined(__SYMBIAN32__)
-
-/*! macro for cross-platform inlining of functions*/
-#define GFINLINE inline
-/*! default path separator of the current platform*/
-#define GF_PATH_SEPARATOR	'\\'
-
-/*we must explicitly export our functions...*/
-
-/*! macro for cross-platform signaling of exported function of libgpac*/
-#define GF_EXPORT EXPORT_C
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <stdarg.h>
-#include <limits.h>
-#include <ctype.h>
-#include <string.h>
-#include <assert.h>
-
-#ifdef __SERIES60_3X__
-
-/*! 64 bit unsigned integer*/
-typedef unsigned __int64 u64;
-/*! 64 bit signed integer*/
-typedef __int64 s64;
-
-#else
-
-/*FIXME - we don't have 64bit support here we should get rid of all 64bits divisions*/
-/*
-typedef unsigned long long u64;
-typedef long long s64;
-*/
-
-/*! 64 bit unsigned integer*/
-typedef unsigned int u64;
-/*! 64 bit signed integer*/
-typedef signed int s64;
-
-#endif	/*symbian 8*/
-
-
-/*! 32 bit unsigned integer*/
-typedef unsigned int u32;
-/*! 32 bit signed integer*/
-typedef int s32;
-/*! 16 bit unsigned integer*/
-typedef unsigned short u16;
-/*! 16 bit signed integer*/
-typedef short s16;
-/*! 8 bit unsigned integer*/
-typedef unsigned char u8;
-/*! 8 bit signed integer*/
-typedef signed char s8;
-
-#pragma mpwc_relax on
-
-/*! default max filesystem path size of the current platform*/
-#define GF_MAX_PATH	260
-
-/*sorry this was developed under w32 :)*/
-#define stricmp		strcasecmp
-#define strnicmp	strncasecmp
-
-#ifndef strupr
-char * my_str_upr(char *str);
-#define strupr my_str_upr
-#endif
-
-#ifndef strlwr
-char * my_str_lwr(char *str);
-#define strlwr my_str_lwr
-#endif
-
-#ifndef DBL_MAX
-#include <libc/ieeefp.h>
-#define DBL_MAX	(__IEEE_DBL_MAXPOWTWO)
-#endif
-
-#ifndef FLT_MAX
-#include <libc/ieeefp.h>
-#define FLT_MAX	(__IEEE_FLT_MAXPOWTWO)
-#endif
-
-#ifndef FLT_EPSILON
-#define FLT_EPSILON 1
-#endif
-
-/*end SYMBIAN config*/
-
 #else
 
 /*UNIX likes*/
@@ -322,6 +229,7 @@ char * my_str_lwr(char *str);
 typedef uint64_t u64;
 /*! 64 bit signed integer*/
 typedef int64_t s64;
+
 /*! 32 bit unsigned integer*/
 typedef uint32_t u32;
 /*! 32 bit signed integer*/
@@ -522,18 +430,6 @@ typedef struct {
 /*! macro for cross-platform casting a pointer to an integer*/
 #define PTR_TO_U_CAST (u32)
 #endif
-
-#elif defined (__SYMBIAN32__)
-
-/*! macro for cross-platform suffix used for formatting s64 integers in logs and printf routines*/
-#define LLD_SUF "d"
-/*! macro for cross-platform suffix used for formatting u64 integers in logs and printf routines*/
-#define LLU_SUF "u"
-/*! macro for cross-platform suffix used for formatting u64 integers as hex in logs and printf routines*/
-#define LLX_SUF "x"
-
-/*! macro for cross-platform casting a pointer to an integer*/
-#define PTR_TO_U_CAST (u32)
 
 /*seems that even though _LP64 is defined in OSX, %ll modifiers are still needed*/
 #elif defined(__DARWIN__) || defined(__APPLE__)
@@ -769,6 +665,10 @@ typedef struct {
 
 #if defined(GPAC_DISABLE_DASHER) && defined(GPAC_DISABLE_DASHIN)
 #define GPAC_DISABLE_MPD
+#endif
+
+#ifdef GPAC_DISABLE_THREADS
+#define GPAC_DISABLE_RMTWS
 #endif
 
 //define this to remove most of built-in doc of libgpac - for now filter description and help is removed, but argument help is not

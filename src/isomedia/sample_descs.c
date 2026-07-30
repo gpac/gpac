@@ -30,7 +30,8 @@
 
 GF_Err gf_isom_base_sample_entry_read(GF_SampleEntryBox *ptr, GF_BitStream *bs)
 {
-	gf_bs_read_data(bs, ptr->reserved, 6);
+	if (gf_bs_read_data(bs, ptr->reserved, 6) != 6)
+		return GF_IO_ERR;
 	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
 	if (!ptr->dataReferenceIndex) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISO file] dataReferenceIndex set to 0 in sample entry, overriding to 1\n"));

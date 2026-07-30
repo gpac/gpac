@@ -534,7 +534,7 @@ Bool rtpin_rtsp_usercom_preprocess(GF_RTPInRTSP *sess, GF_RTSPCommand *com)
 	}
 
 	if (!com->Session) {
-		if (stream && !(stream->rtsp->flags & RTSP_AGG_CONTROL) )  {
+		if (!(stream->rtsp->flags & RTSP_AGG_CONTROL) )  {
 			com->Session = stream->session_id;
 		} else {
 			com->Session = sess->session_id;
@@ -726,7 +726,7 @@ process_reply:
 		if (sess->flags & RTSP_AGG_CONTROL) {
 			count = gf_list_count(sess->rtpin->streams);
 			for (i=0; i<count; i++) {
-				stream = (struct __rtpin_stream *)gf_list_get(sess->rtpin->streams, i);
+				stream = (GF_RTPInStream *)gf_list_get(sess->rtpin->streams, i);
 				if (stream->rtsp == sess)
 					stream->flags |= RTP_EOS;
 			}
@@ -798,7 +798,6 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 	}
 
 	com	= gf_rtsp_command_new();
-	range = NULL;
 
 	if ( (evt->base.type == GF_FEVT_PLAY) || (evt->base.type == GF_FEVT_RESUME) ) {
 

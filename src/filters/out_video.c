@@ -73,7 +73,7 @@ GF_OPT_ENUM (GF_VideoOutMode,
 	MODE_GL,
 	MODE_GL_PBO,
 	MODE_2D,
-	MODE_2D_SOFT,
+	MODE_2D_SOFT
 );
 
 
@@ -82,7 +82,7 @@ GF_OPT_ENUM (GF_VideoFlipMode,
 	FLIP_VERT,
 	FLIP_HORIZ,
 	FLIP_BOTH,
-	FLIP_BOTH2,
+	FLIP_BOTH2
 );
 
 static u32 nb_vout_inst=0;
@@ -1002,7 +1002,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	sOpt = gf_opts_get_key("temp", "window-display");
 	if (sOpt) sscanf(sOpt, "%p", &os_disp_handler);
 	sOpt = gf_opts_get_key("temp", "window-flags");
-	if (sOpt) sscanf(sOpt, "%d", &init_flags);
+	if (sOpt) sscanf(sOpt, "%u", &init_flags);
 
 	if (ctx->hide)
 		init_flags |= GF_VOUT_INIT_HIDE;
@@ -1301,7 +1301,7 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 		if (strchr(gf_file_basename(ctx->out), '.')) {
 			snprintf(szFileName, 1024, "%s", ctx->out);
 		} else {
-			snprintf(szFileName, 1024, "%s_%d.rgb", ctx->out, ctx->dump_f_idx);
+			snprintf(szFileName, 1024, "%s_%u.rgb", ctx->out, ctx->dump_f_idx);
 		}
 		if (!ctx->dump_buffer) {
 			ctx->dump_buffer = (char *)gf_malloc(ctx->display_width*ctx->display_height*3);
@@ -1671,6 +1671,10 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		dst_wnd.w = ctx->olwnd.z;
 		dst_wnd.h = ctx->olwnd.w;
 		e = ctx->video_out->Blit(ctx->video_out, &olay, NULL, &dst_wnd, 0);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error bliting output %s\n", gf_error_to_string(e)));
+			return;
+		}
 	}
 	else if (ctx->oltxt && ctx->oltxt[0]) {
 		GF_Event evt;
@@ -1694,7 +1698,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			if (src_ext && !strcmp(ext, src_ext+1)) {
 				snprintf(szFileName, 1024, "%s", ctx->out);
 			} else {
-				snprintf(szFileName, 1024, "%s_%d.%s", ctx->out, ctx->dump_f_idx, ext);
+				snprintf(szFileName, 1024, "%s_%u.%s", ctx->out, ctx->dump_f_idx, ext);
 			}
 			fout = gf_fopen(szFileName, "wb");
 			if (fout) {
@@ -1721,7 +1725,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	dst_wnd.h = ctx->display_height;
 	e = ctx->video_out->Flush(ctx->video_out, &dst_wnd);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error flushing vido output %s%s\n", gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error flushing video output %s\n", gf_error_to_string(e)));
 		return;
 	}
 }
@@ -1900,7 +1904,7 @@ static GF_Err vout_process(GF_Filter *filter)
 
 					if (gf_filter_reporting_enabled(filter)) {
 						char szStatus[1024];
-						sprintf(szStatus, "buffer=%d/%d ms", (u32) (dur/1000), ctx->buffer);
+						sprintf(szStatus, "buffer=%u/%u ms", (u32) (dur/1000), ctx->buffer);
 						gf_filter_update_status(filter, -1, szStatus);
 					}
 					//we don't lock here since we don't access the pointer
@@ -1975,6 +1979,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		}
 
 		//check if we have a clock hint from an audio output
+		media_ts.den = 0;
 		if (ctx->async)
 			gf_filter_get_clock_hint(filter, &clock_us, &media_ts);
 		if (clock_us && media_ts.den) {
@@ -2174,7 +2179,7 @@ draw_frame:
 		} else {
 			ctx->clock_at_first_frame = gf_sys_clock_high_res();
 		}
-		sprintf(szStatus, "info=\"%dx%d %s\" time=" LLU "/%d buffer=%d/%d ms fps=%02.02f", ctx->display_width, ctx->display_height,
+		sprintf(szStatus, "info=\"%ux%u %s\" time=" LLU "/%u buffer=%u/%u ms fps=%02.02f", ctx->display_width, ctx->display_height,
 			gf_pixel_fmt_name(ctx->pfmt), gf_filter_pck_get_cts(ctx->last_pck), ctx->timescale, (u32) (dur/1000), (u32)(max_buf/1000), fps);
 		gf_filter_update_status(filter, 0, szStatus);
 	}

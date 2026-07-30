@@ -671,7 +671,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 
 	if (gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
-		snprintf(szStatus, sizeof(szStatus), "%s %dx%d NALU=%d", (ctx->vtype==UFNAL_HEVC) ? "HEVC" : ((ctx->vtype==UFNAL_VVC) ? "VVC" : "AVC|H264"), ctx->width, ctx->height, ctx->nb_nalu);
+		snprintf(szStatus, sizeof(szStatus), "%s %ux%u NALU=%u", (ctx->vtype==UFNAL_HEVC) ? "HEVC" : ((ctx->vtype==UFNAL_VVC) ? "VVC" : "AVC|H264"), ctx->width, ctx->height, ctx->nb_nalu);
 		gf_filter_update_status(filter, 0, szStatus);
 
 	}

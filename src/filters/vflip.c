@@ -34,7 +34,7 @@ GF_OPT_ENUM (GF_FlipMode,
 	VFLIP_OFF = 0,
 	VFLIP_VERT,
 	VFLIP_HORIZ,
-	VFLIP_BOTH,
+	VFLIP_BOTH
 );
 
 typedef struct

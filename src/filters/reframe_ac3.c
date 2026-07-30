@@ -165,7 +165,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	duration = 0;
 	cur_dur = 0;
 	while (	ctx->ac3_parser_bs(bs, &hdr, GF_FALSE) ) {
-		if ((sr>=0) && (sr != hdr.sample_rate)) {
+		if ((sr>0) && (sr != hdr.sample_rate)) {
 			duration *= hdr.sample_rate;
 			duration /= sr;
 
@@ -550,7 +550,7 @@ restart:
 		if (remain && (remain < ctx->ac3_buffer_size)) {
 			memmove(ctx->ac3_buffer, start, remain);
 		}
-		if (!ctx->src_pck && pck) {
+		if (!ctx->src_pck) {
 			ctx->src_pck = pck;
 			gf_filter_pck_ref_props(&ctx->src_pck);
 		}

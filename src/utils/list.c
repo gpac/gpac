@@ -162,7 +162,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 	u32 i;
 
 	/* !! if head is null (empty list)*/
-	if ( (! ptr) || (! ptr->head) || (ptr->head && !ptr->entryCount) || (itemNumber >= ptr->entryCount) )
+	if ( (! ptr) || (! ptr->head) || (! ptr->entryCount) || (itemNumber >= ptr->entryCount) )
 		return GF_BAD_PARAM;
 
 	/*we delete the head*/
@@ -375,7 +375,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 	u32 i;
 
 	/* !! if head is null (empty list)*/
-	if ( (! ptr) || (! ptr->head) || (ptr->head && !ptr->entryCount) || (itemNumber >= ptr->entryCount) )
+	if ( (! ptr) || (! ptr->head) || (! ptr->entryCount) || (itemNumber >= ptr->entryCount) )
 		return GF_BAD_PARAM;
 
 	/*we delete the head*/

@@ -877,10 +877,9 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			} else {
 				/* For xlink:href attribute on elements other than animation elements,
 				   we create the attribute, parse it and try to do some special process it */
-				XMLRI *iri = NULL;
 				if (gf_node_get_attribute_by_tag((GF_Node *)elt, TAG_XLINK_ATT_href, GF_TRUE, GF_FALSE, &info)==GF_OK) {
 					gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
-					iri = (XMLRI *)info.far_ptr;
+					XMLRI *iri = (XMLRI *)info.far_ptr;
 
 					/* extract streamID ref or data URL and store as file */
 					svg_post_process_href(parser, (GF_Node *)elt, iri);
@@ -1008,7 +1007,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			/* An observer was specified, so it needs to be used */
 			gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_observer, GF_TRUE, GF_FALSE, &info);
 			gf_svg_parse_attribute((GF_Node *)elt, &info, (char*)ev_observer, 0);
-		} else if (((XMLRI *)info.far_ptr)->target && parent) {
+		} else if (parent) {
 			/* No observer specified, this listener listens with the parent of the handler as the event target */
 			gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_target, GF_TRUE, GF_FALSE, &info);
 			((XMLRI *)info.far_ptr)->target = parent->node;

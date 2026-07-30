@@ -175,7 +175,7 @@ static Bool nhmldmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					is_rap = (!stricmp(att->value, "yes")) ? GF_TRUE : GF_FALSE;
 				}
 				else if (!stricmp(att->name, "mediaOffset"))
-					byte_offset = (s64) atof(att->value) ;
+					byte_offset = atof(att->value) ;
 				else if (!stricmp(att->name, "dataLength"))
 					datalen = atoi(att->value);
 			}
@@ -1193,9 +1193,9 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		ctx->duration.num =ctx->duration.den;
 	}
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
-	return e;
+	e = gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration) );
+	if (e) return e;
+	return gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
 }
 
 
@@ -1365,7 +1365,7 @@ retry_sai:
 
 		const char *prefix = is_sample_group ? "grp" : "sai";
 		if (aux_info) {
-			sprintf(szPName, "%s_%s_%d", prefix, gf_4cc_to_str(type), aux_info);
+			sprintf(szPName, "%s_%s_%u", prefix, gf_4cc_to_str(type), aux_info);
 		} else {
 			sprintf(szPName, "%s_%s", prefix, gf_4cc_to_str(type));
 		}
@@ -1447,7 +1447,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			}
 			else if (!stricmp(att->name, "isSyncShadow")) redundant_rap = !stricmp(att->value, "yes") ? GF_TRUE : GF_FALSE;
 			else if (!stricmp(att->name, "SAPType") ) sap_type = (GF_FilterSAPType) atoi(att->value);
-			else if (!stricmp(att->name, "mediaOffset")) offset = (s64) atof(att->value) ;
+			else if (!stricmp(att->name, "mediaOffset")) offset = atof(att->value) ;
 			else if (!stricmp(att->name, "dataLength")) ctx->samp_buffer_size = atoi(att->value);
 			else if (!stricmp(att->name, "mediaFile")) {
 				if (!strncmp(att->value, "data:", 5)) {

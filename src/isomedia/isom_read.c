@@ -1829,7 +1829,7 @@ Bool gf_isom_enable_raw_pack(GF_ISOFile *the_file, u32 trackNumber, u32 pack_num
 	bps = gf_audio_fmt_bit_depth(afmt) / 8;
 	if (!bps) {
 		//unknown format, try QTv2
-		if (entry->qtff_mode && (entry->internal_type==GF_ISOM_SAMPLE_ENTRY_AUDIO)) {
+		if (entry->qtff_mode) {
 			bps = entry->extensions[8]<<24 | entry->extensions[9]<<16 | entry->extensions[10]<<8 | entry->extensions[11];
 			from_qt = GF_TRUE;
 		}
@@ -2367,7 +2367,6 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 GF_EXPORT
 GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u64 movieTime, u32 *StreamDescriptionIndex, GF_ISOSearchMode SearchMode, GF_ISOSample **sample, u32 *sampleNumber, u64 *data_offset)
 {
-	Double tsscale;
 	GF_Err e;
 	GF_TrackBox *trak;
 	u64 mediaTime, nextMediaTime;
@@ -2433,9 +2432,6 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 		}
 	}
 
-	tsscale = trak->Media->mediaHeader->timeScale;
-	tsscale /= trak->moov->mvhd->timeScale;
-
 	//OK, we have a sample so fetch it
 	e = gf_isom_get_sample_for_media_time(the_file, trackNumber, mediaTime, StreamDescriptionIndex, SearchMode, sample, &sampNum, data_offset);
 	if (e) {
@@ -2461,7 +2457,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	//to the media time scale (used by SLConfig) - add the edit start time but stay in
 	//the track TS
 	if (sample && useEdit) {
-		u64 _ts = (u64)(segStartTime * tsscale);
+		u64 _ts = gf_timestamp_rescale(segStartTime, trak->moov->mvhd->timeScale, trak->Media->mediaHeader->timeScale);
 
 		(*sample)->DTS += _ts;
 		/*watchout, the sample fetched may be before the first sample in the edit list (when seeking)*/
@@ -2703,7 +2699,6 @@ u32 gf_isom_get_udta_count(GF_ISOFile *movie, u32 trackNumber)
 		if (!trak) return 0;
 		udta = trak->udta;
 	} else {
-		if (!movie->moov) return 0;
 		udta = movie->moov->udta;
 	}
 	if (udta) return gf_list_count(udta->recordList);
@@ -2723,7 +2718,6 @@ GF_Err gf_isom_get_udta_type(GF_ISOFile *movie, u32 trackNumber, u32 udta_idx, u
 		if (!trak) return GF_OK;
 		udta = trak->udta;
 	} else {
-		if (!movie->moov) return GF_BAD_PARAM;
 		udta = movie->moov->udta;
 	}
 	if (!udta) return GF_BAD_PARAM;
@@ -2753,7 +2747,6 @@ u32 gf_isom_get_user_data_count(GF_ISOFile *movie, u32 trackNumber, u32 UserData
 		if (!trak) return 0;
 		udta = trak->udta;
 	} else {
-		if (!movie->moov) return 0;
 		udta = movie->moov->udta;
 	}
 	if (!udta) return 0;
@@ -2786,7 +2779,6 @@ GF_Err gf_isom_get_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 		if (!trak) return GF_BAD_PARAM;
 		udta = trak->udta;
 	} else {
-		if (!movie->moov) return GF_BAD_PARAM;
 		udta = movie->moov->udta;
 	}
 	if (!udta) return GF_BAD_PARAM;
@@ -3099,7 +3091,7 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 	if (movie->openMode != GF_ISOM_OPEN_READ) return GF_BAD_PARAM;
 
 	/*refresh size*/
-	size = movie->movieFileMap ? gf_bs_get_size(movie->movieFileMap->bs) : 0;
+	size = gf_bs_get_size(movie->movieFileMap->bs);
 
 	if (new_location) {
 		Bool delete_map;
@@ -3629,7 +3621,6 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_r
 			if we append another representation - destruction of this data handler is done in release_segment*/
 			trak->Media->information->scalableDataHandler = tmp;
 			if (!segment_map_assigned) {
-				trak->Media->information->scalableDataHandler = tmp;
 				segment_map_assigned = GF_TRUE;
 			}
 			//and update the regular dataHandler for the Media_GetSample function
@@ -4478,7 +4469,7 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 **da
 	if (!info || !info->data || !info->data->data) return GF_URL_ERROR;
 
 	if ((tag == GF_ISOM_ITUNE_GENRE) && (info->data->flags == 0)) {
-		if (info->data->dataSize && (info->data->dataSize>2) && (info->data->dataSize < 5)) {
+		if ((info->data->dataSize>2) && (info->data->dataSize < 5)) {
 			GF_BitStream* bs = gf_bs_new(info->data->data, info->data->dataSize, GF_BITSTREAM_READ);
 			*data_len = gf_bs_read_int(bs, info->data->dataSize * 8);
 			gf_bs_del(bs);
@@ -4711,9 +4702,9 @@ GF_Err gf_isom_enum_udta_keys(GF_ISOFile *mov, u32 idx, GF_QT_UDTAKey *okey)
 	case GF_QT_KEY_SIGNED_VSIZE:
 	{
 		u32 val = gf_bs_read_int(bs, nb_bits);
-		if (nb_bits==8) okey->value.sint = (s64) (s8) val;
-		else if (nb_bits==16) okey->value.sint = (s64) (s16) val;
-		else if (nb_bits==32) okey->value.sint = (s64) (s32) val;
+		if (nb_bits==8) okey->value.sint = (s64) val;
+		else if (nb_bits==16) okey->value.sint = (s64) val;
+		else if (nb_bits==32) okey->value.sint = (s64) val;
 		else if (nb_bits==64) okey->value.sint = (s64) val;
 	}
 		break;
@@ -4727,13 +4718,13 @@ GF_Err gf_isom_enum_udta_keys(GF_ISOFile *mov, u32 idx, GF_QT_UDTAKey *okey)
 		okey->value.number = gf_bs_read_double(bs);
 		break;
 	case GF_QT_KEY_SIGNED_8:
-		okey->value.sint = (s64) (s8) gf_bs_read_int(bs, 8);
+		okey->value.sint = (s64) gf_bs_read_int(bs, 8);
 		break;
 	case GF_QT_KEY_SIGNED_16:
-		okey->value.sint = (s64) (s16) gf_bs_read_int(bs, 16);
+		okey->value.sint = (s64) gf_bs_read_int(bs, 16);
 		break;
 	case GF_QT_KEY_SIGNED_32:
-		okey->value.sint = (s64) (s32) gf_bs_read_int(bs, 32);
+		okey->value.sint = (s64) gf_bs_read_int(bs, 32);
 		break;
 	case GF_QT_KEY_SIGNED_64:
 		okey->value.sint = (s64) gf_bs_read_long_int(bs, 64);
@@ -6056,8 +6047,6 @@ Bool gf_isom_sample_is_fragment_start(GF_ISOFile *movie, u32 trackNumber, u32 sa
 	sampleNum -= trak->sample_count_at_seg_start;
 
 	tmap = trak->Media->information->sampleTable->traf_map;
-	if (!tmap) return GF_FALSE;
-
 	if (tmap->r_cur_sample && (tmap->r_cur_sample<=sampleNum)) {
 		i=tmap->r_cur_idx;
 	} else {

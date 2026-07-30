@@ -111,14 +111,14 @@ void vttd_update_size_info(GF_VTTDec *ctx)
 
 	gf_sg_set_scene_size_info(ctx->scenegraph, w, h, GF_TRUE);
 
-	sprintf(szVB, "0 0 %d %d", w, h);
+	sprintf(szVB, "0 0 %u %u", w, h);
 	gf_node_get_attribute_by_tag(root, TAG_SVG_ATT_viewBox, GF_TRUE, GF_FALSE, &info);
 	gf_svg_parse_attribute(root, &info, szVB, 0);
 
 	/*apply*/
 	gf_sg_set_scene_size_info(ctx->scenegraph, w, h, GF_TRUE);
 
-	sprintf(szVB, "0 0 %d %d", w, h);
+	sprintf(szVB, "0 0 %u %u", w, h);
 	gf_node_get_attribute_by_tag(root, TAG_SVG_ATT_viewBox, GF_TRUE, GF_FALSE, &info);
 	gf_svg_parse_attribute(root, &info, szVB, 0);
 	ctx->vp_w = w;
@@ -493,8 +493,8 @@ static GF_Err vttd_process(GF_Filter *filter)
 			char start[100], end[100];
 			GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, 0);
 			gf_list_rem(cues, 0);
-			sprintf(start, "%02d:%02d:%02d.%03d", cue->start.hour, cue->start.min, cue->start.sec, cue->start.ms);
-			sprintf(end, "%02d:%02d:%02d.%03d", cue->end.hour, cue->end.min, cue->end.sec, cue->end.ms);
+			sprintf(start, "%02u:%02u:%02u.%03u", cue->start.hour, cue->start.min, cue->start.sec, cue->start.ms);
+			sprintf(end, "%02u:%02u:%02u.%03u", cue->end.hour, cue->end.min, cue->end.sec, cue->end.ms);
 			vttd_js_add_cue(ctx, ctx->scenegraph->RootNode, cue->id, start, end, cue->settings, cue->text, cue->pre_text);
 
 			gf_webvtt_cue_del(cue);

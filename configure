@@ -20,7 +20,7 @@ fi
 GPAC_CONFIGURATION="$@"
 
 TMPC="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.c"
-TMPCP="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.c"
+TMPCP="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}-cpp.c"
 TMPH="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.h"
 TMPCXX="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.cpp"
 TMPE="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}"
@@ -2205,7 +2205,7 @@ if test "$debuginfo" = "no"; then
 fi
 
 if test "$cc_is_cpp" = "1" ; then
-    CFLAGS="$CFLAGS -Wno-c++11-narrowing -Wno-reorder -Wno-c99-designator -Wno-address-of-temporary"
+    CFLAGS="$CFLAGS -Wno-c++11-narrowing -Wno-register -Wno-reorder -Wno-c99-designator -Wno-address-of-temporary"
 fi
 #else
 #set gnu90 once all packages have been chcked, otherwise we will use it in docxx

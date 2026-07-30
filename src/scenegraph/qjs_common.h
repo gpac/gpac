@@ -114,12 +114,12 @@ struct js_handler_context
 	JSValue evt_listen_obj;
 };
 
-struct _node_js_binding
+typedef struct _node_bind_js
 {
 	JSValue obj;
 	struct __gf_js_field *pf;
 	GF_List *fields;
-};
+} GF_NodeBindJS;
 
 
 void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info);

@@ -157,6 +157,13 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 
 }
 
+#if defined(WIN32) || defined(_WIN32_WCE)
+#define IS_PATH_SEP(_a) ((_a == GF_PATH_SEPARATOR) || (_a == '/'))
+#else
+#define IS_PATH_SEP(_a) (_a == GF_PATH_SEPARATOR)
+#endif
+
+
 //set to 0 to disable max URL len - we don't use MAX_PATH as it can be small on some systems
 #define MAX_URL_LEN		4096
 static char *gf_url_concatenate_ex(const char *parentName, const char *pathName, Bool relative_to_parent)
@@ -290,15 +297,12 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 		}
 		for (i = 0; i< strlen(pathName) - 2; i++) {
 			/*current dir*/
-			if ( (pathName[i] == '.')
-			        && ( (pathName[i+1] == GF_PATH_SEPARATOR) || (pathName[i+1] == '/') ) ) {
+			if ( (pathName[i] == '.') && IS_PATH_SEP(pathName[i+1]) ) {
 				i++;
 				continue;
 			}
 			/*parent dir*/
-			if ( (pathName[i] == '.') && (pathName[i+1] == '.')
-			        && ( (pathName[i+2] == GF_PATH_SEPARATOR) || (pathName[i+2] == '/') )
-			   ) {
+			if ( (pathName[i] == '.') && (pathName[i+1] == '.') && IS_PATH_SEP(pathName[i+2]) ) {
 				pathSepCount ++;
 				i+=2;
 				name = (char *) &pathName[i+1];
@@ -347,7 +351,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	/*remove the last */
 	for (i = (u32) strlen(tmp); i > 0; i--) {
 		//break our path at each separator
-		if ((tmp[i-1] == GF_PATH_SEPARATOR) || (tmp[i-1] == '/'))  {
+		if (IS_PATH_SEP(tmp[i-1]))  {
 			tmp[i-1] = 0;
 			if (strcmp(tmp, ".")) {
 				if (!pathSepCount) break;

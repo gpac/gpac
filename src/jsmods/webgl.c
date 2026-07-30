@@ -241,10 +241,11 @@ Bool WGL_LOAD_FLOAT_VEC(JSContext *ctx, JSValue val, Float **values, u32 *v_size
 	if (! *values) {
 		*values = (Float *)gf_malloc(sizeof(Float) * len);
 		if (!*values) return GF_FALSE;
-		if (is_matrix)
-			*v_size = len/dim/dim;
-		else
-			*v_size = len/dim;
+		if (!dim) dim = 1;
+		if (is_matrix) len = len/dim/dim;
+		else len = len/dim;
+
+		*v_size = len;
 	} else {
 		if (len>dim) len = dim;
 	}
@@ -409,7 +410,7 @@ static JSValue wgl_getSupportedExtensions(JSContext *ctx, JSValueConst this_val,
 			JS_SetPropertyUint32(ctx, res, idx, JS_NewString(ctx, gl_exts));
 			idx++;
 			if (!sep) break;
-			if (sep) sep[0] = ' ';
+			sep[0] = ' ';
 			gl_exts = sep+1;
 		}
 		JS_SetPropertyStr(ctx, res, "length", JS_NewInt32(ctx, idx));
@@ -518,7 +519,7 @@ static JSValue wgl_getParameter(JSContext *ctx, JSValueConst this_val, int argc,
 		gf_free(ints);
 		return ret;
 	}
-		break;
+
 	//WebGLProgram
 	case GL_CURRENT_PROGRAM:
 		glGetIntegerv(pname, ints);
@@ -1112,7 +1113,8 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 			char c;
 			GF_WebGLNamedTexture *named_tx=NULL;
 			Bool found = GF_FALSE;
-			char *sep, *start = strstr(o_src, "uniform sampler2D ");
+			char *sep;
+			start = strstr(o_src, "uniform sampler2D ");
 			if (!start) {
 				gf_dynstrcat(&gf_source_pass1, o_src, NULL);
 				break;
@@ -1472,7 +1474,7 @@ static JSValue wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, J
 			if (!width && !height && !pixfmt) return JS_UNDEFINED;
 			return js_throw_err_msg(ctx, WGL_INVALID_ENUM, "[WebGL] Pixel format %s not yet mapped to texImage2D", gf_pixel_fmt_name(pixfmt) );
 		}
-		internalformat = GL_RGBA;
+		//internalformat = GL_RGBA;
 		target = GL_TEXTURE_2D;
 		wgl_tex_image_2d(glc, target, level, internalformat, width, height, border, format, type, pix_buf);
 		return JS_UNDEFINED;
@@ -1637,6 +1639,8 @@ static JSValue wgl_createTexture(JSContext *ctx, JSValueConst this_val, int argc
 
 		GF_SAFEALLOC(named_tx, GF_WebGLNamedTexture);
 		if (!named_tx) return js_throw_err(ctx, WGL_OUT_OF_MEMORY);
+		//cppcheck does not get the tx_name= branch
+		//cppcheck-suppress knownConditionTrueFalse
 		if (!tx_name) {
 			char szName[100];
 			sprintf(szName, "_gfnt_%p", named_tx);
@@ -2190,7 +2194,7 @@ static JSValue wgl_texture_name(JSContext *ctx, JSValueConst this_val, int argc,
 
 Bool wgl_texture_get_id(JSContext *ctx, JSValueConst txval, u32 *tx_id)
 {
-	GF_WebGLObject *tx = tx = (GF_WebGLObject *)JS_GetOpaque(txval, WebGLTexture_class_id);
+	GF_WebGLObject *tx = (GF_WebGLObject *)JS_GetOpaque(txval, WebGLTexture_class_id);
 	if (!tx || !tx->gl_id) return GF_FALSE;
 	*tx_id = tx->gl_id;
 	return GF_TRUE;
@@ -2429,8 +2433,10 @@ JSValue mesh_gl_draw(JSContext *ctx, GF_Mesh *mesh, int argc, JSValueConst *argv
 
 	if (norm_index>=0) {
 #ifdef MESH_USE_FIXED_NORMAL
+		//cppcheck-suppress intToPointerCast
 		glVertexAttribPointer(norm_index, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), (void *) MESH_NORMAL_OFFSET);
 #else
+		//cppcheck-suppress intToPointerCast
 		glVertexAttribPointer(norm_index, 3, GL_BYTE, GL_FALSE, sizeof(GF_Vertex), (void *) MESH_NORMAL_OFFSET);
 #endif
 		glEnableVertexAttribArray(norm_index);
@@ -2441,8 +2447,10 @@ JSValue mesh_gl_draw(JSContext *ctx, GF_Mesh *mesh, int argc, JSValueConst *argv
 		//for now colors are 8bit/comp RGB(A), so used GL_UNSIGNED_BYTE and GL_TRUE for normalizing values
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			glEnable(GL_BLEND);
+			//cppcheck-suppress intToPointerCast
 			glVertexAttribPointer(color_index, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(GF_Vertex), (void *) MESH_COLOR_OFFSET);
 		} else {
+			//cppcheck-suppress intToPointerCast
 			glVertexAttribPointer(color_index, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(GF_Vertex), (void *) MESH_COLOR_OFFSET);
 		}
 		glEnableVertexAttribArray(color_index);
@@ -2450,6 +2458,7 @@ JSValue mesh_gl_draw(JSContext *ctx, GF_Mesh *mesh, int argc, JSValueConst *argv
 	}
 
 	if (tx_index>=0) {
+		//cppcheck-suppress intToPointerCast
 		glVertexAttribPointer(tx_index, 2, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), (void *) MESH_TEX_OFFSET);
 		glEnableVertexAttribArray(tx_index);
 		GL_CHECK_ERR()

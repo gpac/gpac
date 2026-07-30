@@ -51,7 +51,6 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 	GF_TrackBox *trak;
 	u32 i;
 	GF_Tx3gSampleEntryBox *txt = NULL;
-	GF_TextSampleEntryBox *qt_txt = NULL;
 	if (!descriptionIndex || !out_desc) return GF_BAD_PARAM;
 
 	trak = gf_isom_get_track_box(movie, trackNumber);
@@ -70,10 +69,7 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 	if (!txt) return GF_BAD_PARAM;
 	switch (txt->type) {
 	case GF_ISOM_BOX_TYPE_TX3G:
-		break;
 	case GF_ISOM_BOX_TYPE_TEXT:
-		qt_txt = (GF_TextSampleEntryBox *)txt;
-		txt = NULL;
 		break;
 	default:
 		return GF_BAD_PARAM;
@@ -82,7 +78,8 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 	(*out_desc) = (GF_TextSampleDescriptor *) gf_odf_desc_new(GF_ODF_TX3G_TAG);
 	if (! (*out_desc) ) return GF_OUT_OF_MEM;
 
-	if (qt_txt) {
+	if (txt->type == GF_ISOM_BOX_TYPE_TEXT) {
+		GF_TextSampleEntryBox *qt_txt = (GF_TextSampleEntryBox *)txt;
 		(*out_desc)->back_color = rgb_48_to_32(qt_txt->background_color);
 		(*out_desc)->default_pos = qt_txt->default_box;
 		(*out_desc)->default_style.style_flags = 0; //todo, expose qt_txt->fontFace;

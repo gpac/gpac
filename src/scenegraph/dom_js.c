@@ -384,7 +384,7 @@ static JSValue dom_base_node_construct(JSContext *c, JSClassID class_id, GF_Node
 		}
 	}
 	if (!n->sgprivate->interact->js_binding) {
-		GF_SAFEALLOC(n->sgprivate->interact->js_binding, struct _node_js_binding);
+		GF_SAFEALLOC(n->sgprivate->interact->js_binding, GF_NodeBindJS);
 		if (!n->sgprivate->interact->js_binding) {
 			return JS_NULL;
 		}
@@ -694,8 +694,10 @@ static GF_Err sg_js_parse_event_args(JSContext *c, JSValue obj, int argc, JSValu
 err_exit:
 	if (type) JS_FreeCString(c, type);
 	if (inNS) JS_FreeCString(c, inNS);
-	if (callback) gf_free(*callback);
-	*callback = NULL;
+	if (callback) {
+		gf_free(*callback);
+		*callback = NULL;
+	}
 	*evtType = GF_EVENT_UNKNOWN;
 	*funval = JS_NULL;
 	if (evt_handler) *evt_handler = JS_UNDEFINED;
@@ -1387,7 +1389,7 @@ static JSValue dom_node_setProperty(JSContext *c, JSValueConst obj, JSValueConst
 	/*note an element - we don't support property setting on document yet*/
 	if (!n) return GF_JS_EXCEPTION(c);
 
-	tag = n ? gf_node_get_tag(n) : 0;
+	tag = gf_node_get_tag(n);
 	switch (magic) {
 	case NODE_JSPROPERTY_NODEVALUE:
 		if ((tag==TAG_DOMText) && JS_CHECK_STRING(value)) {
@@ -2094,7 +2096,7 @@ static JSValue xml_element_set_attribute(JSContext *c, JSValueConst obj, int arg
 	} else if (JS_IsInteger(argv[idx])) {
 		u32 i;
 		JS_ToUint32(c, &i, argv[idx]);
-		sprintf(szVal, "%d", i);
+		sprintf(szVal, "%u", i);
 		val = szVal;
 	} else {
 		goto exit;
@@ -2743,7 +2745,7 @@ void gf_sg_js_dom_pre_destroy(JSRuntime *rt, GF_SceneGraph *sg, GF_Node *n)
 	but not inserted in the graph*/
 	while (gf_list_count(sg->objects)) {
 		GF_Node *js_node;
-		struct _node_js_binding *js_bind = (struct _node_js_binding *)gf_list_get(sg->objects, 0);
+		GF_NodeBindJS *js_bind = (GF_NodeBindJS *)gf_list_get(sg->objects, 0);
 		js_node = dom_get_node(js_bind->obj);
 		if (js_node) {
 			if (js_node->sgprivate->tag == TAG_SVG_video || js_node->sgprivate->tag == TAG_SVG_audio) {
@@ -2762,7 +2764,7 @@ void gf_sg_js_dom_pre_destroy(JSRuntime *rt, GF_SceneGraph *sg, GF_Node *n)
 		if (!handler->js_data) continue;
 
 		/*if same context and same document, discard handler*/
-		if (!sg || (handler->sgprivate->scenegraph==sg)) {
+		if (handler->sgprivate->scenegraph==sg) {
 			/*unprotect the function*/
 			JS_FreeValueRT(rt, handler->js_data->fun_val);
 			gf_free(handler->js_data);

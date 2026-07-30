@@ -1112,7 +1112,7 @@ int gpac_main(int _argc, char **_argv)
 	}
 
 	if (dump_stats && gf_sys_get_rti(0, &rti, 0) ) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("System info: %d MB RAM - %d cores - main thread ID %d\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores, gf_th_id() ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("System info: %u MB RAM - %u cores - main thread ID %u\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores, gf_th_id() ));
 	}
 	if ((list_filters>=2) || print_meta_filters || dump_codecs || dump_formats || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
 
@@ -1260,7 +1260,7 @@ restart:
 						u32 count = gf_fs_get_filters_count(session);
 						f = gf_fs_get_filter(session, count-1-relink);
 					} else {
-						f = (struct __gf_filter *)gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-relink);
+						f = (GF_Filter *)gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-relink);
 					}
 					if (!f) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Invalid filter index in %s\n", arg));
@@ -1679,7 +1679,7 @@ exit:
 	if (!e && nb_loops) {
 		if (nb_loops>0) nb_loops--;
 		loops_done++;
-		fprintf(stderr, "session done, restarting (loop %d)\n", loops_done);
+		fprintf(stderr, "session done, restarting (loop %u)\n", loops_done);
 		gf_net_reload_netcap();
 
 
@@ -1721,9 +1721,9 @@ int main(int argc, char **argv)
 
 	The goal is to launch gpac indepentently from SDL for command-line usage
 */
-int SDL_main(int argc, char **argv)
+int SDL_main(int sys_argc, char **sys_argv)
 {
-    if (argc<=1) {
+    if (sys_argc<=1) {
         char *_argv[3];
         _argv[0] = "gpac";
         _argv[1] = "-noprog";
@@ -1731,7 +1731,7 @@ int SDL_main(int argc, char **argv)
         compositor_mode = LOAD_GUI_CBK;
         return gpac_main(3, _argv);
     }
-    return gpac_main(argc, argv);
+    return gpac_main(sys_argc, sys_argv);
 }
 
 #elif defined(GPAC_CONFIG_EMSCRIPTEN)
@@ -1960,12 +1960,12 @@ static GF_Err extract_filter_and_pid(char *arg, GF_Filter **o_f, s32 *opid_idx, 
 		*o_f = (GF_Filter *) gf_list_get(loaded_filters, count-1-f_idx);
 	}
 	if (!*o_f || !gf_fs_check_filter(session, *o_f)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter at index %d in arg %s\n", f_idx, arg));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter at index %u in arg %s\n", f_idx, arg));
 		return GF_BAD_PARAM;
 	}
 
 	if ((*opid_idx>=0) && (*opid_idx>=(s32)count)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter pid at index %d in filter %s in arg %s\n", *opid_idx, gf_filter_get_name(*o_f), arg ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter pid at index %u in filter %s in arg %s\n", *opid_idx, gf_filter_get_name(*o_f), arg ));
 		return GF_BAD_PARAM;
 	}
 	return GF_OK;
@@ -1989,7 +1989,7 @@ static GF_Err print_pid_props(char *arg)
 		GF_FilterPid *pid = gf_filter_get_opid(f, j);
 		if ((p_idx>=0) && (p_idx != j)) continue;
 		if (prefix=='-') {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filter %s PID #%d name: %s\n", gf_filter_get_name(f), j, gf_filter_pid_get_name(pid) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filter %s PID #%u name: %s\n", gf_filter_get_name(f), j, gf_filter_pid_get_name(pid) ));
 			continue;
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filter %s PID %s properties:\n", gf_filter_get_name(f), gf_filter_pid_get_name(pid) ));
@@ -2248,7 +2248,7 @@ static Bool logs_to_file=GF_FALSE;
 
 #define DEF_LOG_ENTRIES	10
 
-struct _logentry
+struct logentry
 {
 	u32 tool, level;
 	u32 nb_repeat;
@@ -2308,8 +2308,8 @@ static void gpac_on_logs(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_too
 	if (log_write==nb_log_entries) {
 		log_write = nb_log_entries - 1;
 		gf_free(static_logs[0].szMsg);
-		memmove(&static_logs[0], &static_logs[1], sizeof (struct _logentry) * (nb_log_entries-1) );
-		memset(&static_logs[log_write], 0, sizeof(struct _logentry));
+		memmove(&static_logs[0], &static_logs[1], sizeof (struct logentry) * (nb_log_entries-1) );
+		memset(&static_logs[log_write], 0, sizeof(struct logentry));
 	}
 }
 
@@ -2325,9 +2325,9 @@ static void print_date_ex(u64 time, Bool full_print)
 	ms = (u32)(time - ((u64)sec) * 1000);
 	t = gf_gmtime(&gtime);
 	if (full_print) {
-		fprintf(stdout, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
+		fprintf(stdout, "%u-%02d-%02dT%02d:%02d:%02d.%03uZ\n", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
 	} else {
-		fprintf(stderr, "[%02d:%02d:%02d.%03dZ] ", t->tm_hour, t->tm_min, t->tm_sec, ms);
+		fprintf(stderr, "[%02d:%02d:%02d.%03uZ] ", t->tm_hour, t->tm_min, t->tm_sec, ms);
 	}
 }
 
@@ -2342,7 +2342,7 @@ static void print_dur(u64 time)
 	u64 minutes = nb_secs/60 - hours*60;
 	u64 seconds = nb_secs - hours*3600 - minutes*60;
 	u32 ms = time - nb_secs*1000;
-	fprintf(stderr, "%02d:%02d:%02d.%03d", (u32) hours, (u32) minutes, (u32) seconds, ms);
+	fprintf(stderr, "%02u:%02u:%02u.%03u", (u32) hours, (u32) minutes, (u32) seconds, ms);
 }
 
 static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_final)
@@ -2359,9 +2359,9 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 		logs_to_file = gf_log_use_file();
 		if (!logs_to_file && (enable_reports==2) ) {
 			if (!nb_log_entries) nb_log_entries = 1;
-			static_logs = (struct _logentry *)gf_malloc(sizeof(struct _logentry) * nb_log_entries);
+			static_logs = (struct logentry *)gf_malloc(sizeof(struct logentry) * nb_log_entries);
 			if (static_logs)
-				memset(static_logs, 0, sizeof(struct _logentry) * nb_log_entries);
+				memset(static_logs, 0, sizeof(struct logentry) * nb_log_entries);
 			gf_log_set_callback(fsess, gpac_on_logs);
 		}
 		last_report_clock_us = gf_sys_clock_high_res();
@@ -2419,16 +2419,16 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 				fprintf(stderr, "% 10" LLD_SUF " pck %02.02f FPS ", (s64) stats.nb_out_pck, pck_per_sec);
 			} else {
 				if (stats.nb_pid_in)
-					fprintf(stderr, "%d input PIDs % 10" LLD_SUF " pck ", stats.nb_pid_in, (s64)stats.nb_in_pck);
+					fprintf(stderr, "%u input PIDs % 10" LLD_SUF " pck ", stats.nb_pid_in, (s64)stats.nb_in_pck);
 				if (stats.nb_pid_out)
-					fprintf(stderr, "%d output PIDs % 10" LLD_SUF " pck ", stats.nb_pid_out, (s64) stats.nb_out_pck);
+					fprintf(stderr, "%u output PIDs % 10" LLD_SUF " pck ", stats.nb_pid_out, (s64) stats.nb_out_pck);
 			}
 			if (stats.in_eos)
 				fprintf(stderr, "- EOS");
 			fprintf(stderr, "\n");
 		}
 	}
-	fprintf(stderr, "Active filters: %d\n", nb_active);
+	fprintf(stderr, "Active filters: %u\n", nb_active);
 
 	if (static_logs) {
 		if (is_final && (!log_write || !static_logs[log_write-1].szMsg)) {
@@ -2446,7 +2446,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 			print_date(static_logs[i].clock);
 
 			if (static_logs[i].nb_repeat)
-				fprintf(stderr, "[repeated %d] ", static_logs[i].nb_repeat);
+				fprintf(stderr, "[repeated %u] ", static_logs[i].nb_repeat);
 
 			fprintf(stderr, "%s", static_logs[i].szMsg);
 			SET_CONSOLE(GF_CONSOLE_RESET);
@@ -2470,7 +2470,7 @@ typedef struct
 } CacheInfo;
 
 
-#define TIMEFMT "%Y/%m/%dT%H:%M:%SZ"
+#define TIMEFMT "%Y/%m/%uT%H:%M:%SZ"
 static GFINLINE const char *format_date(u64 time, char *szDate)
 {
 	time_t date = time;
@@ -2608,7 +2608,7 @@ static Bool cache_file_op(void *cbck, char *item_name, char *item_path, GF_FileE
 			char szDate[100];
 			const char *name = gf_cfg_get_key_name(cached, "cache", i);
 			if (!name || !strcmp(name, "url")) continue;
-			const char *opt = gf_cfg_get_key(cached, "cache", name);
+			opt = gf_cfg_get_key(cached, "cache", name);
 			if (!opt) continue;
 			if (!strcmp(name, "MaxAge")) {
 				u64 expires;
@@ -2743,7 +2743,7 @@ static void do_cache_check(u32 op_type, char *arg_val)
 		}
 	} else if (op_type==CACHE_OP_DELETE) {
 		if (ci.date_min || ci.date_max) {
-			gf_fprintf(stdout, "Removed %u items freed %d bytes %u - items remaining %u bytes\n", ci.nb_entries, ci.min_size, ci.total_size, ci.max_size);
+			gf_fprintf(stdout, "Removed %u items freed %u bytes %u - items remaining %u bytes\n", ci.nb_entries, ci.min_size, ci.total_size, ci.max_size);
 		}
 	}
 }
@@ -2889,7 +2889,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	ioctx = NULL;
 	count = gf_list_count(all_gfio_defined);
 	for (i=0; i<count; i++) {
-		GF_FileIO *a_gfio = (struct __gf_file_io *)gf_list_get(all_gfio_defined, i);
+		GF_FileIO *a_gfio = (GF_FileIO *)gf_list_get(all_gfio_defined, i);
 		ioctx = (FileIOCtx *) gf_fileio_get_udta(a_gfio);
 		if (ioctx && !strcmp(ioctx->path, url)) {
 			if (ioctx->filep) {
@@ -3086,7 +3086,7 @@ static void cleanup_file_io()
 	}
 
 	while (gf_list_count(all_gfio_defined)) {
-		GF_FileIO *gfio = (struct __gf_file_io *)gf_list_pop_back(all_gfio_defined);
+		GF_FileIO *gfio = (GF_FileIO *)gf_list_pop_back(all_gfio_defined);
 		FileIOCtx *ioctx = (FileIOCtx *) gf_fileio_get_udta(gfio);
 		gf_fileio_del(gfio);
 

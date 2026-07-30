@@ -872,7 +872,7 @@ static GF_Err h3_send_reply(GF_DownloadSession *sess, u32 reply_code, const char
 	hdrs = (nghttp3_nv *)gf_malloc(sizeof(nghttp3_nv) * (count + 1) );
 	if (!hdrs) return GF_OUT_OF_MEM;
 
-	sprintf(szFmt, "%d", reply_code);
+	sprintf(szFmt, "%u", reply_code);
 	NGH3_HDR(hdrs[0], ":status", szFmt);
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/3] send reply for stream_id " LLD " (body %d) headers:\n:status: %s\n", sess->hmux_stream_id, !no_body, szFmt));
 	for (i=0; i<count; i++) {

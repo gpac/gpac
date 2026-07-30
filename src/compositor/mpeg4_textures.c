@@ -218,6 +218,8 @@ void compositor_movietexture_modified(GF_Node *node)
 	/*update state if we're active*/
 	else if (mt->isActive) {
 		movietexture_update_time(&st->time_handle);
+		//cppcheck does not get the deactivation from above function
+		//cppcheck-suppress knownConditionTrueFalse
 		if (!mt->isActive) return;
 	}
 	/*reregister if needed*/

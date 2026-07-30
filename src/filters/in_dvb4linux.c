@@ -58,7 +58,7 @@ typedef struct
 	u32 main_pid;
 	int demux, frontend, demux_fd;
 
-	char *block;
+	u8 *block;
 	u32 tune_start_time;
 
 } GF_DVBLinuxCtx;
@@ -219,7 +219,7 @@ static GF_Err dvblin_get_channel_params(GF_DVBLinuxCtx *ctx, char *chan_name, GF
 			else params->inversion = INVERSION_AUTO;
 
 			for (k=0; k<2; k++) {
-				u32 *p_cr = k ? &params->fec_hp : &params->fec;
+				u32 *p_cr = k ? (u32*)&params->fec_hp : (u32*)&params->fec;
 				char *use_cr = k ? cr : lcr;
 
 				if (!strcmp(use_cr, "FEC_1_2")) *p_cr = FEC_1_2;
@@ -337,7 +337,7 @@ static GF_Err dvblin_get_channel_params(GF_DVBLinuxCtx *ctx, char *chan_name, GF
 			}
 
 			if (ctx->freq < 11700) {
-				params->frequency = abs(ctx->freq*1000 - 9750000);
+				params->frequency = ABS(ctx->freq*1000 - 9750000);
 				params->hiband = GF_FALSE;
 				//tone_mode = SEC_TONE_OFF;
 			} else {
@@ -712,7 +712,7 @@ restart:
 	}
 	ctx->tune_start_time=0;
 	if (!ctx->pid) {
-		GF_Err e = gf_filter_pid_raw_new(filter, ctx->src, GF_FALSE, "video/mp2t", "ts", ctx->block, nb_read, GF_TRUE, &ctx->pid);
+		GF_Err e = gf_filter_pid_raw_new(filter, ctx->src, NULL, "video/mp2t", "ts", ctx->block, nb_read, GF_TRUE, &ctx->pid);
 		if (e) {
 			gf_filter_setup_failure(filter, e);
 			return e;
@@ -764,7 +764,7 @@ GF_Err dvblin_initialize(GF_Filter *filter)
 
 	if (e) return e;
 
-	ctx->block = (char *)gf_malloc(ctx->block_size +1);
+	ctx->block = (u8 *)gf_malloc(ctx->block_size +1);
 	if (!ctx->block) return GF_OUT_OF_MEM;
 	//auto play
 	ctx->playing = GF_TRUE;
@@ -852,7 +852,7 @@ void dvbin_cleanreg(GF_FilterSession *session, GF_FilterRegister *freg)
 static GF_Err dvbin_list_channels(GF_FilterRegister *for_reg, void *_for_ctx)
 {
 #if defined(GPAC_HAS_LINUX_DVB)
-	GF_DVBLinuxCtx *for_ctx = _for_ctx;
+	GF_DVBLinuxCtx *for_ctx = (GF_DVBLinuxCtx *)_for_ctx;
 #endif
 
 	FILE *chcfg = NULL;

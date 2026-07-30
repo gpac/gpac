@@ -253,7 +253,7 @@ static void load_matrix_shaders(GLuint program, Fixed *mat, const char *name)
 //more info on Orthographic projection matrix at http://www.songho.ca/opengl/gl_projectionmatrix.html#ortho
 static void calculate_ortho(Fixed left, Fixed right, Fixed bottom, Fixed top, Fixed near, Fixed far,  AndroidContext *rc)
 {
-	if ((left==right)|(bottom==top)|(near==far)) {
+	if ((left==right) || (bottom==top) || (near==far)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DroidVOUT] GL Error (file %s line %d): Invalid Orthogonal projection values", __FILE__, __LINE__));
 		return;
 	}
@@ -345,7 +345,7 @@ static void resizeWindow(AndroidContext *rc)
 	glLoadIdentity();
 
 	/* Set our perspective */
-	glOrthox(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1));
+	glOrthox(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), -1, 1);
 
 	/* Make sure we're chaning the model view and not the projection */
 	glMatrixMode(GL_MODELVIEW);
@@ -419,33 +419,6 @@ static void drawGLScene(AndroidContext *rc)
 	} else {
 		gl_check_error();
 
-#ifndef GPAC_USE_GLES2
-		/* Enable VERTEX array */
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-		/* Setup pointer to  VERTEX array */
-		glVertexPointer(3, GL_FLOAT, 0, vertices);
-		glTexCoordPointer(2, GL_FLOAT, 0, texcoord);
-
-		/* Move Left 1.5 Units And Into The Screen 6.0 */
-		glLoadIdentity();
-#else
-		loc_vertex_array = glGetAttribLocation(rc->base_program, "gfVertex");
-		if(loc_vertex_array<0)
-			return;
-		glEnableVertexAttribArray(loc_vertex_array);
-		glVertexAttribPointer(loc_vertex_array, 3, GL_FLOAT, GL_FALSE, 0, vertices);
-
-		loc_texcoord_array = glGetAttribLocation(rc->base_program, "gfTexCoord");
-		if (loc_texcoord_array>=0) {
-			glVertexAttribPointer(loc_texcoord_array, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
-			glEnableVertexAttribArray(loc_texcoord_array);
-		}
-
-
-#endif
-
 		/* Top Right Of The Quad    */
 		vertices[0][0]=rc->tex_width;
 		vertices[0][1]=rc->tex_height;
@@ -470,6 +443,32 @@ static void drawGLScene(AndroidContext *rc)
 		vertices[3][2]=0.0f;
 		texcoord[3][0]=0.f;
 		texcoord[3][1]=1.f;
+
+#ifndef GPAC_USE_GLES2
+		/* Enable VERTEX array */
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+		/* Setup pointer to  VERTEX array */
+		glVertexPointer(3, GL_FLOAT, 0, vertices);
+		glTexCoordPointer(2, GL_FLOAT, 0, texcoord);
+
+		/* Move Left 1.5 Units And Into The Screen 6.0 */
+		glLoadIdentity();
+#else
+		loc_vertex_array = glGetAttribLocation(rc->base_program, "gfVertex");
+		if(loc_vertex_array<0)
+			return;
+		glEnableVertexAttribArray(loc_vertex_array);
+		glVertexAttribPointer(loc_vertex_array, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+
+		loc_texcoord_array = glGetAttribLocation(rc->base_program, "gfTexCoord");
+		if (loc_texcoord_array>=0) {
+			glVertexAttribPointer(loc_texcoord_array, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
+			glEnableVertexAttribArray(loc_texcoord_array);
+		}
+
+#endif
 
 		/* Drawing using triangle strips, draw triangles using 4 vertices */
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -679,7 +678,7 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			glLoadIdentity();
 
 			/* Set our perspective */
-			glOrthox(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1));
+			glOrthox(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), -1, 1);
 
 			/* Make sure we're chaning the model view and not the projection */
 			glMatrixMode(GL_MODELVIEW);

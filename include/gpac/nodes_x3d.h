@@ -242,7 +242,7 @@ typedef struct _tagX3DBackground
 {
 	BASE_NODE
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat groundAngle;	/*exposedField*/
 	MFColor groundColor;	/*exposedField*/
 	MFURL backUrl;	/*exposedField*/
@@ -272,7 +272,7 @@ typedef struct _tagX3DBooleanFilter
 {
 	BASE_NODE
 	SFBool set_boolean;	/*eventIn*/
-	void (*on_set_boolean)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_boolean)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool inputFalse;	/*eventOut*/
 	SFBool inputNegate;	/*eventOut*/
 	SFBool inputTrue;	/*eventOut*/
@@ -284,11 +284,11 @@ typedef struct _tagX3DBooleanSequencer
 {
 	BASE_NODE
 	SFBool next;	/*eventIn*/
-	void (*on_next)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_next)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool previous;	/*eventIn*/
-	void (*on_previous)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_previous)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFBool keyValue;	/*exposedField*/
 	SFBool value_changed;	/*eventOut*/
@@ -300,7 +300,7 @@ typedef struct _tagX3DBooleanToggle
 {
 	BASE_NODE
 	SFBool set_boolean;	/*eventIn*/
-	void (*on_set_boolean)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_boolean)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool toggle;	/*exposedField*/
 	GF_Node *metadata;	/*exposedField*/
 } X_BooleanToggle;
@@ -310,7 +310,7 @@ typedef struct _tagX3DBooleanTrigger
 {
 	BASE_NODE
 	SFTime set_triggerTime;	/*eventIn*/
-	void (*on_set_triggerTime)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_triggerTime)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool triggerTrue;	/*eventOut*/
 	GF_Node *metadata;	/*exposedField*/
 } X_BooleanTrigger;
@@ -356,7 +356,7 @@ typedef struct _tagX3DColorInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFColor keyValue;	/*exposedField*/
 	SFColor value_changed;	/*eventOut*/
@@ -427,7 +427,7 @@ typedef struct _tagX3DCoordinateInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec3f keyValue;	/*exposedField*/
 	MFVec3f value_changed;	/*eventOut*/
@@ -439,7 +439,7 @@ typedef struct _tagX3DCoordinateInterpolator2D
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec2f keyValue;	/*exposedField*/
 	MFVec2f value_changed;	/*eventOut*/
@@ -502,7 +502,7 @@ typedef struct _tagX3DElevationGrid
 {
 	BASE_NODE
 	MFFloat set_height;	/*eventIn*/
-	void (*on_set_height)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_height)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *normal;	/*exposedField*/
 	GF_Node *texCoord;	/*exposedField*/
@@ -525,21 +525,21 @@ typedef struct _tagX3DEspduTransform
 	BASE_NODE
 	VRML_CHILDREN
 	SFFloat set_articulationParameterValue0;	/*eventIn*/
-	void (*on_set_articulationParameterValue0)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_articulationParameterValue0)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat set_articulationParameterValue1;	/*eventIn*/
-	void (*on_set_articulationParameterValue1)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_articulationParameterValue1)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat set_articulationParameterValue2;	/*eventIn*/
-	void (*on_set_articulationParameterValue2)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_articulationParameterValue2)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat set_articulationParameterValue3;	/*eventIn*/
-	void (*on_set_articulationParameterValue3)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_articulationParameterValue3)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat set_articulationParameterValue4;	/*eventIn*/
-	void (*on_set_articulationParameterValue4)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_articulationParameterValue4)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat set_articulationParameterValue5;	/*eventIn*/
-	void (*on_set_articulationParameterValue5)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_articulationParameterValue5)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat set_articulationParameterValue6;	/*eventIn*/
-	void (*on_set_articulationParameterValue6)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_articulationParameterValue6)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat set_articulationParameterValue7;	/*eventIn*/
-	void (*on_set_articulationParameterValue7)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_articulationParameterValue7)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFString address;	/*exposedField*/
 	SFInt32 applicationID;	/*exposedField*/
 	SFInt32 articulationParameterCount;	/*exposedField*/
@@ -622,13 +622,13 @@ typedef struct _tagX3DExtrusion
 {
 	BASE_NODE
 	MFVec2f set_crossSection;	/*eventIn*/
-	void (*on_set_crossSection)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_crossSection)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFRotation set_orientation;	/*eventIn*/
-	void (*on_set_orientation)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_orientation)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFVec2f set_scale;	/*eventIn*/
-	void (*on_set_scale)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_scale)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFVec3f set_spine;	/*eventIn*/
-	void (*on_set_spine)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_spine)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool beginCap;	/*field*/
 	SFBool ccw;	/*field*/
 	SFBool convex;	/*field*/
@@ -660,7 +660,7 @@ typedef struct _tagX3DFog
 	SFString fogType;	/*exposedField*/
 	SFFloat visibilityRange;	/*exposedField*/
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool isBound;	/*eventOut*/
 	GF_Node *metadata;	/*exposedField*/
 	SFTime bindTime;	/*eventOut*/
@@ -697,7 +697,7 @@ typedef struct _tagX3DGeoElevationGrid
 {
 	BASE_NODE
 	MFDouble set_height;	/*eventIn*/
-	void (*on_set_height)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_height)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *normal;	/*exposedField*/
 	GF_Node *texCoord;	/*exposedField*/
@@ -772,7 +772,7 @@ typedef struct _tagX3DGeoPositionInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec3d keyValue;	/*exposedField*/
 	GF_Node *geoOrigin;	/*field*/
@@ -804,11 +804,11 @@ typedef struct _tagX3DGeoViewpoint
 {
 	BASE_NODE
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFString set_orientation;	/*eventIn*/
-	void (*on_set_orientation)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_orientation)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFString set_position;	/*eventIn*/
-	void (*on_set_position)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_position)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFString description;	/*exposedField*/
 	SFFloat fieldOfView;	/*exposedField*/
 	SFBool headlight;	/*exposedField*/
@@ -930,13 +930,13 @@ typedef struct _tagX3DIndexedFaceSet
 {
 	BASE_NODE
 	MFInt32 set_colorIndex;	/*eventIn*/
-	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_colorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_coordIndex;	/*eventIn*/
-	void (*on_set_coordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_coordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_normalIndex;	/*eventIn*/
-	void (*on_set_normalIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_normalIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_texCoordIndex;	/*eventIn*/
-	void (*on_set_texCoordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_texCoordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	GF_Node *normal;	/*exposedField*/
@@ -959,9 +959,9 @@ typedef struct _tagX3DIndexedLineSet
 {
 	BASE_NODE
 	MFInt32 set_colorIndex;	/*eventIn*/
-	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_colorIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFInt32 set_coordIndex;	/*eventIn*/
-	void (*on_set_coordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_coordIndex)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	MFInt32 colorIndex;	/*field*/
@@ -975,7 +975,7 @@ typedef struct _tagX3DIndexedTriangleFanSet
 {
 	BASE_NODE
 	MFInt32 set_index;	/*eventIn*/
-	void (*on_set_index)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_index)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	GF_Node *normal;	/*exposedField*/
@@ -993,7 +993,7 @@ typedef struct _tagX3DIndexedTriangleSet
 {
 	BASE_NODE
 	MFInt32 set_index;	/*eventIn*/
-	void (*on_set_index)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_index)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	GF_Node *normal;	/*exposedField*/
@@ -1011,7 +1011,7 @@ typedef struct _tagX3DIndexedTriangleStripSet
 {
 	BASE_NODE
 	MFInt32 set_index;	/*eventIn*/
-	void (*on_set_index)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_index)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	SFFloat creaseAngle;	/*exposedField*/
@@ -1038,11 +1038,11 @@ typedef struct _tagX3DIntegerSequencer
 {
 	BASE_NODE
 	SFBool next;	/*eventIn*/
-	void (*on_next)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_next)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFBool previous;	/*eventIn*/
-	void (*on_previous)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_previous)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFInt32 keyValue;	/*exposedField*/
 	SFInt32 value_changed;	/*eventOut*/
@@ -1054,7 +1054,7 @@ typedef struct _tagX3DIntegerTrigger
 {
 	BASE_NODE
 	SFBool set_boolean;	/*eventIn*/
-	void (*on_set_boolean)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_boolean)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFInt32 integerKey;	/*exposedField*/
 	SFInt32 triggerValue;	/*eventOut*/
 	GF_Node *metadata;	/*exposedField*/
@@ -1237,7 +1237,7 @@ typedef struct _tagX3DNavigationInfo
 {
 	BASE_NODE
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat avatarSize;	/*exposedField*/
 	SFBool headlight;	/*exposedField*/
 	SFFloat speed;	/*exposedField*/
@@ -1262,7 +1262,7 @@ typedef struct _tagX3DNormalInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec3f keyValue;	/*exposedField*/
 	MFVec3f value_changed;	/*eventOut*/
@@ -1300,7 +1300,7 @@ typedef struct _tagX3DNurbsOrientationInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *controlPoints;	/*exposedField*/
 	MFDouble knot;	/*exposedField*/
 	SFInt32 order;	/*exposedField*/
@@ -1335,7 +1335,7 @@ typedef struct _tagX3DNurbsPositionInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *controlPoints;	/*exposedField*/
 	MFDouble knot;	/*exposedField*/
 	SFInt32 order;	/*exposedField*/
@@ -1349,9 +1349,9 @@ typedef struct _tagX3DNurbsSet
 {
 	BASE_NODE
 	GF_ChildNodeItem *addGeometry;	/*eventIn*/
-	void (*on_addGeometry)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_addGeometry)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_ChildNodeItem *removeGeometry;	/*eventIn*/
-	void (*on_removeGeometry)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_removeGeometry)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_ChildNodeItem *geometry;	/*exposedField*/
 	SFFloat tessellationScale;	/*exposedField*/
 	GF_Node *metadata;	/*exposedField*/
@@ -1362,7 +1362,7 @@ typedef struct _tagX3DNurbsSurfaceInterpolator
 {
 	BASE_NODE
 	SFVec2f set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_Node *controlPoints;	/*exposedField*/
 	MFDouble weight;	/*exposedField*/
 	SFVec3f position_changed;	/*eventOut*/
@@ -1418,9 +1418,9 @@ typedef struct _tagX3DNurbsTrimmedSurface
 {
 	BASE_NODE
 	GF_ChildNodeItem *addTrimmingContour;	/*eventIn*/
-	void (*on_addTrimmingContour)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_addTrimmingContour)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_ChildNodeItem *removeTrimmingContour;	/*eventIn*/
-	void (*on_removeTrimmingContour)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_removeTrimmingContour)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	GF_ChildNodeItem *trimmingContour;	/*exposedField*/
 	GF_Node *controlPoint;	/*exposedField*/
 	GF_Node *texCoord;	/*exposedField*/
@@ -1444,7 +1444,7 @@ typedef struct _tagX3DOrientationInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFRotation keyValue;	/*exposedField*/
 	SFRotation value_changed;	/*eventOut*/
@@ -1522,7 +1522,7 @@ typedef struct _tagX3DPositionInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec3f keyValue;	/*exposedField*/
 	SFVec3f value_changed;	/*eventOut*/
@@ -1534,7 +1534,7 @@ typedef struct _tagX3DPositionInterpolator2D
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFVec2f keyValue;	/*exposedField*/
 	SFVec2f value_changed;	/*eventOut*/
@@ -1602,7 +1602,7 @@ typedef struct _tagX3DScalarInterpolator
 {
 	BASE_NODE
 	SFFloat set_fraction;	/*eventIn*/
-	void (*on_set_fraction)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_fraction)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat key;	/*exposedField*/
 	MFFloat keyValue;	/*exposedField*/
 	SFFloat value_changed;	/*eventOut*/
@@ -1762,7 +1762,7 @@ typedef struct _tagX3DTextureBackground
 {
 	BASE_NODE
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	MFFloat groundAngle;	/*exposedField*/
 	MFColor groundColor;	/*exposedField*/
 	GF_Node *backTexture;	/*exposedField*/
@@ -1832,7 +1832,7 @@ typedef struct _tagX3DTimeTrigger
 {
 	BASE_NODE
 	SFBool set_boolean;	/*eventIn*/
-	void (*on_set_boolean)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_boolean)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFTime triggerTime;	/*eventOut*/
 	GF_Node *metadata;	/*exposedField*/
 } X_TimeTrigger;
@@ -1973,7 +1973,7 @@ typedef struct _tagX3DViewpoint
 {
 	BASE_NODE
 	SFBool set_bind;	/*eventIn*/
-	void (*on_set_bind)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_set_bind)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 	SFFloat fieldOfView;	/*exposedField*/
 	SFBool jump;	/*exposedField*/
 	SFRotation orientation;	/*exposedField*/

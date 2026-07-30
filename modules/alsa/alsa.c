@@ -38,7 +38,7 @@ typedef struct
 	u32 nb_ch, buf_size, delay, num_buffers, total_duration, block_align;
 	u32 force_sr;
 	const char *dev_name;
-	char *wav_buf;
+	u8 *wav_buf;
 } ALSAContext;
 
 
@@ -79,7 +79,7 @@ static GF_Err ALSA_Configure(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels
 {
 	snd_pcm_hw_params_t *hw_params = NULL;
 	int err;
-	int nb_bufs, sr, period_time;
+	u32 nb_bufs, sr, period_time;
 	ALSAContext *ctx = (ALSAContext*)dr->opaque;
 
 	if (!ctx) return GF_BAD_PARAM;
@@ -195,7 +195,7 @@ static GF_Err ALSA_Configure(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels
 	ctx->delay = (ctx->buf_size*1000) / (sr*ctx->block_align);
 
 	/*allocate a single buffer*/
-	ctx->wav_buf = (char *)gf_malloc(ctx->buf_size);
+	ctx->wav_buf = (u8 *)gf_malloc(ctx->buf_size);
 	if(!ctx->wav_buf) return GF_OUT_OF_MEM;
 	memset(ctx->wav_buf, 0, ctx->buf_size*sizeof(char));
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[ALSA] Setup %d ch @ %d hz - %d periods of %d us - total buffer size %d - overall delay %d ms\n", ctx->nb_ch, sr, nb_bufs, period_time, ctx->buf_size, ctx->delay));
@@ -364,7 +364,7 @@ GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
-		return NewALSAOutput();
+		return (GF_BaseInterface *) NewALSAOutput();
 	return NULL;
 }
 

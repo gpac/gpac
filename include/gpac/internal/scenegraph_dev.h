@@ -78,7 +78,7 @@ struct _node_interactive_ext
 #ifdef GPAC_HAS_QJS
 	/*JS bindings if any - THIS IS DYNAMICALLY CREATED
 	This speeds up field modif notification (script bindings are listed here)*/
-	struct _node_js_binding *js_binding;
+	struct _node_bind_js *js_binding;
 #endif
 
 #ifndef GPAC_DISABLE_SVG
@@ -100,7 +100,7 @@ typedef struct _nodepriv
 	/*node flags*/
 	u32 flags;
 	/*scenegraph holding the node*/
-	struct __tag_scene_graph *scenegraph;
+	GF_SceneGraph *scenegraph;
 
 	/*user defined callback function */
 	void (*UserCallback)(struct _base_node *node, void *render_stack, Bool node_destroy);
@@ -163,7 +163,7 @@ struct __tag_scene_graph
 	Double (*GetSceneTime)(void *userpriv);
 
 	/*parent scene if any*/
-	struct __tag_scene_graph *parent_scene;
+	GF_SceneGraph *parent_scene;
 
 	/*size info and pixel metrics - this is not used internally, however it helps when rendering
 	and decoding modules don't know each-other (as in MPEG4)*/
@@ -179,7 +179,7 @@ struct __tag_scene_graph
 	/*script loader*/
 	void (*script_load)(GF_Node *node);
 	/*callback to JS upon node modif*/
-	void (*on_node_modified)(struct __tag_scene_graph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
+	void (*on_node_modified)(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
 
 #ifdef GF_SELF_REPLACE_ENABLE
 	/*to detect replace scene from within conditionals*/
@@ -457,7 +457,7 @@ typedef struct
 	u8 FieldType;
 	u8 has_been_accessed;
 	void *field_pointer;
-	void (*on_event_in)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	void (*on_event_in)(GF_Node *pThis, GF_Route *route);	/*eventInHandler*/
 } GF_ProtoField;
 
 
@@ -469,9 +469,9 @@ struct _proto
 	GF_List *proto_fields;
 
 	/*pointer to parent scene graph*/
-	struct __tag_scene_graph *parent_graph;
+	GF_SceneGraph *parent_graph;
 	/*pointer to proto scene graph*/
-	struct __tag_scene_graph *sub_graph;
+	GF_SceneGraph *sub_graph;
 
 	/*2 - proto implementation as declared in the bitstream*/
 	GF_List *node_code;
@@ -593,7 +593,7 @@ typedef struct __smil_time_attrip_ptrs {
 	SMIL_Fill *fill;
 	SMIL_Duration *max;
 	SMIL_Duration *min;
-	struct _smil_timing_rti *runtime; /* contains values for runtime handling of the SMIL timing */
+	SMIL_Timing_RTI *runtime; /* contains values for runtime handling of the SMIL timing */
 } SMILTimingAttributesPointers;
 
 typedef struct __smil_sync_attrip_ptrs {
@@ -694,21 +694,21 @@ struct _smil_timing_rti
 	scene tree traversal.*/
 	Bool postpone;
 
-	void (*evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, GF_SGSMILTimingEvalState state);
+	void (*evaluate)(SMIL_Timing_RTI *rti, Fixed normalized_simple_time, GF_SGSMILTimingEvalState state);
 	GF_SGSMILTimingEvalState evaluate_status;
 
 #if 0
 	/* is called only when the timed element is active */
-	void (*activation)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
+	void (*activation)(SMIL_Timing_RTI *rti, Fixed normalized_simple_time);
 
 	/* is called (possibly many times) when the timed element is frozen */
-	void (*freeze)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
+	void (*freeze)(SMIL_Timing_RTI *rti, Fixed normalized_simple_time);
 
 	/* is called (only once) when the timed element is restored */
-	void (*restore)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
+	void (*restore)(SMIL_Timing_RTI *rti, Fixed normalized_simple_time);
 
 	/* is called only when the timed element is inactive and receives a fraction event, the second parameter is ignored */
-	void (*fraction_activation)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
+	void (*fraction_activation)(SMIL_Timing_RTI *rti, Fixed normalized_simple_time);
 #endif
 	/* simulated normalized simple time */
 	Fixed fraction;

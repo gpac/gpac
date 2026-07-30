@@ -249,6 +249,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 	/*Setup FS*/
 	if (dd->fullscreen) {
 
+#if 0
 		/*change display mode*/
 		if (dd->switch_res) {
 #ifdef USE_DX_3
@@ -258,6 +259,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 #endif
 			if( FAILED(hr)) return GF_IO_ERR;
 		}
+#endif
 		dd->NeedRestore = 1;
 //		cooplev = DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN;
 	}

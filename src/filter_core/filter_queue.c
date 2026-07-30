@@ -123,6 +123,8 @@ static void gf_fq_lockfree_enqueue(GF_LFQItem *it, GF_LFQItem **tail_ptr)
 		GF_LFQItem *next;
 		tail = *tail_ptr;
 		next = tail->next;
+		//race condition, not caught by cppcheck
+		//cppcheck-suppress knownConditionTrueFalse
 		if (next == tail->next) {
 			if (next==NULL) {
 				if (atomic_compare_and_swap(&tail->next, next, it)) {
@@ -141,7 +143,6 @@ static void *gf_fq_lockfree_dequeue(GF_LFQItem **head_ptr, GF_LFQItem **tail_ptr
 {
 	void *data=NULL;
 	GF_LFQItem *next, *head;
-	next = NULL;
 	*prev_head = NULL;
 
 	while (1) {
@@ -149,7 +150,8 @@ static void *gf_fq_lockfree_dequeue(GF_LFQItem **head_ptr, GF_LFQItem **tail_ptr
 		head = *head_ptr;
 		tail = *tail_ptr;
 		next = head->next;
-		//state seefsess OK
+		//race condition, not caught by cppcheck
+		//cppcheck-suppress knownConditionTrueFalse
 		if (head == *head_ptr) {
 			//head is at tail, we have an empty queue or some state issue
 			if (head == tail) {

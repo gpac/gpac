@@ -544,7 +544,7 @@ GF_Err mesh_new_cylinder(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom,
 			e = mesh_set_vertex(mesh, coords[i - 1].x, coords[i - 1].y, coords[i - 1].z,
 			                0, FIX_ONE, 0,
 			                (FIX_ONE + gf_sin(angle))/2, FIX_ONE - (FIX_ONE + gf_cos(angle))/2);
-			if (i && !e) e = mesh_set_triangle(mesh, c_idx, mesh->v_count-2, mesh->v_count-1);
+			if ((i<nfacets) && !e) e = mesh_set_triangle(mesh, c_idx, mesh->v_count-2, mesh->v_count-1);
 			if (e) goto exit;
 		}
 		e = mesh_set_vertex(mesh, coords[nfacets - 1].x, coords[nfacets - 1].y, coords[nfacets - 1].z,
@@ -736,7 +736,7 @@ GF_Err mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereA
 	coords = (SFVec3f*)gf_malloc(sizeof(SFVec3f)*npts);
 	if (!coords) return GF_OUT_OF_MEM;
 	texcoords = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*npts);
-	if (!texcoords) { if (coords) gf_free(coords); return GF_OUT_OF_MEM; }
+	if (!texcoords) { gf_free(coords); return GF_OUT_OF_MEM; }
 	compute_sphere(radius, coords, texcoords, num_steps, sphere_angles);
 
 	for (i=0; i<num_steps-1; i++) {
@@ -1093,6 +1093,8 @@ GF_Err mesh_new_ellipse(GF_Mesh *mesh, Fixed a_dia, Fixed b_dia, Bool low_res)
 
 	/*center*/
 	mesh_set_vertex(mesh, 0, 0, 0, 0, 0, FIX_ONE, FIX_ONE/2, FIX_ONE/2);
+	//cppcheck barks on cur<end, not sure why
+	//cppcheck-suppress knownConditionTrueFalse
 	for (cur=0; cur<end; cur += step) {
 		cosa = gf_cos(cur);
 		sina = gf_sin(cur);
@@ -2209,6 +2211,7 @@ static GF_Err mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *th
 			gf_free(faces_info);
 		}
 		gf_free(faces);
+		return GF_OUT_OF_MEM;
 	}
 	memset(SCPs, 0, sizeof(SCP) * nb_spine);
 	SCPi = (SCPInfo *) gf_malloc(sizeof(SCPInfo) * nb_spine);
@@ -2219,6 +2222,7 @@ static GF_Err mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *th
 		}
 		gf_free(SCPs);
 		gf_free(faces);
+		return GF_OUT_OF_MEM;
 	}
 	memset(SCPi, 0, sizeof(SCPInfo) * nb_spine);
 

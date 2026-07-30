@@ -685,6 +685,7 @@ void gpac_alias_help(GF_SysArgMode argmode)
 
 	count = gf_opts_get_key_count("gpac.alias");
 	if (count) {
+		//cppcheck-suppress knownConditionTrueFalse
 		if (argmode < GF_ARGMODE_EXPERT) {
 			gf_sys_format_help(helpout, help_flags, "Available aliases (use 'gpac -hx alias' for more info on aliases):\n");
 		} else {
@@ -1168,7 +1169,7 @@ void gpac_load_suggested_filter_args()
 			const char *old_val;
 			char *argn=NULL;
 			const GF_FilterArgs *arg = &freg->args[k];
-			if (!arg || !arg->arg_name) {
+			if (!arg->arg_name) {
 				break;
 			}
 			k++;
@@ -1365,7 +1366,7 @@ redo_pass:
 
 				while (reg->args) {
 					const GF_FilterArgs *arg = &reg->args[j];
-					if (!arg || !arg->arg_name) break;
+					if (!arg->arg_name) break;
 					j++;
 
 					if (pass_exact) {
@@ -1606,7 +1607,7 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 	}
 }
 
-static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
+static void print_filter_arg(const GF_FilterArgs *a, u32 do_gen_doc)
 {
 	Bool is_enum = GF_FALSE;
 
@@ -1614,7 +1615,7 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 		is_enum = GF_TRUE;
 	}
 
-	if (gen_doc==1) {
+	if (do_gen_doc==1) {
 		  gf_sys_format_help(helpout, help_flags, "<div markdown class=\"option\">\n");
 		if (a->flags & (GF_ARG_HINT_ADVANCED|GF_ARG_HINT_EXPERT)) {
 			gf_sys_format_help(helpout, help_flags, "<a id=\"%s\">", a->arg_name);
@@ -1654,12 +1655,12 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 	} else {
 		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_OPT_DESC, "): %s\n", a->arg_desc);
 	}
-	if (gen_doc==1) {
+	if (do_gen_doc==1) {
 		gf_sys_format_help(helpout, help_flags, "</div>\n");
 	}
 
 	//check syntax
-	if (gen_doc) {
+	if (do_gen_doc) {
 		GF_GPACArg _a;
 		memset(&_a, 0, sizeof(GF_GPACArg));
 		_a.name = a->arg_name;
@@ -1690,7 +1691,7 @@ static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname,
 
 	while (!found || all_opt) {
 		const GF_FilterArgs *a = & args[idx];
-		if (!a || !a->arg_name) break;
+		if (!a->arg_name) break;
 		idx++;
 		if (!all_opt && strcmp(a->arg_name, optname)) continue;
 
@@ -1702,7 +1703,7 @@ static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname,
 	idx = 0;
 	while (1) {
 		const GF_FilterArgs *a = & args[idx];
-		if (!a || !a->arg_name) break;
+		if (!a->arg_name) break;
 		idx++;
 		if (gf_sys_word_match(optname, a->arg_name)
 			|| (a->arg_desc && strstr(a->arg_desc, optname))
@@ -1782,10 +1783,11 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	} else if (reg) {
 		reg_name = reg->name;
 		hint_type = (GF_ClassTypeHint) reg->hint_class_type;
-		reg_desc = reg->name;
 #ifndef GPAC_DISABLE_DOC
 		reg_desc = reg->description;
 		reg_help = reg->help;
+#else
+		reg_desc = reg->name;
 #endif
 	} else {
 		return;
@@ -1810,7 +1812,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		}
 		FilterCategory *help_class = get_filter_class(hint_type);
 
-		u32 idx, count = gf_list_count(help_class->filter_descs);
+		u32 count = gf_list_count(help_class->filter_descs);
 		for (idx=0; idx<count; idx++) {
 			const char *areg_desc = (char *)gf_list_get(help_class->filter_descs, idx);
 			if (strcmp(reg_desc, areg_desc)<0) {
@@ -1923,13 +1925,13 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	}
 
 	if (filter_inst) args = gf_filter_get_args(filter_inst);
-	else args = reg->args;
+	else if (reg) args = reg->args;
 
 	u32 nb_opts=0;
 	idx=0;
 	while (args) {
 		const GF_FilterArgs *a = & args[idx];
-		if (!a || !a->arg_name) break;
+		if (!a->arg_name) break;
 		idx++;
 		if (a->flags & GF_FS_ARG_HINT_HIDE) continue;
 		nb_opts++;
@@ -1958,7 +1960,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 
 		while (1) {
 			const GF_FilterArgs *a = & args[idx];
-			if (!a || !a->arg_name) break;
+			if (!a->arg_name) break;
 			idx++;
 
 			if (a->flags & GF_FS_ARG_HINT_HIDE) continue;
@@ -1994,7 +1996,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			}
 			while (1) {
 				const GF_FilterArgs *anarg = & args[j];
-				if (!anarg || !anarg->arg_name) break;
+				if (!anarg->arg_name) break;
 				j++;
 				if (a == anarg) continue;
 				if (reg_help && strstr(reg_help, szArg)) {
@@ -2108,18 +2110,18 @@ static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len
 }
 
 
-struct __jsenum_info
+typedef struct __jsenum_info
 {
 	GF_FilterSession *session;
 	GF_SysArgMode argmode;
 	Bool print_filter_info;
 	const char *path;
 	char *js_dir;
-};
+} JSEnumInfo;
 
 static Bool jsinfo_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
-	struct __jsenum_info *jsi = (struct __jsenum_info *)cbck;
+	JSEnumInfo *jsi = (JSEnumInfo *)cbck;
 	GF_Filter *f;
 	if (jsi->js_dir && strcmp(item_name, "init.js")) {
 		return GF_FALSE;
@@ -2148,7 +2150,7 @@ static Bool jsinfo_enum(void *cbck, char *item_name, char *item_path, GF_FileEnu
 static Bool jsinfo_dir_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	char szPath[GF_MAX_PATH];
-	struct __jsenum_info *jsi = (struct __jsenum_info *)cbck;
+	JSEnumInfo *jsi = (JSEnumInfo *)cbck;
 	jsi->js_dir = item_name;
 
 	gf_strcpy(szPath, jsi->path);
@@ -2216,7 +2218,7 @@ static void patch_mkdocs_yml()
 	}
 	gf_fclose(yml);
 	if (oyml) {
-		FILE *yml = gf_fopen(yml_src, "w");
+		yml = gf_fopen(yml_src, "w");
 		gf_fwrite(oyml, (u32) strlen(oyml), yml);
 		gf_fclose(yml);
 		gf_free(oyml);
@@ -2359,8 +2361,8 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 	if (print_all || !print_filter_info || gen_doc) {
 		const char *js_dirs = gf_opts_get_key("core", "js-dirs");
 		char szPath[GF_MAX_PATH];
-		struct __jsenum_info jsi;
-		memset(&jsi, 0, sizeof(struct __jsenum_info));
+		JSEnumInfo jsi;
+		memset(&jsi, 0, sizeof(JSEnumInfo));
 		jsi.argmode = argmode;
 		jsi.session = session;
 		jsi.print_filter_info = print_filter_info ? GF_TRUE : GF_FALSE;
@@ -2416,7 +2418,7 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 
 		while (reg->args) {
 			const GF_FilterArgs *arg = &reg->args[j];
-			if (!arg || !arg->arg_name) break;
+			if (!arg->arg_name) break;
 			j++;
 			if (argmode==GF_ARGMODE_EXPERT) {
 				if (!arg->arg_desc || !strstr_nocase(arg->arg_desc, l_fname, lf_len)) continue;
@@ -2883,7 +2885,7 @@ void dump_all_codecs(GF_SysArgMode argmode)
 			u32 j, k;
 			Bool has_dec = GF_FALSE, has_enc = GF_FALSE;
 			const char *codec_desc = "Unknown";
-			const GF_FilterRegister *reg = (struct __gf_filter_register *)gf_list_get(meta_codecs, i);
+			const GF_FilterRegister *reg = (GF_FilterRegister *)gf_list_get(meta_codecs, i);
 			const char *name = strchr(reg->name, ':');
 			if (name) name++;
 			else name = reg->name;
@@ -2897,7 +2899,7 @@ void dump_all_codecs(GF_SysArgMode argmode)
 			}
 			for (k=0; k<count; k++) {
 				if (k==i) continue;
-				reg = (struct __gf_filter_register *)gf_list_get(meta_codecs, k);
+				reg = (GF_FilterRegister *)gf_list_get(meta_codecs, k);
 				const char *rname = strchr(reg->name, ':');
 				if (rname) rname++;
 				else rname = reg->name;
@@ -3196,7 +3198,7 @@ void dump_all_formats(GF_SysArgMode argmode)
 			sprintf(szFileName, "test.%s", hdl->ext);
 			c2 = gf_list_count(all_inputs);
 			for (j=0; j<c2; j++) {
-				const GF_FilterRegister *reg = (struct __gf_filter_register *)gf_list_get(all_inputs, j);
+				const GF_FilterRegister *reg = (GF_FilterRegister *)gf_list_get(all_inputs, j);
 				GF_FilterProbeScore score = reg->probe_url(szFileName, NULL);
 				if (score>=GF_FPROBE_MAYBE_SUPPORTED) {
 					gf_list_add(hdl->demuxers, (void*)reg);
@@ -3214,7 +3216,7 @@ void dump_all_formats(GF_SysArgMode argmode)
 				if (gen_doc!=1)
 					gf_sys_format_help(helpout, help_flags, " (");
 				for (j=0; j<c2; j++) {
-					const GF_FilterRegister *reg = (struct __gf_filter_register *)gf_list_get(hdl->demuxers, j);
+					const GF_FilterRegister *reg = (GF_FilterRegister *)gf_list_get(hdl->demuxers, j);
 					if (j) gf_sys_format_help(helpout, help_flags, " ");
 					gf_sys_format_help(helpout, help_flags, "%s", reg->name);
 				}
@@ -3236,7 +3238,7 @@ void dump_all_formats(GF_SysArgMode argmode)
 				if (gen_doc!=1)
 					gf_sys_format_help(helpout, help_flags, " (");
 				for (j=0; j<c2; j++) {
-					const GF_FilterRegister *reg = (struct __gf_filter_register *)gf_list_get(hdl->muxers, j);
+					const GF_FilterRegister *reg = (GF_FilterRegister *)gf_list_get(hdl->muxers, j);
 					if (j) gf_sys_format_help(helpout, help_flags, " ");
 					gf_sys_format_help(helpout, help_flags, "%s", reg->name);
 				}
@@ -3345,7 +3347,7 @@ void dump_all_proto_schemes(GF_SysArgMode argmode)
 				if (gen_doc!=1)
 					gf_sys_format_help(helpout, help_flags, " %s", lab);
 
-				if ((gen_doc==1) || (argmode>=GF_ARGMODE_ADVANCED) || (argmode==GF_ARGMODE_ALL)) {
+				if ((gen_doc==1) || (argmode>=GF_ARGMODE_ADVANCED)) {
 					if (gen_doc!=1)
 						gf_sys_format_help(helpout, help_flags, " (");
 					for (j=0;j<c2; j++) {
@@ -3428,7 +3430,7 @@ void write_filters_options()
 
 		while (freg->args) {
 			const GF_FilterArgs *arg = &freg->args[j];
-			if (!arg || !arg->arg_name) break;
+			if (!arg->arg_name) break;
 			j++;
 
 			if (arg->arg_default_val && !gf_opts_get_key(szSecName, arg->arg_name)) {

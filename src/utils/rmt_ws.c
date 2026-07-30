@@ -161,7 +161,7 @@ void rmt_clientctx_del(RMT_ClientCtx* client) {
     if (!client) return;
 
     GF_LOG(GF_LOG_INFO, GF_LOG_RMTWS, ("[RMT] closing client %s\n", client->peer_address));
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("rmt_clientctx_del client %p del_cbk %p\n", client, client ? client->on_del_cbk : NULL));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("rmt_clientctx_del client %p del_cbk %p\n", client, client->on_del_cbk));
 
     if (client->on_del_cbk) {
         client->on_del_cbk(client->on_del_cbk_task);
@@ -195,12 +195,12 @@ void rmt_clientctx_del(RMT_ClientCtx* client) {
     gf_free(client);
 }
 
-void rmt_serverctx_reset(RMT_ServerCtx* ctx) {
+static void rmt_serverctx_reset(RMT_ServerCtx* ctx)
+{
 	if (ctx->active_clients) {
 		while (gf_list_count(ctx->active_clients)) {
 			RMT_ClientCtx* client = (RMT_ClientCtx*)gf_list_pop_back(ctx->active_clients);
             rmt_clientctx_del(client);
-            client = NULL;
 		}
 		gf_list_del(ctx->active_clients);
 		ctx->active_clients = NULL;
@@ -241,21 +241,19 @@ void rmt_close_client(RMT_ClientCtx* client) {
 
 static GF_Err rmt_send_reply(GF_DownloadSession* http_sess, int responseCode, const char* response_body, const char* content_type) {
 
-        u32 body_size = 0;
-        char szFmt[100];
-        char szDate[200];
+	char szFmt[100];
+	char szDate[200];
 
 	gf_dm_http_format_date(gf_net_get_utc(), szDate, GF_FALSE);
-	    gf_dm_sess_set_header(http_sess, "Date", szDate);
-        gf_dm_sess_set_header(http_sess, "Server", gf_gpac_version());
+	gf_dm_sess_set_header(http_sess, "Date", szDate);
+	gf_dm_sess_set_header(http_sess, "Server", gf_gpac_version());
 
-        if (response_body) {
-            body_size = (u32) strlen(response_body);
-            gf_dm_sess_set_header(http_sess, "Content-Type", content_type ? content_type : "text/html");
-            sprintf(szFmt, "%d", body_size);
-            gf_dm_sess_set_header(http_sess, "Content-Length", szFmt);
-
-        }
+	if (response_body) {
+		u32 body_size = (u32) strlen(response_body);
+		gf_dm_sess_set_header(http_sess, "Content-Type", content_type ? content_type : "text/html");
+		sprintf(szFmt, "%u", body_size);
+		gf_dm_sess_set_header(http_sess, "Content-Length", szFmt);
+	}
 
 	return gf_dm_sess_send_reply(http_sess, responseCode, response_body, response_body ? (u32) strlen(response_body) : 0, (response_body==NULL) ? GF_TRUE : GF_FALSE);
 
@@ -368,9 +366,10 @@ static void rmt_on_http_session_data(void *usr_cbk, GF_NETIO_Parameter *paramete
 }
 
 
-GF_Err rmt_create_server(RMT_ServerCtx* ctx) {
-
+GF_Err rmt_create_server(RMT_ServerCtx* ctx)
+{
     GF_Err e = GF_OK;
+	if (!ctx) return GF_BAD_PARAM;
 
     rmt_serverctx_reset(ctx);
 
@@ -462,7 +461,7 @@ GF_Err rmt_server_handle_new_client(RMT_ServerCtx* ctx) {
 
     u32 port;
     gf_sk_get_remote_address_port(new_client->client_sock, new_client->peer_address, &port);
-    sprintf(new_client->peer_address + strlen(new_client->peer_address), ":%d", port); //TDOO: size check
+    sprintf(new_client->peer_address + strlen(new_client->peer_address), ":%u", port); //TDOO: size check
     GF_LOG(GF_LOG_INFO, GF_LOG_RMTWS, ("[RMT] connected to remote peer %s\n",  new_client->peer_address));
 
 
@@ -826,36 +825,24 @@ static u32 rmt_ws_thread_main(void* par) {
     if (!ctx) return 1;
     ctx->rmt = rmt;
 
-    GF_Err e;
-
     while (!rmt->should_stop) {
-
         // create socket if not exist
         if (!ctx->server_sock) {
-
-            e = rmt_create_server(ctx);
+			GF_Err e = rmt_create_server(ctx);
             if (e) {
-                if (ctx) {
-                    rmt_serverctx_reset(ctx);
-                    gf_free(ctx);
-                    ctx = NULL;
-                }
+				rmt_serverctx_reset(ctx);
+				gf_free(ctx);
                 return e;
             }
-
             continue;
         }
-
-        e = rmt_server_wait_for_event(ctx);
-
+        rmt_server_wait_for_event(ctx);
     }
 
     GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("[RMT] thread main request exit! should cleanup\n"));
     rmt_serverctx_reset(ctx);
     gf_free(ctx);
-    ctx = NULL;
     return 0;
-
 }
 
 
@@ -887,8 +874,6 @@ void rmt_ws_del(RMT_WS* rmt) {
     }
 
     gf_free(rmt);
-    rmt = NULL;
-
 }
 
 RMT_WS* rmt_ws_new() {
@@ -925,9 +910,7 @@ void rmt_ws_run(RMT_WS* rmt) {
     if (e != GF_OK) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_RMTWS, ("[RMT_WS] unable to start websocket thread: %s\n", gf_error_to_string(e)));
         rmt_ws_del(rmt);
-        rmt = NULL;
     }
-
 }
 
 #else //GPAC_DISABLE_RMTWS

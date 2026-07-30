@@ -23,6 +23,11 @@
  *
  */
 
+
+#include <gpac/modules/video_out.h>
+typedef GF_Err (*gf_mod_vid_set_fullscreen) (struct _video_out *vout, Bool fs_on, u32 *new_disp_width, u32 *new_disp_height);
+typedef GF_Err (*gf_mod_vid_lock_backbuffer)(struct _video_out *vout, GF_VideoSurface *video_info, Bool do_lock);
+
 #include "x11_out.h"
 #include <gpac/constants.h>
 #include <gpac/utf.h>
@@ -150,7 +155,7 @@ static int X11_GetXVideoPort(GF_VideoOutput *vout, u32 pixel_format, Bool check_
 				for (k=0; k<nb_attributes; k++ ) {
 					if (!strcmp(attr[k].name, "XV_COLORKEY")) {
 						const Atom ckey = XInternAtom(xwin->display, "XV_COLORKEY", False);
-						XvGetPortAttribute(xwin->display, port, ckey, &vout->overlay_color_key);
+						XvGetPortAttribute(xwin->display, port, ckey, (s32*) &vout->overlay_color_key);
 						has_color_key = GF_TRUE;
 						vout->overlay_color_key |= 0xFF000000;
 					}
@@ -251,7 +256,7 @@ GF_Err X11_Blit(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *
 	overlay = xwin->overlay;
 	xvport = xwin->xvport;
 
-	overlay->data = video_src->video_buffer;
+	overlay->data = (char*) video_src->video_buffer;
 
 	overlay->num_planes = 3;
 	overlay->pitches[0] = video_src->width;
@@ -857,15 +862,15 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 		GF_SAFEALLOC(xWindow->shmseginfo, XShmSegmentInfo);
 		if (!xWindow->shmseginfo) return GF_OUT_OF_MEM;
 		xWindow->shmseginfo->shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0776);
-		xWindow->shmseginfo->shmaddr = shmat(xWindow->shmseginfo->shmid, 0, 0);
+		xWindow->shmseginfo->shmaddr = (char *) shmat(xWindow->shmseginfo->shmid, 0, 0);
 		xWindow->shmseginfo->readOnly = False;
 		if (!XShmAttach (xWindow->display, xWindow->shmseginfo)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Failed to attach shared memory!\n"));
 		}
 		xWindow->pixmap = XShmCreatePixmap(xWindow->display, cur_wnd,
-		                                   (unsigned char *) xWindow->shmseginfo->shmaddr, xWindow->shmseginfo,
+		                                   (char *) xWindow->shmseginfo->shmaddr, xWindow->shmseginfo,
 		                                   VideoWidth, VideoHeight, xWindow->depth);
-		memset((unsigned char *) xWindow->shmseginfo->shmaddr, 0, sizeof(char)*size);
+		memset((char*)xWindow->shmseginfo->shmaddr, 0, sizeof(char)*size);
 		XSetWindowBackgroundPixmap (xWindow->display, cur_wnd, xWindow->pixmap);
 		xWindow->pwidth = VideoWidth;
 		xWindow->pheight = VideoHeight;
@@ -879,7 +884,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 		xWindow->shmseginfo->shmid = shmget(IPC_PRIVATE, xWindow->surface->bytes_per_line * xWindow->surface->height,
 		                                    IPC_CREAT | 0777);
 
-		xWindow->surface->data = xWindow->shmseginfo->shmaddr = shmat(xWindow->shmseginfo->shmid, NULL, 0);
+		xWindow->surface->data = xWindow->shmseginfo->shmaddr = (char *) shmat(xWindow->shmseginfo->shmid, NULL, 0);
 		xWindow->shmseginfo->readOnly = False;
 		XShmAttach (xWindow->display, xWindow->shmseginfo);
 	} else
@@ -1000,7 +1005,7 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 }
 
 /* switch from/to full screen mode */
-GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * screen_width, u32 * screen_height)
+static GF_Err X11_SetFullScreen (struct _video_out * vout, Bool bFullScreenOn, u32 * screen_width, u32 * screen_height)
 {
 	X11VID ();
 	xWindow->fullscreen = bFullScreenOn;
@@ -1064,7 +1069,7 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 /*
  * lock video mem
  */
-GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, u32 do_lock)
+GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, Bool do_lock)
 {
 	X11VID ();
 
@@ -1077,7 +1082,7 @@ GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, u32 do
 			vi->pitch_x = xWindow->bpp;
 			vi->pitch_y = xWindow->surface->width*xWindow->bpp;
 			vi->pixel_format = xWindow->pixel_format;
-			vi->video_buffer = xWindow->surface->data;
+			vi->video_buffer = (u8*) xWindow->surface->data;
 		} else {
 #ifdef GPAC_HAS_X11_SHM
 			vi->width = xWindow->pwidth;
@@ -1088,7 +1093,7 @@ GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, u32 do
 			vi->video_buffer = (unsigned char *) xWindow->shmseginfo->shmaddr;
 #endif
 		}
-		vi->is_hardware_memory = (xWindow->use_shared_memory) ? 1 : 0;
+		vi->is_hardware_memory = (xWindow->use_shared_memory) ? GF_TRUE : GF_FALSE;
 		return GF_OK;
 	} else {
 		return GF_OK;
@@ -1278,8 +1283,8 @@ X11_SetupWindow (GF_VideoOutput * vout)
 
 	{
 		XClassHint hint;
-		hint.res_name = "gpac";
-		hint.res_class = "gpac";
+		hint.res_name = (char *) "gpac";
+		hint.res_class = (char *) "gpac";
 		XSetClassHint(xWindow->display, xWindow->wnd, &hint);
 	}
 
@@ -1596,10 +1601,10 @@ void *NewX11VideoOutput ()
 	driv->opaque = xWindow;
 
 	driv->Flush = X11_Flush;
-	driv->SetFullScreen = X11_SetFullScreen;
+	driv->SetFullScreen = (gf_mod_vid_set_fullscreen) X11_SetFullScreen;
 	driv->Setup = X11_Setup;
 	driv->Shutdown = X11_Shutdown;
-	driv->LockBackBuffer = X11_LockBackBuffer;
+	driv->LockBackBuffer = (gf_mod_vid_lock_backbuffer)  X11_LockBackBuffer;
 	driv->ProcessEvent = X11_ProcessEvent;
 	driv->hw_caps = GF_VIDEO_HW_OPENGL;
 	/*fixme - needs a better detection scheme*/

@@ -926,6 +926,7 @@ restart_quad:
 				GF_Vec lv;
 				surf->s_v2 = s_pt2;
 				gf_vec_diff(lv, s_pt2, s_pt1);
+				//cppcheck-suppress redundantAssignment
 				lv.z=0;
 				s3d->v1v2_length = gf_vec_len(lv);
 				fparam.idx2 = vidx2;

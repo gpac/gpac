@@ -26,7 +26,7 @@
 #include <gpac/utf.h>
 
 //for now only for SVG
-#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_COMPOSITOR)
+#if ! (defined(GPAC_DISABLE_SVG) && defined(GPAC_DISABLE_COMPOSITOR) && defined(GPAC_DISABLE_EVG) )
 
 /*------------------------------------------------------------------------
 	Bidirectional Character Types

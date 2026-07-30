@@ -164,7 +164,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 			} else {
 				newnode = gf_bifs_dec_node(codec, bs, targetField.NDTtype);
 			}
-			GF_Err e = gf_node_replace_child(target, (GF_ChildNodeItem**) targetField.far_ptr, pos, newnode);
+			e = gf_node_replace_child(target, (GF_ChildNodeItem**) targetField.far_ptr, pos, newnode);
 			if (e) {
 				if (!fromNode) {
 					gf_node_register(newnode, NULL);
@@ -613,7 +613,6 @@ static GF_Err BD_DecNodeInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 	if (e) return e;
 	e = gf_node_insert_child(def, node, pos);
 	if (!e) {
-		GF_FieldInfo field;
 		/*get it by name in case no add/removeChildren*/
 		e = gf_node_get_field_by_name(def, "children", &field);
 		if (e) {
@@ -1075,7 +1074,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 		if (codec->UseName) {
 			gf_bifs_dec_name(bs, name, 1000);
 		} else {
-			sprintf(name, "Proto%d", gf_list_count(codec->current_graph->protos) );
+			sprintf(name, "Proto%u", gf_list_count(codec->current_graph->protos) );
 		}
 		/*create a proto in the current graph*/
 		proto = gf_sg_proto_new(codec->current_graph, ID, name, proto_list ? GF_TRUE : GF_FALSE);
@@ -1099,7 +1098,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 			if (codec->UseName) {
 				gf_bifs_dec_name(bs, name, 1000);
 			} else {
-				sprintf(name, "_field%d", numFields);
+				sprintf(name, "_field%u", numFields);
 			}
 
 			/*create field interface*/

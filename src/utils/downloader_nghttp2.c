@@ -530,7 +530,7 @@ GF_Err h2_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *respo
 	hdrs = (nghttp2_nv *)gf_malloc(sizeof(nghttp2_nv) * (count + 1) );
 	if (!hdrs) return GF_OUT_OF_MEM;
 
-	sprintf(szFmt, "%d", reply_code);
+	sprintf(szFmt, "%u", reply_code);
 	NV_HDR(hdrs[0], ":status", szFmt);
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/2] send reply for stream_id " LLD " (body %d) headers:\n:status: %s\n", sess->hmux_stream_id, !no_body, szFmt));
 	for (i=0; i<count; i++) {
@@ -688,7 +688,6 @@ static void h2_close_session(GF_DownloadSession *sess)
 	nghttp2_submit_shutdown_notice((nghttp2_session *)sess->hmux_sess->hmux_udta);
 	h2_session_write(sess);
 
-#if 1
 	u64 in_time;
 	in_time = gf_sys_clock_high_res();
 	while (nghttp2_session_want_read((nghttp2_session *)sess->hmux_sess->hmux_udta)) {
@@ -703,13 +702,12 @@ static void h2_close_session(GF_DownloadSession *sess)
 		if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
 			if (e!=GF_IP_CONNECTION_CLOSED) {
 				SET_LAST_ERR(e)
-				sess->status = GF_NETIO_STATE_ERROR;
+				//sess->status = GF_NETIO_STATE_ERROR;
 			}
 			break;
 		}
 		h2_session_write(sess);
 	}
-#endif
 	sess->status = GF_NETIO_DISCONNECTED;
 }
 

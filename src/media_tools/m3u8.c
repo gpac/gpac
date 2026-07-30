@@ -23,8 +23,6 @@
  *
  */
 
-#define _GNU_SOURCE
-
 #include <gpac/internal/m3u8.h>
 #include <gpac/network.h>
 
@@ -567,7 +565,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 			} else if (safe_start_equals("RESOLUTION=", ret[i])) {
 				u32 w, h;
 				utility = &(ret[i][11]);
-				if ((sscanf(utility, "%dx%d", &w, &h)==2) || (sscanf(utility, "%dx%d,", &w, &h)==2)) {
+				if ((sscanf(utility, "%ux%u", &w, &h)==2) || (sscanf(utility, "%ux%u,", &w, &h)==2)) {
 					attributes->width = w;
 					attributes->height = h;
 				}
@@ -818,9 +816,10 @@ GF_Err gf_m3u8_master_playlist_del(MasterPlaylist **playlist) {
 		return GF_OK;
 	gf_assert((*playlist)->streams);
 	while (gf_list_count((*playlist)->streams)) {
-		Stream *p = (struct s_stream *)gf_list_get((*playlist)->streams, 0);
-		while (p && gf_list_count(p->variants)) {
-			PlaylistElement *pl = (struct s_playlistElement *)gf_list_get(p->variants, 0);
+		Stream *p = (Stream *)gf_list_get((*playlist)->streams, 0);
+		if (!p) break;
+		while (gf_list_count(p->variants)) {
+			PlaylistElement *pl = (PlaylistElement *)gf_list_get(p->variants, 0);
 			if (!pl) break;
 			playlist_element_del(pl);
 			gf_list_rem(p->variants, 0);
@@ -842,10 +841,9 @@ static Stream* master_playlist_find_matching_stream(const MasterPlaylist *pl, co
 	u32 count, i;
 	gf_assert(pl);
 	gf_assert(pl->streams);
-	gf_assert(stream_id >= 0);
 	count = gf_list_count(pl->streams);
 	for (i=0; i<count; i++) {
-		Stream *cur = (struct s_stream *)gf_list_get(pl->streams, i);
+		Stream *cur = (Stream *)gf_list_get(pl->streams, i);
 		gf_assert(cur);
 		if (stream_id == cur->stream_id) {
 			/* We found the program */
@@ -912,7 +910,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 
 		if (!curr_playlist) {
 			for (i=0; i<(s32)count; i++) {
-				PlaylistElement *i_playlist_element = (struct s_playlistElement *)gf_list_get(stream->variants, i);
+				PlaylistElement *i_playlist_element = (PlaylistElement *)gf_list_get(stream->variants, i);
 				gf_assert(i_playlist_element);
 				if (stream->stream_id < MEDIA_TYPE_AUDIO) {
 					/* regular stream (EXT-X-STREAM-INF) */
@@ -1343,10 +1341,10 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 
 	for (i=0; i<(int)gf_list_count((*playlist)->streams); i++) {
 		u32 j;
-		Stream *prog = (struct s_stream *)gf_list_get((*playlist)->streams, i);
+		Stream *prog = (Stream *)gf_list_get((*playlist)->streams, i);
 		prog->computed_duration = 0;
 		for (j=0; j<gf_list_count(prog->variants); j++) {
-			PlaylistElement *ple = (struct s_playlistElement *)gf_list_get(prog->variants, j);
+			PlaylistElement *ple = (PlaylistElement *)gf_list_get(prog->variants, j);
 			if (ple->element_type == TYPE_PLAYLIST) {
 				if (ple->element.playlist.computed_duration > prog->computed_duration)
 					prog->computed_duration = ple->element.playlist.computed_duration;

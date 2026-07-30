@@ -100,7 +100,7 @@ GF_OPT_ENUM (GF_FileListFileSortMode,
 	FL_SORT_NAME,
 	FL_SORT_SIZE,
 	FL_SORT_DATE,
-	FL_SORT_DATEX,
+	FL_SORT_DATEX
 );
 
 enum
@@ -112,14 +112,14 @@ enum
 	//splice is active, content is spliced content
 	FL_SPLICE_ACTIVE,
 	//splice no longer active, content is main content
-	FL_SPLICE_AFTER,
+	FL_SPLICE_AFTER
 };
 
 GF_OPT_ENUM (GF_FileListForceRawMode,
 	FL_RAW_AV=0,
 	FL_RAW_AUDIO,
 	FL_RAW_VIDEO,
-	FL_RAW_NO,
+	FL_RAW_NO
 );
 
 
@@ -357,7 +357,7 @@ static void filelist_push_period_id(GF_FileListCtx *ctx, GF_FilterPid *opid)
 	char *dyn_period = NULL;
 
 	gf_dynstrcat(&dyn_period, ctx->dyn_period_id, NULL);
-	sprintf(szID, "_%d", ctx->cur_splice_index+1);
+	sprintf(szID, "_%u", ctx->cur_splice_index+1);
 	gf_dynstrcat(&dyn_period, szID, NULL);
 	gf_filter_pid_set_property(opid, GF_PROP_PID_PERIOD_ID, &PROP_STRING_NO_COPY(dyn_period));
 }
@@ -908,14 +908,13 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 	f = gf_fopen(ctx->file_path, "rt");
 	if (!f) return GF_FALSE;
 
-	while (f) {
+	while (1) {
 		char *l = gf_fgets(szURL, GF_MAX_PATH, f);
 		if (!l || (gf_feof(f) && !szURL[0]) ) {
 			if (ctx->floop != 0) {
 				gf_fseek(f, 0, SEEK_SET);
 				//load first line
 				if (last_found) {
-					if (!ctx->floop) return GF_FALSE;
 					if (ctx->floop>0) ctx->floop--;
 					ctx->last_url_crc=0;
 				}
@@ -1060,9 +1059,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 					gf_free(ctx->splice_props);
 					ctx->splice_props = aval ? gf_strdup(aval) : NULL;
 				} else if (!strcmp(args, "chap") && aval) {
-					if (aval) {
-						gf_strcpy(chap_name, aval);
-					}
+					gf_strcpy(chap_name, aval);
 				} else if (!strcmp(args, "base_url")) {
 					gf_free(ctx->temp_base_url);
 					ctx->temp_base_url = aval && aval[0] ? gf_strdup(aval) : NULL;
@@ -1138,7 +1135,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 			//new new splice start is undefined (prepare for new splice)
 			(splice_start.num<0)
 			// or new splice start is defined and prev splice start was undefined
-			|| ((splice_start.num>=0) && ((ctx->splice_start.num < 0) || !ctx->splice_start.den) )
+			|| ((ctx->splice_start.num < 0) || !ctx->splice_start.den)
 			// or new splice time is greater than previous one
 			|| (ctx->splice_start.num * splice_start.den < splice_start.num * ctx->splice_start.den)
 		) {
@@ -1298,7 +1295,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 		GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, NULL);
 		evt.file_del.url = "__gpac_self__";
 		for (i=0; i<gf_list_count(ctx->filter_srcs); i++) {
-			fsrc = (struct __gf_filter *)gf_list_get(ctx->filter_srcs, i);
+			fsrc = (GF_Filter *)gf_list_get(ctx->filter_srcs, i);
 			gf_filter_send_event(fsrc, &evt, GF_FALSE);
 		}
 	}
@@ -1307,7 +1304,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 		&& next_url_ok
 	) {
 		while (gf_list_count(ctx->filter_srcs)) {
-			fsrc = (struct __gf_filter *)gf_list_pop_back(ctx->filter_srcs);
+			fsrc = (GF_Filter *)gf_list_pop_back(ctx->filter_srcs);
 			gf_filter_remove_src(filter, fsrc);
 		}
 	}
@@ -1414,7 +1411,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 
 #define SET_SOURCE(_filter, _from) \
 			if (link_idx>0) { \
-				prev_filter = (struct __gf_filter *)gf_list_get(filters, (u32) link_idx); \
+				prev_filter = (GF_Filter *)gf_list_get(filters, (u32) link_idx); \
 				if (!prev_filter) { \
 					if (filters) gf_list_del(filters); \
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] Invalid link directive, filter index %d does not point to a valid filter\n")); \
@@ -1440,7 +1437,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 		} else if (ctx->do_cat) {
 			char *f_url;
 			GF_FilterEvent evt;
-			fsrc = (struct __gf_filter *)gf_list_get(ctx->filter_srcs, s_idx);
+			fsrc = (GF_Filter *)gf_list_get(ctx->filter_srcs, s_idx);
 			if (!fsrc) {
 				if (sep) sep[0] = c;
 				else if (sep_f) sep_f[0] = ' ';
@@ -1511,6 +1508,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				prev_filter = NULL;
 			}
 			if (filters) gf_list_reset(filters);
+			//cppcheck-suppress redundantAssignment
 			link_idx = -1;
 		} else {
 			sep_f[0] = ' ';
@@ -1570,7 +1568,6 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 	//assign last defined filter as source for ourselves
 	if (prev_filter) {
 		gf_filter_set_source(filter, prev_filter, NULL);
-		prev_filter = NULL;
 	}
 
 	gf_filter_lock_all(filter, GF_FALSE);
@@ -2094,7 +2091,6 @@ restart:
 				ctx->fio = gf_fileio_from_mem(p ? p->value.string : NULL, (u8*)ctx->dyn_pl_data, size);
 				gf_free(ctx->file_path);
 				ctx->file_path = gf_strdup( gf_fileio_url(ctx->fio) );
-				p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_URL);
 
 				ctx->ka = 1000;
 				if (replace) {
@@ -2134,7 +2130,7 @@ restart:
 		u32 nb_ready_av=0, nb_not_ready_av=0, nb_not_ready_sparse=0;
 		u32 nb_continuous=0;
 		for (i=0; i<gf_list_count(ctx->filter_srcs); i++) {
-			GF_Filter *fsrc = (struct __gf_filter *)gf_list_get(ctx->filter_srcs, i);
+			GF_Filter *fsrc = (GF_Filter *)gf_list_get(ctx->filter_srcs, i);
 			if (gf_filter_has_pid_connection_pending(fsrc, filter)) {
 				return GF_OK;
 			}
@@ -2614,7 +2610,7 @@ restart:
 		}
 		if (!ctx->mark_only) {
 			while (gf_list_count(ctx->filter_srcs)) {
-				GF_Filter *fsrc = (struct __gf_filter *)gf_list_pop_back(ctx->filter_srcs);
+				GF_Filter *fsrc = (GF_Filter *)gf_list_pop_back(ctx->filter_srcs);
 				gf_filter_remove_src(filter, fsrc);
 			}
 			gf_list_del(ctx->filter_srcs);

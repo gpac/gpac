@@ -506,7 +506,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	//RTSP line
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, GF_RTSP_VERSION);
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, " ");
-	RTSP_WRITE_INT(buffer, size, cur_pos, rsp->ResponseCode, 0);
+	RTSP_WRITE_INT(buffer, size, cur_pos, rsp->ResponseCode);
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, " ");
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, gf_rtsp_nc_to_string(rsp->ResponseCode));
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
@@ -519,12 +519,12 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Authorization", rsp->Authorization);
 	if (rsp->Bandwidth) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Bandwidth: ");
-		RTSP_WRITE_INT(buffer, size, cur_pos, rsp->Bandwidth, 0);
+		RTSP_WRITE_INT(buffer, size, cur_pos, rsp->Bandwidth);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	}
 	if (rsp->Blocksize) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Blocksize: ");
-		RTSP_WRITE_INT(buffer, size, cur_pos, rsp->Blocksize, 0);
+		RTSP_WRITE_INT(buffer, size, cur_pos, rsp->Blocksize);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	}
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Cache-Control", rsp->Cache_Control);
@@ -536,14 +536,14 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	//if we have a body write the content length
 	if (rsp->body) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Content-Length: ");
-		RTSP_WRITE_INT(buffer, size, cur_pos, (u32) strlen(rsp->body), 0);
+		RTSP_WRITE_INT(buffer, size, cur_pos, (u32) strlen(rsp->body));
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	}
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Content-Location", rsp->Content_Location);
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Content-Type", rsp->Content_Type);
 	//write the CSeq - use the RESPONSE CSeq
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "CSeq: ");
-	RTSP_WRITE_INT(buffer, size, cur_pos, rsp->CSeq, 0);
+	RTSP_WRITE_INT(buffer, size, cur_pos, rsp->CSeq);
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Date", rsp->Date);
@@ -590,9 +590,9 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";");
 			}
 			RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "seq=");
-			RTSP_WRITE_INT(buffer, size, cur_pos, info->seq, 0);
+			RTSP_WRITE_INT(buffer, size, cur_pos, info->seq);
 			RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";rtptime=");
-			RTSP_WRITE_INT(buffer, size, cur_pos, info->rtp_time, 0);
+			RTSP_WRITE_INT(buffer, size, cur_pos, info->rtp_time);
 		}
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	}
@@ -638,34 +638,34 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 			}
 			if (trans->IsInterleaved) {
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";interleaved=");
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->rtpID, 0);
+				RTSP_WRITE_INT(buffer, size, cur_pos, trans->rtpID);
 				if (trans->rtcpID != trans->rtpID) {
 					RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");
-					RTSP_WRITE_INT(buffer, size, cur_pos, trans->rtcpID, 0);
+					RTSP_WRITE_INT(buffer, size, cur_pos, trans->rtcpID);
 				}
 			}
 			//multicast specific
 			if (!trans->IsUnicast) {
 				if (trans->MulticastLayers) {
 					RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";layers=");
-					RTSP_WRITE_INT(buffer, size, cur_pos, trans->MulticastLayers, 0);
+					RTSP_WRITE_INT(buffer, size, cur_pos, trans->MulticastLayers);
 				}
 				if (trans->TTL) {
 					RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";ttl=");
-					RTSP_WRITE_INT(buffer, size, cur_pos, trans->TTL, 0);
+					RTSP_WRITE_INT(buffer, size, cur_pos, trans->TTL);
 				}
 			}
 			if (trans->port_first) {
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, (const char *) (trans->IsUnicast ? ";server_port=" : ";port="));
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->port_first, 0);
+				RTSP_WRITE_INT(buffer, size, cur_pos, trans->port_first);
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->port_last, 0);
+				RTSP_WRITE_INT(buffer, size, cur_pos, trans->port_last);
 			}
 			if (trans->IsUnicast && trans->client_port_first) {
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";client_port=");
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->client_port_first, 0);
+				RTSP_WRITE_INT(buffer, size, cur_pos, trans->client_port_first);
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->client_port_last, 0);
+				RTSP_WRITE_INT(buffer, size, cur_pos, trans->client_port_last);
 			}
 			if (trans->SSRC) {
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";ssrc=");
@@ -693,6 +693,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	//then body
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, rsp->body);
+	if (!cur_pos || !buffer) return GF_OUT_OF_MEM;
 
 	*out_buffer = (unsigned char *) buffer;
 	*out_size = (u32) strlen(buffer);

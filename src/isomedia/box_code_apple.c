@@ -179,6 +179,8 @@ GF_Box *ilst_item_box_new()
 GF_Err ilst_item_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
 	GF_ListItemBox *ptr = (GF_ListItemBox*)s;
+	//only to avoid a cppcheck warning
+	if (!ptr->type) return GF_BAD_PARAM;
 	switch (a->type) {
 	case GF_QT_BOX_TYPE_NAME:
 		BOX_FIELD_ASSIGN(name, GF_NameBox)

@@ -99,6 +99,7 @@ GF_Err gf_mkdir(const char* DirPathName)
 	if (! res) {
 		int err = GetLastError();
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory \"%s\": last error %d\n", DirPathName, err ));
+		return GF_IO_ERR;
 	}
 #elif defined (WIN32)
 	int res;
@@ -122,6 +123,7 @@ GF_Err gf_mkdir(const char* DirPathName)
 		if (err != 183) {
 			// don't throw error if dir already exists
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory \"%s\": last error %d\n", DirPathName, err));
+			return GF_IO_ERR;
 		}
 	}
 #else
@@ -556,12 +558,16 @@ static void gf_register_file_handle(const char *filename, FILE *ptr, Bool is_tem
 		GF_SAFEALLOC(h, GF_FileHandle);
 		if (h) {
 			h->ptr = ptr;
+#ifdef GPAC_MEMORY_TRACKING
 			if (is_temp_file) {
+#endif
 				h->is_temp = GF_TRUE;
 				h->url = (char*)filename;
+#ifdef GPAC_MEMORY_TRACKING
 			} else {
 				h->url = gf_strdup(filename);
 			}
+#endif
 			gf_list_add(gpac_open_files, h);
 		}
 		gf_mx_v(logs_mx);
@@ -676,7 +682,7 @@ FILE *gf_file_temp(char ** const fileName)
 			gf_dynstrcat(&opath, "/", NULL);
 		if (!opath) return NULL;
 
-		sprintf(szFName, "_libgpac_%d_%p_" LLU "_%d", gf_sys_get_process_id(), opath, gf_sys_clock_high_res(), gf_rand() );
+		sprintf(szFName, "_libgpac_%u_%p_" LLU "_%u", gf_sys_get_process_id(), opath, gf_sys_clock_high_res(), gf_rand() );
 		gf_dynstrcat(&opath, szFName, NULL);
 		if (fileName) {
 			sprintf(szFName, "%p", fileName);
@@ -849,7 +855,9 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		memset(&file_info, 0, sizeof(GF_FileEnumInfo) );
 
 		Bool done = GF_FALSE;
+#if !defined (_WIN32_WCE) && !defined(WIN32)
 		struct tm _t;
+#endif
 
 #if defined (_WIN32_WCE)
 		if (!wcscmp(FindData.cFileName, _T(".") )) goto next;

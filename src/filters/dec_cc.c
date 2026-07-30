@@ -95,7 +95,7 @@ GF_Err ccdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	const GF_PropertyValue *prop;
 
 	if (is_remove) {
-		out_pid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
+		out_pid = (GF_FilterPid *)gf_filter_pid_get_udta(pid);
 		if (out_pid==ctx->opid)
 			ctx->opid = NULL;
 		if (out_pid)
@@ -583,15 +583,15 @@ GF_Err ccdec_process(GF_Filter *filter)
 						u32 terminal_provider_code = gf_bs_read_u16(ctx->bs);
 						i+=2;
 						if (terminal_provider_code==GF_ITU_T35_PROVIDER_ATSC) {
-							u8 *data = (u8 *)gf_malloc(sei_size);
-							if (!data) return GF_OUT_OF_MEM;
+							u8 *sei_data = (u8 *)gf_malloc(sei_size);
+							if (!sei_data) return GF_OUT_OF_MEM;
 							gf_bs_seek(ctx->bs, pos);
 							i=0;
 							while (i<sei_size) {
-								data[i] = gf_bs_read_u8(ctx->bs);
+								sei_data[i] = gf_bs_read_u8(ctx->bs);
 								i++;
 							}
-							ccdec_queue_data(ctx, ts, (u8*) data, sei_size, GF_FALSE, GF_TRUE);
+							ccdec_queue_data(ctx, ts, (u8*) sei_data, sei_size, GF_FALSE, GF_TRUE);
 						}
 					}
 					while (i < sei_size) {

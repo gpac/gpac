@@ -111,7 +111,7 @@ static void parse_data_format(GF_PropertyValue *p, char list_sep_char, const cha
 	u32 res = 0;
 	if (is_string || p->value.data.ptr) {
 		char *vdup = gf_strdup(value);
-		const char *v = vdup;
+		v = vdup;
 		nb_items = 0;
 		while (1) {
 			u32 lres;
@@ -310,7 +310,7 @@ GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const 
 			}
 		} else if (value) {
 			if (parse_time(value, &tval)) p.value.uint = (u32) tval;
-			else if (sscanf(value, "%d", &p.value.uint)!=1) {
+			else if (sscanf(value, "%u", &p.value.uint)!=1) {
 				if (strlen(value)==4) {
 					p.value.uint = GF_4CC(value[0],value[1],value[2],value[3]);
 				} else {
@@ -538,7 +538,7 @@ GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const 
 		if (!value) {
 			p.value.data.ptr=NULL;
 			p.value.data.size=0;
-		} else if (sscanf(value, "%d@%p", &p.value.data.size,&p.value.data.ptr)==2) {
+		} else if (sscanf(value, "%u@%p", &p.value.data.size,&p.value.data.ptr)==2) {
 			p.type = GF_PROP_CONST_DATA;
 		} else if (!strnicmp(value, "0x", 2) ) {
 			u32 i;
@@ -651,7 +651,7 @@ GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const 
 			char *sep = (char *) strchr(v, list_sep_char);
 			while (sep && sep[1] == list_sep_char) {
 				// skip doubled separator
-				size_t len = strlen(sep+1);
+				len = (u32) strlen(sep+1);
 				memmove(sep, sep+1, len);
 				sep[len] = 0;
 				sep = strchr(sep+1, list_sep_char);
@@ -981,11 +981,13 @@ GFINLINE u32 gf_props_hash_djb2(u32 p4cc, const char *str)
 		hash = ((hash << 5) + hash) + ((p4cc>>16)&0xFF);
 		hash = ((hash << 5) + hash) + ((p4cc>>8)&0xFF);
 		hash = ((hash << 5) + hash) + (p4cc&0xFF);
-	} else {
-		int c;
-		while ( (c = *str++) )
+	} else if (str) {
+		while (1) {
+			int c = *str;
+			if (!c) break;
+			str++;
 			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
+		}
 	}
 	return (hash % GF_PROPS_HASHTABLE_SIZE);
 }
@@ -1146,7 +1148,7 @@ void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const cha
 	if (map->hash_table[hash]) {
 		u32 i, count = gf_list_count(map->hash_table[hash]);
 		for (i=0; i<count; i++) {
-			GF_PropertyEntry *prop = (struct __gf_prop_entry *)gf_list_get(map->hash_table[hash], i);
+			GF_PropertyEntry *prop = (GF_PropertyEntry *)gf_list_get(map->hash_table[hash], i);
 			if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
 				gf_list_rem(map->hash_table[hash], i);
 				gf_props_del_property(prop);
@@ -1157,7 +1159,7 @@ void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const cha
 #else
 	u32 i, count = gf_list_count(map->properties);
 	for (i=0; i<count; i++) {
-		GF_PropertyEntry *prop = (struct __gf_prop_entry *)gf_list_get(map->properties, i);
+		GF_PropertyEntry *prop = (GF_PropertyEntry *)gf_list_get(map->properties, i);
 		if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
 			gf_list_rem(map->properties, i);
 			gf_props_del_property(prop);
@@ -1267,7 +1269,7 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 		if (count) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries before insertion:\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, gf_list_count(map->hash_table[hash]) ));
 			for (i=0; i<count; i++) {
-				GF_PropertyEntry *prop_c = (struct __gf_prop_entry *)gf_list_get(map->hash_table[hash], i);
+				GF_PropertyEntry *prop_c = (GF_PropertyEntry *)gf_list_get(map->hash_table[hash], i);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n\n", prop_c->pname ? prop_c->pname : gf_4cc_to_str(prop_c->p4cc)  ));
 				gf_assert(!prop_c->p4cc || (prop_c->p4cc != p4cc));
 			}
@@ -1324,14 +1326,14 @@ GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, co
 
 const GF_PropertyEntry *gf_props_get_property_entry(GF_PropertyMap *map, u32 prop_4cc, const char *name)
 {
-	u32 i, count, len;
+	u32 i, count;
 	const GF_PropertyEntry *res=NULL;
 #if GF_PROPS_HASHTABLE_SIZE
 	u32 hash = gf_props_hash_djb2(prop_4cc, name);
 	if (map->hash_table[hash] ) {
 		count = gf_list_count(map->hash_table[hash]);
 		for (i=0; i<count; i++) {
-			GF_PropertyEntry *p = (struct __gf_prop_entry *)gf_list_get(map->hash_table[hash], i);
+			GF_PropertyEntry *p = (GF_PropertyEntry *)gf_list_get(map->hash_table[hash], i);
 
 			if ((prop_4cc && (p->p4cc==prop_4cc)) || (p->pname && name && !strcmp(p->pname, name)) ) {
 				res = p;
@@ -1340,6 +1342,7 @@ const GF_PropertyEntry *gf_props_get_property_entry(GF_PropertyMap *map, u32 pro
 		}
 	}
 #else
+	u32 len;
 	count = gf_list_count(map->properties);
 	if (name) {
 		len = (u32) strlen(name);
@@ -1348,7 +1351,7 @@ const GF_PropertyEntry *gf_props_get_property_entry(GF_PropertyMap *map, u32 pro
 		len = 0;
 	}
 	for (i=0; i<count; i++) {
-		GF_PropertyEntry *p = (struct __gf_prop_entry *)gf_list_get(map->properties, i);
+		GF_PropertyEntry *p = (GF_PropertyEntry *)gf_list_get(map->properties, i);
 		if (!p) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Concurrent read/write access to property map, cannot query property now\n"));
 			return NULL;
@@ -1405,7 +1408,7 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 #endif
 			count = gf_list_count(list);
 			for (i=0; i<count; i++) {
-				GF_PropertyEntry *prop = (struct __gf_prop_entry *)gf_list_get(list, i);
+				GF_PropertyEntry *prop = (GF_PropertyEntry *)gf_list_get(list, i);
 				gf_assert(prop->reference_count);
 				if (!filter_prop || filter_prop(cbk, prop->p4cc, prop->pname, &prop->prop)) {
 					safe_int_inc(&prop->reference_count);
@@ -1455,7 +1458,7 @@ const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_id
 				idx -= count;
 				continue;
 			}
-			pe = (struct __gf_prop_entry *)gf_list_get(props->hash_table[i], idx);
+			pe = (GF_PropertyEntry *)gf_list_get(props->hash_table[i], idx);
 			if (!pe) {
 				*io_idx = nb_items;
 				return NULL;
@@ -1474,7 +1477,7 @@ const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_id
 		*io_idx = count;
 		return NULL;
 	}
-	pe = (struct __gf_prop_entry *)gf_list_get(props->properties, idx);
+	pe = (GF_PropertyEntry *)gf_list_get(props->properties, idx);
 	if (!pe) {
 		*io_idx = count;
 		return NULL;
@@ -2105,7 +2108,7 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 	case GF_PROP_FRACTION:
 		//reduce fraction
 		if (!no_reduce && att->value.frac.den && ((att->value.frac.num/att->value.frac.den) * att->value.frac.den == att->value.frac.num)) {
-			sprintf(dump, "%d", att->value.frac.num / att->value.frac.den);
+			sprintf(dump, "%d", att->value.frac.num / (s32) att->value.frac.den);
 		} else {
 			sprintf(dump, "%d/%u", att->value.frac.num, att->value.frac.den);
 		}
@@ -2113,7 +2116,7 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 	case GF_PROP_FRACTION64:
 		//reduce fraction
 		if (!no_reduce && att->value.lfrac.den && ((att->value.lfrac.num/att->value.lfrac.den) * att->value.lfrac.den == att->value.lfrac.num)) {
-			sprintf(dump, LLD, att->value.lfrac.num / att->value.lfrac.den);
+			sprintf(dump, LLD, att->value.lfrac.num / (s64) att->value.lfrac.den);
 		} else {
 			sprintf(dump, LLD "/" LLU, att->value.lfrac.num, att->value.lfrac.den);
 		}
@@ -2148,15 +2151,15 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 	case GF_PROP_CONST_DATA:
 	case GF_PROP_DATA_NO_COPY:
 		if (dump_data_type==2) {
-			sprintf(dump, "%d@%p", att->value.data.size, att->value.data.ptr);
+			sprintf(dump, "%u@%p", att->value.data.size, att->value.data.ptr);
 		} else if (dump_data_type && att->value.data.size < 40) {
 			u32 i;
-			sprintf(dump, "%d bytes 0x", att->value.data.size);
+			sprintf(dump, "%u bytes 0x", att->value.data.size);
 			for (i=0; i<att->value.data.size; i++) {
 				sprintf(dump, "%02X", (unsigned char) att->value.data.ptr[i]);
 			}
 		} else {
-			sprintf(dump, "%d bytes (CRC32 0x%08X)", att->value.data.size, gf_crc_32(att->value.data.ptr, att->value.data.size));
+			sprintf(dump, "%u bytes (CRC32 0x%08X)", att->value.data.size, gf_crc_32(att->value.data.ptr, att->value.data.size));
 		}
 		break;
 	case GF_PROP_POINTER:
@@ -2264,7 +2267,7 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		//see issue #859, no clue how this happened...
 		if (sec > 60)
 			sec = 60;
-		snprintf(dump, GF_PROP_DUMP_ARG_SIZE-1, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, sec, ms);
+		snprintf(dump, GF_PROP_DUMP_ARG_SIZE-1, "%d-%02d-%02dT%02d:%02d:%02u.%03uZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, sec, ms);
 		dump[GF_PROP_DUMP_ARG_SIZE-1]=0;
 	}
 		return dump;

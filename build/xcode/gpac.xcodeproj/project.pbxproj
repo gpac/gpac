@@ -442,8 +442,6 @@
 		92BBFCB81A7122AD006A7735 /* download.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC551A7122AD006A7735 /* download.h */; };
 		92BBFCBC1A7122AD006A7735 /* events_constants.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC591A7122AD006A7735 /* events_constants.h */; };
 		92BBFCBD1A7122AD006A7735 /* events.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC5A1A7122AD006A7735 /* events.h */; };
-		92BBFCBF1A7122AD006A7735 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC5C1A7122AD006A7735 /* html5_media.h */; };
-		92BBFCC01A7122AD006A7735 /* html5_mse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC5D1A7122AD006A7735 /* html5_mse.h */; };
 		92BBFCC11A7122AD006A7735 /* ietf.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC5E1A7122AD006A7735 /* ietf.h */; };
 		92BBFCC21A7122AD006A7735 /* avilib.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC601A7122AD006A7735 /* avilib.h */; };
 		92BBFCC31A7122AD006A7735 /* bifs_dev.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC611A7122AD006A7735 /* bifs_dev.h */; };
@@ -1091,8 +1089,6 @@
 		92BBFC551A7122AD006A7735 /* download.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = download.h; path = ../include/gpac/download.h; sourceTree = "<group>"; };
 		92BBFC591A7122AD006A7735 /* events_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = events_constants.h; path = ../include/gpac/events_constants.h; sourceTree = "<group>"; };
 		92BBFC5A1A7122AD006A7735 /* events.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = events.h; path = ../include/gpac/events.h; sourceTree = "<group>"; };
-		92BBFC5C1A7122AD006A7735 /* html5_media.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = html5_media.h; path = ../include/gpac/html5_media.h; sourceTree = "<group>"; };
-		92BBFC5D1A7122AD006A7735 /* html5_mse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = html5_mse.h; path = ../include/gpac/html5_mse.h; sourceTree = "<group>"; };
 		92BBFC5E1A7122AD006A7735 /* ietf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ietf.h; path = ../include/gpac/ietf.h; sourceTree = "<group>"; };
 		92BBFC601A7122AD006A7735 /* avilib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = avilib.h; sourceTree = "<group>"; };
 		92BBFC611A7122AD006A7735 /* bifs_dev.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bifs_dev.h; sourceTree = "<group>"; };
@@ -1836,8 +1832,6 @@
 				92BBFC5A1A7122AD006A7735 /* events.h */,
 				925975072215BAC30007E02B /* evg.h */,
 				92DB148B1E4F05B500382A81 /* filters.h */,
-				92BBFC5C1A7122AD006A7735 /* html5_media.h */,
-				92BBFC5D1A7122AD006A7735 /* html5_mse.h */,
 				92BBFC5E1A7122AD006A7735 /* ietf.h */,
 				92BBFC5F1A7122AD006A7735 /* internal */,
 				92BBFC781A7122AD006A7735 /* iso639.h */,
@@ -2217,7 +2211,6 @@
 				920100BC18D5A444003D1ACA /* script.h in Headers */,
 				92BBFCFE1A7122AD006A7735 /* setup.h in Headers */,
 				92BBFCFB1A7122AD006A7735 /* scenegraph_svg.h in Headers */,
-				92BBFCC01A7122AD006A7735 /* html5_mse.h in Headers */,
 				92B9A5AF1F8660D700A24FE4 /* visual_manager_2d.h in Headers */,
 				92BBFCE11A7122AD006A7735 /* mediaobject.h in Headers */,
 				92BBFCDF1A7122AD006A7735 /* maths.h in Headers */,
@@ -2251,7 +2244,6 @@
 				92E8E7EB2BF4B482003D785B /* in_route.h in Headers */,
 				92BBFD031A7122AD006A7735 /* thread.h in Headers */,
 				92BBFD051A7122AD006A7735 /* tools.h in Headers */,
-				92BBFCBF1A7122AD006A7735 /* html5_media.h in Headers */,
 				92B9A5861F8660D700A24FE4 /* gl_inc.h in Headers */,
 				92DB148E1E4F05B500382A81 /* main.h in Headers */,
 				92BBFCC41A7122AD006A7735 /* bifs_tables.h in Headers */,

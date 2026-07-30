@@ -2250,11 +2250,11 @@ void gf_odm_resume(GF_ObjectManager *odm);
 /*set object speed*/
 void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed, Bool adjust_clock_speed);
 /*returns the clock of the media stream (video, audio or bifs), NULL otherwise */
-struct _object_clock *gf_odm_get_media_clock(GF_ObjectManager *odm);
+GF_Clock *gf_odm_get_media_clock(GF_ObjectManager *odm);
 /*adds segment descriptors targeted by the URL to the list and sort them - the input list must be empty*/
 void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url);
 /*returns true if this OD depends on the given clock*/
-Bool gf_odm_shares_clock(GF_ObjectManager *odm, struct _object_clock *ock);
+Bool gf_odm_shares_clock(GF_ObjectManager *odm, GF_Clock *ock);
 
 void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid);
 

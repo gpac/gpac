@@ -100,7 +100,7 @@ GF_Err gf_laser_encoder_new_stream(GF_LASeRCodec *codec, u16 ESID, GF_LASERConfi
 	if (!pInfo->cfg.time_resolution) pInfo->cfg.time_resolution = 1000;
 	if (!pInfo->cfg.colorComponentBits) pInfo->cfg.colorComponentBits = 8;
 	if (!pInfo->cfg.coord_bits) pInfo->cfg.coord_bits = 12;
-	if (pInfo->cfg.resolution<-8) pInfo->cfg.resolution = (s8) -8;
+	if (pInfo->cfg.resolution<-8) pInfo->cfg.resolution = (s32) -8;
 	else if (pInfo->cfg.resolution>7) pInfo->cfg.resolution=7;
 
 	gf_list_add(codec->streamInfo, pInfo);
@@ -598,9 +598,10 @@ static u32 lsr_translate_coords(GF_LASeRCodec *lsr, Fixed x, u32 nb_bits)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] resolution factor %g too small to allow coding of %g - adjusting to smallest integer!\n", lsr->res_factor, FIX2FLT(x) ));
 		res = (x>0) ? 1 : -1;
 	}
-	if (nb_bits>=32)
+	if (nb_bits>=32) {
 		max = 0xFFFFFFFF;
-	else
+		nb_bits = 31;
+	} else
 		max = (1<<(nb_bits-1)) - 1;
 
 	if (res>=0) {
@@ -771,7 +772,7 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, GF_EventType evtType, u32 e
 			if (force_string==2) {
 				sprintf(szName, "%s(%s)", gf_dom_event_get_name(evtType), gf_dom_get_key_name((GF_KeyCode)evtParam) );
 			} else {
-				sprintf(szName, "%s(%d)", gf_dom_event_get_name(evtType), evtParam);
+				sprintf(szName, "%s(%u)", gf_dom_event_get_name(evtType), evtParam);
 			}
 		} else {
 			sprintf(szName, "%s", gf_dom_event_get_name(evtType));
@@ -2064,7 +2065,7 @@ static void lsr_write_point_sequence(GF_LASeRCodec *lsr, GF_List **pts, const ch
 			SVG_Point *pt = (SVG_Point *)gf_list_get(*pts, 0);
 			nb_dx = 0;
 			k = lsr_get_bit_size(lsr, pt->x);
-			if (k>nb_dx) nb_dx = k;
+			/*if (k>nb_dx) */nb_dx = k;
 			k = lsr_get_bit_size(lsr, pt->y);
 			if (k>nb_dx) nb_dx = k;
 			GF_LSR_WRITE_INT(lsr, nb_dx, 5, "bits");
@@ -2181,7 +2182,7 @@ static void lsr_write_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const ch
 	/*initial move is not coded*/
 	count = gf_list_count(path->commands);
 	lsr_write_vluimsbf5(lsr, count, "nbOfTypes");
-	for (i; i<count; i++) {
+	for (i=0; i<count; i++) {
 		u8 type = *(u8 *) gf_list_get(path->commands, i);
 		GF_LSR_WRITE_INT(lsr, type, 5, name);
 	}

@@ -327,8 +327,8 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 	//Fraction lost and cumulative lost
 	extended = ( (ch->num_sn_loops << 16) | ch->last_pck_sn);
 	expected = extended - ch->rtp_first_SN;
-	expect_diff = expected - ch->tot_num_pck_expected;
-	loss_diff = expect_diff - ch->last_num_pck_rcv;
+	expect_diff = expected - (s32) ch->tot_num_pck_expected;
+	loss_diff = expect_diff - (s32) ch->last_num_pck_rcv;
 
 	if (!expect_diff || (loss_diff <= 0)) loss_diff = 0;
 	else loss_diff = (loss_diff<<8) / expect_diff;

@@ -148,7 +148,7 @@ s32 Q_Quantize(Fixed Min, Fixed Max, u32 NbBits, Fixed value)
 	_v = FIX2FLT(value - Min);
 	_v *= (1 << NbBits) - 1;
 	_v /= FIX2FLT(Max - Min);
-	return FIX2INT(gf_floor( FLT2FIX(_v+0.5) ) );
+	return (s32) floor(_v + 0.5);
 }
 
 

@@ -54,19 +54,19 @@ typedef struct _nv_dec_inst NVDecInstance;
 GF_OPT_ENUM (NVDecUnloadMode,
 	DEC_UNLOAD_NO = 0,
 	DEC_UNLOAD_DESTROY,
-	DEC_UNLOAD_REUSE,
+	DEC_UNLOAD_REUSE
 );
 
 GF_OPT_ENUM (NVDecFrameMode,
 	NVDEC_COPY = 0,
 	NVDEC_SINGLE,
-	NVDEC_GL,
+	NVDEC_GL
 );
 
 GF_OPT_ENUM (NVDecVideoMode,
 	NVDEC_CUVID = 0,
 	NVDEC_CUDA,
-	NVDEC_DXVA,
+	NVDEC_DXVA
 );
 
 typedef struct _nv_dec_ctx
@@ -109,8 +109,8 @@ typedef struct _nv_dec_ctx
 
 #ifndef GPAC_DISABLE_3D
 	Bool gl_provider_requested;
-	GLint y_tx_id, uv_tx_id;
-	GLint y_pbo_id, uv_pbo_id;
+	GLuint y_tx_id, uv_tx_id;
+	GLuint y_pbo_id, uv_pbo_id;
 	Bool reset_pbo;
 #endif
 	u32 nb_out_frames_pending;
@@ -233,7 +233,6 @@ Bool load_inactive_dec(NVDecCtx *ctx)
 			if ((inst->width==ctx->width) && (inst->height==ctx->height) && (inst->bpp_luma == ctx->bpp_luma )
 				&& (inst->bpp_chroma == ctx->bpp_chroma ) && (inst->codec_type == ctx->codec_type) && (inst->chroma_fmt == ctx->chroma_fmt )
 				) {
-				ctx->dec_inst = inst;
 				inst->ctx = ctx;
 				gf_mx_v(global_inst_mutex);
 				return GF_TRUE;
@@ -846,7 +845,7 @@ static GF_Err nvdec_send_hw_frame(NVDecCtx *ctx, NVDecFrame *f);
 static void nvdec_reset_pcks(NVDecCtx *ctx)
 {
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 }
@@ -854,10 +853,9 @@ static void nvdec_reset_pcks(NVDecCtx *ctx)
 static void nvdec_merge_pck_props(NVDecCtx *ctx, NVDecFrame *f,  GF_FilterPacket *dst_pck)
 {
 	u32 i, count;
-	GF_FilterPacket *src_pck = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i = 0; i<count; i++) {
-		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
+		GF_FilterPacket *src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_packets, i);
 		if (gf_filter_pck_get_cts(src_pck) == f->frame_info.timestamp) {
 			gf_filter_pck_merge_properties(src_pck, dst_pck);
 			gf_filter_pck_set_dependency_flags(dst_pck, 0);

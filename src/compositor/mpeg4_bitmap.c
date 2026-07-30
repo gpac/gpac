@@ -241,7 +241,6 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Rect rc;
-	Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state);
 	DrawableContext *ctx;
 	BitmapStack *st = (BitmapStack *)gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;

@@ -165,7 +165,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 		src_pck = NULL;
 		for (i=0; i<count; i++) {
 			u64 acts;
-			src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
+			src_pck = (GF_FilterPacket *)gf_list_get(ctx->src_packets, i);
 			acts = gf_filter_pck_get_cts(src_pck);
 			if (acts==cts) {
 				gf_filter_pck_unref(pck_ref);
@@ -191,7 +191,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	}
 
 	if (theora_decode_packetin(&ctx->td, &op) != 0) {
-		src_pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->src_packets);
+		src_pck = (GF_FilterPacket *)gf_list_pop_front(ctx->src_packets);
 		gf_filter_pck_unref(src_pck);
 		if (pck) {
 			gf_filter_pid_drop_packet(ctx->ipid);
@@ -269,7 +269,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 		pVO += yuv.uv_stride;
 	}
 
-	src_pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->src_packets);
+	src_pck = (GF_FilterPacket *)gf_list_pop_front(ctx->src_packets);
 	if (src_pck) {
 		gf_filter_pck_merge_properties(src_pck, dst_pck);
 		is_seek = gf_filter_pck_get_seek_flag(src_pck);
@@ -307,7 +307,7 @@ static void theoradec_finalize(GF_Filter *filter)
 	theora_comment_clear(&ctx->tc);
 
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);

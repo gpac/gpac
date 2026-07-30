@@ -210,7 +210,7 @@ static void m2tsdmx_update_sdt(GF_M2TS_Demuxer *ts, void *for_pid)
 
 		nb_streams = gf_list_count(prog->streams);
 		for (j=0; j<nb_streams; j++) {
-			GF_M2TS_ES *es = (struct tag_m2ts_es *)gf_list_get(prog->streams, j);
+			GF_M2TS_ES *es = (GF_M2TS_ES *)gf_list_get(prog->streams, j);
 			if (!es->user) continue;
 			if (for_pid && (es->user != for_pid)) continue;
 			//TODO, translate non standard character maps to UTF8
@@ -522,7 +522,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	}
 
 	stname = gf_stream_type_name(stype);
-	sprintf(szName, "P%d%c%d", stream->program->number, stname[0], 1+gf_list_find(stream->program->streams, stream));
+	sprintf(szName, "P%u%c%d", stream->program->number, stname[0], 1+gf_list_find(stream->program->streams, stream));
 	gf_filter_pid_set_name(opid, szName);
 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_ID, &PROP_UINT(stream->pid) );
@@ -632,7 +632,6 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 				}
 				if (stream->audio_flags & GF_M2TS_AUDIO_HEARING_IMPAIRED) {
 					roles.value.string_list.vals[nb_roles] = gf_strdup("enhanced-audio-intelligibility");
-					nb_roles++;
 				}
 				gf_filter_pid_set_property(opid, GF_PROP_PID_ROLE, &roles);
 			}
@@ -712,14 +711,14 @@ static void m2tsdmx_setup_scte35(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 {
 	u32 count = gf_list_count(prog->streams);
 	for (u32 i=0; i<count; i++) {
-		GF_M2TS_ES *es_scte35 = (struct tag_m2ts_es *)gf_list_get(prog->streams, i);
+		GF_M2TS_ES *es_scte35 = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
 		if (es_scte35->pid==prog->pmt_pid) continue;
 		if (es_scte35->flags & GF_M2TS_GPAC_CODEC_ID) continue;
 		if (es_scte35->stream_type == GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS) {
 			//declare static property on the first video pid to signal scte35 presence
 			//and avoid later dynamic downstream filters' (e.g. muxers) reconfigurations
 			for (u32 j=0; j<count; j++) {
-				GF_M2TS_ES *es = (struct tag_m2ts_es *)gf_list_get(prog->streams, j);
+				GF_M2TS_ES *es = (GF_M2TS_ES *)gf_list_get(prog->streams, j);
 				if (!es->user) continue;
 				const GF_PropertyValue *p = gf_filter_pid_get_property((GF_FilterPid *)es->user, GF_PROP_PID_STREAM_TYPE);
 				if (!p) continue;
@@ -759,7 +758,7 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 
 	for (i=0; i<count; i++) {
 		u32 ncount;
-		GF_M2TS_ES *es = (struct tag_m2ts_es *)gf_list_get(prog->streams, i);
+		GF_M2TS_ES *es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
 
 		if (! (es->flags & GF_M2TS_ES_ALREADY_DECLARED)) {
@@ -778,7 +777,7 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterPacket *pck)
 {
 	if (stream->props) {
-		Bool insert_immediately = GF_TRUE;
+		Bool insert_immediately;
 		GF_List *id3_tag_list = NULL;
 
 		char szID[100];
@@ -788,7 +787,7 @@ static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterP
 			switch(p->type) {
 				case M2TS_TEMI_INFO: {
 					GF_M2TS_Prop_TEMIInfo *t = (GF_M2TS_Prop_TEMIInfo*)p;
-					snprintf(szID, 100, "%s:%d", t->is_loc ? "temi_l" : "temi_t", t->timeline_id);
+					snprintf(szID, 100, "%s:%u", t->is_loc ? "temi_l" : "temi_t", t->timeline_id);
 
 					if (!(stream->flags & GF_M2TS_ES_TEMI_INFO)) {
 						stream->flags |= GF_M2TS_ES_TEMI_INFO;
@@ -1260,7 +1259,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			GF_M2TS_Program *prog = (GF_M2TS_Program *)gf_list_get(ts->programs, i);
 			u32 j, count2 = gf_list_count(prog->streams);
 			for (j=0; j<count2; j++) {
-				GF_M2TS_ES * stream = (struct tag_m2ts_es *)gf_list_get(prog->streams, j);
+				GF_M2TS_ES * stream = (GF_M2TS_ES *)gf_list_get(prog->streams, j);
 				if (stream->user && (stream->flags & GF_M2TS_ES_IS_PES)) {
 					GF_M2TS_PES*pes = (GF_M2TS_PES*)stream;
 					pes->map_utc = utc_ts;
@@ -1284,7 +1283,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			u32 j, count2;
 			count2 = gf_list_count(prog->streams);
 			for (j=0; j<count2; j++) {
-				GF_M2TS_ES * stream = (struct tag_m2ts_es *)gf_list_get(prog->streams, j);
+				GF_M2TS_ES * stream = (GF_M2TS_ES *)gf_list_get(prog->streams, j);
 				if (stream->user) {
 					gf_filter_pid_set_property((GF_FilterPid *)stream->user, GF_PROP_PID_DURATION, & PROP_FRAC64_INT((s64)duration, 1000) );
 					gf_filter_pid_set_property((GF_FilterPid *)stream->user, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
@@ -1382,7 +1381,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	{
 		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK*)param;
 		GF_M2TS_Prop *t;
-		u32 count = gf_list_count(pck->stream->program->streams);
+		count = gf_list_count(pck->stream->program->streams);
 		for (i=0; i<count; i++) {
 			GF_M2TS_PES *es = (GF_M2TS_PES *)gf_list_get(pck->stream->program->streams, i);
 			if (!es->user) {
@@ -1437,7 +1436,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (!pck->stream) return;
 
 		// convey SCTE35 splice info to all streams of the program
-		u32 count = gf_list_count(pck->stream->program->streams);
+		count = gf_list_count(pck->stream->program->streams);
 		for (i=0; i<count; i++) {
 			GF_M2TS_PES *es = (GF_M2TS_PES *)gf_list_get(pck->stream->program->streams, i);
 			if (!es->user) {
@@ -1490,7 +1489,6 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		GF_M2TS_GenericSectionInfo *sec_info = (GF_M2TS_GenericSectionInfo *)param;
 		if (!sec_info->stream || !sec_info->stream->user) break;
 		GF_FilterPid *opid = (GF_FilterPid *)sec_info->stream->user;
-		if (!opid) break;
 		if (!sec_info->section_data_len) break;
 		u8 *output;
 		GF_FilterPacket *pck = gf_filter_pck_new_alloc(opid, sec_info->section_data_len, &output);

@@ -79,8 +79,8 @@ static GF_Err compose_process(GF_Filter *filter)
 	for (i=0; i<nb_sys_streams_active; i++) {
 		GF_FilterPacket *pck;
 		GF_Err e;
-		GF_FilterPid *pid = (struct __gf_filter_pid *)gf_list_get(ctx->systems_pids, i);
-		GF_ObjectManager *odm = (struct _od_manager *)gf_filter_pid_get_udta(pid);
+		GF_FilterPid *pid = (GF_FilterPid *)gf_list_get(ctx->systems_pids, i);
+		GF_ObjectManager *odm = (GF_ObjectManager *)gf_filter_pid_get_udta(pid);
 
 		assert (odm);
 
@@ -267,7 +267,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	Bool was_dyn_scene = GF_FALSE;
 	if (is_remove) {
 		u32 ID=0;
-		odm = (struct _od_manager *)gf_filter_pid_get_udta(pid);
+		odm = (GF_ObjectManager *)gf_filter_pid_get_udta(pid);
 		//already disconnected
 		if (!odm) return GF_OK;
 		ID = odm->ID;
@@ -309,7 +309,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (!prop) return GF_NOT_SUPPORTED;
 	codecid = prop->value.uint;
 
-	odm = (struct _od_manager *)gf_filter_pid_get_udta(pid);
+	odm = (GF_ObjectManager *)gf_filter_pid_get_udta(pid);
 
 	//in filter mode, check we can handle creating a canvas from input video format. If not, negotiate a supported format
 	if (!ctx->player) {
@@ -528,7 +528,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		new_sns = gf_scene_ns_new(ctx->root_scene, ctx->root_scene->root_od, service_url, NULL);
 
 		for (i=0; i<gf_list_count(scene->resources); i++) {
-			GF_ObjectManager *anodm = (struct _od_manager *)gf_list_get(scene->resources, i);
+			GF_ObjectManager *anodm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
 
 			if (new_sns && (anodm->scene_ns == scene->root_od->scene_ns) && (scene->root_od->scene_ns->owner==scene->root_od)) {
 				scene->root_od->scene_ns->owner = anodm;
@@ -551,7 +551,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (was_dyn_scene != scene->is_dynamic_scene) {
 		for (i=0; i<gf_list_count(scene->resources); i++) {
-			GF_ObjectManager *anodm = (struct _od_manager *)gf_list_get(scene->resources, i);
+			GF_ObjectManager *anodm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
 			if (anodm->mo)
 				anodm->flags |= GF_ODM_PASSTHROUGH;
 		}
@@ -730,7 +730,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (p) down_size = p->value.longuint;
 
 		if (bps && down_size && tot_size)  {
-			GF_ObjectManager *odm = (struct _od_manager *)gf_filter_pid_get_udta(evt->base.on_pid);
+			GF_ObjectManager *odm = (GF_ObjectManager *)gf_filter_pid_get_udta(evt->base.on_pid);
 			if ((down_size!=odm->last_filesize_signaled) || (down_size != tot_size)) {
 				odm->last_filesize_signaled = down_size;
 				gf_odm_service_media_event_with_download(odm, GF_EVENT_MEDIA_PROGRESS, down_size, tot_size, bps/8, 0, 0);
@@ -764,7 +764,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (compositor->root_scene->is_dynamic_scene) {
 				u32 i, count = gf_list_count(compositor->root_scene->resources);
 				for (i=0; i<count; i++) {
-					GF_ObjectManager *odm = (struct _od_manager *)gf_list_get(compositor->root_scene->resources, i);
+					GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(compositor->root_scene->resources, i);
 					gf_odm_stop(odm, GF_TRUE);
 				}
 			} else {

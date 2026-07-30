@@ -332,6 +332,7 @@ JNIEXPORT void JNICALL gpac_jni_uninit(JNIEnv * env, jobject obj)
 	if (th_env)
 		th_env->env->DeleteGlobalRef(gpac->gpac_cbk_obj);
 
+	//cppcheck-suppress missingReturn
 	if (gpac->log_buf) free(gpac->log_buf);
 	free(gpac);
 }
@@ -377,21 +378,27 @@ JNIEXPORT jint JNICALL gpac_jni_load_service(JNIEnv * env, jobject obj, jstring 
 			if (!start_pos) continue;
 
 			alen = (u32) (i - (start_pos-1));
-			argv = (char **) realloc(argv, sizeof(char *)*(argc + 1));
+			char **new_argv = (char **) realloc(argv, sizeof(char *)*(argc + 1));
+			if (!new_argv) break;
+			argv = new_argv;
 			arg = (char *) malloc(sizeof(char)*(alen + 1));
+			argv[argc] = arg;
+			if (!arg) break;
 			memcpy(arg, service_url+start_pos-1, alen);
 			arg[alen] = 0;
-			argv[argc] = arg;
 			argc++;
 			start_pos=0;
 		}
 		if (start_pos) {
 			alen = (u32) (len - (start_pos-1));
-			argv = (char **) realloc(argv, sizeof(char *)*(argc + 1));
+			char **new_argv = (char **) realloc(argv, sizeof(char *)*(argc + 1));
+			if (!new_argv) break;
+			argv = new_argv;
 			arg = (char *) malloc(sizeof(char)*(alen + 1));
+			argv[argc] = arg;
+			if (!arg) break;
 			memcpy(arg, service_url+start_pos-1, alen);
 			arg[alen] = 0;
-			argv[argc] = arg;
 			argc++;
 		}
 
@@ -408,7 +415,7 @@ JNIEXPORT jint JNICALL gpac_jni_load_service(JNIEnv * env, jobject obj, jstring 
 		stop_logger(gpac);
 
 		for (i=0; i<argc; i++) {
-			free(argv[i]);
+			if (argv[i]) free(argv[i]);
 		}
 		free(argv);
 	} else {
@@ -531,6 +538,7 @@ JNIEXPORT void JNICALL gpac_jni_eventkeypress(JNIEnv * env, jobject obj, jint ke
 		evt.type = GF_EVENT_TEXTINPUT;
 		evt.character.unicode_char = unicode;
 		gf_sc_user_event(gpac->compositor, &evt);
+		//cppcheck-suppress missingReturn
 	}
 }
 
@@ -608,7 +616,6 @@ static pthread_t thr;
 
 static int start_logger(GPAC_JNI *gpac)
 {
-	char szPath[GF_MAX_PATH];
 	//reopen stderr and stdout
 	if (gpac->out_std[0]) {
 		f_std_err_out = fopen(gpac->out_std, "w");
@@ -765,7 +772,6 @@ static Bool gpac_jni_event_proc(void *cbk, GF_Event *evt)
 			env->env->CallVoidMethod(env->cbk_obj, env->cbk_setOrientation, evt->size.orientation);
 			return GF_TRUE;
 		}
-		break;
 	//ignore all the rest
 	default:
 		break;

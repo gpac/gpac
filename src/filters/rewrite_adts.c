@@ -34,7 +34,7 @@
 GF_OPT_ENUM (GF_Mpeg2AACSignalMode,
 	AAC_MPEG2_NO=0,
 	AAC_MPEG2_YES,
-	AAC_MPEG2_AUTO,
+	AAC_MPEG2_AUTO
 );
 
 typedef struct

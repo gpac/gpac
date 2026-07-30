@@ -47,15 +47,8 @@ void gf_isom_ismacryp_delete_sample(GF_ISMASample *samp)
 
 GF_ISMASample *gf_isom_ismacryp_sample_from_data(u8 *data, u32 dataLength, Bool use_selective_encryption, u8 KI_length, u8 IV_length)
 {
-	GF_ISMASample *s;
 	GF_BitStream *bs;
-	/*empty text sample*/
-	if (!data || !dataLength) {
-		return gf_isom_ismacryp_new_sample();
-	}
-
-	s = gf_isom_ismacryp_new_sample();
-
+	GF_ISMASample *s = gf_isom_ismacryp_new_sample();
 	/*empty sample*/
 	if (!data || !dataLength) return s;
 
@@ -1417,12 +1410,13 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf, u32 s
 		if (!saiz_aux_info_type) {
 			GF_SampleEntryBox *entry = NULL;
 			GF_ProtectionSchemeInfoBox *sinf = NULL;
-			if (stbl) {
-				entry = (GF_SampleEntryBox *)gf_list_get(stbl->SampleDescription->child_boxes, 0);
-			} else {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+			if (!stbl) {
 				entry = (GF_SampleEntryBox *)gf_list_get(traf->trex->track->Media->information->sampleTable->SampleDescription->child_boxes, 0);
+			} else
 #endif
+			{
+				entry = (GF_SampleEntryBox *)gf_list_get(stbl->SampleDescription->child_boxes, 0);
 			}
 
 			if (entry)
@@ -1577,16 +1571,11 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		if (saiz->cached_sample_num+1== sampleNumber) {
 			prev_sai_size = saiz->cached_prev_size;
 		} else {
-			if (sampleNumber > saiz->sample_count)
-				return GF_ISOM_INVALID_FILE;
-
 			for (j = 0; j < sampleNumber-1; j++)
 				prev_sai_size += (saiz->default_sample_info_size || !saiz->sample_info_size) ? saiz->default_sample_info_size : saiz->sample_info_size[j];
 		}
 		if (saiz->default_sample_info_size) {
 			size = saiz->default_sample_info_size;
-		} else if (sampleNumber > saiz->sample_count) {
-			return GF_ISOM_INVALID_FILE;
 		} else if (!saiz->sample_info_size) {
 			//CBCS
 			size = 0;
@@ -1848,16 +1837,12 @@ GF_Err gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 
 GF_EXPORT
 GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, u32 scheme_version, Bool is_selective_enc, char *metadata, u32 len)
 {
-	GF_ProtectionSchemeInfoBox *sinf;
-
 	//setup generic protection
 #ifndef GPAC_DISABLE_ISOM_WRITE
+	GF_ProtectionSchemeInfoBox *sinf;
 	GF_Err e;
 	e = isom_set_protected_entry(the_file, trackNumber, desc_index, 1, 0, scheme_type, scheme_version, NULL, GF_FALSE, &sinf);
 	if (e) return e;
-#else
-	return GF_NOT_SUPPORTED;
-#endif
 
 	sinf->info->adkm = (GF_AdobeDRMKeyManagementSystemBox *)gf_isom_box_new_parent(&sinf->info->child_boxes, GF_ISOM_BOX_TYPE_ADKM);
 	if (!sinf->info->adkm) return GF_OUT_OF_MEM;
@@ -1896,6 +1881,9 @@ GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 d
 	sinf->info->adkm->au_format->IV_length = 16;
 
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 GF_EXPORT

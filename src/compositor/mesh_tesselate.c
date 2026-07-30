@@ -81,11 +81,12 @@ static void CALLBACK mesh_tess_combine(GLdouble coords[3], void* vertex_data[4],
 	u32 *new_idx;
 	SFVec3f n;
 	SFVec2f tx;
-	SFColor col;
+	SFColorRGBA col;
 
 	MeshTess *tess = (MeshTess *) user_data;
 
 	col.red = col.green = col.blue = 0;
+	col.alpha = FIX_ONE;
 	if (tess->mesh->flags & MESH_HAS_COLOR) {
 		for (i=0; i<4; i++) {
 			if (weight[i]) {
@@ -98,6 +99,7 @@ static void CALLBACK mesh_tess_combine(GLdouble coords[3], void* vertex_data[4],
 				col.red += gf_mulfix(_weight, rgba.red);
 				col.green += gf_mulfix(_weight, rgba.green);
 				col.blue += gf_mulfix(_weight, rgba.blue);
+				col.alpha += gf_mulfix(_weight, rgba.alpha);
 			}
 		}
 	}
@@ -138,6 +140,7 @@ static void CALLBACK mesh_tess_combine(GLdouble coords[3], void* vertex_data[4],
 	gf_list_add(tess->vertex_index, new_idx);
 	*new_idx = tess->mesh->v_count;
 	mesh_set_vertex(tess->mesh, FLT2FIX( (Float) coords[0]), FLT2FIX( (Float) coords[1]), FLT2FIX( (Float) coords[2]), n.x, n.y, n.z, tx.x, tx.y);
+	tess->mesh->vertices[*new_idx].color = MESH_MAKE_COL(col);
 	*out_data = new_idx;
 }
 
@@ -218,7 +221,7 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 	gluDeleteTess(tess->tess_obj);
 
 	while (gf_list_count(tess->vertex_index)) {
-		u32 *idx = (unsigned int *)gf_list_get(tess->vertex_index, 0);
+		idx = (u32 *)gf_list_get(tess->vertex_index, 0);
 		gf_list_rem(tess->vertex_index, 0);
 		gf_free(idx);
 	}
@@ -433,7 +436,7 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 	gluDeleteTess(tess->tess_obj);
 
 	while (gf_list_count(tess->vertex_index)) {
-		u32 *idx = (unsigned int *)gf_list_get(tess->vertex_index, 0);
+		idx = (u32 *)gf_list_get(tess->vertex_index, 0);
 		gf_list_rem(tess->vertex_index, 0);
 		gf_free(idx);
 	}
@@ -506,7 +509,7 @@ void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *pt
 	gluDeleteTess(tess->tess_obj);
 
 	while (gf_list_count(tess->vertex_index)) {
-		u32 *idx = (unsigned int *)gf_list_get(tess->vertex_index, 0);
+		idx = (u32 *)gf_list_get(tess->vertex_index, 0);
 		gf_list_rem(tess->vertex_index, 0);
 		gf_free(idx);
 	}

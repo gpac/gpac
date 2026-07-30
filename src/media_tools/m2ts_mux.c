@@ -71,6 +71,8 @@ static GFINLINE Bool gf_m2ts_time_less_or_equal(GF_M2TS_Time *a, GF_M2TS_Time *b
 	return GF_TRUE;
 }
 
+char *tx3g_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt);
+
 static GFINLINE void gf_m2ts_time_inc(GF_M2TS_Time *time, u64 delta_inc_num, u32 delta_inc_den)
 {
 	u64 n_sec;
@@ -566,11 +568,14 @@ static void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux *mux, GF_M2TS_Mux_Stre
 
 	gf_assert(payload_length + stream->current_section_offset <= section->length);
 
+#if 0
 	//CC field shall not be incremented for if adaptation field only, rewind counter
 	if (adaptation_field_control == GF_M2TS_ADAPTATION_ONLY) {
 		if (!stream->continuity_counter) stream->continuity_counter=15;
 		else stream->continuity_counter--;
 	}
+#endif
+
 
 	gf_bs_reassign_buffer(bs, packet, 188);
 	gf_bs_write_int(bs,	0x47, 8); // sync
@@ -1745,7 +1750,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 			char szHeader[100], szDur[100];
 			stream->num_frame++;
 			sprintf(szHeader, "%u\n00:00:00,000 --> ", stream->num_frame);
-			char *tx3g_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt);
+
 			tx3g_format_time(stream->curr_pck.duration, stream->ifce->timescale, szDur, GF_TRUE);
 			gf_strcat(szHeader, szDur);
 			gf_strcat(szHeader, "\n");
@@ -1972,7 +1977,7 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 				ts_bytes = pck_size;
 		}
 		/*try to fit in part of the next AU*/
-		else if (stream->next_payload_size) {
+		else {
 			/*how much more TS packets do we need to send next AU ?*/
 			while (ts_bytes < pck_size + stream->next_payload_size) {
 				//check we have enough bytes in the next 3 AUs if we increase by 1 TS packet the PES
@@ -3601,7 +3606,6 @@ const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *
 				stream->process_res = stream->process(muxer, stream);
 			}
 			stream = stream->next;
-			continue;
 		}
 
 		//second pass, get earliest PES packet

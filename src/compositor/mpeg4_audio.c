@@ -161,6 +161,8 @@ void compositor_audioclip_modified(GF_Node *node)
 	if (ac->isActive) {
 		audioclip_update_time(&st->time_handle);
 		/*we're no longer active fon't check for reactivation*/
+		//cppcheck does not get the deactivation from above function
+		//cppcheck-suppress knownConditionTrueFalse
 		if (!ac->isActive) return;
 	}
 

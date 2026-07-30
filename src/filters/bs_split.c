@@ -491,7 +491,6 @@ static BSSplitOut *bs_split_get_out_stream(BSSplitCtx *ctx, BSSplitIn *pctx, Boo
 				else {
 					memset(dvcfg, 0, 24);
 					dvcfg[0] = 1;
-					dvcfg[0] = 1;
 				}
 				//remove bl_present_flag, last lsb bit of byte 4
 				dvcfg[3] &= ~1;
@@ -862,7 +861,7 @@ restart:
 	}
 #endif
 
-
+	e = GF_OK;
 	count = gf_list_count(pctx->opids);
 	for (i=0; i<count; i++) {
 		u32 max_w=0, max_h=0;
@@ -1018,7 +1017,7 @@ restart:
 
 	if (vvcc) gf_odf_vvc_cfg_del(vvcc);
 	if (hvcc) gf_odf_hevc_cfg_del(hvcc);
-	return GF_OK;
+	return e;
 }
 
 
@@ -1069,7 +1068,7 @@ static GF_Err nalu_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacke
 	size=0;
 	while (size<pck_size) {
 		Bool force_dv = GF_FALSE;
-		u32 nal_type=0;
+		u32 nal_type;
 		u32 layer_id = 0;
 		u32 temporal_id = 0;
 		u32 nal_hdr = pctx->nalu_size_length;
@@ -1162,7 +1161,7 @@ static GF_Err nalu_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacke
 		else if (codec_type==2) {
 			layer_id = data[size] & 0x3F;
 			temporal_id = data[size+1] & 0x7;
-			nal_type = data[size+1] >> 3;
+			//nal_type = data[size+1] >> 3;
 		}
 
 		BSSplitOut *c_opid = bs_split_get_out_stream(ctx, pctx, GF_FALSE, layer_id, temporal_id, force_dv);

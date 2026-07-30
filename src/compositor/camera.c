@@ -174,7 +174,7 @@ SFRotation camera_get_orientation(SFVec3f pos, SFVec3f target, SFVec3f up)
 	return gf_quat_to_rotation(&rot);
 }
 
-#define FAR_PLANE_2D	-10000
+#define FAR_PLANE_2D	10000
 #define NEAR_PLANE_2D	1000
 
 void camera_set_2d(GF_Camera *cam)
@@ -288,7 +288,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 		hw = cam->width / 2;
 		hh = cam->height / 2;
 		cam->z_near = INT2FIX(NEAR_PLANE_2D);
-		cam->z_far = INT2FIX(FAR_PLANE_2D);
+		cam->z_far = -INT2FIX(FAR_PLANE_2D);
 
 		/*setup ortho*/
 		gf_mx_ortho(&cam->projection, -hw, hw, -hh, hh, cam->z_near, cam->z_far);

@@ -1300,7 +1300,9 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 
 Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInterface *frame_ifce)
 {
+#if !defined(GPAC_GL_NO_STRIDE)
 	Bool use_stride = GF_FALSE;
+#endif
 	u32 stride_luma, stride_chroma;
 	const u8 *pY=NULL, *pU=NULL, *pV=NULL, *pA=NULL;
 
@@ -1352,9 +1354,11 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 
 	pY = data;
 
+#if !defined(GPAC_GL_NO_STRIDE)
 	if (tx->is_yuv && (stride_luma != tx->width)) {
 		use_stride = GF_TRUE; //whether >8bits or real stride
 	}
+#endif
 	GL_CHECK_ERR()
 
 	//push data
@@ -1386,11 +1390,11 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 	if (!tx->is_yuv) {
 		glBindTexture(GL_TEXTURE_2D, tx->textures[0] );
 		GL_CHECK_ERR()
-		if (use_stride) {
 #if !defined(GPAC_GL_NO_STRIDE)
+		if (use_stride) {
 			glPixelStorei(GL_UNPACK_ROW_LENGTH, tx->stride / tx->bytes_per_pix);
-#endif
 		}
+#endif
 		if (tx->first_tx_load) {
 			glTexImage2D(GL_TEXTURE_2D, 0, tx->gl_format, tx->width, tx->height, 0, tx->gl_format, GL_UNSIGNED_BYTE, data);
 			tx->first_tx_load = GF_FALSE;
@@ -1543,7 +1547,9 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 #endif
 		glBindTexture(GL_TEXTURE_2D, tx->textures[0] );
 
+#if !defined(GPAC_GL_NO_STRIDE)
 		use_stride = GF_FALSE;
+#endif
 		if ((tx->pix_fmt==GF_PIXEL_YUV444_PACK)
 			|| (tx->pix_fmt==GF_PIXEL_VYU444_PACK)
 			|| (tx->pix_fmt==GF_PIXEL_YUVA444_PACK)
@@ -1552,24 +1558,32 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 			|| (tx->pix_fmt==GF_PIXEL_V210)
 		) {
 			u32 tx_width = tx->width;
+#if !defined(GPAC_GL_NO_STRIDE)
 			u32 nb_bytes = 3;
+#endif
 			GLuint fmt = GL_RGB;
 			switch (tx->pix_fmt) {
 			case GF_PIXEL_YUV444_PACK:
 			case GF_PIXEL_VYU444_PACK:
 				break;
 			default:
+#if !defined(GPAC_GL_NO_STRIDE)
 				nb_bytes = 4;
+#endif
 				fmt = GL_RGBA;
 			}
 			if (tx->pix_fmt==GF_PIXEL_V210) {
 				//inverse stride to get number of pixels - this is less than out actual width, we'll undo while repacking
 				tx_width = tx->stride / 4;
+#if !defined(GPAC_GL_NO_STRIDE)
 				use_stride = GF_FALSE;
+#endif
 			}
+#if !defined(GPAC_GL_NO_STRIDE)
 			else if (stride_luma > nb_bytes*tx->width) {
 				use_stride = GF_TRUE;
 			}
+#endif
 
 #if !defined(GPAC_GL_NO_STRIDE)
 			if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma/tx->bytes_per_pix);
@@ -1590,8 +1604,8 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 				//no need to further divide
 #if !defined(GPAC_GL_NO_STRIDE)
 				uv_stride = stride_luma/scaler/2;
-#endif
 				use_stride = GF_TRUE;
+#endif
 			}
 #if !defined(GPAC_GL_NO_STRIDE)
 			if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, uv_stride);
@@ -1802,7 +1816,7 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 		s32 loc;
 		tx->init_active_texture = texture_unit;
 		for (i=0; i<tx->nb_textures; i++) {
-			sprintf(szName, "_gf_%s_%d", tx_name, i+1);
+			sprintf(szName, "_gf_%s_%u", tx_name, i+1);
 			loc = glGetUniformLocation(gl_program, szName);
 			if (!i && (loc == -1))
 				loc = glGetUniformLocation(gl_program, tx_name);

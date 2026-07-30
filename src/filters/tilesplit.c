@@ -309,7 +309,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(ctx->base_id) );
 		tilesplit_update_pid_props(ctx, tinfo);
 
-		sprintf(szName, "%s_tile%d", pname, i+1);
+		sprintf(szName, "%s_tile%u", pname, i+1);
 		gf_filter_pid_set_name(tinfo->opid, szName);
 	}
 	gf_free(dsi);

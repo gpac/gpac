@@ -317,12 +317,12 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 
 #ifdef DUMP_DIMS_LOG_WITH_TIME
 start:
-#endif
 
 	if (base_name) {
 		gf_free(base_name);
 		base_name=NULL;
 	}
+#endif
 
 	if (commands && gf_list_count(commands)) {
 		gf_dynstrcat(&base_name, cache_dir, NULL);

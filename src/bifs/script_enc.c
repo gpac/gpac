@@ -1533,7 +1533,6 @@ u32 SFE_Expression(ScriptEnc *sc_enc, u32 start, u32 end, Bool memberAccess)
 			n = MoveToToken(sc_enc, TOK_RIGHT_BRACE, n, end);
 			curTok = TOK_RIGHT_BRACE;
 			break;
-			break;
 		default:
 
 			if (curTok && (curTok != TOK_VAR)

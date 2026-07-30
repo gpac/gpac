@@ -693,11 +693,11 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	}
 
 	if (dasher->min_buffer_time && !e) {
-		snprintf(szArg, sizeof(szArg), "buf=%d", dasher->min_buffer_time);
+		snprintf(szArg, sizeof(szArg), "buf=%u", dasher->min_buffer_time);
 		e = gf_dynstrcat(&args, szArg, ":");
 	}
 	if ((dasher->dash_scale != 1000) && !e) {
-		snprintf(szArg, sizeof(szArg), "timescale=%d", dasher->dash_scale);
+		snprintf(szArg, sizeof(szArg), "timescale=%u", dasher->dash_scale);
 		e = gf_dynstrcat(&args, szArg, ":");
 	}
 	if (!dasher->check_duration && !e) e = gf_dynstrcat(&args, "!check_dur", ":");
@@ -713,15 +713,15 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
 
-		if (dasher->utc_start_date) {
+		if (!e && dasher->utc_start_date) {
 			snprintf(szArg, sizeof(szArg), "ast=%s", dasher->utc_start_date);
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
-		if (dasher->mpd_update_time) {
+		if (!e && dasher->mpd_update_time) {
 			snprintf(szArg, sizeof(szArg), "refresh=%g", dasher->mpd_update_time);
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
-		else {
+		else if (!e) {
 			snprintf(szArg, sizeof(szArg), "refresh=-%g", dasher->mpd_live_duration);
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
@@ -774,7 +774,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->use_ssix && !e)
 		e = gf_dynstrcat(&args, "ssix", ":");
 	if (dasher->initial_moof_sn && !e) {
-		snprintf(szArg, sizeof(szArg), "msn=%d", dasher->initial_moof_sn );
+		snprintf(szArg, sizeof(szArg), "msn=%u", dasher->initial_moof_sn );
 		e = gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->initial_tfdt && !e) {
@@ -820,7 +820,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	}
 
 	if (dasher->enable_sidx && !e) {
-		snprintf(szArg, sizeof(szArg), "subs_sidx=%d", dasher->subsegs_per_sidx );
+		snprintf(szArg, sizeof(szArg), "subs_sidx=%u", dasher->subsegs_per_sidx );
 		e = gf_dynstrcat(&args, szArg, ":");
 	}
 
@@ -991,9 +991,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 				e = gf_dynstrcat(&args, szArg, ":");
 			}
 		} else if (di->track_id && !e) {
-			sprintf(szSourceID, "PID=%d", di->track_id);
+			sprintf(szSourceID, "PID=%u", di->track_id);
 			//we set tkid for isobmf
-			snprintf(szArg, sizeof(szArg), "tkid=%d", di->track_id);
+			snprintf(szArg, sizeof(szArg), "tkid=%u", di->track_id);
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
 		if (szSourceID[0]) source_id = szSourceID;
@@ -1012,12 +1012,12 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
 		if (di->asID && !e)  {
-			snprintf(szArg, sizeof(szArg), "#ASID=%d", di->asID );
+			snprintf(szArg, sizeof(szArg), "#ASID=%u", di->asID );
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
 		//period start as negative to keep declaration order
 		if (multi_period && di->period_order && !e) {
-			snprintf(szArg, sizeof(szArg), "#PStart=-%d", di->period_order);
+			snprintf(szArg, sizeof(szArg), "#PStart=-%u", di->period_order);
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
 
@@ -1037,7 +1037,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
 		if (url && di->media_duration.num && di->media_duration.den && !e) {
-			snprintf(szArg, sizeof(szArg), "#ClampDur=" LLU "/" LLD "", di->media_duration.num, di->media_duration.den );
+			snprintf(szArg, sizeof(szArg), "#ClampDur=" LLD "/" LLU "", di->media_duration.num, di->media_duration.den );
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
 
@@ -1046,9 +1046,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
 		if (di->bandwidth && !e)  {
-			snprintf(szArg, sizeof(szArg), "#Bitrate=%d", di->bandwidth );
+			snprintf(szArg, sizeof(szArg), "#Bitrate=%u", di->bandwidth );
 			e = gf_dynstrcat(&args, szArg, ":");
-			snprintf(szArg, sizeof(szArg), "#Maxrate=%d", di->bandwidth );
+			snprintf(szArg, sizeof(szArg), "#Maxrate=%u", di->bandwidth );
 			if (!e) e = gf_dynstrcat(&args, szArg, ":");
 		}
 
@@ -1112,7 +1112,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 
 		if (di->startNumber && !e) {
-			snprintf(szArg, sizeof(szArg), "#StartNumber=%d", di->startNumber );
+			snprintf(szArg, sizeof(szArg), "#StartNumber=%u", di->startNumber );
 			e = gf_dynstrcat(&args, szArg, ":");
 		}
 		if (di->seg_template && !e) {

@@ -161,18 +161,17 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			do_uncompress = GF_TRUE;
 
 		if (do_uncompress) {
-			u32 do_uncompress = GF_FALSE;
-			u8 *compb = NULL;
+			u32 do_uncompress_type = 0;
 			u32 extra_bytes = 0;
 			u32 osize = 0;
-			u32 otype = type;
+			u32 orig_type = type;
 
 			if (type==GF_ISOM_BOX_TYPE_CMOV) {
-				do_uncompress = 1;
+				do_uncompress_type = 1;
 				type = GF_ISOM_BOX_TYPE_MOOV;
 			}
 			else if (type==GF_QT_BOX_TYPE_CMOV) {
-				do_uncompress = 2;
+				do_uncompress_type = 2;
 				u32 cbtype, cbsize, ctype;
 
 				if (!skip_logs) {
@@ -206,19 +205,19 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			else if (type==GF_ISOM_BOX_TYPE_CMOF) {
-				do_uncompress = 1;
+				do_uncompress_type = 1;
 				type = GF_ISOM_BOX_TYPE_MOOF;
 			}
 			else if (type==GF_ISOM_BOX_TYPE_CSIX) {
-				do_uncompress = 1;
+				do_uncompress_type = 1;
 				type = GF_ISOM_BOX_TYPE_SIDX;
 			}
 			else if (type==GF_ISOM_BOX_TYPE_CSSX) {
-				do_uncompress = 1;
+				do_uncompress_type = 1;
 				type = GF_ISOM_BOX_TYPE_SSIX;
 			}
 #endif
-			if (do_uncompress) {
+			if (do_uncompress_type) {
 				if (size<=8 || size-8 <= extra_bytes) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Compressed payload size invalid (%u) with extra_bytes (%u)\n", size, extra_bytes));
 					return GF_NOT_SUPPORTED;
@@ -227,7 +226,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Compressed payload too large (%u)\n", size));
 					return GF_NOT_SUPPORTED;
 				}
-				compb = (u8 *)gf_malloc((u32) (size-8));
+				u8 *compb = (u8 *)gf_malloc((u32) (size-8));
 				if (!compb) return GF_OUT_OF_MEM;
 
 				compressed_size = (u32) (size - 8 - extra_bytes);
@@ -237,7 +236,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 					e = gf_gz_decompress_payload_ex(compb, compressed_size, &uncomp_data, &osize, GF_FALSE);
 				if (e) {
 					gf_free(compb);
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Failed to uncompress payload for box type %s (0x%08X)\n", gf_4cc_to_str(otype), otype));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Failed to uncompress payload for box type %s (0x%08X)\n", gf_4cc_to_str(orig_type), orig_type));
 					return e;
 				}
 
@@ -307,19 +306,19 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	}
 
 	//some special boxes (references and track groups) are handled by a single generic box with an associated ref/group type
-	if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_TREF)) {
+	if (parent_type == GF_ISOM_BOX_TYPE_TREF) {
 		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
 		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 		((GF_TrackReferenceTypeBox*)newBox)->reference_type = type;
-	} else if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_IREF)) {
+	} else if (parent_type == GF_ISOM_BOX_TYPE_IREF) {
 		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_REFI);
 		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 		((GF_ItemReferenceTypeBox*)newBox)->reference_type = type;
-	} else if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_TRGR)) {
+	} else if (parent_type == GF_ISOM_BOX_TYPE_TRGR) {
 		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_TRGT);
 		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 		((GF_TrackGroupTypeBox*)newBox)->group_type = type;
-	} else if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_GRPL)) {
+	} else if (parent_type == GF_ISOM_BOX_TYPE_GRPL) {
 		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_GRPT);
 		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 		((GF_EntityToGroupTypeBox*)newBox)->grouping_type = type;

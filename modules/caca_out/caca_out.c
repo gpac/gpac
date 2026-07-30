@@ -458,13 +458,15 @@ static void cacao_load_options(GF_VideoOutput *drv)
 
 	caca_canvas_t *cv = caca_create_canvas(0, 0);
 	caca_display_t *dp = NULL;
+
 #ifdef GPAC_CONFIG_DARWIN
-		//if running in xcode disable color logs (not supported by output console)
-		if (getenv("__XCODE_BUILT_PRODUCTS_DIR_PATHS") != NULL) {
-			dp = caca_create_display_with_driver(cv, "raw");
-		}
+	//if running in xcode disable color logs (not supported by output console)
+	if (getenv("__XCODE_BUILT_PRODUCTS_DIR_PATHS") != NULL) {
+		dp = caca_create_display_with_driver(cv, "raw");
+	}
+	if (!dp)
 #endif
-	if (!dp) dp = caca_create_display(cv);
+		dp = caca_create_display(cv);
 
 	print_opts(drv, &nb_args, "driver", "rendering backend\n", caca_get_display_driver_list(), NULL);
 	caca_free_display(dp);

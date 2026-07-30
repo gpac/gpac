@@ -314,7 +314,7 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 
 		for (i=0; i<count; i++) {
 			u64 cts;
-			GF_FilterPacket *q_pck = (struct __gf_filter_pck *)gf_list_get(ctx->pck_queue, i);
+			GF_FilterPacket *q_pck = (GF_FilterPacket *)gf_list_get(ctx->pck_queue, i);
 			u8 carousel = gf_filter_pck_get_carousel_version(q_pck);
 			if (!carousel) {
 				gf_filter_pck_send(q_pck);
@@ -530,7 +530,7 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 		ctx->src_pck = NULL;
 		if (ctx->pck_queue) {
 			while (gf_list_count(ctx->pck_queue)) {
-				GF_FilterPacket *pck=(struct __gf_filter_pck *)gf_list_pop_front(ctx->pck_queue);
+				GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_front(ctx->pck_queue);
 				gf_filter_pck_discard(pck);
 			}
 		}
@@ -1013,7 +1013,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					remain -= 4;
 				} else if (!ctx->width) {
 					gf_bs_reassign_buffer(ctx->bs, start, remain);
-					PL = ctx->dsi.VideoPL;
+					//PL = ctx->dsi.VideoPL;
 					e = gf_m4v_parse_config(ctx->vparser, &ctx->dsi);
 					if (ctx->dsi.width) {
 						u32 obj_size = (u32) gf_m4v_get_object_start(ctx->vparser);
@@ -1106,9 +1106,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (bytes_from_store) {
 			size += bytes_from_store + hdr_offset;
 			if (size > remain) {
-				e = GF_NON_COMPLIANT_BITSTREAM;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] packet too large to process (size %llu remain %d)\n", size, remain ));
-				break;
+				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 		}
 
@@ -1264,7 +1263,7 @@ static void mpgviddmx_finalize(GF_Filter *filter)
 	gf_free(ctx->hdr_store);
 	if (ctx->pck_queue) {
 		while (gf_list_count(ctx->pck_queue)) {
-			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->pck_queue);
+			GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_pop_back(ctx->pck_queue);
 			gf_filter_pck_discard(pck);
 		}
 		gf_list_del(ctx->pck_queue);

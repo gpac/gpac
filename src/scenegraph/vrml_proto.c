@@ -1397,7 +1397,7 @@ Bool gf_node_is_proto_root(GF_Node *node)
 
 
 GF_EXPORT
-GF_Err gf_node_set_proto_eventin_handler(GF_Node *node, u32 fieldIndex, void (*event_in_cbk)(GF_Node *pThis, struct _route *route) )
+GF_Err gf_node_set_proto_eventin_handler(GF_Node *node, u32 fieldIndex, void (*event_in_cbk)(GF_Node *pThis, GF_Route *route) )
 {
 	GF_ProtoInstance *inst;
 	GF_ProtoField *field;

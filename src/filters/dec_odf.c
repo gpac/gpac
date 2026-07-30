@@ -62,7 +62,7 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	}
 
 	if (is_remove) {
-		out_pid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
+		out_pid = (GF_FilterPid *)gf_filter_pid_get_udta(pid);
 		if (out_pid==ctx->out_pid)
 			ctx->out_pid = NULL;
 		if (out_pid)
@@ -159,7 +159,7 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		for (i=0; i<count; i++) {
 			u32 k=0;
 			GF_ODMExtraPid *xpid;
-			odm = (struct _od_manager *)gf_list_get(scene->resources, i);
+			odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
 			//can happen with interaction and scene streams
 			if (!odm->pid) {
 				if (odm->mo && odm->mo->OD_ID == od->objectDescriptorID) {
@@ -355,8 +355,8 @@ GF_Err odf_dec_process(GF_Filter *filter)
 	for (i=0; i<count; i++) {
 		GF_Scene *scene;
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
-		GF_ObjectManager *odm = (struct _od_manager *)gf_filter_pid_get_udta(opid);
+		GF_FilterPid *opid = (GF_FilterPid *)gf_filter_pid_get_udta(pid);
+		GF_ObjectManager *odm = (GF_ObjectManager *)gf_filter_pid_get_udta(opid);
 		if (!odm) continue;
 
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
@@ -474,7 +474,7 @@ static Bool odf_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	//attach inline scenes
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
+		GF_FilterPid *opid = (GF_FilterPid *)gf_filter_pid_get_udta(ipid);
 		//we found our pid, set it up
 		if (opid == com->attach_scene.on_pid) {
 			if (!ctx->odm) {

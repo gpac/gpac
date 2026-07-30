@@ -32,7 +32,7 @@
 
 static GF_Err unframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
+	GF_FilterPid *opid = (GF_FilterPid *)gf_filter_pid_get_udta(pid);
 
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
@@ -87,7 +87,7 @@ static GF_Err unframer_process(GF_Filter *filter)
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 		while (1) {
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
-			GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
+			GF_FilterPid *opid = (GF_FilterPid *)gf_filter_pid_get_udta(ipid);
 			if (!pck) {
 				if (opid && gf_filter_pid_is_eos(ipid))
 					gf_filter_pid_set_eos(opid);

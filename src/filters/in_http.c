@@ -38,14 +38,14 @@ GF_OPT_ENUM (GF_HTTPInStoreMode,
 	GF_HTTPIN_STORE_MEM,
 	GF_HTTPIN_STORE_MEM_KEEP,
 	GF_HTTPIN_STORE_NONE,
-	GF_HTTPIN_STORE_NONE_KEEP,
+	GF_HTTPIN_STORE_NONE_KEEP
 );
 
 enum
 {
 	HTTP_PCK_NONE=0,
 	HTTP_PCK_OUT=1,
-	HTTP_PCK_OUT_EOS=2,
+	HTTP_PCK_OUT_EOS=2
 };
 
 typedef struct
@@ -138,7 +138,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 
 	//for base64 segment embedding
 	if (server && !strncmp(server, "gmem://", 7)) {
-		GF_Err e = gf_filter_pid_raw_gmem(filter, server, &ctx->pid);
+		e = gf_filter_pid_raw_gmem(filter, server, &ctx->pid);
 		ctx->is_end = GF_TRUE;
 		return e;
 	}
@@ -680,7 +680,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 		httpin_set_eos(ctx);
 		return GF_EOS;
 	}
-
+	//pck_out can be reset when packet is discarded right at send
+	//cppcheck-suppress knownConditionTrueFalse
 	return ctx->pck_out ? GF_EOS : GF_OK;
 }
 
@@ -743,7 +744,7 @@ GF_FilterRegister HTTPInRegister = {
 #include <curl/curl.h>
 
 
-static void httpin_reg_free(GF_FilterSession *session, struct __gf_filter_register *freg)
+static void httpin_reg_free(GF_FilterSession *session, GF_FilterRegister *freg)
 {
 	gf_free((void*)freg->help);
 }

@@ -121,4 +121,9 @@ void StretchBits (void *dst, u32 dst_bpp, u32 dst_w, u32 dst_h, u32 dst_pitch,
                   void *src, u32 src_bpp, u32 src_w, u32 src_h, u32 src_pitch, Bool FlipIt);
 
 
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _X11_OUT_H */

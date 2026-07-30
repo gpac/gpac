@@ -579,12 +579,12 @@ typedef struct
 	u8 prev_layer_id_plus1;
 
 	//bit offset of the num_entry_point (if present) field
-	s32 entry_point_start_bits;
-	u64 header_size_bits;
+	u32 entry_point_start_bits;
+	u32 header_size_bits;
 	//byte offset of the payload start (after byte alignment)
-	s32 payload_start_offset;
+	u32 payload_start_offset;
 
-	s32 slice_qp_delta_start_bits;
+	u32 slice_qp_delta_start_bits;
 	s32 slice_qp_delta;
 
 	HEVC_SPS *sps;
@@ -620,12 +620,6 @@ typedef struct _hevc_state
 	s32 last_parsed_sps_id;
 	s32 last_parsed_pps_id;
 } HEVCState;
-
-typedef struct hevc_combine{
-	Bool is_hevccombine, first_slice_segment;
-	s32 buffer_header_src_alloc; // because payload_start_offset is s32, otherwhise it's an u32
-	u8 *buffer_header_src;
-}Combine;
 
 enum
 {

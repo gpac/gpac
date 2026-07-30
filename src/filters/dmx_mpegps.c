@@ -165,7 +165,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		if (!sync_id) sync_id = id;
 
 		gf_filter_pid_copy_properties(st->opid, ctx->ipid);
-		sprintf(szName, "Audio%d", i+1);
+		sprintf(szName, "Audio%u", i+1);
 		gf_filter_pid_set_name(st->opid, szName);
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->stream_type) );
 		switch (mpeg2ps_get_audio_stream_type(ctx->ps, st->stream_num)) {

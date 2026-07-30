@@ -72,7 +72,7 @@ typedef enum _e_MediaType {
 /**
  * The Structure containing the playlist element
  */
-struct s_playlistElement {
+struct _hls_playlistElement {
 	MediaType media_type;
 	double duration_info;
 	u64 byte_range_start, byte_range_end;
@@ -103,14 +103,14 @@ struct s_playlistElement {
 		Media media;
 	} element;
 };
-typedef struct s_playlistElement PlaylistElement;
+typedef struct _hls_playlistElement PlaylistElement;
 
-struct s_stream {
+struct _hls_stream {
 	int stream_id; //may be a real PROGRAM_ID, or a converted GROUP_ID with GROUP_ID_TO_PROGRAM_ID
 	GF_List *variants; /*PlaylistElement*/
 	double computed_duration;
 };
-typedef struct s_stream Stream;
+typedef struct _hls_stream Stream;
 
 /**
  * The root playlist, can contains several PlaylistElements structures

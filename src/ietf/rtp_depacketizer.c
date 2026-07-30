@@ -1659,7 +1659,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		GF_Err e;
+		GF_Err e = GF_OK;
 		avcc = gf_odf_avc_cfg_new();
 		avcc->AVCProfileIndication = (rtp->sl_map.PL_ID>>16) & 0xFF;
 		avcc->profile_compatibility = (rtp->sl_map.PL_ID>>8) & 0xFF;

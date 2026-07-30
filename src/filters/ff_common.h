@@ -86,6 +86,7 @@ extern "C" {
 #include <libavfilter/buffersink.h>
 #endif
 
+//cppcheck-suppress syntaxError
 #if AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, LIBAVUTIL_VERSION_MINOR, 0) < AV_VERSION_INT(59, 0, 0)
 #define FFMPEG_OLD_CHLAYOUT
 #endif
@@ -100,10 +101,10 @@ enum{
 	FF_REG_TYPE_DEV_IN,
 	FF_REG_TYPE_ENCODE,
 	FF_REG_TYPE_MUX,
-	FF_REG_TYPE_AVF,
 #ifdef FFMPEG_HAS_BSF
 	FF_REG_TYPE_BSF,
 #endif
+	FF_REG_TYPE_AVF
 };
 
 GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type);

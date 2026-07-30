@@ -81,7 +81,7 @@ GF_Err ccenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	const GF_PropertyValue *prop;
 
 	if (is_remove) {
-		out_pid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
+		out_pid = (GF_FilterPid *)gf_filter_pid_get_udta(pid);
 		if (out_pid == ctx->opid)
 			ctx->opid = NULL;
 		if (out_pid)
@@ -313,7 +313,7 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 	// Render the SEI
 	sei_data = (u8 *)gf_malloc(sei_render_size(ctx->sei));
 	CHECK_OOM(sei_data);
-	sei_r_size = sei_render(ctx->sei, sei_data);
+	sei_r_size = (u32) sei_render(ctx->sei, sei_data);
 
 	// Add EBP to the SEI
 	// sei_render_size includes nal_type (1 byte)
@@ -383,7 +383,7 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 		// next flush will forward it
 		u32 pos = 0;
 		GF_FilterPacket *item = NULL;
-		while ((item = (struct __gf_filter_pck *)gf_list_enum(ctx->frame_queue, &pos)))
+		while ((item = (GF_FilterPacket *)gf_list_enum(ctx->frame_queue, &pos)))
 			if (gf_filter_pck_get_dts(item) > cur_dts) break;
 		gf_list_insert(ctx->frame_queue, new_vpck, pos - 1);
 		gf_filter_pck_ref(&new_vpck); // so that unreffing wouldn't error
@@ -435,7 +435,7 @@ static void ccenc_flush(GF_Filter *filter, Bool full_flush)
 retry:
 	// try to pair video and subtitle data, gracefully
 	while (gf_list_count(ctx->cc_queue) && gf_list_count(ctx->frame_queue)) {
-		GF_FilterPacket *vpck = (struct __gf_filter_pck *)gf_list_get(ctx->frame_queue, 0);
+		GF_FilterPacket *vpck = (GF_FilterPacket *)gf_list_get(ctx->frame_queue, 0);
 		CCItem *ccitem = (CCItem *)gf_list_get(ctx->cc_queue, 0);
 
 		// if we have a video frame with cts lower than the minimum subtitle cts, send it
@@ -443,7 +443,7 @@ retry:
 		u64 last_subtitle_cts = ccitem->cts;
 		if (gf_timestamp_less(last_video_cts, ctx->v_ts, last_subtitle_cts, ctx->s_ts)) {
 			// impossible to pair, send video frame
-			GF_FilterPacket *vpck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->frame_queue);
+			vpck = (GF_FilterPacket *)gf_list_pop_front(ctx->frame_queue);
 			ccenc_forward_video(filter, vpck);
 			continue;
 		}
@@ -467,7 +467,7 @@ retry:
 		u64 target_cc_cts = gf_timestamp_rescale(last_subtitle_cts, ctx->s_ts, ctx->v_ts);
 		u64 delta_cts = gf_filter_pck_get_cts(candidate_vpck) - target_cc_cts;
 		while (!found) {
-			GF_FilterPacket *next_vpck = (struct __gf_filter_pck *)gf_list_get(ctx->frame_queue, pos);
+			GF_FilterPacket *next_vpck = (GF_FilterPacket *)gf_list_get(ctx->frame_queue, pos);
 			if (!next_vpck) break;
 			u64 next_delta_cts = gf_filter_pck_get_cts(next_vpck) - target_cc_cts;
 
@@ -497,7 +497,7 @@ retry:
 	// flush the video frames based on buffer time
 	if (ccenc_can_use_frame(filter, (GF_FilterPacket *) gf_list_get(ctx->frame_queue, 0))) {
 		// we couldn't pair this video frame with a subtitle frame
-		GF_FilterPacket *vpck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->frame_queue);
+		GF_FilterPacket *vpck = (GF_FilterPacket *)gf_list_pop_front(ctx->frame_queue);
 		ccenc_forward_video(filter, vpck);
 
 		// we might be able to pair the next video frame with a subtitle frame
@@ -507,7 +507,7 @@ retry:
 	if (full_flush) {
 		// we've tried to pair all video frames with subtitle frames, but we still have video frames left
 		while (gf_list_count(ctx->frame_queue)) {
-			GF_FilterPacket *vpck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->frame_queue);
+			GF_FilterPacket *vpck = (GF_FilterPacket *)gf_list_pop_front(ctx->frame_queue);
 			ccenc_forward_video(filter, vpck);
 		}
 	}
@@ -614,7 +614,7 @@ static void ccenc_finalize(GF_Filter *filter)
 		// free all video frames in the queue
 		u32 pos = 0;
 		GF_FilterPacket *vpck = NULL;
-		while ((vpck = (struct __gf_filter_pck *)gf_list_enum(ctx->frame_queue, &pos)))
+		while ((vpck = (GF_FilterPacket *)gf_list_enum(ctx->frame_queue, &pos)))
 			gf_filter_pck_unref(vpck);
 	}
 	gf_list_del(ctx->frame_queue);

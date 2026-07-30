@@ -359,7 +359,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	ctx->wait_rap = ctx->wait_sync;
 	ctx->reorder_probe = ctx->reorder;
 	ctx->reorder_detected = GF_FALSE;
-	pid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, 0);
+	pid = (GF_FilterPid *)gf_list_get(ctx->streams, 0);
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	if (p) w = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
@@ -1011,7 +1011,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 	codecid = p->value.uint;
 
-	base_pid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, 0);
+	base_pid = (GF_FilterPid *)gf_list_get(ctx->streams, 0);
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
 	if (!p && base_pid && (base_pid != pid)) return GF_REQUIRES_NEW_INSTANCE;
 	else if (p) {
@@ -1021,7 +1021,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		if (ctx->codecid != GF_CODECID_HEVC) return GF_REQUIRES_NEW_INSTANCE;
 
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			GF_FilterPid *ipid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, i);
+			GF_FilterPid *ipid = (GF_FilterPid *)gf_list_get(ctx->streams, i);
 			const GF_PropertyValue *p_dep;
 			if (ipid==pid) continue;
 
@@ -1515,7 +1515,7 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		} else {
 			for (i=0; i<nb_planes; i++) {
 				u8 *data = (u8 *) CVPixelBufferGetBaseAddressOfPlane(vtbframe->frame, i);
-				u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(vtbframe->frame, i);
+				stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(vtbframe->frame, i);
 				u32 w, h = (u32) CVPixelBufferGetHeightOfPlane(vtbframe->frame, i);
 				w = ctx->width;
 				if (i) {
@@ -1578,7 +1578,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	min_dts = 0;
 	for (i=0; i<count; i++) {
 		u64 dts;
-		GF_FilterPid *pid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, i);
+		GF_FilterPid *pid = (GF_FilterPid *)gf_list_get(ctx->streams, i);
 
 		pck = gf_filter_pid_get_packet(pid);
 		if (!pck) {
@@ -1675,7 +1675,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	}
 
 	if (ctx->check_h264_isma) {
-		if (in_buffer && !in_buffer[0] && !in_buffer[1] && !in_buffer[2] && (in_buffer[3]==0x01)) {
+		if (!in_buffer[0] && !in_buffer[1] && !in_buffer[2] && (in_buffer[3]==0x01)) {
 			ctx->check_h264_isma=GF_FALSE;
 			ctx->nalu_size_length=0;
 			ctx->is_annex_b=GF_TRUE;
@@ -1865,7 +1865,7 @@ void *myGetGLContext()
 
 GF_Err vtbframe_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
 {
-	OSStatus status=kCVReturnSuccess;
+	OSStatus status;
 	GLenum target_fmt;
 	u32 w, h;
 	GF_CVGLTextureREF *outTexture=NULL;
@@ -1905,7 +1905,6 @@ GF_Err vtbframe_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u3
 	}
 
 	if (CVPixelBufferIsPlanar(f->frame)) {
-		w = (u32) CVPixelBufferGetPlaneCount(f->frame);
 		if (plane_idx >= (u32) CVPixelBufferGetPlaneCount(f->frame)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Wrong plane index\n"));
 			return GF_BAD_PARAM;
