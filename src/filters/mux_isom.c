@@ -3772,7 +3772,7 @@ sample_entry_done:
 					// Set the value of the compatible_brands field to dby1
 					// Dolby Vision Streams Within the ISO Base Media File Format specification Version 2.6
 					if (!gf_sys_old_arch_compat()) {
-						gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_DBY1, GF_TRUE);
+						gf_isom_set_dolby_vision_brands(ctx->file, tkw->track_num, tkw->stsd_idx, dvcc, ctx->cmaf != MP4MX_CMAF_NO);
 					}
 
 					if (!dvcc->bl_present_flag) {

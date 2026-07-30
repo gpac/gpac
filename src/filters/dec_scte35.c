@@ -322,9 +322,11 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 				max_dur -= emib_dur;
 		}
 
-		if (!IS_SEGMENTED ||
-		    (evt->emib->presentation_time_delta <= 0 && (evt->emib->event_duration == GF_UINT_MAX || evt->emib->event_duration == 0)) ||
-			dts >= evt->dts + evt_dur) {
+		if (!IS_SEGMENTED
+		    || /*past event*/ (evt->emib->presentation_time_delta == 0
+		        && (evt->emib->event_duration == GF_UINT_MAX || evt->emib->event_duration == 0))
+		    || /*past event*/ dts >= evt->dts + evt_dur
+		) {
 			// we're done with the event
 			gf_isom_box_del((GF_Box*)evt->emib);
 			gf_free(evt);
