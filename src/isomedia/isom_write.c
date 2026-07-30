@@ -2201,12 +2201,8 @@ GF_Err gf_isom_set_dolby_vision_brands(GF_ISOFile* movie, u32 trackNumber, u32 S
 {
 	GF_Err e;
 	GF_TrackBox* trak;
-	GF_Box *dv_cfge = NULL;
 	GF_MPEGVisualSampleEntryBox* entry;
-	Bool switch_type = GF_FALSE;
-	Bool is_avc = GF_FALSE;
 	GF_SampleDescriptionBox* stsd;
-	GF_DOVIConfigurationBox* dovi = NULL;
 	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
