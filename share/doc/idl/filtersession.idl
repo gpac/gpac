@@ -392,6 +392,12 @@ DOMString get_destinations(unsigned long pid_idx=-1);
 */
 JSFSFilter ipid_source(unsigned long idx);
 
+/*! Gets index of output pid in source filter corresponding to a given input pid
+\param idx the index of the input pid to query
+\return index of output pid in source, or -1 if not found
+*/
+JSFSFilter ipid_source_opid_idx(unsigned long idx);
+
 /*! Gets destination filter(s) for an output pid
 \param idx the index of the output pid to query
 \return array of output filters
