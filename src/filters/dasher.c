@@ -243,7 +243,7 @@ typedef struct
 	char *utcs;
 	char *mname;
 	char *hlsdrm;
-	char *ckurl;
+	char *ckurl, *laurl;
 	GF_PropStringList hlsx;
 	GF_DashHLSLowLatencyType llhls;
 	Bool hlsiv;
@@ -2502,7 +2502,6 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 				ctx->use_clearkey = GF_TRUE;
 			}
 
-
 			if ((ctx->pssh <= GF_DASH_PSSH_MOOF) || (ctx->pssh == GF_DASH_PSSH_NONE)) {
 				continue;
 			}
@@ -2583,6 +2582,45 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 						}
 					}
 				}
+
+				// License acquisition URL
+				char *la_url = ctx->laurl;
+				p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_LAURL);
+				if (p && p->value.string) la_url = p->value.string;
+				if (la_url) {
+					GF_XMLNode *la_node;
+					GF_SAFEALLOC(la_node, GF_XMLNode);
+					if (la_node) {
+						la_node->orig_pos = 1;
+						GF_XMLAttribute *ns, *lt;
+						la_node->type = GF_XML_NODE_TYPE;
+						la_node->name = gf_strdup("dashif:Laurl");
+						la_node->content = gf_list_new();
+						gf_list_add(desc->x_children, la_node);
+
+						la_node->attributes = gf_list_new();
+						GF_SAFEALLOC(ns, GF_XMLAttribute);
+						ns->name = gf_strdup("xmlns:dashif");
+						ns->value = gf_strdup("https://dashif.org/CPS");
+						gf_list_add(la_node->attributes, ns);
+
+						GF_SAFEALLOC(lt, GF_XMLAttribute);
+						lt->name = gf_strdup("licenseType");
+						lt->value = gf_strdup("EME-1.0");
+						gf_list_add(la_node->attributes, lt);
+
+						GF_XMLNode *val_node;
+						GF_SAFEALLOC(val_node, GF_XMLNode);
+						if (val_node) {
+							val_node->type = GF_XML_TEXT_TYPE;
+							val_node->name = gf_strdup(la_url);
+							gf_list_add(la_node->content, val_node);
+						}
+					}
+				}
+/*
+<dashif:Laurl xmlns:dashif="https://dashif.org/CPS" licenseType="EME-1.0">https://widevine-dash.ezdrm.com/proxy?pX=3B0669</dashif:Laurl>
+*/
 				gf_free(pssh_data);
 			}
 		} else
@@ -4437,9 +4475,9 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			gf_assert(ctx->sigfrag || ds->muxed_base->dst_filter || ctx->from_index);
 			gf_list_transfer(ds->muxed_base->rep->audio_channels, rep->audio_channels);
 			gf_list_transfer(ds->muxed_base->rep->base_URLs, rep->base_URLs);
-			gf_list_transfer(ds->muxed_base->rep->content_protection , rep->content_protection);
-			gf_list_transfer(ds->muxed_base->rep->essential_properties , rep->essential_properties);
-			gf_list_transfer(ds->muxed_base->rep->frame_packing , rep->frame_packing);
+			gf_list_transfer(ds->muxed_base->rep->content_protection, rep->content_protection);
+			gf_list_transfer(ds->muxed_base->rep->essential_properties, rep->essential_properties);
+			gf_list_transfer(ds->muxed_base->rep->frame_packing, rep->frame_packing);
 			if (rep->x_children) {
 				if (!ds->muxed_base->rep->x_children) ds->muxed_base->rep->x_children = gf_list_new();
 				gf_list_transfer(ds->muxed_base->rep->x_children, rep->x_children);
@@ -12117,6 +12155,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(ll_rend_rep), "inject rendition reports for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_part_hb), "user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session", GF_PROP_DOUBLE, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ckurl), "set the ClearKey URL common to all encrypted streams (overridden by `CKUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(laurl), "set the License Acquisition URL common to all encrypted streams (overridden by `LAUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(hls_absu), "use absolute url in HLS generation using first URL in [base]()\n"
 	"- no: do not use absolute URL\n"
