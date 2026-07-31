@@ -2398,7 +2398,7 @@ static const char *get_drm_kms_name(const char *canURN)
 	else if (!stricmp(canURN, "5E629AF5-38DA-4063-8977-97FFBD9902D4")) return "Marlin1.0";
 	else if (!strcmp(canURN, "adb41c24-2dbf-4a6d-958b-4457c0d27b95")) return "MediaAccess3.0";
 	else if (!strcmp(canURN, "A68129D3-575B-4F1A-9CBA-3223846CF7C3")) return "VideoGuard";
-	else if (!strcmp(canURN, "9a04f079-9840-4286-ab92-e65be0885f95")) return "PlayReady";
+	else if (!strcmp(canURN, "9a04f079-9840-4286-ab92-e65be0885f95")) return "MSPR 2.0"; // PlayReady
 	else if (!strcmp(canURN, "9a27dd82-fde2-4725-8cbc-4234aa06ec09")) return "VCAS";
 	else if (!strcmp(canURN, "F239E769-EFA3-4850-9C16-A903C6932EFB")) return "Adobe";
 	else if (!strcmp(canURN, "1f83e1e8-6ee9-4f0d-ba2f-5ec4e3ed1a66")) return "SecureMedia";
@@ -2583,68 +2583,70 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 					}
 				}
 
-				// License acquisition URL
-				char *la_url = ctx->laurl;
-				p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_LAURL);
-				if (p && p->value.string) la_url = p->value.string;
-				if (la_url) {
-					GF_XMLNode *la_node;
-					GF_SAFEALLOC(la_node, GF_XMLNode);
-					if (la_node) {
-						la_node->orig_pos = gf_list_count(desc->x_children);
-						GF_XMLAttribute *ns, *lt;
-						la_node->type = GF_XML_NODE_TYPE;
-						la_node->name = gf_strdup("dashif:Laurl");
-						la_node->content = gf_list_new();
-						gf_list_add(desc->x_children, la_node);
+				if (strcmp(get_drm_kms_name(sCan), "FairPlay")) {
+					// License acquisition URL
+					char *la_url = ctx->laurl;
+					p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_LAURL);
+					if (p && p->value.string) la_url = p->value.string;
+					if (la_url) {
+						GF_XMLNode *la_node;
+						GF_SAFEALLOC(la_node, GF_XMLNode);
+						if (la_node) {
+							la_node->orig_pos = gf_list_count(desc->x_children);
+							GF_XMLAttribute *ns, *lt;
+							la_node->type = GF_XML_NODE_TYPE;
+							la_node->name = gf_strdup("dashif:Laurl");
+							la_node->content = gf_list_new();
+							gf_list_add(desc->x_children, la_node);
 
-						la_node->attributes = gf_list_new();
-						GF_SAFEALLOC(ns, GF_XMLAttribute);
-						ns->name = gf_strdup("xmlns:dashif");
-						ns->value = gf_strdup("https://dashif.org/CPS");
-						gf_list_add(la_node->attributes, ns);
+							la_node->attributes = gf_list_new();
+							GF_SAFEALLOC(ns, GF_XMLAttribute);
+							ns->name = gf_strdup("xmlns:dashif");
+							ns->value = gf_strdup("https://dashif.org/CPS");
+							gf_list_add(la_node->attributes, ns);
 
-						GF_SAFEALLOC(lt, GF_XMLAttribute);
-						lt->name = gf_strdup("licenseType");
-						lt->value = gf_strdup("EME-1.0");
-						gf_list_add(la_node->attributes, lt);
+							GF_SAFEALLOC(lt, GF_XMLAttribute);
+							lt->name = gf_strdup("licenseType");
+							lt->value = gf_strdup("EME-1.0");
+							gf_list_add(la_node->attributes, lt);
 
-						GF_XMLNode *val_node;
-						GF_SAFEALLOC(val_node, GF_XMLNode);
-						if (val_node) {
-							val_node->type = GF_XML_TEXT_TYPE;
-							val_node->name = gf_strdup(la_url);
-							gf_list_add(la_node->content, val_node);
+							GF_XMLNode *val_node;
+							GF_SAFEALLOC(val_node, GF_XMLNode);
+							if (val_node) {
+								val_node->type = GF_XML_TEXT_TYPE;
+								val_node->name = gf_strdup(la_url);
+								gf_list_add(la_node->content, val_node);
+							}
 						}
 					}
-				}
+				} else {
+					char *cert_url = ctx->certurl;
+					p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CERTURL);
+					if (p && p->value.string) cert_url = p->value.string;
+					if (cert_url) {
+						GF_XMLNode *cert_node;
+						GF_SAFEALLOC(cert_node, GF_XMLNode);
+						if (cert_node) {
+							cert_node->orig_pos = gf_list_count(desc->x_children);
+							GF_XMLAttribute *ns;
+							cert_node->type = GF_XML_NODE_TYPE;
+							cert_node->name = gf_strdup("dashif:Certurl");
+							cert_node->content = gf_list_new();
+							gf_list_add(desc->x_children, cert_node);
 
-				char *cert_url = ctx->certurl;
-				p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CERTURL);
-				if (p && p->value.string) cert_url = p->value.string;
-				if (cert_url) {
-					GF_XMLNode *cert_node;
-					GF_SAFEALLOC(cert_node, GF_XMLNode);
-					if (cert_node) {
-						cert_node->orig_pos = gf_list_count(desc->x_children);
-						GF_XMLAttribute *ns;
-						cert_node->type = GF_XML_NODE_TYPE;
-						cert_node->name = gf_strdup("dashif:Certurl");
-						cert_node->content = gf_list_new();
-						gf_list_add(desc->x_children, cert_node);
+							cert_node->attributes = gf_list_new();
+							GF_SAFEALLOC(ns, GF_XMLAttribute);
+							ns->name = gf_strdup("xmlns:dashif");
+							ns->value = gf_strdup("https://dashif.org/CPS");
+							gf_list_add(cert_node->attributes, ns);
 
-						cert_node->attributes = gf_list_new();
-						GF_SAFEALLOC(ns, GF_XMLAttribute);
-						ns->name = gf_strdup("xmlns:dashif");
-						ns->value = gf_strdup("https://dashif.org/CPS");
-						gf_list_add(cert_node->attributes, ns);
-
-						GF_XMLNode *val_node;
-						GF_SAFEALLOC(val_node, GF_XMLNode);
-						if (val_node) {
-							val_node->type = GF_XML_TEXT_TYPE;
-							val_node->name = gf_strdup(cert_url);
-							gf_list_add(cert_node->content, val_node);
+							GF_XMLNode *val_node;
+							GF_SAFEALLOC(val_node, GF_XMLNode);
+							if (val_node) {
+								val_node->type = GF_XML_TEXT_TYPE;
+								val_node->name = gf_strdup(cert_url);
+								gf_list_add(cert_node->content, val_node);
+							}
 						}
 					}
 				}
