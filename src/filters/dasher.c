@@ -243,7 +243,7 @@ typedef struct
 	char *utcs;
 	char *mname;
 	char *hlsdrm;
-	char *ckurl, *laurl;
+	char *ckurl, *laurl, *certurl;
 	GF_PropStringList hlsx;
 	GF_DashHLSLowLatencyType llhls;
 	Bool hlsiv;
@@ -2591,7 +2591,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 					GF_XMLNode *la_node;
 					GF_SAFEALLOC(la_node, GF_XMLNode);
 					if (la_node) {
-						la_node->orig_pos = 1;
+						la_node->orig_pos = gf_list_count(desc->x_children);
 						GF_XMLAttribute *ns, *lt;
 						la_node->type = GF_XML_NODE_TYPE;
 						la_node->name = gf_strdup("dashif:Laurl");
@@ -2618,9 +2618,37 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 						}
 					}
 				}
-/*
-<dashif:Laurl xmlns:dashif="https://dashif.org/CPS" licenseType="EME-1.0">https://widevine-dash.ezdrm.com/proxy?pX=3B0669</dashif:Laurl>
-*/
+
+				char *cert_url = ctx->certurl;
+				p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CERTURL);
+				if (p && p->value.string) cert_url = p->value.string;
+				if (cert_url) {
+					GF_XMLNode *cert_node;
+					GF_SAFEALLOC(cert_node, GF_XMLNode);
+					if (cert_node) {
+						cert_node->orig_pos = gf_list_count(desc->x_children);
+						GF_XMLAttribute *ns;
+						cert_node->type = GF_XML_NODE_TYPE;
+						cert_node->name = gf_strdup("dashif:Certurl");
+						cert_node->content = gf_list_new();
+						gf_list_add(desc->x_children, cert_node);
+
+						cert_node->attributes = gf_list_new();
+						GF_SAFEALLOC(ns, GF_XMLAttribute);
+						ns->name = gf_strdup("xmlns:dashif");
+						ns->value = gf_strdup("https://dashif.org/CPS");
+						gf_list_add(cert_node->attributes, ns);
+
+						GF_XMLNode *val_node;
+						GF_SAFEALLOC(val_node, GF_XMLNode);
+						if (val_node) {
+							val_node->type = GF_XML_TEXT_TYPE;
+							val_node->name = gf_strdup(cert_url);
+							gf_list_add(cert_node->content, val_node);
+						}
+					}
+				}
+
 				gf_free(pssh_data);
 			}
 		} else
@@ -12156,6 +12184,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(ll_part_hb), "user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session", GF_PROP_DOUBLE, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ckurl), "set the ClearKey URL common to all encrypted streams (overridden by `CKUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(laurl), "set the License Acquisition URL common to all encrypted streams (overridden by `LAUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(certurl), "set the Certificate URL for Apple FairPlay (overridden by `CertUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(hls_absu), "use absolute url in HLS generation using first URL in [base]()\n"
 	"- no: do not use absolute URL\n"
