@@ -32,7 +32,7 @@
 
 /** CBC mode **/
 
-GF_Err gf_crypt_init_tinyaes_cbc(GF_Crypt* td, void *key, const void *iv)
+GF_Err gf_crypt_init_tinyaes_cbc(GF_Crypt* td, const u8 *key, const u8 *iv)
 {
 	struct AES_ctx *ctx = (struct AES_ctx *)td->context;
 	if (!ctx) {
@@ -55,7 +55,7 @@ void gf_crypt_deinit_tinyaes_cbc(GF_Crypt* td)
 {
 }
 
-void gf_set_key_tinyaes_cbc(GF_Crypt* td, void *key)
+void gf_set_key_tinyaes_cbc(GF_Crypt* td, const u8 *key)
 {
 	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
 	AES_init_ctx(ctx, key);
@@ -100,7 +100,7 @@ GF_Err gf_crypt_decrypt_tinyaes_cbc(GF_Crypt* td, u8 *ciphertext, u32 len)
 
 /** CTR mode **/
 
-void gf_set_key_tinyaes_ctr(GF_Crypt* td, void *key)
+void gf_set_key_tinyaes_ctr(GF_Crypt* td, const u8 *key)
 {
 	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
 	AES_init_ctx(ctx, key);
@@ -128,7 +128,7 @@ GF_Err gf_crypt_get_IV_tinyaes_ctr(GF_Crypt* td, u8 *iv, u32 *iv_size)
 	return GF_OK;
 }
 
-GF_Err gf_crypt_init_tinyaes_ctr(GF_Crypt* td, void *key, const void *iv)
+GF_Err gf_crypt_init_tinyaes_ctr(GF_Crypt* td, const u8 *key, const u8 *iv)
 {
 	struct AES_ctx* ctx = (struct AES_ctx* ) td->context;
 	if (!ctx) {
@@ -167,7 +167,7 @@ GF_Err gf_crypt_decrypt_tinyaes_ctr(GF_Crypt* td, u8 *ciphertext, u32 len)
 
 /** ECB mode **/
 
-GF_Err gf_crypt_init_tinyaes_ecb(GF_Crypt* td, void *key, const void *iv)
+GF_Err gf_crypt_init_tinyaes_ecb(GF_Crypt* td, const u8 *key, const u8 *iv)
 {
 	struct AES_ctx *ctx = (struct AES_ctx *)td->context;
 	if (!ctx) {
@@ -183,7 +183,7 @@ void gf_crypt_deinit_tinyaes_ecb(GF_Crypt* td)
 {
 }
 
-void gf_set_key_tinyaes_ecb(GF_Crypt* td, void *key)
+void gf_set_key_tinyaes_ecb(GF_Crypt* td, const u8 *key)
 {
 	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
 	AES_init_ctx(ctx, key);

@@ -30,6 +30,7 @@
 #include <gpac/network.h>
 #include <gpac/download.h>
 #include <gpac/base_coding.h>
+#include "./downloader.h"
 
 #if !defined(GPAC_DISABLE_RMTWS) && !defined(GPAC_DISABLE_NETWORK)
 

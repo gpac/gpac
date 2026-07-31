@@ -433,7 +433,7 @@ GF_Err gf_img_jpeg_dec(const u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32
 #else
 
 GF_EXPORT
-GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size, u32 dst_nb_comp)
+GF_Err gf_img_jpeg_dec(const u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size, u32 dst_nb_comp)
 {
 	return GF_NOT_SUPPORTED;
 }

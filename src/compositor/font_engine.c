@@ -1382,7 +1382,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 
 void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events, Drawable *drawable)
 {
-	u32 i, count, j, glyph_idx;
+	u32 i, count, j, glyph_idx=0;
 	Fixed dx, dy;
 #ifndef GPAC_DISABLE_3D
 	GF_Matrix inv_mx;

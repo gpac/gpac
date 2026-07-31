@@ -122,7 +122,12 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		gf_strcpy(fileName, filePath);
 		gf_strcat(fileName, file_name);
 	} else if (filePath && strlen(filePath)) {
-		sprintf(fileName, "%s%c%s", filePath, GF_PATH_SEPARATOR, file_name);
+		char szPS[2];
+		szPS[0] = GF_PATH_SEPARATOR;
+		szPS[1] = 0;
+		gf_strcpy(fileName, filePath);
+		gf_strcat(fileName, szPS);
+		gf_strcat(fileName, file_name);
 	} else {
 		gf_strcpy(fileName, file_name);
 	}

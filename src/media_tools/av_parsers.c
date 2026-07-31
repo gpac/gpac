@@ -9210,6 +9210,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 
 	if (gf_bs_read_bool_log(bs, "vps_sub_layers_max_minus1_present_flag")) {
 		for (i = 0; i < vps->max_layers; i++) {
+			if (i>=MAX_LHVC_LAYERS) break; //for gcc warning only
 			vps->sub_layers_vps_max_minus1[i] = gf_bs_read_int_log_idx(bs, 3, "sub_layers_vps_max_minus1", i);
 		}
 	} else {

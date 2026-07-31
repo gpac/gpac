@@ -535,10 +535,11 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	}
 	tmp[0] = '\0';
 	/*generate hash of the full url*/
+	gf_strcpy ( tmp, url );
 	if (start_range && end_range) {
-		snprintf(tmp, GF_MAX_PATH, "%s_" LLU "-" LLU, url, start_range, end_range );
-	} else {
-		gf_strcpy ( tmp, url );
+		char szR[100];
+		snprintf(szR, 100, "_" LLU "-" LLU, start_range, end_range );
+		gf_strcat ( tmp, szR );
 	}
 	gf_sha1_csum ((u8*) tmp, (u32) strlen ( tmp ), hash );
 	tmp[0] = 0;

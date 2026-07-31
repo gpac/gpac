@@ -2400,7 +2400,8 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 			if (right_val_type==COMP_FLOAT) {
 				fprintf(stderr, "%g\n", FIX2FLT(right_val->x));
 			} else if (right_val_type==COMP_INT) {
-				fprintf(stderr, "%d\n", * (s32 *) &right_val);
+				void *_f = (void *) &right_val->x;
+				fprintf(stderr, "%d\n", * (s32 *) _f);
 			} else {
 				if (right_val_type&COMP_X) fprintf(stderr, "x=%g ", FIX2FLT(right_val->x));
 				if (right_val_type&COMP_Y) fprintf(stderr, "y=%g ", FIX2FLT(right_val->y));

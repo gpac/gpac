@@ -602,6 +602,8 @@ void gf_dm_sess_close_hmux(GF_DownloadSession *sess);
 
 void gf_dm_sess_set_sock_group(GF_DownloadSession *sess, GF_SockGroup *sg);
 
+void gf_dm_http_format_date(u64 time, char szDate[200], Bool for_listing);
+
 #ifdef GPAC_HAS_SSL
 
 void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
@@ -610,7 +612,6 @@ void gf_ssl_server_context_del(void *ssl_server_ctx);
 Bool gf_ssl_init_lib();
 void gf_ssl_del(void *ssl);
 Bool gf_ssl_check_cert(SSL *ssl, const char *server_name);
-void gf_dm_http_format_date(u64 time, char szDate[200], Bool for_listing);
 
 #endif
 
