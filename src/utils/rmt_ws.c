@@ -925,7 +925,7 @@ void* gf_rmt_get_on_new_client_task(RMT_WS* rmt) {
 const char* gf_rmt_get_peer_address(RMT_ClientCtx* client) {
     return NULL;
 }
-GF_Err gf_rmt_client_send_to_ws(RMT_ClientCtx* client, const char* msg, u64 size, Bool is_binary) {
+GF_Err gf_rmt_client_send_to_ws(RMT_ClientCtx* client, const u8* msg, u64 size, Bool is_binary) {
     return GF_NOT_SUPPORTED;
 }
 
