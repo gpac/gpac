@@ -2235,10 +2235,14 @@ static GF_Err gf_node_deactivate_ex(GF_Node *node, u32 depth)
 	return GF_NOT_SUPPORTED;
 #else
 	GF_ChildNodeItem *item;
+	Bool was_deactivated;
 	/*avoid stack overflow on cyclic/malformed scene graphs*/
 	if (depth > 255) return GF_OK;
 	if (node->sgprivate->tag<GF_NODE_FIRST_DOM_NODE_TAG) return GF_BAD_PARAM;
-	if (! (node->sgprivate->flags & GF_NODE_IS_DEACTIVATED)) {
+
+	was_deactivated = (node->sgprivate->flags & GF_NODE_IS_DEACTIVATED) ? GF_TRUE : GF_FALSE;
+
+	if (!was_deactivated) {
 
 		node->sgprivate->flags |= GF_NODE_IS_DEACTIVATED;
 
@@ -2254,6 +2258,9 @@ static GF_Err gf_node_deactivate_ex(GF_Node *node, u32 depth)
 		/*TODO unregister all listeners*/
 
 	}
+
+	if (was_deactivated) return GF_OK;
+
 	/*and deactivate children*/
 	item = ((GF_ParentNode*)node)->children;
 	while (item) {
