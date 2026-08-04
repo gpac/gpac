@@ -359,6 +359,8 @@ static void drop_nested_node_codes(GF_SceneGraph* sg)
 		GF_Proto* p = (GF_Proto*)gf_list_get(sg->protos, pi);
 		while (gf_list_count(p->node_code)) {
 			GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
+			if (n->sgprivate->referencing_protos)
+				gf_list_del_item(n->sgprivate->referencing_protos, p);
 			gf_node_unregister(n, NULL);
 		}
 		drop_proto_default_field_nodes(p);
@@ -370,6 +372,8 @@ static void drop_nested_node_codes(GF_SceneGraph* sg)
 		GF_Proto* p = (GF_Proto*)gf_list_get(sg->unregistered_protos, pi);
 		while (gf_list_count(p->node_code)) {
 			GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
+			if (n->sgprivate->referencing_protos)
+				gf_list_del_item(n->sgprivate->referencing_protos, p);
 			gf_node_unregister(n, NULL);
 		}
 		drop_proto_default_field_nodes(p);
@@ -1038,6 +1042,8 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 	if (replace_proto) {
 		GF_SceneGraph *pSG = node->sgprivate->scenegraph;
 		gf_list_del_item(pSG->pOwningProto->node_code, node);
+		if (node->sgprivate->referencing_protos)
+			gf_list_del_item(node->sgprivate->referencing_protos, pSG->pOwningProto);
 		if (pSG->pOwningProto->RenderingNode==node) pSG->pOwningProto->RenderingNode = NULL;
 		gf_node_unregister(node, NULL);
 	}
@@ -1716,6 +1722,14 @@ void gf_node_free(GF_Node *node)
 			*node_ptr = NULL;
 		}
 		gf_list_del(node->sgprivate->referencing_commands);
+	}
+	if (node->sgprivate->referencing_protos) {
+		u32 i, cnt = gf_list_count(node->sgprivate->referencing_protos);
+		for (i = 0; i < cnt; i++) {
+			GF_Proto *p = (GF_Proto *)gf_list_get(node->sgprivate->referencing_protos, i);
+			gf_list_del_item(p->node_code, node);
+		}
+		gf_list_del(node->sgprivate->referencing_protos);
 	}
 	gf_free(node->sgprivate);
 	gf_free(node);

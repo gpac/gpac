@@ -3314,7 +3314,7 @@ attach_node:
 							}
 						}
 					}
-					xmt_remove_od_links_for_node(parser, node);
+					xmt_remove_od_links_recursive(parser, node, 0);
 					gf_node_register(node, NULL);
 					gf_node_unregister(node, NULL);
 					node_processed = GF_TRUE;

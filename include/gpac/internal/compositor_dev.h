@@ -297,12 +297,12 @@ struct __tag_compositor
 	s32 frame_delay;
 	Bool fullscreen_postponed;
 	Bool sys_frames_pending;
-	
+
 	Bool amc, async;
 	u32 asr, ach, alayout, afmt, asize, avol, apan, abuf;
 	Double max_aspeed, max_vspeed;
 	u32 buffer, rbuffer, mbuffer, ntpsync;
-	
+
 	u32 ogl, mode2d;
 
 	s32 subtx, subty, subd, audd;
@@ -677,7 +677,7 @@ struct __tag_compositor
 #endif
 
 	Bool orientation_sensors_active;
-	
+
 	Bool texture_from_decoder_memory;
 
 	u32 networks_time;
@@ -735,7 +735,7 @@ struct __tag_compositor
 
 
 	/*special list used by nodes needing a call to RenderNode but not in the traverese scene graph
-	 (VRML/MPEG-4 protos only). 
+	 (VRML/MPEG-4 protos only).
 	 For such nodes the traverse state will be NULL
 	 This is only used by InputSensor node at the moment
 	 */
@@ -977,8 +977,8 @@ struct _traversing_state
 	Bool immediate_draw;
 	//flag set when immediate_draw whn in defer mode, so that canvas is not erased in hybgl mode
 	Bool immediate_for_defer;
-	
-	
+
+
 	/*current subtree is part of a switched-off subtree (needed for audio)*/
 	Bool switched_off;
 	/*set by the traversed subtree to indicate no cull shall be performed*/
@@ -1241,7 +1241,7 @@ Bool gf_mixer_is_eos(GF_AudioMixer *am);
 typedef struct _audio_render
 {
 	GF_Compositor *compositor;
-	
+
 	u32 max_bytes_out, samplerate, bytes_per_samp, nb_bytes_out, buffer_size, nb_buffers;
 	u64 current_time_sr, time_at_last_config_sr;
 	GF_FilterPid *aout;
@@ -1359,7 +1359,7 @@ Bool gf_sc_audio_check_url(GF_AudioInput *ai, MFURL *url);
 #define AUDIO_GROUP_NODE	\
 	GF_AudioInput output;		\
 	void (*add_source)(struct _audio_group *_this, GF_AudioInput *src);	\
- 
+
 typedef struct _audio_group
 {
 	AUDIO_GROUP_NODE
@@ -2171,7 +2171,7 @@ struct _od_manager
 	u32 action_type;
 	//delay in PID timescale
 	s64 timestamp_offset;
-	
+
 	Fixed set_speed;
 	Bool disable_buffer_at_next_play;
 	u32 last_ckdisc;
@@ -2205,6 +2205,11 @@ struct _od_manager
 	const char *redirect_url;
 	/*0: not set, 1: set , 2: set and disconnect was called to remove the object*/
 	u32 skip_disconnect_state;
+
+	/*set when a scene_ns_remove_object task was posted for this ODM; used to defer the
+	actual free in gf_odm_del until that task runs, avoiding a UAF on the raw odm pointer
+	it holds if the odm is disconnected through another path first*/
+	Bool has_pending_remove_task;
 
 	Bool ignore_sys;
 	u64 last_filesize_signaled;
@@ -2700,4 +2705,3 @@ Bool gf_sc_on_event(void *cbck, GF_Event *event);
 }
 #endif
 #endif	/*_COMPOSITOR_DEV_H_*/
-
