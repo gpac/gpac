@@ -827,7 +827,7 @@ GF_EXPORT
 GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 {
 	if (!node) return GF_OK;
-	if (node->sgprivate->num_instances >= 0xFFFF) return GF_BAD_PARAM;
+	if (!node->sgprivate || node->sgprivate->num_instances >= 0xFFFF) return GF_BAD_PARAM;
 
 	node->sgprivate->num_instances ++;
 	/*parent may be NULL (top node and proto)*/
@@ -2140,8 +2140,8 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 GF_EXPORT
 GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 {
-	gf_assert(node);
-	gf_assert(info);
+	if (!node || !info) return GF_BAD_PARAM;
+
 	memset(info, 0, sizeof(GF_FieldInfo));
 	info->fieldIndex = FieldIndex;
 

@@ -273,7 +273,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			case GF_SG_VRML_MFNODE:
 				gf_node_unregister_children(com->node, * ((GF_ChildNodeItem **) field.far_ptr));
 				* ((GF_ChildNodeItem **) field.far_ptr) = NULL;
-
+				if (!inf->field_ptr) break;
 				list = * ((GF_ChildNodeItem **) inf->field_ptr);
 				prev=NULL;
 				while (list) {

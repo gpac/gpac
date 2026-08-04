@@ -454,6 +454,7 @@ static void InputSensorRegister(GF_Node *n)
 	GF_InputSensorCtx *is_ctx;
 	u32 i;
 	ISStack *st = (ISStack *)gf_node_get_private(n);
+	if (!st || !st->mo) return;
 	odm = st->mo->odm;
 	if (!odm || (odm->type != GF_STREAM_INTERACT)) return;
 
