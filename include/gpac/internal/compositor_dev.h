@@ -1803,7 +1803,21 @@ struct _gf_scene
 	GF_List *namespaces;
 
 	Bool has_splicing_addons;
+
+	// list of GF_SceneDestroyNotify* registered by scene-graph consumers (e.g. BT/XMT loaders)
+	// that keep raw pointers into this scene past normal pid teardown; each is notified right
+	// before this scene actually starts tearing itself down (finalize order across filters is
+	// not guaranteed), so it can release those references while the scene/graph is still valid
+	GF_List* destroy_notify;
 };
+
+// entry type for GF_Scene.destroy_notify
+typedef struct
+{
+	void (*notify)(void* udta);
+	void* udta;
+	Bool done;
+} GF_SceneDestroyNotify;
 
 GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene);
 void gf_scene_del(GF_Scene *scene);

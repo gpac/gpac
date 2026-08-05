@@ -228,6 +228,15 @@ GF_Err gf_input_sensor_setup_object(GF_ObjectManager *odm, GF_ESD *esd)
 			gf_modules_close_interface((GF_BaseInterface *) ifce);
 		}
 		if (!is_ctx->io_dev) {
+			// not registered/added to input_streams yet - free our own lists here
+			while (gf_list_count(is_ctx->ddf)) {
+				GF_FieldInfo* fi = (GF_FieldInfo*)gf_list_get(is_ctx->ddf, 0);
+				gf_list_rem(is_ctx->ddf, 0);
+				gf_sg_vrml_field_pointer_del(fi->far_ptr, fi->fieldType);
+				gf_free(fi);
+			}
+			gf_list_del(is_ctx->ddf);
+			gf_list_del(is_ctx->is_nodes);
 			gf_free(is_ctx);
 			return GF_NOT_SUPPORTED;
 		}
