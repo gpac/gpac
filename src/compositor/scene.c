@@ -344,7 +344,19 @@ static void gf_scene_reset_urls(GF_Scene *scene)
 GF_EXPORT
 void gf_scene_del(GF_Scene *scene)
 {
-	gf_list_del(scene->resources);
+	// warn every external raw-pointer holder (e.g. BT/XMT loaders) that this scene/graph is
+	// about to be destroyed, while it is still fully valid, so they can release their leftover
+	// references now (their own finalize may run after this scene is gone)
+	if (scene->destroy_notify) {
+		while (gf_list_count(scene->destroy_notify)) {
+			GF_SceneDestroyNotify* n = (GF_SceneDestroyNotify*)gf_list_pop_back(scene->destroy_notify);
+			if (n->notify) n->notify(n->udta);
+			n->done = GF_TRUE;
+		}
+		gf_list_del(scene->destroy_notify);
+		scene->destroy_notify = NULL;
+	}
+
 	gf_assert(!gf_list_count(scene->extra_scenes) );
 	gf_list_del(scene->extra_scenes);
 
@@ -361,6 +373,10 @@ void gf_scene_del(GF_Scene *scene)
 
 	/*delete the scene graph*/
 	gf_sg_del(scene->graph);
+
+	// node destruction callbacks triggered by gf_sg_del (e.g. global_qp teardown) may still
+	// need to look scene->resources up - free it only after the graph is fully gone
+	gf_list_del(scene->resources);
 
 	/*don't touch the root_od, will be deleted by the parent scene*/
 
