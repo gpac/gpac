@@ -2392,13 +2392,14 @@ static void get_canon_urn(bin128 URN, char res[40])
 	for (i=10; i<16; i++) { sprintf(sres, "%02x", URN[i]); gf_strlcat(res, sres, 40); }
 }
 
-static const char *get_drm_kms_name(const char *canURN)
+// DRM are known to users by their vernacular name even though systems use a different canonical one
+static const char *get_drm_kms_name(const char *canURN, Bool vernacular)
 {
 	if (!stricmp(canURN, "67706163-6365-6E63-6472-6D746F6F6C31")) return "GPAC1.0";
 	else if (!stricmp(canURN, "5E629AF5-38DA-4063-8977-97FFBD9902D4")) return "Marlin1.0";
 	else if (!strcmp(canURN, "adb41c24-2dbf-4a6d-958b-4457c0d27b95")) return "MediaAccess3.0";
 	else if (!strcmp(canURN, "A68129D3-575B-4F1A-9CBA-3223846CF7C3")) return "VideoGuard";
-	else if (!strcmp(canURN, "9a04f079-9840-4286-ab92-e65be0885f95")) return "MSPR 2.0"; // PlayReady
+	else if (!strcmp(canURN, "9a04f079-9840-4286-ab92-e65be0885f95")) return vernacular ? "PlayReady" :  "MSPR 2.0";
 	else if (!strcmp(canURN, "9a27dd82-fde2-4725-8cbc-4234aa06ec09")) return "VCAS";
 	else if (!strcmp(canURN, "F239E769-EFA3-4850-9C16-A903C6932EFB")) return "Adobe";
 	else if (!strcmp(canURN, "1f83e1e8-6ee9-4f0d-ba2f-5ec4e3ed1a66")) return "SecureMedia";
@@ -2558,7 +2559,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 				desc->x_children = gf_list_new();
 				sprintf(szVal, "urn:uuid:%s", sCan);
 				desc->scheme_id_uri = gf_strdup(szVal);
-				desc->value = gf_strdup(get_drm_kms_name(sCan));
+				desc->value = gf_strdup(get_drm_kms_name(sCan, GF_FALSE));
 				gf_list_add(res, desc);
 
 				GF_SAFEALLOC(node, GF_XMLNode);
@@ -2583,12 +2584,49 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 					}
 				}
 
-				if (strcmp(get_drm_kms_name(sCan), "FairPlay")) {
-					// License acquisition URL
+				// License acquisition URL
+				{
+					char la_url_mem[GF_MAX_PATH] = {0};
+
 					char *la_url = ctx->laurl;
 					p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_LAURL);
 					if (p && p->value.string) la_url = p->value.string;
-					if (la_url) {
+					gf_strlcpy(la_url_mem, la_url, GF_MAX_PATH);
+					la_url = la_url_mem;
+
+					while (la_url) {
+						Bool last = GF_FALSE;
+						char *system_id = NULL;
+
+						// localize end of parsing
+						char *end = strchr(la_url, ',');
+						if (end) end[0] = 0;
+						else { end = la_url + strlen(la_url) + 1; last = GF_TRUE; }
+
+						// check if this is the right system id
+						if (la_url[0] == '(') {
+							char *next = strchr(la_url, ')');
+							if (!next) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid systemID while parsing license acquisition URL \"%s\" - stop parsing\n", la_url));
+								break;
+							}
+
+							system_id = la_url+1;
+							next[0] = 0;
+							la_url = next + 1;
+						}
+						if (system_id) {
+							if (stricmp(get_drm_kms_name(sCan, GF_TRUE), system_id)) {
+								la_url = last ? NULL : end+1;
+								continue; // not applicable to this system
+							}
+						}
+
+						if (!la_url || la_url[0] == 0) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid license acquisition URL \"%s\" - stop parsing\n", la_url));
+							break;
+						}
+
 						GF_XMLNode *la_node;
 						GF_SAFEALLOC(la_node, GF_XMLNode);
 						if (la_node) {
@@ -2614,16 +2652,59 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 							GF_SAFEALLOC(val_node, GF_XMLNode);
 							if (val_node) {
 								val_node->type = GF_XML_TEXT_TYPE;
-								val_node->name = gf_strdup(la_url);
+								val_node->name = (char*)gf_malloc(strlen(la_url) + 1);
+								gf_strlcpy(val_node->name, la_url, strlen(la_url) + 1);
 								gf_list_add(la_node->content, val_node);
 							}
 						}
+
+						la_url = last ? NULL : end+1;
 					}
-				} else {
+				}
+
+				{
+					// Certificate URL (mostly used by FairPlay)
+					char cert_url_mem[GF_MAX_PATH] = {0};
+
 					char *cert_url = ctx->certurl;
 					p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CERTURL);
 					if (p && p->value.string) cert_url = p->value.string;
-					if (cert_url) {
+					gf_strlcpy(cert_url_mem, cert_url, GF_MAX_PATH);
+					cert_url = cert_url_mem;
+
+					while (cert_url) {
+						Bool last = GF_FALSE;
+						char *system_id = NULL;
+
+						// localize end of parsing
+						char *end = strchr(cert_url, ',');
+						if (end) end[0] = 0;
+						else { end = cert_url + strlen(cert_url) + 1; last = GF_TRUE; }
+
+						// check if this is the right system id
+						if (cert_url[0] == '(') {
+							char *next = strchr(cert_url, ')');
+							if (!next) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid systemID while parsing certificate URL \"%s\" - stop parsing\n", cert_url));
+								break;
+							}
+
+							system_id = cert_url+1;
+							next[0] = 0;
+							cert_url = next + 1;
+						}
+						if (system_id) {
+							if (stricmp(get_drm_kms_name(sCan, GF_TRUE), system_id)) {
+								cert_url = last ? NULL : end+1;
+								continue; // not applicable to this system
+							}
+						}
+
+						if (!cert_url || cert_url[0] == 0) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid certificate URL \"%s\" - stop parsing\n", cert_url));
+							break;
+						}
+
 						GF_XMLNode *cert_node;
 						GF_SAFEALLOC(cert_node, GF_XMLNode);
 						if (cert_node) {
@@ -2644,10 +2725,13 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 							GF_SAFEALLOC(val_node, GF_XMLNode);
 							if (val_node) {
 								val_node->type = GF_XML_TEXT_TYPE;
-								val_node->name = gf_strdup(cert_url);
+								val_node->name = (char*)gf_malloc(strlen(cert_url) + 1);
+								gf_strlcpy(val_node->name, cert_url, strlen(cert_url) + 1);
 								gf_list_add(cert_node->content, val_node);
 							}
 						}
+
+						cert_url = last ? NULL : end+1;
 					}
 				}
 
