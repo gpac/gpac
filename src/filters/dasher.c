@@ -2591,8 +2591,10 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 					char *la_url = ctx->laurl;
 					p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_LAURL);
 					if (p && p->value.string) la_url = p->value.string;
-					gf_strlcpy(la_url_mem, la_url, GF_MAX_PATH);
-					la_url = la_url_mem;
+					if (la_url) {
+						gf_strlcpy(la_url_mem, la_url, GF_MAX_PATH);
+						la_url = la_url_mem;
+					}
 
 					while (la_url) {
 						Bool last = GF_FALSE;
@@ -2669,8 +2671,10 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 					char *cert_url = ctx->certurl;
 					p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CERTURL);
 					if (p && p->value.string) cert_url = p->value.string;
-					gf_strlcpy(cert_url_mem, cert_url, GF_MAX_PATH);
-					cert_url = cert_url_mem;
+					if (cert_url) {
+						gf_strlcpy(cert_url_mem, cert_url, GF_MAX_PATH);
+						cert_url = cert_url_mem;
+					}
 
 					while (cert_url) {
 						Bool last = GF_FALSE;
