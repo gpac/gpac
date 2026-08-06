@@ -44,6 +44,7 @@ typedef struct
 	GF_Node *node;
 	GF_FieldInfo container_field;
 	GF_ChildNodeItem *last;
+	GF_SceneGraph *graph;
 } XMTNodeStack;
 
 /*tracks whether a PROTO's sub-graph is still alive; `live` is nulled by
@@ -2921,6 +2922,7 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 	if (!new_top) return;
 
 	new_top->node = elt;
+	new_top->graph = elt->sgprivate->scenegraph;
 	gf_list_add(parser->nodes, new_top);
 
 	/*assign root node here to enable progressive loading*/
@@ -3672,6 +3674,18 @@ static GF_Err load_xmt_parse_string(GF_SceneLoader *load, const char *str)
 	return GF_OK;
 }
 
+//checks subgraph liveness using the graph captured at push time - must never touch st->node itself, which may already be freed
+static Bool xmt_node_stack_alive(GF_XMTParser *parser, XMTNodeStack *st)
+{
+    if (!st->graph || (st->graph == parser->root_graph)) return GF_TRUE;
+    u32 gi, gcnt = gf_list_count(parser->subgraphs);
+    for (gi = 0; gi < gcnt; gi++) {
+        XMTSubGraphWatch* w = (XMTSubGraphWatch*)gf_list_get(parser->subgraphs, gi);
+        if (w->orig == st->graph) return (w->live != NULL);
+    }
+    return GF_FALSE;
+}
+
 static void load_xmt_done(GF_SceneLoader *load)
 {
 	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
@@ -3680,6 +3694,7 @@ static void load_xmt_done(GF_SceneLoader *load)
 	/*clear leftover command buffer back-pointers from incomplete parsing*/
 	for (u32 n = 0; n < gf_list_count(parser->nodes); n++) {
 		XMTNodeStack *st = gf_list_get(parser->nodes, n);
+		if (!st->node || !xmt_node_stack_alive(parser, st)) continue;
 		if (gf_node_get_tag(st->node) == TAG_MPEG4_Conditional) {
 			M_Conditional *cond = (M_Conditional *)st->node;
 			cond->buffer.buffer = NULL;
@@ -3693,29 +3708,11 @@ static void load_xmt_done(GF_SceneLoader *load)
 		if (!st) 			break;
 		gf_list_rem_last(parser->nodes);
 		if (gf_list_find(cleaned_nodes, st->node) < 0) {
-			Bool graph_alive = GF_TRUE;
-			if (st->node && (st->node->sgprivate->scenegraph != parser->root_graph)) {
-				// node belongs to a PROTO sub-graph - only safe to touch if that
-				// sub-graph hasn't already been destroyed by an in-band scene command
-				graph_alive = GF_FALSE;
-				u32 gi, gcnt = gf_list_count(parser->subgraphs);
-				for (gi = 0; gi < gcnt; gi++) {
-					XMTSubGraphWatch* w = (XMTSubGraphWatch*)gf_list_get(parser->subgraphs, gi);
-					if (w->orig == st->node->sgprivate->scenegraph) {
-						graph_alive = (w->live != NULL);
-						break;
-					}
-				}
-			}
+			Bool graph_alive = !st->node || xmt_node_stack_alive(parser, st);
 			if (st->node) {
 				if (graph_alive) {
 					gf_node_register(st->node, NULL);
 					gf_node_unregister(st->node, NULL);
-				} else if (!st->node->sgprivate->num_instances) {
-					// owning graph is already destroyed - null the stale pointer
-					// so gf_node_del's internal cleanup won't dereference it
-					st->node->sgprivate->scenegraph = NULL;
-					gf_node_del(st->node);
 				}
 			}
 			gf_list_add(cleaned_nodes, st->node);

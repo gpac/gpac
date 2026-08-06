@@ -714,8 +714,9 @@ static GF_Err ctxload_process(GF_Filter *filter)
 									ODS_SetupOD(priv->scene, od);
 								} else if (esd->decoderConfig->streamType==GF_STREAM_INTERACT) {
 									GF_UIConfig *cfg = (GF_UIConfig *) esd->decoderConfig->decoderSpecificInfo;
-									gf_odf_encode_ui_config(cfg, &esd->decoderConfig->decoderSpecificInfo);
-									gf_odf_desc_del((GF_Descriptor *) cfg);
+									if (gf_odf_encode_ui_config(cfg, &esd->decoderConfig->decoderSpecificInfo) == GF_OK) {
+										gf_odf_desc_del((GF_Descriptor*)cfg);
+									}
 									ODS_SetupOD(priv->scene, od);
 								} else if (esd->decoderConfig->streamType==GF_STREAM_OCR) {
 									ODS_SetupOD(priv->scene, od);
