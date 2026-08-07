@@ -2311,7 +2311,8 @@ static GF_Err dasher_add_dolby_vision_attribute(GF_DasherCtx *ctx, GF_DashStream
 	if (!ds->rep->m3u8_x_attributes) ds->rep->m3u8_x_attributes = gf_list_new();
 
 	// cross-compatible Dolby Vision streams should add scte214:supplementalCodecs and scte214:supplementalProfiles for DASH, SUPPLEMENTAL-CODECS for HLS
-	if (dvcc->dv_bl_signal_compatibility_id == 1 || dvcc->dv_bl_signal_compatibility_id == 4) {
+	// TODO: db2g is not defined in the current Dolby Vision in DASH gudielines,
+	if (dvcc->dv_bl_signal_compatibility_id == 1 || dvcc->dv_bl_signal_compatibility_id == 2 || dvcc->dv_bl_signal_compatibility_id == 4) {		
 		switch (codec_id) {
 		case GF_CODECID_HEVC:
 			snprintf(supplementalCodecs, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u", gf_4cc_to_str(force_inband ? GF_ISOM_SUBTYPE_DVHE : GF_ISOM_SUBTYPE_DVH1), dvcc->dv_profile, dvcc->dv_level);
@@ -2329,8 +2330,10 @@ static GF_Err dasher_add_dolby_vision_attribute(GF_DasherCtx *ctx, GF_DashStream
 
 		if (dvcc->dv_bl_signal_compatibility_id == 1) {
 			snprintf(supplementalProfiles, RFC6381_CODEC_NAME_SIZE_MAX, "db1p");
-		} else if (dvcc->dv_bl_signal_compatibility_id == 4) {
-			if (dvcc->dv_profile == 8 && ds->color_transfer_characteristics == GF_COLOR_TRC_BT2020_10) {
+		} else if (dvcc->dv_bl_signal_compatibility_id == 2) {
+			snprintf(supplementalProfiles, RFC6381_CODEC_NAME_SIZE_MAX, "db2g");
+ 		} else if (dvcc->dv_bl_signal_compatibility_id == 4) {
+			if (ds->color_transfer_characteristics == GF_COLOR_TRC_BT2020_10) {
 				snprintf(supplementalProfiles, RFC6381_CODEC_NAME_SIZE_MAX, "db4g");
 			} else {
 				snprintf(supplementalProfiles, RFC6381_CODEC_NAME_SIZE_MAX, "db4h");

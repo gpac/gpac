@@ -300,7 +300,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 			index = 0;
 			while (1) {
 				if (last_ind+index > fm->groupsIndex.count) goto err_exit;
-				if (fm->groupsIndex.vals[last_ind+index]==-1) break;
+				if (!fm->groupsIndex.vals || fm->groupsIndex.vals[last_ind+index]==-1) break;
 				if (index>=MAX_FORM_GROUP_INDEX) goto err_exit;
 				idx[index] = fm->groupsIndex.vals[last_ind+index];
 				index++;
@@ -594,19 +594,25 @@ static void at_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 		max_y -= space;
 	} else {
 		for (i=1; i<count; i++) {
-			rc = &form_get_group(st, group_idx[i])->final;
-			if (group_idx[i]==0) {
-				max_y = rc->y;
-				break;
+			FormGroup* form = form_get_group(st, group_idx[i]);
+			if (form) {
+				rc = &(form->final);
+				if (group_idx[i]==0) {
+					max_y = rc->y;
+					break;
+				}
+				if (rc->y > max_y) max_y = rc->y;
 			}
-			if (rc->y > max_y) max_y = rc->y;
 		}
 	}
 
 	for (i=start; i<count; i++) {
 		if(group_idx[i] == 0) continue;
-		form_get_group(st, group_idx[i])->final.y = max_y;
-		fg_update_bounds(form_get_group(st, group_idx[i]));
+		FormGroup* form = form_get_group(st, group_idx[i]);
+		if (form) {
+			form->final.y = max_y;
+			fg_update_bounds(form_get_group(st, group_idx[i]));
+		}
 	}
 }
 
@@ -624,19 +630,26 @@ static void ab_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 		min_y += space;
 	} else {
 		for (i=1; i<count; i++) {
-			rc = &form_get_group(st, group_idx[i])->final;
-			if (group_idx[i]==0) {
-				min_y = rc->y - rc->height;
-				break;
+			FormGroup* form = form_get_group(st, group_idx[i]);
+			if (form) {
+				rc = &(form->final);
+				if (group_idx[i] == 0) {
+					min_y = rc->y - rc->height;
+					break;
+				}
+				if (rc->y - rc->height < min_y)
+					min_y = rc->y - rc->height;
 			}
-			if (rc->y - rc->height < min_y) min_y = rc->y - rc->height;
 		}
 	}
 	for (i=start; i<count; i++) {
 		if(group_idx[i] == 0) continue;
-		rc = &form_get_group(st, group_idx[i])->final;
-		rc->y = min_y + rc->height;
-		fg_update_bounds(form_get_group(st, group_idx[i]));
+		FormGroup* form = form_get_group(st, group_idx[i]);
+		if (form) {
+			rc = &(form->final);
+			rc->y = min_y + rc->height;
+			fg_update_bounds(form_get_group(st, group_idx[i]));
+		}
 	}
 }
 
@@ -648,21 +661,29 @@ static void ah_apply(FormStack *st, u32 *group_idx, u32 count)
 	left = right = center = 0;
 
 	for (i=0; i<count; i++) {
-		rc = &form_get_group(st, group_idx[i])->final;
-		if(group_idx[i] == 0) {
-			center = rc->x + rc->width / 2;
-			break;
+		FormGroup* form = form_get_group(st, group_idx[i]);
+		if (form) {
+			rc = &(form->final);
+			if (group_idx[i] == 0) {
+				center = rc->x + rc->width / 2;
+				break;
+			}
+			if (left > rc->x)
+				left = rc->x;
+			if (right < rc->x + rc->width)
+				right = rc->x + rc->width;
+			center = (left + right) / 2;
 		}
-		if (left > rc->x) left = rc->x;
-		if (right < rc->x + rc->width) right = rc->x + rc->width;
-		center = (left+right)/2;
 	}
 
 	for (i=0; i<count; i++) {
 		if(group_idx[i] == 0) continue;
-		rc = &form_get_group(st, group_idx[i])->final;
-		rc->x = center - rc->width/2;
-		fg_update_bounds(form_get_group(st, group_idx[i]));
+		FormGroup* form = form_get_group(st, group_idx[i]);
+		if (form) {
+			rc = &(form->final);
+			rc->x = center - rc->width/2;
+			fg_update_bounds(form_get_group(st, group_idx[i]));
+		}
 	}
 }
 
@@ -674,21 +695,28 @@ static void av_apply(FormStack *st, u32 *group_idx, u32 count)
 	top = bottom = center = 0;
 
 	for (i=0; i<count; i++) {
-		rc = &form_get_group(st, group_idx[i])->final;
-		if (group_idx[i] == 0) {
-			center = rc->y - rc->height / 2;
-			break;
+		FormGroup* form = form_get_group(st, group_idx[i]);
+		if (form) {
+			rc = &(form->final);
+			if (group_idx[i] == 0) {
+				center = rc->y - rc->height / 2;
+				break;
+			}
+			if (top < rc->y)
+				top = rc->y;
+			if (bottom > rc->y - rc->height)
+				bottom = rc->y - rc->height;
+			center = (top + bottom) / 2;
 		}
-		if (top < rc->y) top = rc->y;
-		if (bottom > rc->y - rc->height) bottom = rc->y - rc->height;
-		center = (top+bottom)/2;
 	}
 
 	for (i=0; i<count; i++) {
 		if(group_idx[i] == 0) continue;
-		rc = &form_get_group(st, group_idx[i])->final;
-		rc->y = center + rc->height/2;
-		fg_update_bounds(form_get_group(st, group_idx[i]));
+		FormGroup* form = form_get_group(st, group_idx[i]);
+		if (form) {
+			rc->y = center + rc->height / 2;
+			fg_update_bounds(form_get_group(st, group_idx[i]));
+		}
 	}
 }
 

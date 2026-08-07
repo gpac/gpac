@@ -45,6 +45,7 @@ typedef struct
 
 	GF_SceneManager *ctx;
 	GF_SceneLoader load;
+	GF_SceneDestroyNotify *destroy_notify;
 	u64 file_size;
 	u32 load_flags;
 	u32 nb_streams;
@@ -258,6 +259,15 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	return GF_OK;
 }
 
+static void ctxload_on_scene_destroy(void* udta)
+{
+	CTXLoadPriv* priv = (CTXLoadPriv*)udta;
+	// scene/graph is still fully valid here (called from gf_scene_del before it tears
+	// anything down) - release our leftover node references now, in case our own
+	// finalize runs later, after the scene is gone
+	gf_sm_load_done(&priv->load);
+}
+
 static Bool ctxload_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
@@ -294,6 +304,18 @@ static Bool ctxload_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				gf_sg_set_node_callback(priv->scene->graph, CTXLoad_NodeCallback);
 
 				priv->service_url = odm->scene_ns->url;
+
+				// ask the scene to warn us before it starts destroying itself, so we can
+				// release our leftover node references while it's still valid (finalize
+				// order across filters is not guaranteed)
+				GF_SAFEALLOC(priv->destroy_notify, GF_SceneDestroyNotify);
+				if (priv->destroy_notify) {
+					priv->destroy_notify->notify = ctxload_on_scene_destroy;
+					priv->destroy_notify->udta = priv;
+					if (!priv->scene->destroy_notify)
+						priv->scene->destroy_notify = gf_list_new();
+					gf_list_add(priv->scene->destroy_notify, priv->destroy_notify);
+				}
 
 				if (!priv->ctx)	CTXLoad_Setup(filter, priv);
 
@@ -692,8 +714,9 @@ static GF_Err ctxload_process(GF_Filter *filter)
 									ODS_SetupOD(priv->scene, od);
 								} else if (esd->decoderConfig->streamType==GF_STREAM_INTERACT) {
 									GF_UIConfig *cfg = (GF_UIConfig *) esd->decoderConfig->decoderSpecificInfo;
-									gf_odf_encode_ui_config(cfg, &esd->decoderConfig->decoderSpecificInfo);
-									gf_odf_desc_del((GF_Descriptor *) cfg);
+									if (gf_odf_encode_ui_config(cfg, &esd->decoderConfig->decoderSpecificInfo) == GF_OK) {
+										gf_odf_desc_del((GF_Descriptor*)cfg);
+									}
 									ODS_SetupOD(priv->scene, od);
 								} else if (esd->decoderConfig->streamType==GF_STREAM_OCR) {
 									ODS_SetupOD(priv->scene, od);
@@ -827,6 +850,15 @@ static GF_Err ctxload_process(GF_Filter *filter)
 static void ctxload_finalize(GF_Filter *filter)
 {
 	CTXLoadPriv *priv = gf_filter_get_udta(filter);
+
+	if (priv->destroy_notify) {
+		// scene hasn't been destroyed yet (we're finalizing first) - remove our entry so
+		// gf_scene_del doesn't call back into us after we're freed below
+		if (!priv->destroy_notify->done && priv->scene && priv->scene->destroy_notify)
+			gf_list_del_item(priv->scene->destroy_notify, priv->destroy_notify);
+		gf_free(priv->destroy_notify);
+		priv->destroy_notify = NULL;
+	}
 
 	gf_sm_load_done(&priv->load);
 	if (priv->ctx) gf_sm_del(priv->ctx);

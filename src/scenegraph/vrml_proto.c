@@ -114,8 +114,10 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 	/*first destroy the code*/
 	while (gf_list_count(proto->node_code)) {
 		GF_Node *node = (GF_Node*)gf_list_get(proto->node_code, 0);
-		gf_node_unregister(node, NULL);
 		gf_list_rem(proto->node_code, 0);
+		if (node->sgprivate->referencing_protos)
+			gf_list_del_item(node->sgprivate->referencing_protos, proto);
+		gf_node_unregister(node, NULL);
 	}
 	gf_list_del(proto->node_code);
 
@@ -193,7 +195,10 @@ MFURL *gf_sg_proto_get_extern_url(GF_Proto *proto)
 GF_EXPORT
 GF_Err gf_sg_proto_add_node_code(GF_Proto *proto, GF_Node *pNode)
 {
-	if (!proto) return GF_BAD_PARAM;
+	if (!proto || !pNode) return GF_BAD_PARAM;
+	if (!pNode->sgprivate->referencing_protos)
+		pNode->sgprivate->referencing_protos = gf_list_new();
+	gf_list_add(pNode->sgprivate->referencing_protos, proto);
 	return gf_list_add(proto->node_code, pNode);
 }
 

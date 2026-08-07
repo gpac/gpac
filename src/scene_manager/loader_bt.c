@@ -1613,6 +1613,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 	return node;
 
 err:
+	gf_list_del_item(parser->def_nodes, node);
 	gf_node_unregister(node, parent);
 	if (name) gf_free(name);
 	return NULL;
@@ -2289,7 +2290,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 		u32 j;
 		Bool force_sf=0;
 		char csep;
-		GF_Node *targetNode, *idxNode, *childNode, *fromNode;
+		GF_Node *targetNode, *idxNode, *childNode=NULL, *fromNode;
 		GF_FieldInfo targetField, idxField, childField, fromField;
 
 		idxNode = childNode = fromNode = NULL;
@@ -2355,7 +2356,8 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 						break;
 					}
 				}
-				childNode = gf_node_list_get_child(*(GF_ChildNodeItem **)targetField.far_ptr, apos);
+				if (!strcmp(targetField.name, "children"))
+					childNode = gf_node_list_get_child(*(GF_ChildNodeItem **)targetField.far_ptr, apos);
 				if (!childNode)
 					return gf_bt_report(parser, GF_BAD_PARAM, "Cannot find child node at specified index");
 
@@ -2811,7 +2813,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 		gf_list_add(cmdList, com);
 		return GF_OK;
 	}
-	return gf_bt_report(parser, GF_BAD_PARAM, "%s: Unknown command syntax, str");
+	return gf_bt_report(parser, GF_BAD_PARAM, "%s: Unknown command syntax", str);
 
 err:
 	if (com) gf_sg_command_del(com);

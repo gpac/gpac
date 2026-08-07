@@ -214,6 +214,10 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				/*this will unregister the route from the graph, so don't delete the chain entry*/
 				gf_sg_route_del(r);
 			}
+			/* flush extern-proto links before freeing protos to avoid dangling
+			   GF_ProtoLink::url pointers (mirrors gf_sg_reset) */
+			if (!graph->pOwningProto && gf_list_count(graph->protos) && graph->GetExternProtoLib)
+				graph->GetExternProtoLib(graph->userpriv, NULL);
 			/*destroy all proto*/
 			while (gf_list_count(graph->protos)) {
 				GF_Proto *p = (GF_Proto*)gf_list_get(graph->protos, 0);
@@ -269,7 +273,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			case GF_SG_VRML_MFNODE:
 				gf_node_unregister_children(com->node, * ((GF_ChildNodeItem **) field.far_ptr));
 				* ((GF_ChildNodeItem **) field.far_ptr) = NULL;
-
+				if (!inf->field_ptr) break;
 				list = * ((GF_ChildNodeItem **) inf->field_ptr);
 				prev=NULL;
 				while (list) {
@@ -431,6 +435,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	{
 		if (!gf_list_count(com->command_fields)) return GF_OK;
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
+
+		if (!com->node || !gf_sg_mpeg4_node_get_child_ndt(com->node))
+			return GF_NON_COMPLIANT_BITSTREAM;
 
 		e = gf_node_insert_child(com->node, inf->new_node, inf->pos);
 		if (!e) e = gf_node_register(inf->new_node, com->node);
@@ -666,15 +673,15 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	case GF_SG_LSR_DELETE:
 		if (!com->node) return GF_NON_COMPLIANT_BITSTREAM;
 		if (!gf_list_count(com->command_fields)) {
-			gf_node_replace(com->node, NULL, 0);
 			gf_node_deactivate(com->node);
+			gf_node_replace(com->node, NULL, 0);
 			return GF_OK;
 		}
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 		node = gf_node_list_get_child(((SVG_Element *)com->node)->children, inf->pos);
 		if (node) {
-			e = gf_node_replace_child(com->node, &((SVG_Element *)com->node)->children, inf->pos, NULL);
 			gf_node_deactivate(node);
+			e = gf_node_replace_child(com->node, &((SVG_Element *)com->node)->children, inf->pos, NULL);
 		}
 		break;
 	case GF_SG_LSR_INSERT:
@@ -702,9 +709,10 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			if (inf->pos<0) {
 				/*if fieldIndex (eg attributeName) is set, this is children replacement*/
 				if (inf->fieldIndex>0) {
-					gf_node_unregister_children_deactivate(com->node, ((SVG_Element *)com->node)->children);
-					((SVG_Element *)com->node)->children = NULL;
-					gf_node_list_add_child(& ((SVG_Element *)com->node)->children, inf->new_node);
+					GF_ChildNodeItem *old_children = ((SVG_Element *)com->node)->children;
+					((SVG_Element*)com->node)->children = NULL;
+					gf_node_unregister_children_deactivate(com->node, old_children);
+					gf_node_list_add_child(&((SVG_Element*)com->node)->children, inf->new_node);
 					gf_node_register(inf->new_node, com->node);
 					gf_node_activate(inf->new_node);
 				} else {
@@ -713,9 +721,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				}
 			} else {
 				node = gf_node_list_get_child( ((SVG_Element *)com->node)->children, inf->pos);
+				if (node) gf_node_deactivate(node);
 				gf_node_replace_child(com->node, & ((SVG_Element *)com->node)->children, inf->pos, inf->new_node);
 				gf_node_register(inf->new_node, com->node);
-				if (node) gf_node_deactivate(node);
 				gf_node_activate(inf->new_node);
 			}
 			/*signal node modif*/
@@ -723,8 +731,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			return e;
 		} else if (inf->node_list) {
 			GF_ChildNodeItem *child, *cur, *prev;
-			gf_node_unregister_children_deactivate(com->node, ((SVG_Element *)com->node)->children);
-			((SVG_Element *)com->node)->children = NULL;
+			GF_ChildNodeItem* old_children = ((SVG_Element*)com->node)->children;
+			((SVG_Element*)com->node)->children = NULL;
+			gf_node_unregister_children_deactivate(com->node, old_children);
 
 			prev = NULL;
 			child = inf->node_list;
