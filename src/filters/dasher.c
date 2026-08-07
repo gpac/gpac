@@ -2397,27 +2397,27 @@ static const char *get_drm_kms_name(const char *canURN, Bool vernacular)
 {
 	if (!stricmp(canURN, "67706163-6365-6E63-6472-6D746F6F6C31")) return "GPAC1.0";
 	else if (!stricmp(canURN, "5E629AF5-38DA-4063-8977-97FFBD9902D4")) return "Marlin1.0";
-	else if (!strcmp(canURN, "adb41c24-2dbf-4a6d-958b-4457c0d27b95")) return "MediaAccess3.0";
-	else if (!strcmp(canURN, "A68129D3-575B-4F1A-9CBA-3223846CF7C3")) return "VideoGuard";
-	else if (!strcmp(canURN, "9a04f079-9840-4286-ab92-e65be0885f95")) return vernacular ? "PlayReady" :  "MSPR 2.0";
-	else if (!strcmp(canURN, "9a27dd82-fde2-4725-8cbc-4234aa06ec09")) return "VCAS";
-	else if (!strcmp(canURN, "F239E769-EFA3-4850-9C16-A903C6932EFB")) return "Adobe";
-	else if (!strcmp(canURN, "1f83e1e8-6ee9-4f0d-ba2f-5ec4e3ed1a66")) return "SecureMedia";
-	else if (!strcmp(canURN, "644FE7B5-260F-4FAD-949A-0762FFB054B4")) return "CMLA (OMA DRM)";
-	else if (!strcmp(canURN, "6a99532d-869f-5922-9a91-113ab7b1e2f3")) return "MobiTVDRM";
-	else if (!strcmp(canURN, "35BF197B-530E-42D7-8B65-1B4BF415070F")) return "DivX DRM";
-	else if (!strcmp(canURN, "B4413586-C58C-FFB0-94A5-D4896C1AF6C3")) return "VODRM";
-	else if (!strcmp(canURN, "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")) return "Widevine";
-	else if (!strcmp(canURN, "80a6be7e-1448-4c37-9e70-d5aebe04c8d2")) return "Irdeto";
-	else if (!strcmp(canURN, "dcf4e3e3-62f1-5818-7ba6-0a6fe33ff3dd")) return "CA 1.0, DRM+ 2.0";
-	else if (!strcmp(canURN, "45d481cb-8fe0-49c0-ada9-ab2d2455b2f2")) return "CoreCrypt";
-	else if (!strcmp(canURN, "616C7469-6361-7374-2D50-726F74656374")) return "altiProtect";
-	else if (!strcmp(canURN, "992c46e6-c437-4899-b6a0-50fa91ad0e39")) return "Arris SecureMedia SteelKnot version 1";
-	else if (!strcmp(canURN, "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b")) return "cenc initData";
-	else if (!strcmp(canURN, "e2719d58-a985-b3c9-781a-b030af78d30e")) return "ClearKey1.0";
-	else if (!strcmp(canURN, "94CE86FB-07FF-4F43-ADB8-93D2FA968CA2")) return "FairPlay";
-	else if (!strcmp(canURN, "279fe473-512c-48fe-ade8-d176fee6b40f")) return "Arris Titanium";
-	else if (!strcmp(canURN, "aa11967f-cc01-4a4a-8e99-c5d3dddfea2d")) return "UDRM";
+	else if (!stricmp(canURN, "adb41c24-2dbf-4a6d-958b-4457c0d27b95")) return "MediaAccess3.0";
+	else if (!stricmp(canURN, "A68129D3-575B-4F1A-9CBA-3223846CF7C3")) return "VideoGuard";
+	else if (!stricmp(canURN, "9a04f079-9840-4286-ab92-e65be0885f95")) return vernacular ? "PlayReady" :  "MSPR 2.0";
+	else if (!stricmp(canURN, "9a27dd82-fde2-4725-8cbc-4234aa06ec09")) return "VCAS";
+	else if (!stricmp(canURN, "F239E769-EFA3-4850-9C16-A903C6932EFB")) return "Adobe";
+	else if (!stricmp(canURN, "1f83e1e8-6ee9-4f0d-ba2f-5ec4e3ed1a66")) return "SecureMedia";
+	else if (!stricmp(canURN, "644FE7B5-260F-4FAD-949A-0762FFB054B4")) return "CMLA (OMA DRM)";
+	else if (!stricmp(canURN, "6a99532d-869f-5922-9a91-113ab7b1e2f3")) return "MobiTVDRM";
+	else if (!stricmp(canURN, "35BF197B-530E-42D7-8B65-1B4BF415070F")) return "DivX DRM";
+	else if (!stricmp(canURN, "B4413586-C58C-FFB0-94A5-D4896C1AF6C3")) return "VODRM";
+	else if (!stricmp(canURN, "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")) return "Widevine";
+	else if (!stricmp(canURN, "80a6be7e-1448-4c37-9e70-d5aebe04c8d2")) return "Irdeto";
+	else if (!stricmp(canURN, "dcf4e3e3-62f1-5818-7ba6-0a6fe33ff3dd")) return "CA 1.0, DRM+ 2.0";
+	else if (!stricmp(canURN, "45d481cb-8fe0-49c0-ada9-ab2d2455b2f2")) return "CoreCrypt";
+	else if (!stricmp(canURN, "616C7469-6361-7374-2D50-726F74656374")) return "altiProtect";
+	else if (!stricmp(canURN, "992c46e6-c437-4899-b6a0-50fa91ad0e39")) return "Arris SecureMedia SteelKnot version 1";
+	else if (!stricmp(canURN, "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b")) return "cenc initData";
+	else if (!stricmp(canURN, "e2719d58-a985-b3c9-781a-b030af78d30e")) return "ClearKey1.0";
+	else if (!stricmp(canURN, "94CE86FB-07FF-4F43-ADB8-93D2FA968CA2")) return "FairPlay";
+	else if (!stricmp(canURN, "279fe473-512c-48fe-ade8-d176fee6b40f")) return "Arris Titanium";
+	else if (!stricmp(canURN, "aa11967f-cc01-4a4a-8e99-c5d3dddfea2d")) return "UDRM";
 	return "unknown";
 }
 
