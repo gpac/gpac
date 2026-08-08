@@ -35,7 +35,7 @@
 
 #if !defined(GPAC_DISABLE_CRYPTO)
 
-static u32 cryptinfo_get_crypt_type(char *cr_type)
+static u32 cryptinfo_get_crypt_type(const char *cr_type)
 {
 	if (!stricmp(cr_type, "ISMA") || !stricmp(cr_type, "iAEC"))
 		return GF_CRYPT_TYPE_ISMA;
@@ -58,6 +58,561 @@ static u32 cryptinfo_get_crypt_type(char *cr_type)
 
 	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] Unrecognized crypto type %s\n", cr_type));
 	return 0;
+}
+
+static const char *crypt_xml_get_attr(const GF_XMLNode *node, const char *name)
+{
+	u32 i = 0;
+	GF_XMLAttribute *att;
+	if (!node || !node->attributes) return NULL;
+	while ((att = (GF_XMLAttribute *) gf_list_enum(node->attributes, &i))) {
+		if (!strcmp(att->name, name)) return att->value;
+	}
+	return NULL;
+}
+
+static GF_XMLNode *crypt_xml_get_child(const GF_XMLNode *node, const char *name)
+{
+	u32 i = 0;
+	GF_XMLNode *child;
+	if (!node || !node->content) return NULL;
+	while ((child = (GF_XMLNode *) gf_list_enum(node->content, &i))) {
+		if ((child->type == GF_XML_NODE_TYPE) && !strcmp(child->name, name)) return child;
+	}
+	return NULL;
+}
+
+static GF_XMLNode *crypt_xml_find_descendant(const GF_XMLNode *node, const char *name)
+{
+	u32 i = 0;
+	GF_XMLNode *child, *found;
+	if (!node || !node->content) return NULL;
+	while ((child = (GF_XMLNode *) gf_list_enum(node->content, &i))) {
+		if (child->type != GF_XML_NODE_TYPE) continue;
+		if (!strcmp(child->name, name)) return child;
+		found = crypt_xml_find_descendant(child, name);
+		if (found) return found;
+	}
+	return NULL;
+}
+
+static char *crypt_xml_get_text(const GF_XMLNode *node)
+{
+	u32 i, len = 0, pos = 0;
+	GF_XMLNode *child;
+	char *text, *start, *end;
+	if (!node || !node->content) return NULL;
+	for (i=0; i<gf_list_count(node->content); i++) {
+		child = (GF_XMLNode *) gf_list_get(node->content, i);
+		if (child && ((child->type == GF_XML_TEXT_TYPE) || (child->type == GF_XML_CDATA_TYPE)))
+			len += (u32) strlen(child->name);
+	}
+	if (!len) return NULL;
+	text = (char *) gf_malloc(len+1);
+	if (!text) return NULL;
+	for (i=0; i<gf_list_count(node->content); i++) {
+		child = (GF_XMLNode *) gf_list_get(node->content, i);
+		if (child && ((child->type == GF_XML_TEXT_TYPE) || (child->type == GF_XML_CDATA_TYPE))) {
+			u32 clen = (u32) strlen(child->name);
+			memcpy(text+pos, child->name, clen);
+			pos += clen;
+		}
+	}
+	text[pos] = 0;
+	start = text;
+	while (*start && isspace(*start)) start++;
+	end = text + strlen(text);
+	while ((end > start) && isspace(end[-1])) end--;
+	*end = 0;
+	if (start != text) memmove(text, start, (size_t) (end-start)+1);
+	return text;
+}
+
+static GF_Err crypt_cpix_decode_b64(const char *input, u8 **out_data, u32 *out_size)
+{
+	u32 i, len = 0, decoded;
+	u8 *clean, *data;
+	*out_data = NULL;
+	*out_size = 0;
+	if (!input || !strlen(input)) return GF_BAD_PARAM;
+	for (i=0; input[i]; i++) {
+		if (!isspace(input[i])) len++;
+		else if (!strchr(" \t\r\n", input[i])) return GF_BAD_PARAM;
+	}
+	if (!len || (len & 3)) return GF_BAD_PARAM;
+	clean = (u8 *) gf_malloc(len+1);
+	if (!clean) return GF_OUT_OF_MEM;
+	len = 0;
+	for (i=0; input[i]; i++) {
+		if (!isspace(input[i])) clean[len++] = (u8) input[i];
+	}
+	clean[len] = 0;
+	for (i=0; i<len; i++) {
+		if (isalnum(clean[i]) || (clean[i] == '+') || (clean[i] == '/') || (clean[i] == '=')) continue;
+		gf_free(clean);
+		return GF_BAD_PARAM;
+	}
+	for (i=0; i<len; i++) {
+		if (clean[i] == '=') {
+			if ((i < len-2) || ((i == len-2) && (clean[len-1] != '='))) {
+				gf_free(clean);
+				return GF_BAD_PARAM;
+			}
+			break;
+		}
+	}
+	data = (u8 *) gf_malloc(len);
+	if (!data) {
+		gf_free(clean);
+		return GF_OUT_OF_MEM;
+	}
+	decoded = gf_base64_decode(clean, len, data, len);
+	gf_free(clean);
+	if (!decoded) {
+		gf_free(data);
+		return GF_BAD_PARAM;
+	}
+	*out_data = data;
+	*out_size = decoded;
+	return GF_OK;
+}
+
+static u32 crypt_cpix_read_u32(const u8 *data)
+{
+	return ((u32)data[0] << 24) | ((u32)data[1] << 16) | ((u32)data[2] << 8) | data[3];
+}
+
+static GF_Err crypt_cpix_parse_pssh(const char *b64, GF_CryptDRMInfo *drm)
+{
+	GF_Err e;
+	u8 *data = NULL;
+	u32 size = 0, pos, box_size, version, nb_kids, i, private_size;
+	bin128 pssh_system;
+
+	e = crypt_cpix_decode_b64(b64, &data, &size);
+	if (e)
+		return e;
+	if (size < 32) {
+		gf_free(data);
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	box_size = crypt_cpix_read_u32(data);
+	if ((box_size != size) || (crypt_cpix_read_u32(data+4) != GF_ISOM_BOX_TYPE_PSSH)) {
+		gf_free(data);
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	version = data[8];
+	if (version > 1) {
+		gf_free(data);
+		return GF_NOT_SUPPORTED;
+	}
+
+	memcpy(pssh_system, data+12, sizeof(bin128));
+	if (memcmp(pssh_system, drm->systemID, sizeof(bin128))) {
+		gf_free(data);
+		return GF_BAD_PARAM;
+	}
+	pos = 28;
+
+	nb_kids = 0;
+	if (version) {
+		if (size-pos < 4) {
+			gf_free(data);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		nb_kids = crypt_cpix_read_u32(data+pos);
+		pos += 4;
+		if (nb_kids > (size-pos)/16) {
+			gf_free(data);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		if (nb_kids) {
+			drm->kids = (bin128 *) gf_malloc(sizeof(bin128) * nb_kids);
+			if (!drm->kids) {
+				gf_free(data);
+				return GF_OUT_OF_MEM;
+			}
+			for (i=0; i<nb_kids; i++) {
+				memcpy(drm->kids[i], data+pos, sizeof(bin128));
+				pos += 16;
+			}
+		}
+	}
+	if (size-pos < 4) {
+		gf_free(data);
+		if (drm->kids) {
+			gf_free(drm->kids);
+			drm->kids = NULL;
+		}
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	private_size = crypt_cpix_read_u32(data+pos);
+	pos += 4;
+	if (private_size != size-pos) {
+		gf_free(data);
+		if (drm->kids) {
+			gf_free(drm->kids);
+			drm->kids = NULL;
+		}
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	drm->version = version;
+	drm->nb_kids = nb_kids;
+
+	if (private_size) {
+		drm->private_data = (u8 *) gf_malloc(private_size);
+		if (!drm->private_data) {
+			gf_free(data);
+			if (drm->kids) {
+				gf_free(drm->kids);
+				drm->kids = NULL;
+			}
+			return GF_OUT_OF_MEM;
+		}
+		memcpy(drm->private_data, data+pos, private_size);
+	}
+	drm->private_data_size = private_size;
+
+	gf_free(data);
+	return GF_OK;
+}
+
+static char *crypt_cpix_hls_info(const char *b64)
+{
+	GF_Err e;
+	u8 *data = NULL;
+	u32 size = 0;
+	char *text, *sep, *end;
+	e = crypt_cpix_decode_b64(b64, &data, &size);
+	if (e) return NULL;
+	text = (char *) gf_malloc(size+1);
+	if (!text) {
+		gf_free(data);
+		return NULL;
+	}
+	memcpy(text, data, size);
+	text[size] = 0;
+	gf_free(data);
+	sep = strchr(text, ':');
+	if (sep && ((strstr(text, "#EXT-X-KEY:") == text) || (strstr(text, "#EXT-X-SESSION-KEY:") == text))) {
+		sep = strchr(sep+1, ',');
+		if (sep) {
+			sep++;
+			memmove(text, sep, strlen(sep)+1);
+		}
+	}
+	end = text + strlen(text);
+	while ((end > text) && isspace(end[-1])) end--;
+	*end = 0;
+	if (!strstr(text, "URI=\"")) {
+		gf_free(text);
+		return NULL;
+	}
+	return text;
+}
+
+static Bool crypt_cpix_is_namespace(const GF_XMLNode *root)
+{
+	u32 i = 0;
+	GF_XMLAttribute *att;
+	if (!root || !root->attributes) return GF_FALSE;
+	while ((att = (GF_XMLAttribute *) gf_list_enum(root->attributes, &i))) {
+		if (!strcmp(att->name, "xmlns") && !strcmp(att->value, "urn:dashif:org:cpix")) return GF_TRUE;
+		if (!strncmp(att->name, "xmlns:", 6) && !strcmp(att->value, "urn:dashif:org:cpix")) return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+static Bool crypt_cpix_is_fairplay(const bin128 system_id)
+{
+	static const u8 fairplay_id[16] = { 0x94, 0xce, 0x86, 0xfb, 0x07, 0xff, 0x4f, 0x43, 0xad, 0xb8, 0x93, 0xd2, 0xfa, 0x96, 0x8c, 0xa2 };
+	return !memcmp(system_id, fairplay_id, sizeof(fairplay_id));
+}
+
+static void crypt_cpix_drm_del(GF_CryptDRMInfo *drm)
+{
+	if (!drm) return;
+	if (drm->kids) gf_free(drm->kids);
+	if (drm->private_data) gf_free(drm->private_data);
+	gf_free(drm);
+}
+
+static GF_Err cryptinfo_load_cpix(const char *file, GF_CryptInfo **out_info)
+{
+	GF_DOMParser *parser = NULL;
+	GF_XMLNode *root, *key_list, *key_node, *data_node, *plain_node, *drm_list, *drm_node, *rule_list, *rule_node;
+	GF_CryptInfo *info = NULL;
+	GF_TrackCryptInfo *tci = NULL;
+	GF_TrackCryptInfo *loaded_tci = NULL;
+	GF_CryptDRMInfo *drm;
+	const char *value, *kid_value, *scheme_value, *iv_value;
+	char *text = NULL, *hls = NULL;
+	u8 *decoded = NULL;
+	u32 decoded_size = 0, i, count, scheme_type;
+	Bool hls_fairplay = GF_FALSE;
+	GF_Err e = GF_OK;
+
+	*out_info = NULL;
+	parser = gf_xml_dom_new();
+	if (!parser)
+		return GF_OUT_OF_MEM;
+
+	e = gf_xml_dom_parse(parser, file, NULL, NULL);
+	if (e)
+		goto exit;
+
+	root = gf_xml_dom_get_root(parser);
+	if (!root || strcmp(root->name, "CPIX") || !crypt_cpix_is_namespace(root)) {
+		e = GF_BAD_PARAM;
+		goto exit;
+	}
+
+	info = (GF_CryptInfo *) gf_malloc(sizeof(GF_CryptInfo));
+	if (!info) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
+	memset(info, 0, sizeof(GF_CryptInfo));
+	info->tcis = gf_list_new();
+	info->drm_infos = gf_list_new();
+	info->is_cpix = GF_TRUE;
+	if (!info->tcis || !info->drm_infos) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
+
+	key_list = crypt_xml_get_child(root, "ContentKeyList");
+	if (!key_list) {
+		e = GF_BAD_PARAM;
+		goto exit;
+	}
+
+	count = 0;
+	for (i=0; i<gf_list_count(key_list->content); i++) {
+		GF_XMLNode *child = (GF_XMLNode *) gf_list_get(key_list->content, i);
+		if (child && (child->type == GF_XML_NODE_TYPE) && !strcmp(child->name, "ContentKey")) {
+			key_node = child;
+			count++;
+		}
+	}
+	if (count != 1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CPIX] Exactly one ContentKey is currently supported by GPAC (found %u)\n", count));
+		e = GF_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	kid_value = crypt_xml_get_attr(key_node, "kid");
+	scheme_value = crypt_xml_get_attr(key_node, "commonEncryptionScheme");
+	iv_value = crypt_xml_get_attr(key_node, "explicitIV");
+	if (!kid_value || !scheme_value || !iv_value) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CPIX] ContentKey requires kid, commonEncryptionScheme and explicitIV\n"));
+		e = GF_BAD_PARAM;
+		goto exit;
+	}
+	scheme_type = cryptinfo_get_crypt_type(scheme_value);
+	if ((scheme_type != GF_CRYPT_TYPE_CENC) && (scheme_type != GF_CRYPT_TYPE_CBCS)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CPIX] Unsupported commonEncryptionScheme \"%s\"\n", scheme_value));
+		e = GF_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	GF_SAFEALLOC(tci, GF_TrackCryptInfo);
+	if (!tci) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
+	memset(tci, 0, sizeof(GF_TrackCryptInfo));
+	tci->keys = (GF_CryptKeyInfo *) gf_malloc(sizeof(GF_CryptKeyInfo));
+	if (!tci->keys) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
+	memset(tci->keys, 0, sizeof(GF_CryptKeyInfo));
+	tci->IsEncrypted = 1;
+	tci->scheme_type = scheme_type;
+	tci->sai_saved_box_type = GF_ISOM_BOX_TYPE_SENC;
+	tci->nb_keys = 1;
+
+	e = gf_bin128_parse(kid_value, tci->keys[0].KID);
+	if (e)
+		goto exit;
+
+	data_node = crypt_xml_get_child(key_node, "Data");
+	plain_node = crypt_xml_find_descendant(data_node, "PlainValue");
+	if (!plain_node) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CPIX] Only pskc:PlainValue content keys are supported; encrypted key delivery is not supported\n"));
+		e = GF_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	text = crypt_xml_get_text(plain_node);
+	e = crypt_cpix_decode_b64(text, &decoded, &decoded_size);
+	if (text) {
+		gf_free(text);
+		text = NULL;
+	}
+	if (e || (decoded_size != 16)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CPIX] ContentKey PlainValue must decode to 16 bytes\n"));
+		if (!e) e = GF_BAD_PARAM;
+		goto exit;
+	}
+	memcpy(tci->keys[0].key, decoded, 16);
+	gf_free(decoded);
+	decoded = NULL;
+
+	e = crypt_cpix_decode_b64(iv_value, &decoded, &decoded_size);
+	if (e || ((decoded_size != 8) && (decoded_size != 16))) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CPIX] explicitIV must decode to 8 or 16 bytes\n"));
+		if (!e) e = GF_BAD_PARAM;
+		goto exit;
+	}
+	memcpy(tci->keys[0].IV, decoded, decoded_size);
+	if (scheme_type == GF_CRYPT_TYPE_CBCS)
+		tci->keys[0].constant_IV_size = (u8) decoded_size;
+	else
+		tci->keys[0].IV_size = (u8) decoded_size;
+	gf_free(decoded);
+	decoded = NULL;
+
+	info->def_crypt_type = scheme_type;
+	info->has_common_key = GF_TRUE;
+	if (gf_list_add(info->tcis, tci) != GF_OK) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
+	tci = NULL;
+
+	rule_list = crypt_xml_get_child(root, "ContentKeyUsageRuleList");
+	loaded_tci = (GF_TrackCryptInfo *) gf_list_get(info->tcis, 0);
+	if (rule_list) {
+		for (i=0; i<gf_list_count(rule_list->content); i++) {
+			rule_node = (GF_XMLNode *) gf_list_get(rule_list->content, i);
+			if (!rule_node || (rule_node->type != GF_XML_NODE_TYPE) || strcmp(rule_node->name, "ContentKeyUsageRule")) continue;
+			value = crypt_xml_get_attr(rule_node, "kid");
+			{
+				bin128 rule_kid;
+				if (!value || gf_bin128_parse(value, rule_kid) || memcmp(rule_kid, loaded_tci->keys[0].KID, sizeof(bin128))) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CPIX] ContentKeyUsageRule references an unknown or invalid KID\n"));
+					e = GF_BAD_PARAM;
+					goto exit;
+				}
+			}
+			for (u32 j=0; j<gf_list_count(rule_node->content); j++) {
+				GF_XMLNode *filter = (GF_XMLNode *) gf_list_get(rule_node->content, j);
+				if (filter && (filter->type == GF_XML_NODE_TYPE)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CPIX] ContentKeyUsageRule filters are not supported for this GPAC input path\n"));
+					e = GF_NOT_SUPPORTED;
+					goto exit;
+				}
+			}
+		}
+	}
+
+	drm_list = crypt_xml_get_child(root, "DRMSystemList");
+	if (drm_list) {
+		for (i=0; i<gf_list_count(drm_list->content); i++) {
+			drm_node = (GF_XMLNode *) gf_list_get(drm_list->content, i);
+			GF_XMLNode *pssh_node, *hls_node;
+			const char *playlist;
+			Bool is_fairplay;
+			if (!drm_node || (drm_node->type != GF_XML_NODE_TYPE) || strcmp(drm_node->name, "DRMSystem")) continue;
+			value = crypt_xml_get_attr(drm_node, "systemId");
+			if (!value) {
+				e = GF_BAD_PARAM;
+				goto exit;
+			}
+			GF_SAFEALLOC(drm, GF_CryptDRMInfo);
+			if (!drm) {
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
+			e = gf_bin128_parse(value, drm->systemID);
+			if (e) {
+				crypt_cpix_drm_del(drm);
+					goto exit;
+			}
+			value = crypt_xml_get_attr(drm_node, "kid");
+			if (value) {
+				e = gf_bin128_parse(value, drm->associated_kid);
+				if (e || memcmp(drm->associated_kid, loaded_tci->keys[0].KID, sizeof(bin128))) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CPIX] DRMSystem kid does not match the supported ContentKey\n"));
+					crypt_cpix_drm_del(drm);
+					e = e ? e : GF_BAD_PARAM;
+					goto exit;
+				}
+				drm->has_associated_kid = GF_TRUE;
+			}
+			pssh_node = crypt_xml_get_child(drm_node, "PSSH");
+			if (pssh_node) {
+				text = crypt_xml_get_text(pssh_node);
+				e = text ? crypt_cpix_parse_pssh(text, drm) : GF_BAD_PARAM;
+				if (text) {
+					gf_free(text);
+					text = NULL;
+				}
+				if (e) {
+					crypt_cpix_drm_del(drm);
+					goto exit;
+				}
+			}
+			is_fairplay = crypt_cpix_is_fairplay(drm->systemID);
+			if (is_fairplay && (scheme_type == GF_CRYPT_TYPE_CENC)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CPIX] ContentKey declares 'cenc' (AES-CTR), but the CPIX document contains FairPlay signaling which requires 'cbcs' (AES-CBC pattern). GPAC will keep cenc as declared.\n"));
+			}
+
+			if (gf_list_add(info->drm_infos, drm) != GF_OK) {
+				crypt_cpix_drm_del(drm);
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
+
+			//prefer media playlist signaling over master playlist signaling
+			for (u32 j=0; j<gf_list_count(drm_node->content); j++) {
+				hls_node = (GF_XMLNode *) gf_list_get(drm_node->content, j);
+				if (!hls_node || (hls_node->type != GF_XML_NODE_TYPE) || strcmp(hls_node->name, "HLSSignalingData"))
+					continue;
+
+				playlist = crypt_xml_get_attr(hls_node, "playlist");
+				text = crypt_xml_get_text(hls_node);
+				if (!text)
+					continue;
+
+				hls = crypt_cpix_hls_info(text);
+				gf_free(text);
+				text = NULL;
+				if (!hls)
+					continue;
+
+				if (is_fairplay || !loaded_tci->keys[0].hls_info || (!hls_fairplay && !strcmp(playlist ? playlist : "", "media"))) {
+					if (loaded_tci->keys[0].hls_info) gf_free(loaded_tci->keys[0].hls_info);
+					loaded_tci->keys[0].hls_info = hls;
+					hls = NULL;
+					hls_fairplay = is_fairplay;
+				}
+				if (hls)
+					gf_free(hls);
+			}
+		}
+	}
+
+exit:
+	if (text) gf_free(text);
+	if (hls) gf_free(hls);
+	if (decoded) gf_free(decoded);
+	if (tci) {
+		if (tci->keys) gf_free(tci->keys);
+		gf_free(tci);
+	}
+	if (parser) gf_xml_dom_del(parser);
+	if (e) {
+		if (info) gf_crypt_info_del(info);
+		return e;
+	}
+	*out_info = info;
+	return GF_OK;
 }
 
 static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
@@ -548,7 +1103,8 @@ static void cryptinfo_text(void *sax_cbck, const char *text, Bool is_cdata)
 
 void gf_crypt_info_del(GF_CryptInfo *info)
 {
-	while (gf_list_count(info->tcis)) {
+	if (!info) return;
+	if (info->tcis) while (gf_list_count(info->tcis)) {
 		u32 i;
 		GF_TrackCryptInfo *tci = (GF_TrackCryptInfo *)gf_list_last(info->tcis);
 		for (i=0; i<tci->nb_keys; i++) {
@@ -569,7 +1125,15 @@ void gf_crypt_info_del(GF_CryptInfo *info)
 		gf_list_rem_last(info->tcis);
 		gf_free(tci);
 	}
-	gf_list_del(info->tcis);
+	if (info->tcis) gf_list_del(info->tcis);
+	if (info->drm_infos) {
+		while (gf_list_count(info->drm_infos)) {
+			GF_CryptDRMInfo *drm = (GF_CryptDRMInfo *) gf_list_last(info->drm_infos);
+			gf_list_rem_last(info->drm_infos);
+			crypt_cpix_drm_del(drm);
+		}
+		gf_list_del(info->drm_infos);
+	}
 	gf_free(info);
 }
 
@@ -578,6 +1142,21 @@ GF_CryptInfo *gf_crypt_info_load(const char *file, GF_Err *out_err)
 	GF_Err e;
 	GF_CryptInfo *info;
 	GF_SAXParser *sax;
+	char *root_type;
+
+	root_type = gf_xml_get_root_type(file, &e);
+	if (root_type && !strcmp(root_type, "CPIX")) {
+		GF_CryptInfo *cpix_info = NULL;
+		gf_free(root_type);
+		e = cryptinfo_load_cpix(file, &cpix_info);
+		if (out_err) *out_err = e;
+		return e ? NULL : cpix_info;
+	}
+	if (root_type) gf_free(root_type);
+	if (e) {
+		if (out_err) *out_err = e;
+		return NULL;
+	}
 	GF_SAFEALLOC(info, GF_CryptInfo);
 	if (!info) {
 		if (out_err) *out_err = GF_OUT_OF_MEM;
@@ -879,4 +1458,3 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file
 
 
 #endif /* !defined(GPAC_DISABLE_CRYPTO)*/
-
