@@ -1782,19 +1782,19 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 					GF_SAFEALLOC(ar, GF_NALUFFParamArray);
 					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
-					ar->type = vvcc ? GF_VVC_NALU_VID_PARAM : GF_HEVC_NALU_VID_PARAM;
+					ar->type = vvcc ? (u8)GF_VVC_NALU_VID_PARAM : (u8)GF_HEVC_NALU_VID_PARAM;
 				}
 				else if (!stricmp(att->Name, "sprop-sps")) {
 					GF_SAFEALLOC(ar, GF_NALUFFParamArray);
 					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
-					ar->type = vvcc ? GF_VVC_NALU_SEQ_PARAM : GF_HEVC_NALU_SEQ_PARAM;
+					ar->type = vvcc ? (u8)GF_VVC_NALU_SEQ_PARAM : (u8)GF_HEVC_NALU_SEQ_PARAM;
 				}
 				else if (!stricmp(att->Name, "sprop-pps")) {
 					GF_SAFEALLOC(ar, GF_NALUFFParamArray);
 					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
-					ar->type = vvcc? GF_VVC_NALU_PIC_PARAM : GF_HEVC_NALU_PIC_PARAM;
+					ar->type = vvcc? (u8)GF_VVC_NALU_PIC_PARAM : (u8)GF_HEVC_NALU_PIC_PARAM;
 				}
 				else
 					continue;

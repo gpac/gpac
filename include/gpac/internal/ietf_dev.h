@@ -567,12 +567,12 @@ struct __tag_rtp_depacketizer
 	char *key;
 };
 
-#endif /*GPAC_DISABLE_STREAMING*/
-
 #ifdef GPAC_HAS_SSL
 GF_Err gf_rtsp_set_ssl_ctx(GF_RTSPSession *sess, void *ssl_CTX);
 Bool gf_rtsp_session_needs_ssl(GF_RTSPSession *sess);
 #endif
+
+#endif /*GPAC_DISABLE_STREAMING*/
 
 #ifdef __cplusplus
 }

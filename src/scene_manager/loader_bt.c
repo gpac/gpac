@@ -3154,7 +3154,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 	if (parser->is_wrl && !parser->top_nodes) {
 		if (initial_run ) {
 #ifndef GPAC_DISABLE_X3D
-			vrml_root_node = gf_node_new(parser->load->scene_graph, (parser->load->flags & GF_SM_LOAD_MPEG4_STRICT) ? TAG_MPEG4_Group : TAG_X3D_Group);
+			vrml_root_node = gf_node_new(parser->load->scene_graph, (parser->load->flags & GF_SM_LOAD_MPEG4_STRICT) ? (u32)TAG_MPEG4_Group : (u32)TAG_X3D_Group);
 #else
 			vrml_root_node = gf_node_new(parser->load->scene_graph, TAG_MPEG4_Group);
 #endif

@@ -23,14 +23,14 @@
  *
  */
 
+#ifndef GPAC_DISABLE_COMPOSITOR
+
 #if defined(__DARWIN__) || defined(__APPLE__)
 #include <Carbon/Carbon.h>
 #endif
 
 #include <gpac/setup.h>
 #include <gpac/tools.h>
-
-#ifndef GPAC_DISABLE_COMPOSITOR
 
 //declare prototype, don't include gpac.h due to conflict in Fixed type between gpac and OSX
 void carbon_remove_hook(void);

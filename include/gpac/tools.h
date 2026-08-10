@@ -1097,7 +1097,7 @@ Parses a log tool by name
 GF_LOG_Tool gf_log_parse_tool(const char *logs);
 
 #ifdef GPAC_DISABLE_LOG
-void gf_log_check_error(u32 ll, u32 lt);
+void gf_log_check_error(GF_LOG_Level ll, GF_LOG_Tool lt);
 #define GF_LOG(_ll, _lm, __args) gf_log_check_error(_ll, _lm);
 #else
 /*!

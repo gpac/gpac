@@ -1128,9 +1128,9 @@ void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level)
 }
 
 GF_EXPORT
-u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
+GF_LOG_Level gf_log_get_tool_level(GF_LOG_Tool log_tool)
 {
-	return 0;
+	return (GF_LOG_Level)0;
 }
 
 GF_EXPORT
