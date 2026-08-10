@@ -1672,7 +1672,11 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			u32 ff_pfmt = ffmpeg_pixfmt_from_gpac(ctx->pfmt, GF_FALSE);
 			i=0;
 			const enum AVPixelFormat* codec_pix_fmts = NULL;
+#ifdef FFMPEG_HAS_GET_SUPPORTED_CONFIG
 			avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_PIX_FORMAT, 0, (const void**)&codec_pix_fmts, NULL);
+#else
+			codec_pix_fmts = codec->pix_fmts;
+#endif
 			while (codec_pix_fmts) {
 				if (codec_pix_fmts[i] == AV_PIX_FMT_NONE) break;
 				if (codec_pix_fmts[i] == ff_pfmt) {
@@ -1698,7 +1702,11 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			change_input_fmt = AV_PIX_FMT_NONE;
 			i=0;
 			const enum AVPixelFormat* codec_pix_fmts = NULL;
+#ifdef FFMPEG_HAS_GET_SUPPORTED_CONFIG
 			avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_PIX_FORMAT, 0, (const void**)&codec_pix_fmts, NULL);
+#else
+			codec_pix_fmts = codec->pix_fmts;
+#endif
 			while (codec_pix_fmts) {
 				if (codec_pix_fmts[i] == AV_PIX_FMT_NONE) break;
 				if (codec_pix_fmts[i] == ctx->pixel_fmt) {
@@ -1728,8 +1736,12 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 					if (codec_alt==codec) continue;
 					if (codec_alt->id == codec_id) {
 						i=0;
-					const enum AVPixelFormat* codec_alt_pix_fmts = NULL;
-					avcodec_get_supported_config(NULL, codec_alt, AV_CODEC_CONFIG_PIX_FORMAT, 0, (const void**)&codec_alt_pix_fmts, NULL);
+						const enum AVPixelFormat* codec_alt_pix_fmts = NULL;
+#ifdef FFMPEG_HAS_GET_SUPPORTED_CONFIG
+						avcodec_get_supported_config(NULL, codec_alt, AV_CODEC_CONFIG_PIX_FORMAT, 0, (const void**)&codec_alt_pix_fmts, NULL);
+#else
+						codec_alt_pix_fmts = codec_alt->pix_fmts;
+#endif
 						while (codec_alt_pix_fmts) {
 							if (codec_alt_pix_fmts[i] == AV_PIX_FMT_NONE) break;
 							if (codec_alt_pix_fmts[i] == ctx->pixel_fmt) {
@@ -1753,7 +1765,11 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				i=0;
 				//find a mapped pixel format
 				const enum AVPixelFormat* codec_pix_fmts = NULL;
+#ifdef FFMPEG_HAS_GET_SUPPORTED_CONFIG
 				avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_PIX_FORMAT, 0, (const void**)&codec_pix_fmts, NULL);
+#else
+				codec_pix_fmts = codec->pix_fmts;
+#endif
 				while (codec_pix_fmts) {
 					if (codec_pix_fmts[i] == AV_PIX_FMT_NONE) break;
 					if (ffmpeg_pixfmt_to_gpac(codec_pix_fmts[i], GF_TRUE)) {
@@ -1802,7 +1818,11 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->sample_fmt = ffmpeg_audio_fmt_from_gpac(afmt);
 		change_input_fmt = AV_SAMPLE_FMT_NONE;
 		const enum AVSampleFormat *codec_sample_fmts = NULL;
+#ifdef FFMPEG_HAS_GET_SUPPORTED_CONFIG
 		avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_SAMPLE_FORMAT, 0, (const void**)&codec_sample_fmts, NULL);
+#else
+		codec_sample_fmts = codec->sample_fmts;
+#endif
 		while (codec_sample_fmts) {
 			if (codec_sample_fmts[i] == AV_SAMPLE_FMT_NONE) break;
 			if (codec_sample_fmts[i] == ctx->sample_fmt) {
@@ -1813,7 +1833,11 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 		i=0;
 		const int *codec_supported_samplerates = NULL;
+#ifdef FFMPEG_HAS_GET_SUPPORTED_CONFIG
 		avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_SAMPLE_RATE, 0, (const void**)&codec_supported_samplerates, NULL);
+#else
+		codec_supported_samplerates = codec->supported_samplerates;
+#endif
 		if (!codec_supported_samplerates)
 			change_input_sr = ctx->sample_rate;
 
@@ -1843,9 +1867,13 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 			i++;
 		}
-#else
+#else /* !FFMPEG_OLD_CHLAYOUT */
 		const AVChannelLayout *codec_ch_layouts = NULL;
+# ifdef FFMPEG_HAS_GET_SUPPORTED_CONFIG
 		avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_CHANNEL_LAYOUT, 0, (const void**)&codec_ch_layouts, NULL);
+# else
+		codec_ch_layouts = codec->ch_layouts;
+# endif
 		if (!codec_ch_layouts)
 			change_chan_layout = ctx->channel_layout;
 
@@ -1857,7 +1885,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 			i++;
 		}
-#endif
+#endif /* !FFMPEG_OLD_CHLAYOUT */
 		//vorbis in ffmpeg currently requires stereo but channel_layouts is not set
 		if (ctx->codecid==GF_CODECID_VORBIS) {
 			change_chan_layout = gf_audio_fmt_get_layout_from_cicp(gf_audio_fmt_get_cicp_layout(2, 0, 0));
