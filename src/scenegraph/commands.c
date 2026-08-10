@@ -201,6 +201,11 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	switch (com->tag) {
 #ifndef GPAC_DISABLE_VRML
 	case GF_SG_SCENE_REPLACE:
+		// proto instances own their private namespace, any other foreign graph (proto code) dangles once protos are destroyed below
+		if (com->node && (com->node->sgprivate->scenegraph != graph)
+		    && !((com->node->sgprivate->tag == TAG_ProtoNode) && (com->node->sgprivate->scenegraph->parent_scene == graph))) {
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		/*unregister root*/
 		gf_node_unregister(graph->RootNode, NULL);
 		/*remove all protos and routes*/
@@ -256,6 +261,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	{
 		u32 j;
 		GF_ChildNodeItem *list, *cur, *prev;
+		GF_ChildNodeItem single_item;
 		j=0;
 		while ((inf = (GF_CommandField*)gf_list_enum(com->command_fields, &j))) {
 			e = gf_node_get_field(com->node, inf->fieldIndex, &field);
@@ -274,7 +280,16 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				gf_node_unregister_children(com->node, * ((GF_ChildNodeItem **) field.far_ptr));
 				* ((GF_ChildNodeItem **) field.far_ptr) = NULL;
 				if (!inf->field_ptr) break;
-				list = * ((GF_ChildNodeItem **) inf->field_ptr);
+				// field_ptr aliases inf->node_list, except for a single node value where it aliases inf->new_node
+				if (inf->field_ptr == (void*)&inf->node_list) {
+					list = inf->node_list;
+				} else if ((inf->field_ptr == (void*)&inf->new_node) && inf->new_node) {
+					single_item.node = inf->new_node;
+					single_item.next = NULL;
+					list = &single_item;
+				} else {
+					break;
+				}
 				prev=NULL;
 				while (list) {
 					cur = gf_malloc(sizeof(GF_ChildNodeItem));
