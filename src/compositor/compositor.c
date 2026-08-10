@@ -1010,6 +1010,7 @@ void gf_sc_unload(GF_Compositor *compositor)
 	if (compositor->focus_use_stack) gf_list_del(compositor->focus_use_stack);
 	if (compositor->env_tests) gf_list_del(compositor->env_tests);
 	if (compositor->systems_pids) gf_list_del(compositor->systems_pids);
+	if (compositor->nodes_pending) gf_list_del(compositor->nodes_pending);
 
 	if (compositor->traverse_state) {
 		gf_list_del(compositor->traverse_state->vrml_sensors);
