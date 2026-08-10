@@ -1721,7 +1721,7 @@ config_package faad "faad2" "" "-lfaad -lm" "" '#include <faad.h>
 int main( void ) { NeAACDecOpen(); return 0; }'
 
 
-ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lpostproc"
+ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale"
 ffmpeg_pck_names="libavcodec libavformat libswscale libavutil"
 
 if test "$is_em" = "yes" ; then
