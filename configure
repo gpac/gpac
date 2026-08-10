@@ -427,7 +427,7 @@ GPAC core configuration:
 
 
 Extra libraries configuration:
-You can turn a library off or force using the local version in gpac/extra_lib/
+You can turn a library off or force using the local version in gpac/extra_lib/. It will fail if not found:
   --use-FOO=no             disable library FOO
   --use-FOO=local          force use of library FOO in gpac/extra_lib/include, gpac/extra_lib/lib/gcc/bin/
   --use-FOO=system         force using system version only of library FOO
@@ -1551,6 +1551,10 @@ config_package ()
     esac
 
     config_package_test "$1" "$2" "$3" "$4" "$5" "$6"
+    if test "$has_pck" = "no" -a "$forced" != "" -a "$forced" != "no" ; then
+        echo "error: $pname requested with --use-$pname=$forced but not found"
+        exit 1
+    fi
     if test "$has_pck" != "no" ; then
         eval "cflags_$pname=\"$pck_cflags\""
         if test "$pname" = "ngtcp2" ; then
