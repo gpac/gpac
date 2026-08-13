@@ -2776,7 +2776,10 @@ GF_Err name_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_NameBox *ptr = (GF_NameBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
-	e = gf_isom_full_box_write(s, bs);
+	if (gf_isom_box_is_full_box(s))
+		e = gf_isom_full_box_write(s, bs);
+	else
+		e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	if (ptr->string) {
 		//do not write the terminating 0

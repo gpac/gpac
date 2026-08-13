@@ -746,6 +746,9 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs);
 //writes box header then version+flags
 GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs);
 
+//return wether a box is a fullbox based on max_version_plus_one
+Bool gf_isom_box_is_full_box(GF_Box *s);
+
 void gf_isom_box_array_reset(GF_List *boxlist);
 void gf_isom_box_array_del(GF_List *child_boxes);
 GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
@@ -3212,7 +3215,7 @@ typedef struct
 
 typedef struct
 {
-	GF_ISOM_BOX
+	GF_ISOM_FULL_BOX
 	char *string;
 } GF_NameBox;
 
@@ -4414,7 +4417,7 @@ struct __tag_isom {
 	void *progress_cbk_udta;
 
 	char *override_dref_url;
-	
+
 	/*in WRITE mode, this is the current MDAT where data is written*/
 	/*in READ mode this is the last valid file position before a gf_isom_box_read failed*/
 	u64 current_top_box_start;
