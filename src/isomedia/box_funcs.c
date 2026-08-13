@@ -1355,7 +1355,8 @@ static struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TIMS, tims, "rtp srtp rrtp"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TSRO, tsro, "rtp srtp rrtp"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_SNRO, snro, "rtp srtp"),
-	FBOX_DEFINE( GF_QT_BOX_TYPE_NAME, name, "udta ----", 0),
+	FBOX_DEFINE( GF_QT_BOX_TYPE_NAME, name, "----", 0),
+	BOX_DEFINE( GF_QT_BOX_TYPE_NAME, name, "udta"),
 	FBOX_DEFINE( GF_QT_BOX_TYPE_MEAN, name, "----", 0),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TSSY, tssy, "rrtp"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_RSSR, rssr, "rrtp"),
@@ -2539,5 +2540,10 @@ void gf_isom_box_freeze_order(GF_Box *box)
 		gf_isom_box_freeze_order(child);
 	}
 
+}
+
+Bool gf_isom_box_is_full_box(GF_Box *s)
+{
+	return (s && s->registry && s->registry->max_version_plus_one) ? GF_TRUE : GF_FALSE;
 }
 #endif /*GPAC_DISABLE_ISOM*/
