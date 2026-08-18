@@ -1378,8 +1378,12 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 		((SFImage *)dest)->height = ((SFImage *)orig)->height;
 		((SFImage *)dest)->numComponents  = ((SFImage *)orig)->numComponents;
 		size = ((SFImage *)dest)->width * ((SFImage *)dest)->height * ((SFImage *)dest)->numComponents;
-		((SFImage *)dest)->pixels = (u8*)gf_malloc(sizeof(char)*size);
-		memcpy(((SFImage *)dest)->pixels, ((SFImage *)orig)->pixels, sizeof(char)*size);
+		if (((SFImage *)orig)->pixels && size > 0) {
+			((SFImage *)dest)->pixels = (u8*)gf_malloc(sizeof(char)*size);
+			memcpy(((SFImage *)dest)->pixels, ((SFImage *)orig)->pixels, sizeof(char)*size);
+		} else {
+			((SFImage *)dest)->pixels = NULL;
+		}
 		break;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 	{
