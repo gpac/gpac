@@ -1742,6 +1742,13 @@ next_command:
 			case 'm':
 				c = 'l';
 				break;
+			case 'Z':
+			case 'z':
+				/* closepath takes no parameters, so re-dispatching it here
+				   consumes nothing: the i-- above is undone by the i++ in
+				   the 'Z' case and the loop never advances. The path data
+				   is in error at this point, so stop parsing. */
+				return;
 			default:
 				c = prev_c;
 			}
