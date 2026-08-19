@@ -29,6 +29,8 @@
 
 static void gf_dm_connect(GF_DownloadSession *sess);
 
+#define GF_CHUNK_MAX_SIZE 0x40000000 // 1GB
+
 void dm_sess_sk_del(GF_DownloadSession *sess)
 {
 #ifdef GPAC_HAS_CURL
@@ -2217,12 +2219,14 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, Bool first_chunk_in_
 	sep = strchr(body_start, ';');
 	if (sep) sep[0] = 0;
 	res = sscanf(body_start, "%x", &size);
-	if (res<0) {
+	if (res<0 || size > GF_CHUNK_MAX_SIZE) {
 		te_header[0] = '\r';
 		if (sep) sep[0] = ';';
 		*header_size = 0;
 		*payload_size = 0;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[%s] Chunk encoding: fail to read chunk size from buffer %s, aborting\n", sess->log_name, body_start));
+		sess->last_error = GF_REMOTE_SERVICE_ERROR;
+		sess->status = GF_NETIO_STATE_ERROR;
 		return NULL;
 	}
 	if (sep) sep[0] = ';';
@@ -2287,6 +2291,12 @@ void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size
 		return; //nothing to do
 	if (sess->chunked) {
  		data = (u8 *) gf_dm_get_chunk_data(sess, first_chunk_in_payload, (char *) payload, &nbBytes, &hdr_size);
+
+		if (nbBytes >= GF_UINT_MAX-hdr_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[%s] invalid payload size received: %u\n", sess->log_name, nbBytes ));
+			return;
+		}
+
 		if (!hdr_size && !data && nbBytes) {
 			/* keep the data and wait for the rest */
 			sess->remaining_data_size = nbBytes;
@@ -2403,7 +2413,7 @@ void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size
 
 	if (!sess->nb_left_in_chunk && remaining) {
 		sess->nb_left_in_chunk = remaining;
-	} else if (payload_size) {
+	} else if (payload_size && (sess->status < GF_NETIO_DISCONNECTED)) {
 		gf_dm_data_received(sess, payload, payload_size, store_in_init, rewrite_size, original_payload);
 	}
 }
