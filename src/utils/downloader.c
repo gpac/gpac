@@ -3819,7 +3819,7 @@ process_reply:
 			else if (!stricmp(hdr->name, "Content-Range")) {
 				if (!strnicmp(hdr->value, "bytes", 5)) {
 					val = hdr->value + 5;
-					while (strchr(":= ", val[0]))
+					while (val && val[0] && strchr(":= ", val[0]))
 						val++;
 
 					if (val[0] == '*') {

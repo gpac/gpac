@@ -3633,7 +3633,7 @@ void svg_parse_one_style(GF_Node *n, char *one_style)
 	attributeNameLen = (u32) (c - one_style);
 	sep = one_style[attributeNameLen];
 	one_style[attributeNameLen] = 0;
-	while (strchr("\r\n\t ", one_style[0]))
+	while (one_style[0] && strchr("\r\n\t ", one_style[0]))
 		one_style++;
 	if (!gf_node_get_field_by_name(n, one_style, &info)) {
 		c++;
