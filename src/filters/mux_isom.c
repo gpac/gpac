@@ -3180,16 +3180,20 @@ sample_entry_setup:
 		}
 	} else if (codec_id==GF_CODECID_TRUEHD) {
 		u32 fmt=0, prate=0;
-		//not ready yet
 		if (!dsi) return GF_OK;
 		if (dsi->value.data.size < 6) return GF_NON_COMPLIANT_BITSTREAM;
 
 		fmt = dsi->value.data.ptr[0];
 		fmt <<= 8;
 		fmt |= dsi->value.data.ptr[1];
-		prate = dsi->value.data.ptr[2];
+		fmt <<= 8;
+		fmt |= dsi->value.data.ptr[2];
+		fmt <<= 8;
+		fmt |= dsi->value.data.ptr[3];
+
+		prate = dsi->value.data.ptr[4];
 		prate <<= 8;
-		prate |= dsi->value.data.ptr[3];
+		prate |= dsi->value.data.ptr[5];
 		prate >>= 1;
 
 		e = gf_isom_truehd_config_new(ctx->file, tkw->track_num, (char *)src_url, NULL, fmt, prate, &tkw->stsd_idx);
