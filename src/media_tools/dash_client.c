@@ -1846,7 +1846,7 @@ static void gf_dash_get_timeline_duration(GF_MPD *mpd, GF_MPD_Period *period, GF
 				}
 			}
 			if (!nb_seg) {
-				nb_seg = (u32) ( (period_duration - start_time) / ent->duration );
+				nb_seg = (u32) ( (period_duration - start_time) / (ent->duration ? ent->duration : 1 ) );
 				dur += ((u64)nb_seg) * ent->duration;
 			}
 			*nb_segments += nb_seg;

@@ -1002,7 +1002,7 @@ static void tex_fill_run_straight(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, 
 		x0 = FIX2INT(x);
 		if (x0 > m_width) {
 			if (repeat_s) {
-				while ((u32) x0 > _this->width) x0 -= _this->width;
+				while ((u32) x0 >= _this->width) x0 -= _this->width;
 			} else if (_this->fill_pad_color) {
 				pix = _this->fill_pad_color;
 				goto write_pix;

@@ -228,8 +228,9 @@ GF_Err gf_laser_decode_command_list(GF_LASeRCodec *codec, u16 ESID, u8 *data, u3
 	for (i=0; i<gf_list_count(codec->unresolved_commands); i++) {
 		GF_Command *com = (GF_Command *)gf_list_get(codec->unresolved_commands, i);
 		gf_assert(!com->node);
-		com->node = gf_sg_find_node(codec->sg, com->RouteID);
-		if (com->node) {
+		GF_Node *n = gf_sg_find_node(codec->sg, com->RouteID);
+		if (n) {
+			gf_sg_command_set_node(com, n);
 			gf_node_register(com->node, NULL);
 			com->RouteID = 0;
 			gf_list_rem(codec->unresolved_commands, i);
@@ -5380,7 +5381,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				com = gf_sg_command_new(lsr->sg, (com_type==3) ? GF_SG_LSR_INSERT : GF_SG_LSR_REPLACE);
 				gf_list_add(com_list, com);
 				if (n) {
-					com->node = n;
+					gf_sg_command_set_node(com, n);
 					gf_node_register(com->node, NULL);
 				} else {
 					com->RouteID = idref;
@@ -5456,7 +5457,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 			}
 			gf_list_add(com_list, com);
 			if (n) {
-				com->node = n;
+				gf_sg_command_set_node(com, n);
 				gf_node_register(com->node, NULL);
 			} else {
 				com->RouteID = idref;
@@ -5667,7 +5668,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 		if (com_list) {
 			com = gf_sg_command_new(lsr->sg, com_type ? GF_SG_LSR_REPLACE : GF_SG_LSR_ADD);
 			gf_list_add(com_list, com);
-			com->node = n;
+			gf_sg_command_set_node(com, n);
 			gf_node_register(com->node, NULL);
 			com->fromNodeID = op_idref;
 			com->fromFieldIndex = opFieldIndex;
@@ -5706,7 +5707,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 
 			com = gf_sg_command_new(lsr->sg, (com_type==LSR_UPDATE_REPLACE) ? GF_SG_LSR_REPLACE : GF_SG_LSR_INSERT);
 			gf_list_add(com_list, com);
-			com->node = n;
+			gf_sg_command_set_node(com, n);
 			gf_node_register(com->node, NULL);
 			field = gf_sg_command_field_new(com);
 			field->pos = idx;
@@ -5792,7 +5793,7 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 		GF_Command *com;
 		com = gf_sg_command_new(lsr->sg, GF_SG_LSR_DELETE);
 		gf_list_add(com_list, com);
-		com->node = gf_sg_find_node(lsr->sg, idref);
+		gf_sg_command_set_node(com, gf_sg_find_node(lsr->sg, idref));
 		if (!com->node) {
 			com->RouteID = idref;
 			gf_list_add(lsr->unresolved_commands, com);
@@ -5891,7 +5892,7 @@ static GF_Err lsr_read_send_event(GF_LASeRCodec *lsr, GF_List *com_list)
 	} else {
 		GF_Command *com = gf_sg_command_new(lsr->sg, GF_SG_LSR_SEND_EVENT);
 		gf_list_add(com_list, com);
-		com->node = gf_sg_find_node(lsr->sg, idref);
+		gf_sg_command_set_node(com, gf_sg_find_node(lsr->sg, idref));
 		if (!com->node) {
 			com->RouteID = idref;
 			gf_list_add(lsr->unresolved_commands, com);
@@ -6014,7 +6015,7 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 					return (lsr->last_error = GF_NON_COMPLIANT_BITSTREAM);
 				gf_node_register(n, NULL);
 				com = gf_sg_command_new(lsr->sg, (type==5) ? GF_SG_LSR_REFRESH_SCENE : GF_SG_LSR_NEW_SCENE);
-				com->node = n;
+				gf_sg_command_set_node(com, n);
 				gf_list_add(com_list, com);
 			} else {
 				while (gf_list_count(lsr->deferred_hrefs)) {
@@ -6077,7 +6078,7 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 							if (com_list) {
 								com = gf_sg_command_new(lsr->sg, (sub_type==1) ? GF_SG_LSR_ACTIVATE : GF_SG_LSR_DEACTIVATE);
 								if (n) {
-									com->node = n;
+									gf_sg_command_set_node(com, n);
 									gf_node_register(n, NULL);
 								} else {
 									com->RouteID = idref;

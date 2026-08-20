@@ -69,6 +69,10 @@ void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset)
 
 void gf_odm_del(GF_ObjectManager *odm)
 {
+	if (odm->has_pending_remove_task) {
+		odm->flags |= GF_ODM_DESTROYED;
+		return;
+	}
 	if (odm->addon && (odm->addon->root_od==odm)) {
 		odm->addon->root_od = NULL;
 		odm->addon->started = 0;
@@ -145,6 +149,8 @@ void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt);
 GF_EXPORT
 void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 {
+	if (odm->flags & GF_ODM_DESTROYED) return;
+
 	GF_Compositor *compositor = odm->parentscene ? odm->parentscene->compositor : odm->subscene->compositor;
 
 	if (odm->skip_disconnect_state) {
@@ -739,7 +745,7 @@ void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid)
 		dur /= prop->value.lfrac.den;
 	}
 	gf_filter_release_property(pe);
-	
+
 	if ((u32) dur > odm->duration) {
 		odm->duration = (u32) dur;
 		/*update scene duration*/
@@ -801,7 +807,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	GF_Clock *parent_ck = NULL;
 
 	if (!scene) return;
-	
+
 	if (odm->mo && odm->mo->pck && !(odm->flags & GF_ODM_PREFETCH)) {
 		/*reset*/
 		gf_filter_pck_unref(odm->mo->pck);
@@ -1004,7 +1010,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 					if (gf_list_find(scene->compositor->systems_pids, xpid->pid)<0)
 						gf_list_add(scene->compositor->systems_pids, xpid->pid);
 				}
-				
+
 				gf_filter_pid_send_event(xpid->pid, &com);
 			}
 		}
@@ -1048,7 +1054,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	GF_FilterEvent com;
 
 	odm->flags &= ~GF_ODM_PREFETCH;
-	
+
 	//root ODs of dynamic scene may not have seen play/pause request
 	if (!odm->state && (!odm->subscene || !odm->subscene->is_dynamic_scene) ) return;
 

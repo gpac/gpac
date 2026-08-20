@@ -201,6 +201,11 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	switch (com->tag) {
 #ifndef GPAC_DISABLE_VRML
 	case GF_SG_SCENE_REPLACE:
+		// proto instances own their private namespace, any other foreign graph (proto code) dangles once protos are destroyed below
+		if (com->node && (com->node->sgprivate->scenegraph != graph)
+		    && !((com->node->sgprivate->tag == TAG_ProtoNode) && (com->node->sgprivate->scenegraph->parent_scene == graph))) {
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		/*unregister root*/
 		gf_node_unregister(graph->RootNode, NULL);
 		/*remove all protos and routes*/
@@ -214,6 +219,10 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				/*this will unregister the route from the graph, so don't delete the chain entry*/
 				gf_sg_route_del(r);
 			}
+			/* flush extern-proto links before freeing protos to avoid dangling
+			   GF_ProtoLink::url pointers (mirrors gf_sg_reset) */
+			if (!graph->pOwningProto && gf_list_count(graph->protos) && graph->GetExternProtoLib)
+				graph->GetExternProtoLib(graph->userpriv, NULL);
 			/*destroy all proto*/
 			while (gf_list_count(graph->protos)) {
 				GF_Proto *p = (GF_Proto*)gf_list_get(graph->protos, 0);
@@ -252,6 +261,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	{
 		u32 j;
 		GF_ChildNodeItem *list, *cur, *prev;
+		GF_ChildNodeItem single_item;
 		j=0;
 		while ((inf = (GF_CommandField*)gf_list_enum(com->command_fields, &j))) {
 			e = gf_node_get_field(com->node, inf->fieldIndex, &field);
@@ -269,8 +279,17 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			case GF_SG_VRML_MFNODE:
 				gf_node_unregister_children(com->node, * ((GF_ChildNodeItem **) field.far_ptr));
 				* ((GF_ChildNodeItem **) field.far_ptr) = NULL;
-
-				list = * ((GF_ChildNodeItem **) inf->field_ptr);
+				if (!inf->field_ptr) break;
+				// field_ptr aliases inf->node_list, except for a single node value where it aliases inf->new_node
+				if (inf->field_ptr == (void*)&inf->node_list) {
+					list = inf->node_list;
+				} else if ((inf->field_ptr == (void*)&inf->new_node) && inf->new_node) {
+					single_item.node = inf->new_node;
+					single_item.next = NULL;
+					list = &single_item;
+				} else {
+					break;
+				}
 				prev=NULL;
 				while (list) {
 					cur = gf_malloc(sizeof(GF_ChildNodeItem));
@@ -669,8 +688,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	case GF_SG_LSR_DELETE:
 		if (!com->node) return GF_NON_COMPLIANT_BITSTREAM;
 		if (!gf_list_count(com->command_fields)) {
-			gf_node_replace(com->node, NULL, 0);
 			gf_node_deactivate(com->node);
+			gf_node_replace(com->node, NULL, 0);
 			return GF_OK;
 		}
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
@@ -705,9 +724,10 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			if (inf->pos<0) {
 				/*if fieldIndex (eg attributeName) is set, this is children replacement*/
 				if (inf->fieldIndex>0) {
-					gf_node_unregister_children_deactivate(com->node, ((SVG_Element *)com->node)->children);
-					((SVG_Element *)com->node)->children = NULL;
-					gf_node_list_add_child(& ((SVG_Element *)com->node)->children, inf->new_node);
+					GF_ChildNodeItem *old_children = ((SVG_Element *)com->node)->children;
+					((SVG_Element*)com->node)->children = NULL;
+					gf_node_unregister_children_deactivate(com->node, old_children);
+					gf_node_list_add_child(&((SVG_Element*)com->node)->children, inf->new_node);
 					gf_node_register(inf->new_node, com->node);
 					gf_node_activate(inf->new_node);
 				} else {
@@ -726,8 +746,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			return e;
 		} else if (inf->node_list) {
 			GF_ChildNodeItem *child, *cur, *prev;
-			gf_node_unregister_children_deactivate(com->node, ((SVG_Element *)com->node)->children);
-			((SVG_Element *)com->node)->children = NULL;
+			GF_ChildNodeItem* old_children = ((SVG_Element*)com->node)->children;
+			((SVG_Element*)com->node)->children = NULL;
+			gf_node_unregister_children_deactivate(com->node, old_children);
 
 			prev = NULL;
 			child = inf->node_list;
