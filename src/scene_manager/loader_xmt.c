@@ -2154,6 +2154,8 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			GF_Node* old_node = *(GF_Node**)container.far_ptr;
 			if (old_node) {
 				gf_list_del_item(parser->peeked_nodes, old_node);
+				if (old_node->sgprivate->num_instances == 1)
+					xmt_remove_od_links_for_node(parser, old_node);
 				gf_node_unregister(old_node, parent->node);
 			}
 			*((GF_Node**)container.far_ptr) = node;
