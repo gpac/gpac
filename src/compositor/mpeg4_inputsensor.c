@@ -457,6 +457,15 @@ static void InputSensorUnregister(GF_Node *node, ISStack *st)
 	}
 }
 
+void gf_input_sensor_mo_destroyed(GF_Node *node)
+{
+	ISStack *st = (ISStack *)gf_node_get_private(node);
+	if (!st) return;
+
+	st->registered = 0;
+	st->mo = NULL;
+}
+
 static void InputSensorRegister(GF_Node *n)
 {
 	GF_ObjectManager *odm;

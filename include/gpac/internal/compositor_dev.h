@@ -2523,6 +2523,7 @@ void gf_input_sensor_delete(GF_ObjectManager *odm);
 
 void InitInputSensor(GF_Scene *scene, GF_Node *node);
 void InputSensorModified(GF_Node *n);
+void gf_input_sensor_mo_destroyed(GF_Node *n);
 void InitKeySensor(GF_Scene *scene, GF_Node *node);
 void InitStringSensor(GF_Scene *scene, GF_Node *node);
 
