@@ -4010,6 +4010,7 @@ GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_siz
 
 GF_Err dolby_get_codec_ac4(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size)
 {
+	u32 i, lowest_md_compat = GF_UINT_MAX, presentation_version, bitstream_version;
 	GF_Err e = GF_NON_COMPLIANT_BITSTREAM;
 	if (!dsi || !dsi_size) return e;
 
@@ -4019,20 +4020,24 @@ GF_Err dolby_get_codec_ac4(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size)
 
 	e = gf_odf_ac4_cfg_parse_bs(bs, &cfg);
 	gf_bs_del(bs);
-	if (e == GF_OK) {
-		e = GF_NON_COMPLIANT_BITSTREAM;
-		if (cfg.stream.n_presentations > 0) {
-			GF_AC4PresentationV1 *presentations = (GF_AC4PresentationV1*)gf_list_get(cfg.stream.presentations, 0);
-			if (presentations) {
-				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "ac-4.%02d.%02d.%02d", cfg.stream.bitstream_version, presentations->presentation_version, presentations->mdcompat);
-				e = GF_OK;
+	if (e) return e;
+
+	for (i=0; i<cfg.stream.n_presentations; i++) {
+		GF_AC4PresentationV1 *presentations = (GF_AC4PresentationV1*)gf_list_get(cfg.stream.presentations, i);
+		if (presentations) {
+			if (presentations->md_compat < lowest_md_compat) {
+				bitstream_version = cfg.stream.bitstream_version;
+				presentation_version = presentations->presentation_version;
+				lowest_md_compat = presentations->md_compat;
 			}
 		}
 	}
-	gf_odf_ac4_cfg_clean_list(&cfg);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RFC6381] invalid AC4 DSI %s\n", gf_error_to_string(e) ));
+	if (lowest_md_compat == GF_UINT_MAX) {
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+	
+	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "ac-4.%02d.%02d.%02d", bitstream_version, presentation_version, lowest_md_compat);
+	gf_odf_ac4_cfg_clean_list(&cfg);
 	return e;
 }
 
