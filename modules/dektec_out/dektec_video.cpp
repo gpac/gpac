@@ -24,7 +24,7 @@
 *
 */
 
-#define GPAC_ALLOW_UNSAFE_STRFUNC
+#undef GPAC_DISABLE_UNSAFE_STRFUNC
 #include "dektec_video.h"
 
 #ifdef GPAC_HAS_DTAPI
@@ -52,7 +52,7 @@ static void OnNewFrameVideo(DtMxData *pData, const DtCbkCtx  *cbck)
 	const DtMxRowData&  OurRow = pData->m_Rows[0];
 	GF_DTOutCtx *ctx = cbck->ctx;
 	GF_FilterPacket *pck;
-	
+
 	if (!ctx->is_configured || ctx->is_eos) return;
 	if (pData->m_NumSkippedFrames > 0) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] [%lld] #skipped frames=%d\n", pData->m_Frame, pData->m_NumSkippedFrames));

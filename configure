@@ -1216,6 +1216,9 @@ if test "$want_gcov"  = "yes" ; then
     LDFLAGS="$LDFLAGS --coverage"
 fi
 
+# disable unsafe str functions for gpac
+CFLAGS="$CFLAGS -DGPAC_DISABLE_UNSAFE_STRFUNC"
+
 #force use of cflags with cc
 cc_naked=$cc
 cxx_naked=$cxx
