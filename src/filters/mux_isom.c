@@ -3196,8 +3196,6 @@ sample_entry_setup:
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
-
-		gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_DBY1, GF_TRUE);
 	} else if (use_ac4_entry) {
 		GF_AC4Config ac4cfg = {0};
 
