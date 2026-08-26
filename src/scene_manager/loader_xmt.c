@@ -743,7 +743,8 @@ static GF_Node *xmt_find_node(GF_XMTParser *parser, char *ID)
 	count = gf_list_count(parser->peeked_nodes);
 	for (i=0; i<count; i++) {
 		n = (GF_Node*)gf_list_get(parser->peeked_nodes, i);
-		if (!strcmp(gf_node_get_name(n), ID)) return n;
+		if ((n->sgprivate->scenegraph == parser->load->scene_graph)
+		    && !strcmp(gf_node_get_name(n), ID)) return n;
 	}
 	node_class = gf_xml_sax_peek_node(parser->sax_parser, "DEF", ID, "ProtoInstance", "name", "<par", &is_proto);
 	if (!node_class) return NULL;
