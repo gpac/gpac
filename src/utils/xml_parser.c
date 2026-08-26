@@ -1573,7 +1573,7 @@ retry:
 		if (!strncmp(sep, att_value, att_len)) {
 			u32 sub_pos;
 			sep = szLine + 1;
-			while (strchr(" \t\r\n", sep[0])) sep++;
+			while (sep[0] && strchr(" \t\r\n", sep[0])) sep++;
 			sub_pos = 0;
 			while (!strchr(" \t\r\n", sep[sub_pos])) sub_pos++;
 			first_c = sep[sub_pos];

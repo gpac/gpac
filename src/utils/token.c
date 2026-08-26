@@ -70,7 +70,7 @@ s32 gf_token_get_strip(const char *Buffer, s32 Start, const char *Separator, con
 	if (!strip_set || (res<0)) return res;
 	i=k=0;
 	len = (u32) strlen(Container);
-	while (strchr(strip_set, Container[i]) ) i++;
+	while (Container[i] && strchr(strip_set, Container[i]) ) i++;
 	while (len && strchr(strip_set, Container[len]) ) {
 		Container[len]=0;
 		len--;
