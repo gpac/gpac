@@ -3689,6 +3689,11 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 		char *sep;
 		sep = strstr(*out_url, ";base64,");
 		if (sep) {
+			char blob_url[200];
+			char *allocated_blob_url = NULL;
+			const char *b_url;
+			char *resolved_url;
+			u32 resolved_url_len;
 			const char *scheme = "gpac://";
 			if (mpd_url && !strnicmp(mpd_url, "http://", 7)) scheme="http://";
 			else if (mpd_url && !strnicmp(mpd_url, "https://", 8)) scheme="https://";
@@ -3700,12 +3705,22 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 				len = (u32)strlen(sep) + 1;
 				rep->playback.init_segment.data = (char *)gf_malloc(len);
 				rep->playback.init_segment.size = gf_base64_decode(sep, len, rep->playback.init_segment.data, len);
-				char *b_url = gf_blob_register(&rep->playback.init_segment);
-				sprintf(*out_url, "%s%s", scheme, b_url);
-				gf_free(b_url);
+				allocated_blob_url = gf_blob_register(&rep->playback.init_segment);
+				if (!allocated_blob_url) return GF_OUT_OF_MEM;
+				b_url = allocated_blob_url;
 			} else {
-				sprintf(*out_url, "%sgmem://%p", scheme, &rep->playback.init_segment);
+				snprintf(blob_url, sizeof(blob_url), "gmem://%p", &rep->playback.init_segment);
+				b_url = blob_url;
 			}
+			resolved_url_len = (u32) (strlen(scheme) + strlen(b_url) + 1);
+			resolved_url = (char *)gf_realloc(*out_url, resolved_url_len);
+			if (!resolved_url) {
+				gf_free(allocated_blob_url);
+				return GF_OUT_OF_MEM;
+			}
+			snprintf(resolved_url, resolved_url_len, "%s%s", scheme, b_url);
+			gf_free(allocated_blob_url);
+			*out_url = resolved_url;
 			*data_url_process = GF_TRUE;
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("data scheme with encoding different from base64 not supported\n"));
