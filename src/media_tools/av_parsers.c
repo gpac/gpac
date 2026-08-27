@@ -15949,7 +15949,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 		gf_ac4_frame_rate_multiply_info(bs, pinfo, frame_rate_index);
 		gf_ac4_frame_rate_fractions_info(bs, pinfo, frame_rate_index);
 
-		pinfo->substreams = gf_list_new();
+		if (!pinfo->substreams) pinfo->substreams = gf_list_new();
 		if (!pinfo->substreams) return GF_FALSE;
 
 		gf_ac4_emdf_info(bs, pinfo->substreams, &emdf_version, &key_id);
@@ -16042,6 +16042,10 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 		if (pinfo->n_add_emdf_substreams == 0) {
 			pinfo->n_add_emdf_substreams = gf_ac4_variable_bits(bs, 2) + 4;
 		}
+
+		if (!pinfo->substreams) pinfo->substreams = gf_list_new();
+		if (!pinfo->substreams) return GF_FALSE;
+
 		for (i = 0; i < pinfo->n_add_emdf_substreams && i < MIN(GF_ARRAY_LENGTH(pinfo->substream_emdf_version), GF_ARRAY_LENGTH(pinfo->substream_key_id)); i++) {
 			gf_ac4_emdf_info(bs, pinfo->substreams, &emdf_version, &key_id);
 

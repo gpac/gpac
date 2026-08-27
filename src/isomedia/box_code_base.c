@@ -389,6 +389,7 @@ void prsl_box_del(GF_Box *s)
 {
 	GF_PreselectionGroupBox *ptr = (GF_PreselectionGroupBox *) s;
 	if (ptr == NULL) return;
+	if (s->child_boxes) gf_isom_box_array_del(s->child_boxes);
 	if (ptr->entity_id_count && ptr->entity_ids) gf_free(ptr->entity_ids);
 	if (ptr->preselection_tag) gf_free(ptr->preselection_tag);
 	if (ptr->interleaving_tag) gf_free(ptr->interleaving_tag);

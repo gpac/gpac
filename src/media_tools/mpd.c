@@ -1499,6 +1499,14 @@ void gf_mpd_preselection_free(void *_item)
 	GF_MPD_Preselection *ptr = (GF_MPD_Preselection *)_item;
 	gf_mpd_common_attributes_free((GF_MPD_CommonAttributes *)ptr);
 	if (ptr->lang) gf_free(ptr->lang);
+	if (ptr->tag) gf_free(ptr->tag);
+	if (ptr->preselection_components) {
+		for (u32 i = 0; i < gf_list_count(ptr->preselection_components); i++) {
+			u32 *d = (u32 *)gf_list_get(ptr->preselection_components, i);
+			gf_free(d);
+		}
+		gf_list_del(ptr->preselection_components);
+	}
 	gf_mpd_del_list(ptr->accessibility, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->role, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->rating, gf_mpd_descriptor_free, 0);
@@ -1512,6 +1520,7 @@ void gf_mpd_grouplabel_free(void *_item)
 	GF_MPD_GroupLabel *ptr = (GF_MPD_GroupLabel *)_item;
 	if (ptr->lang) gf_free(ptr->lang);
 	if (ptr->content) gf_free(ptr->content);
+	gf_free(ptr);
 }
 
 void gf_mpd_label_free(void *_item)
@@ -1519,6 +1528,7 @@ void gf_mpd_label_free(void *_item)
 	GF_MPD_Label *ptr = (GF_MPD_Label *)_item;
 	if (ptr->lang) gf_free(ptr->lang);
 	if (ptr->content) gf_free(ptr->content);
+	gf_free(ptr);
 }
 
 static void gf_mpd_event_stream_entry_free(void *_item)

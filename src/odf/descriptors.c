@@ -2869,10 +2869,16 @@ GF_Err gf_odf_preselection_cfg_parse_bs(GF_BitStream *bs, GF_List *cfg_list)
 			prsl->type = type;
 
 			e = gf_isom_box_read((GF_Box *)prsl, bs);
-			if (e) return e;
+			if (e) {
+				gf_isom_box_del((GF_Box *)prsl);
+				return e;
+			}
 
 			GF_SAFEALLOC(cfg, GF_PreselectionConfig);
-			if (!cfg) return GF_OUT_OF_MEM;
+			if (!cfg) {
+				gf_isom_box_del((GF_Box *)prsl);
+				return GF_OUT_OF_MEM;
+			}
 
 			cfg->flags = prsl->flags;
 			cfg->group_id = prsl->group_id;
@@ -2916,7 +2922,10 @@ GF_Err gf_odf_preselection_cfg_parse_bs(GF_BitStream *bs, GF_List *cfg_list)
 					labl = (GF_LabelBox *) child;
 					GF_Label *label;
 					GF_SAFEALLOC(label, GF_Label);
-					if (!label) return GF_OUT_OF_MEM;
+					if (!label) {
+						gf_isom_box_del((GF_Box *)prsl);
+						return GF_OUT_OF_MEM;
+					}
 
 					label->is_group_label = labl->flags & GF_ISOM_IS_GROUP_LABEL ? GF_TRUE : GF_FALSE;
 					label->label_id = labl->label_id;
@@ -2924,7 +2933,10 @@ GF_Err gf_odf_preselection_cfg_parse_bs(GF_BitStream *bs, GF_List *cfg_list)
 					label->label = gf_strdup(labl->label);
 					if (!cfg->labels) {
 						cfg->labels = gf_list_new();
-						if (!cfg->labels) return GF_OUT_OF_MEM;
+						if (!cfg->labels) {
+							gf_isom_box_del((GF_Box *)prsl);
+							return GF_OUT_OF_MEM;
+						}
 					}
 					gf_list_add(cfg->labels, label);
 				}
@@ -2932,19 +2944,26 @@ GF_Err gf_odf_preselection_cfg_parse_bs(GF_BitStream *bs, GF_List *cfg_list)
 					kind = (GF_KindBox *) child;
 					GF_Kind *k;
 					GF_SAFEALLOC(k, GF_Kind);
-					if (!k) return GF_OUT_OF_MEM;
+					if (!k) {
+						gf_isom_box_del((GF_Box *)prsl);
+						return GF_OUT_OF_MEM;
+					}
 
 					k->value = kind->value ? gf_strdup(kind->value) : NULL;
 					k->schemeURI = gf_strdup(kind->schemeURI);
 					if (!cfg->kinds) {
 						cfg->kinds = gf_list_new();
-						if (!cfg->kinds) return GF_OUT_OF_MEM;
+						if (!cfg->kinds) {
+							gf_isom_box_del((GF_Box *)prsl);
+							return GF_OUT_OF_MEM;
+						}
 					}
 					gf_list_add(cfg->kinds, k);
 				}
 			}
 
 			gf_list_add(cfg_list, cfg);
+			gf_isom_box_del((GF_Box *)prsl);
 		}
 		else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[Preselection] Failed to parse the preselection.\n"));
@@ -3056,7 +3075,9 @@ GF_Err gf_odf_preselection_cfg_write(GF_List *cfg_list, GF_BitStream *bs)
 		if (e) return e;
 
 		e = gf_isom_box_write((GF_Box *)prsl, bs);
-		if (e) return e;		
+		if (e) return e;
+
+		gf_isom_box_del((GF_Box *)prsl);
 	}
 
 	return e;
