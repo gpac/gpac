@@ -8598,7 +8598,10 @@ static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	}
 	//set linf
 	for (i=0; i<gf_isom_get_track_count(ctx->file); i++) {
-		u32 subtype = gf_isom_get_media_subtype(ctx->file, i+1, 1);
+		u32 subtype;
+		//a track is never its own external base layer
+		if (i+1 == tkw->track_num) continue;
+		subtype = gf_isom_get_media_subtype(ctx->file, i+1, 1);
 		if ( gf_isom_is_media_encrypted(ctx->file, i+1, 1))
 			gf_isom_get_original_format_type(ctx->file, i+1, i+1, &subtype);
 
