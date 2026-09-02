@@ -6826,6 +6826,7 @@ int mp4box_main(int argc, char **argv)
 
 	if (set_vexu | hero_eye) {
 		gf_isom_set_vexu(file, hero_eye);
+		do_save = GF_TRUE;
 	}
 
 	if (!encode) {
