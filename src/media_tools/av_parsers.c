@@ -15497,15 +15497,15 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 	substream->n_objects_code = gf_bs_read_int_log(bs, 3, "n_objects_code");
 
 	if (substream->n_objects_code == 0) {
-		n_signals = 1;
+		n_signals = 0;
 	} else if (substream->n_objects_code == 1) {
-		n_signals = 2;
+		n_signals = 1;
 	} else if (substream->n_objects_code == 2) {
-		n_signals = 3;
+		n_signals = 2;
 	} else if (substream->n_objects_code == 3) {
-		n_signals = 4;
+		n_signals = 3;
 	} else if (substream->n_objects_code == 4) {
-		n_signals = 6;
+		n_signals = 5;
 	} else {
 		n_signals = 0;
 	}
@@ -15530,6 +15530,7 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 
 	if (gf_bs_read_int_log(bs, 1, "b_dynamic_objects")) {
 		substream->b_lfe = gf_bs_read_int_log(bs, 1, "b_lfe");
+		n_signals += substream->b_lfe;
 
 		for (i = 0; i < N_OBJECTS_CODE_TO_NUM_OBJECTS[substream->n_objects_code]; i++) {
 			GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
