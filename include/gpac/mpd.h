@@ -126,7 +126,7 @@ typedef struct
 
 
 /*! macro for extensible MPD element
-Some elments are typically overloaded in XML, we keep the attributes / children nodes here. The attributes list is NULL if no extensions were found, otherwise it is a list of GF_XMLAttribute.
+Some elements are typically overloaded in XML, we keep the attributes / children nodes here. The attributes list is NULL if no extensions were found, otherwise it is a list of GF_XMLAttribute.
 The children list is NULL if no extensions were found, otherwise it is a list of GF_XMLNode
 */
 #define MPD_EXTENSIBLE	\
