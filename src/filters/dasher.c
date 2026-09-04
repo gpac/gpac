@@ -2418,7 +2418,7 @@ static const char *get_drm_kms_name(const char *canURN, Bool vernacular)
 	else if (!stricmp(canURN, "992c46e6-c437-4899-b6a0-50fa91ad0e39")) return "Arris SecureMedia SteelKnot version 1";
 	else if (!stricmp(canURN, "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b")) return "cenc initData";
 	else if (!stricmp(canURN, "e2719d58-a985-b3c9-781a-b030af78d30e")) return "ClearKey1.0";
-	else if (!stricmp(canURN, "94CE86FB-07FF-4F43-ADB8-93D2FA968CA2")) return "FairPlay";
+	else if (!stricmp(canURN, "94CE86FB-07FF-4F43-ADB8-93D2FA968CA2")) return "Fairplay";
 	else if (!stricmp(canURN, "279fe473-512c-48fe-ade8-d176fee6b40f")) return "Arris Titanium";
 	else if (!stricmp(canURN, "aa11967f-cc01-4a4a-8e99-c5d3dddfea2d")) return "UDRM";
 	return "unknown";
