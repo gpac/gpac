@@ -1780,7 +1780,9 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 				else if (strstr(att->name, "value") || strstr(att->name, "Value")) value = att->value;
 			}
 			parser->proto_field = gf_sg_proto_field_new(parser->parsing_proto, fType, eType, fieldName);
-			if (value && strlen(value)) {
+			if (!parser->proto_field) {
+				xmt_report(parser, GF_BAD_PARAM, "Cannot create proto field %s (duplicate name or invalid type) - skipping", fieldName ? fieldName : "");
+			} else if (value && strlen(value)) {
 				gf_sg_proto_field_get_field(parser->proto_field, &info);
 				if (gf_sg_vrml_is_sf_field(fType)) {
 					xmt_parse_sf_field(parser, &info, NULL, value);
