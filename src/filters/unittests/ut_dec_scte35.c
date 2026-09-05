@@ -184,7 +184,23 @@ unittest(scte35dec_splice_point_with_idr)
 	u64 dts = 0;
 
 	SEND_EVENT();
-	assert_true(scte35dec_is_splice_point(&ctx, SCTE35_DTS));
+
+	u8 *packet_data = NULL;
+	GF_FilterPacket *pck = pck_new_alloc(NULL, 1, &packet_data);
+	assert_true(pck != NULL);
+
+	/* Do not consume the cue on a predictive frame. The usable splice point is
+	 * the first random-access packet at or after the signaled splice time. */
+	gf_filter_pck_set_cts(pck, SCTE35_DTS);
+	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_NONE);
+	assert_false(scte35dec_is_splice_point(&ctx, pck));
+
+	gf_filter_pck_set_cts(pck, SCTE35_DTS + 1800);
+	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+	assert_true(scte35dec_is_splice_point(&ctx, pck));
+
+	if (!pck->filter_owns_mem) gf_free(pck->data);
+	gf_free(pck);
 
 	scte35dec_flush(&ctx);
 	scte35dec_finalize_internal(&ctx);

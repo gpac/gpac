@@ -169,7 +169,6 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, pid);
-	if (ctx->mode == PASSTHRU) return GF_OK;
 
 	const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
 	if (p) {
@@ -178,6 +177,8 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		else if (p->value.uint == GF_CODECID_EVTE)
 			ctx->data_mode = BOX;
 	}
+
+	if (ctx->mode == PASSTHRU) return GF_OK;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_METADATA) );
 	if (ctx->mode == M2TS_SEC) {
@@ -767,11 +768,15 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts, u32 dur)
 	return GF_OK;
 }
 
-static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 cts)
+static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, GF_FilterPacket *pck)
 {
 	Event *evt = gf_list_get(ctx->ordered_events, 0);
 	if (!evt) return GF_FALSE;
-	Bool is_splice = (evt->dts + evt->emib->presentation_time_delta == cts);
+
+	u64 cts = gf_filter_pck_get_cts(pck);
+	u64 splice_cts = evt->dts + evt->emib->presentation_time_delta;
+	u32 sap_type = gf_filter_pck_get_sap(pck);
+	Bool is_splice = sap_type && (cts >= splice_cts);
 	if (is_splice) {
 		Event *evt = gf_list_pop_front(ctx->ordered_events);
 		gf_isom_box_del((GF_Box*)evt->emib);
@@ -799,7 +804,7 @@ static GF_Err scte35dec_process_passthrough(SCTE35DecCtx *ctx, GF_FilterPacket *
 		return GF_OUT_OF_MEM;
 
 	u64 cts = gf_filter_pck_get_cts(pck);
-	if (scte35dec_is_splice_point(ctx, cts)) {
+	if (scte35dec_is_splice_point(ctx, pck)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at cts=" LLU " - adding cue start property\n", cts));
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 	}
@@ -911,7 +916,7 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 	if (data && size) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected SCTE-35 at dts="LLU" dur=%u\n", dts, dur));
 
-		if (ctx->mode == EVTE) {
+		if ((ctx->mode == EVTE) || (ctx->mode == PASSTHRU)) {
 			GF_Err e = scte35dec_process_emsg(ctx, data, size, dts);
 			if (e)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Detected error while processing 'emsg' at dts="LLU"\n", dts));
