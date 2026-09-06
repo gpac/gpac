@@ -478,7 +478,9 @@ Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *spl
 	/*u32 tier = */gf_bs_read_int(bs, 12);
 
 	u32 splice_command_length = gf_bs_read_int(bs, 12);
-	if (splice_command_length > gf_bs_available(bs)) {
+	/* 0xFFF indicates that splice_command_length is unspecified. */
+	Bool splice_command_length_unspecified = (splice_command_length == 0xFFF);
+	if (!splice_command_length_unspecified && (splice_command_length > gf_bs_available(bs))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short (" LLU " bytes) while parsing splice command (%u bytes)\n",
 			gf_bs_available(bs), splice_command_length));
 		goto exit;
@@ -546,7 +548,8 @@ Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *spl
 		break;
 	case 0x00: //splice_null()
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_null()\n"));
-		gf_bs_skip_bytes(bs, splice_command_length);
+		if (!splice_command_length_unspecified)
+			gf_bs_skip_bytes(bs, splice_command_length);
 		gf_bs_align(bs);
 		break;
 	default:
