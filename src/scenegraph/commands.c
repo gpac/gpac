@@ -598,6 +598,10 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		}
 		/*indexed replacement*/
 		if (pos>=-1) {
+			/*a well-formed indexed replacement always carries a field payload;
+			  a missing payload (inf->field_ptr NULL) reaches value.far_ptr as
+			  NULL and would fault on the deref below*/
+			if (!value.far_ptr) return GF_NON_COMPLIANT_BITSTREAM;
 			/*if MFNode remove the child and set new node*/
 			if (field.fieldType == GF_SG_VRML_MFNODE) {
 				GF_Node *nn = *(GF_Node**)value.far_ptr;
