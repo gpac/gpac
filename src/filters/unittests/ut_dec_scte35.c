@@ -194,7 +194,19 @@ unittest(scte35dec_splice_point_with_idr)
 
 unittest(scte35dec_unspecified_splice_command_length)
 {
-	/* Broadcast splice_insert using splice_command_length=0xFFF. */
+	/*
+	 * Real broadcast SCTE-35 splice_info_section captured from mpegwithscte35.ts.
+	 * Relevant decoded fields:
+	 *   tier                  = 0xFFF
+	 *   splice_command_length = 0xFFF (unspecified)
+	 *   splice_command_type   = 0x05  (splice_insert)
+	 *   splice_event_id       = 662
+	 *   splice_time           = 8076794552 (90 kHz)
+	 *   break_duration        = 21780000 (242 s at 90 kHz)
+	 *
+	 * The regression verifies that 0xFFF is treated as an unspecified command
+	 * length rather than a literal 4095-byte payload length.
+	 */
 	static u8 payload[] = {
 		0xfc, 0x30, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0xff, 0xff, 0xff, 0x05, 0x00, 0x00, 0x02, 0x96, 0x7f, 0xef,
