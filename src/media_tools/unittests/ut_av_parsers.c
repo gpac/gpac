@@ -5,7 +5,7 @@
 
 unittest(avc_pps_weighted_bipred_idc)
 {
-	AVCState avc;
+	AVCState *avc;
 	s32 pps_id;
 	/* Minimal AVC PPS NAL, byte-aligned:
 	 * - byte 0 (0x68): NAL header (nal_ref_idc=3, nal_unit_type=8/PPS)
@@ -15,14 +15,16 @@ unittest(avc_pps_weighted_bipred_idc)
 	u8 pps_nal[] = { 0x68, 0xCE, 0x78 };
 	GF_BitStream *bs;
 
-	memset(&avc, 0, sizeof(avc));
+	GF_SAFEALLOC(avc, AVCState)
 	/* fake a registered SPS so the PPS sps_id lookup doesn't reject the PPS */
-	avc.sps[0].state = 1;
+	avc->sps[0].state = 1;
 
 	bs = gf_bs_new(pps_nal, sizeof(pps_nal), GF_BITSTREAM_READ);
-	pps_id = gf_avc_read_pps_bs(bs, &avc);
+	pps_id = gf_avc_read_pps_bs(bs, avc);
 	gf_bs_del(bs);
 
 	assert_true(pps_id == 0);
-	assert_equal(avc.pps[0].weighted_bipred_idc, 1, "%u");
+	assert_equal(avc->pps[0].weighted_bipred_idc, 1, "%u");
+
+	gf_free(avc);
 }
