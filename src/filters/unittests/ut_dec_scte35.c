@@ -192,6 +192,43 @@ unittest(scte35dec_splice_point_with_idr)
 
 /*************************************/
 
+unittest(scte35dec_unspecified_splice_command_length)
+{
+	/*
+	 * Real broadcast SCTE-35 splice_info_section captured from mpegwithscte35.ts.
+	 * Relevant decoded fields:
+	 *   tier                  = 0xFFF
+	 *   splice_command_length = 0xFFF (unspecified)
+	 *   splice_command_type   = 0x05  (splice_insert)
+	 *   splice_event_id       = 662
+	 *   splice_time           = 8076794552 (90 kHz)
+	 *   break_duration        = 21780000 (242 s at 90 kHz)
+	 *
+	 * The regression verifies that 0xFFF is treated as an unspecified command
+	 * length rather than a literal 4095-byte payload length.
+	 */
+	static u8 payload[] = {
+		0xfc, 0x30, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0xff, 0xff, 0x05, 0x00, 0x00, 0x02, 0x96, 0x7f, 0xef,
+		0xff, 0xe1, 0x6a, 0x1a, 0xb8, 0x7e, 0x01, 0x4c, 0x56, 0x20,
+		0x00, 0x01, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x08, 0x43, 0x55,
+		0x45, 0x49, 0x00, 0x00, 0x00, 0x00, 0x10, 0xfa, 0x4d, 0x9e
+	};
+
+	u64 pts = 0, duration = 0;
+	u32 splice_event_id = 0;
+	Bool needs_idr = GF_FALSE;
+
+	Bool parsed = scte35dec_get_timing(payload, sizeof(payload), &pts, &duration, &splice_event_id, &needs_idr);
+	assert_true(parsed);
+	assert_equal(pts, (u64)8076794552ULL, LLU);
+	assert_equal(duration, (u64)21780000ULL, LLU);
+	assert_equal(splice_event_id, (u32)662, "%u");
+	assert_equal(needs_idr, (Bool)GF_TRUE, "%d");
+}
+
+/*************************************/
+
 static GF_Err pck_send_simple(GF_FilterPacket *pck)
 {
 	#define expected_calls 3
