@@ -19,9 +19,9 @@ jobs:
           - distro: ubuntu
             codename: noble # EOL: Apr 2029
           - distro: debian
-            codename: bullseye # EOL: Aug 2026
-          - distro: debian
             codename: bookworm # EOL: Jun 2028
+          - distro: debian
+            codename: trixie # EOL: Jun 2030
 
     name: Build for ${{ matrix.target.distro }} ${{ matrix.target.codename }} on ${{ matrix.architecture }}
 
