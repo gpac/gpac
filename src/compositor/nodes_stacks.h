@@ -201,6 +201,7 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 void compositor_compositetexture_sensor_delete(GF_Node *composite_appear, GF_SensorHandler *hdl);
 
 void compositor_init_text(GF_Compositor *compositor, GF_Node *node);
+M_FontStyle *compositor_get_font_style(GF_Node *font_style);
 
 #ifndef GPAC_DISABLE_3D
 
@@ -359,4 +360,3 @@ typedef struct
 
 
 #endif	/*NODES_STACKS_H*/
-

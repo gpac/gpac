@@ -572,7 +572,7 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 	case TAG_X3D_Text:
 #endif
 	{
-		M_FontStyle *fs = (M_FontStyle *) ((M_Text *)text)->fontStyle;
+		M_FontStyle *fs = compositor_get_font_style(((M_Text *)text)->fontStyle);
 		if (!fs || !fs->style.buffer) return GF_FALSE;
 		if (strstr(fs->style.buffer, "editable") || strstr(fs->style.buffer, "EDITABLE")) {
 			compositor->focus_text_type = 3;
@@ -1401,7 +1401,7 @@ test_grouping:
 			gf_node_set_cyclic_traverse_flag(elt, GF_FALSE);
 
 			if (!current_focus) {
-				M_FontStyle *fs = (M_FontStyle *) ((M_Text *)elt)->fontStyle;
+				M_FontStyle *fs = compositor_get_font_style(((M_Text *)elt)->fontStyle);
 
 				if (!fs || !fs->style.buffer) return NULL;
 
