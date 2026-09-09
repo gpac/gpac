@@ -14497,7 +14497,7 @@ static Bool gf_ac4_emdf_reserved(GF_BitStream *bs)
 	if (n_skip_bytes_length_secondary > 0) {
 		n_skip_bytes += 1 << (2*(n_skip_bytes_length_secondary - 1));
 	}
-	
+
 	for (i = 0; i < n_skip_bytes; i++) {
 		gf_bs_read_int_log(bs, 8, "reserved");
 	}
@@ -14786,6 +14786,11 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 	if (gf_bs_read_int_log(bs, 1, "b_dyn_objects_only") == 0) {
 		if (gf_bs_read_int_log(bs, 1, "b_isf")) {
 			isf_config = gf_bs_read_int_log(bs, 3, "isf_config");
+
+			if (isf_config >= GF_ARRAY_LENGTH(ISF_CONFIG_TO_NUM_OBJECTS)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] isf_config exceeds maximum supported (%d)\n", isf_config));
+				return GF_FALSE;
+			}
 
 			for (i = 0; i < ISF_CONFIG_TO_NUM_OBJECTS[isf_config]; i++) {
 				GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
@@ -15158,7 +15163,7 @@ static Bool gf_ac4_oamd_common_data(GF_BitStream *bs)
 			gf_ac4_headphone(bs);
 		}
 		bits_used = (u32) (gf_bs_get_bit_offset(bs) - pos);
-		
+
 		u32 bits_to_read = MIN( (u32)(8*gf_bs_available(bs)), (u32)(add_data_bytes * 8 - bits_used));
 		gf_bs_read_int(bs, MIN(32, bits_to_read));
 	}
@@ -15223,7 +15228,7 @@ static u32 gf_ac4_get_obj_channel_mask(GF_AC4SubStream *substream)
                 }
                 break;
             }
-            case 3: // 5.0.2 (L, R, C, Ls, Rs, Tsl, Tsr) || 5.1.2 (L, R, C, LFE, Ls, Rs, Tsl, Tsr)  
+            case 3: // 5.0.2 (L, R, C, Ls, Rs, Tsl, Tsr) || 5.1.2 (L, R, C, LFE, Ls, Rs, Tsl, Tsr)
             {
                 if (substream->b_ajoc) {
                     channel_mask |= (1ULL << 0);  // bit 0: L
@@ -15245,7 +15250,7 @@ static u32 gf_ac4_get_obj_channel_mask(GF_AC4SubStream *substream)
                 }
                 break;
             }
-            case 4: 
+            case 4:
             {
                 // 5.0.4 (L, R, C, Ls, Rs, Tfl, Tfr, Tbl, Tbr ) || 5.1.4 (L, R, C, LFE, Ls, Rs, Tfl, Tfr, Tbl, Tbr )
                 if (substream->b_ajoc) {
@@ -15272,7 +15277,7 @@ static u32 gf_ac4_get_obj_channel_mask(GF_AC4SubStream *substream)
                 }
                 break;
             }
-            case 5: 
+            case 5:
             {
                 // 7.0.0 (L,C,R,Ls,Rs,Lb,Rb) || 7.1.0 (L,C,R,LFE,Ls,Rs,Lb,Rb)
                 if (substream->b_ajoc) {
@@ -15295,7 +15300,7 @@ static u32 gf_ac4_get_obj_channel_mask(GF_AC4SubStream *substream)
                 }
                 break;
             }
-            case 6: 
+            case 6:
             {
                 // 7.0.2 (L,C,R,Ls,Rs,Lb,Rb,Tsl,Tsr) || 7.1.2 (L,C,R,LFE,Ls,Rs,Lb,Rb,Tsl,Tsr)
                 if (substream->b_ajoc) {
@@ -15322,7 +15327,7 @@ static u32 gf_ac4_get_obj_channel_mask(GF_AC4SubStream *substream)
                 }
                 break;
             }
-            case 7: 
+            case 7:
             {
                 // 7.0.4 (L,C,R,Ls,Rs,Lb,Rb,Tfl,Tfr,Tbl,Tbr) || 7.1.4 (L,C,R,LFE,Ls,Rs,Lb,Rb,Tfl,Tfr,Tbl,Tbr)
                 if (substream->b_ajoc) {
@@ -15532,6 +15537,11 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 		substream->b_lfe = gf_bs_read_int_log(bs, 1, "b_lfe");
 		n_signals += substream->b_lfe;
 
+		if (substream->n_objects_code >= GF_ARRAY_LENGTH(N_OBJECTS_CODE_TO_NUM_OBJECTS)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] n_objects_code exceeds maximum supported (%d)\n", substream->n_objects_code));
+			return GF_FALSE;
+		}
+
 		for (i = 0; i < N_OBJECTS_CODE_TO_NUM_OBJECTS[substream->n_objects_code]; i++) {
 			GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
 			if (substream->b_lfe && i == 0) {
@@ -15562,7 +15572,7 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 				substream->bed_obj.b_ch_assign_code = gf_bs_read_int_log(bs, 1, "b_ch_assign_code");
 				if (substream->bed_obj.b_ch_assign_code) {
 					substream->bed_obj.bed_chan_assign_code = gf_bs_read_int_log(bs, 3, "bed_chan_assign_code");
-					
+
 					for (i = 0; i < BED_CHAN_ASSIGN_CODE_TO_NUM_OBJECTS[substream->bed_obj.bed_chan_assign_code]; i++) {
 						GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
 						substream->obj_types[substream->n_objs] = GF_AC4_OBJ_TYPE_BED;
@@ -15640,6 +15650,11 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 			if (gf_bs_read_int_log(bs, 1, "b_isf")) {
 				if (gf_bs_read_int_log(bs, 1, "b_isf_start")) {
 					isf_config = gf_bs_read_int_log(bs, 3, "isf_config");
+
+					if (isf_config >= GF_ARRAY_LENGTH(ISF_CONFIG_TO_NUM_OBJECTS)) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] isf_config exceeds maximum supported (%d)\n", isf_config));
+						return GF_FALSE;
+					}
 
 					for (i = 0; i < ISF_CONFIG_TO_NUM_OBJECTS[isf_config]; i++) {
 						GF_AC4_CHECK_N_OBJS_ARRAY_SIZE(GF_AC4_MAX_NUM_OBJECTS);
@@ -15771,7 +15786,7 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 		}
 	}
 	else {
-		
+
 		// indicate whether there is a non-channel based substream
 		*b_obj_or_ajoc = 1;
 
@@ -16032,7 +16047,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 
 		GF_SAFEALLOC(substream, GF_AC4SubStream);
 		if (!substream) return GF_FALSE;
-		
+
 		gf_ac4_presentation_substream_info(bs, substream);
 		gf_list_add(pinfo->substreams, substream);
 
@@ -16069,6 +16084,7 @@ static GF_AC4PresentationV1* gf_ac4_get_presentation_by_substreamgroup(GF_AC4Str
 
 	for(i = 0; i < stream->n_presentations; i++) {
 		p = gf_list_get(stream->presentations, i);
+		if (!p) continue;
 		for (j = 0; j < p->n_substream_groups; j++) {
 			x = gf_list_get(p->substream_group_indexs, j);
 			if(x && idx == *x) {
@@ -16197,7 +16213,7 @@ static u32 gf_ac4_convert_speaker_layout_to_channel_mode(u32 channel_mask)
         case 0x000F7:  // bit 0,1,2,4,5,6,7
             ch_mode = 5;
             break;
-        // 7.1: 3/4/0.1 (L, C, R, Ls, Rs, Lb, Rb, LFE) 
+        // 7.1: 3/4/0.1 (L, C, R, Ls, Rs, Lb, Rb, LFE)
         case 0x000FF:  // bit 0,1,2,3,4,5,6,7
             ch_mode = 6;
             break;
@@ -16209,11 +16225,11 @@ static u32 gf_ac4_convert_speaker_layout_to_channel_mode(u32 channel_mask)
         case 0xC03F:  // bit 0,1,2,3,4,5,14,15
             ch_mode = 8;
             break;
-        // 7.0: 3/2/2 (L, C, R, Ls, Rs, Tfl, Tfr) 
+        // 7.0: 3/2/2 (L, C, R, Ls, Rs, Tfl, Tfr)
         case 0x00337:  // bit 0,1,2,4,5,8,9
             ch_mode = 9;
             break;
-        // 7.1: 3/2/2.1 (L, C, R, Ls, Rs, Tfl, Tfr, LFE) 
+        // 7.1: 3/2/2.1 (L, C, R, Ls, Rs, Tfl, Tfr, LFE)
         case 0x0033F:  // bit 0,1,2,3,4,5,8,9
             ch_mode = 10;
             break;
@@ -16227,7 +16243,7 @@ static u32 gf_ac4_convert_speaker_layout_to_channel_mode(u32 channel_mask)
 static s32 gf_ac4_presentation_ch_mode(GF_AC4PresentationV1 *p)
 {
 	s32 pres_ch_mode = -1;
-    u8 b_obj_or_ajoc = 0, b_has_dyn = 0, b_has_isf = 0;
+    u8 b_obj_or_ajoc = 0 /*, b_has_dyn = 0,*/ /*b_has_isf = 0*/;
 	u32 i, j, merged_mask = 0;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *substream;
@@ -16236,7 +16252,7 @@ static s32 gf_ac4_presentation_ch_mode(GF_AC4PresentationV1 *p)
 	for (i = 0; i < p->n_substream_groups; i++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-		
+
 		for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
 			if (!substream) continue;
@@ -16255,7 +16271,7 @@ static s32 gf_ac4_presentation_ch_mode(GF_AC4PresentationV1 *p)
 		u32 other_objs = 0;
 		u32 ch_mode = -1;
 		group = gf_list_get(p->substream_groups, 0);
-			
+
 		for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
 			if (!substream) continue;
@@ -16266,7 +16282,7 @@ static s32 gf_ac4_presentation_ch_mode(GF_AC4PresentationV1 *p)
 			merged_mask |= gf_ac4_get_obj_channel_mask(substream);
 			other_objs += substream->other_objs;
 		}
-		
+
 		if (other_objs != 0) {
 			// there are other objects beside the bed object, signal as object-based
             pres_ch_mode = -1;
@@ -16277,7 +16293,7 @@ static s32 gf_ac4_presentation_ch_mode(GF_AC4PresentationV1 *p)
 			// there are no other objects beside the bed object, but the bed object is not channel coded
 			pres_ch_mode = gf_ac4_convert_speaker_layout_to_channel_mode(merged_mask);
 		}
-	}	
+	}
 	return pres_ch_mode;
 }
 
@@ -16493,7 +16509,7 @@ static Bool gf_ac4_assign_substream_info(u32 index, GF_AC4SubStreamInfo *info, G
 					info->substream = substream;
 					info->substream_group = NULL;
 					info->presentation = presentation;
-					
+
 					return GF_TRUE;
 				}
 			}
@@ -16521,7 +16537,7 @@ static Bool gf_ac4_assign_substream_info(u32 index, GF_AC4SubStreamInfo *info, G
 	return GF_FALSE;
 }
 
-static u32 gf_ac4_substream_index_table(GF_BitStream *bs, 
+static u32 gf_ac4_substream_index_table(GF_BitStream *bs,
 										GF_List *substream_index_table,
 										GF_List *hdr_p_list,
 										GF_List *parsed_substream_groups)
@@ -16780,7 +16796,7 @@ static Bool gf_ac4_de_data(GF_BitStream *bs, u8 de_method, u8 de_nr_channels, u8
 
 					for (band = 1; band < de_nr_bands; band++) {
 						de_par_code = gf_ac4_de_read_diff_huffman(bs, de_method % 2);
-						
+
 						de_par[0][band] = ref_val + gf_ac4_de_diff_huffman(de_method % 2, de_par_code);
 						ref_val = de_par[0][band];
 						de_par_prev[0][band] = de_par[0][band];
@@ -17115,7 +17131,7 @@ static Bool gf_ac4_extended_metadata(GF_BitStream *bs, GF_AC4SubStream *substrea
 			}
 		}
 	}
-	
+
 	if (gf_bs_read_int_log(bs, 1, "b_channels_classifier")) {
 		// channel_mode_contains_c()
 		if (ch_mode == 0 || (ch_mode >= 2 && ch_mode <= 15)) {
@@ -17223,7 +17239,7 @@ static Bool gf_ac4_emdf_payloads_substream(GF_BitStream *bs, GF_AC4SubStream *su
 		if (emdf_payload_id == 31) {
 			emdf_payload_id += gf_ac4_variable_bits(bs, 5);
 		}
-		
+
 		// emdf_payload_config
 		b_smpoffst = gf_bs_read_int_log(bs, 1, "b_smpoffst");
 		if (b_smpoffst) {
@@ -17259,7 +17275,7 @@ static Bool gf_ac4_emdf_payloads_substream(GF_BitStream *bs, GF_AC4SubStream *su
 		}
 
 		pos = gf_bs_get_bit_offset(bs);
-		
+
 		switch(emdf_payload_id) {
 			case 0x14:
 				gf_ac4_dialog_enhancement_info(bs, substream);
@@ -17485,11 +17501,11 @@ static Bool gf_ac4_object_info_block(GF_BitStream *bs, u8 b_no_delta, u8 b_dynam
 	}
 	if (gf_bs_read_int_log(bs, 1, "b_add_table_data")) {
 		atd_size = gf_bs_read_int_log(bs, 4, "add_table_data_size_minus1") + 1;
-	
+
 		// skip the parser for add_per_object_md()
 		// used_bits = add_per_object_md(b_dynamic_object, b_object_not_active);
 		// remain_bits = 8 * atd_size - used_bits;
-	
+
 		for (i = 0; i < atd_size; i++) {
 			gf_bs_read_int_log(bs, 8, "add_table_data");
 		}
@@ -17586,7 +17602,7 @@ static Bool gf_ac4_metadata(GF_BitStream *bs, GF_AC4SubStream *substream, GF_AC4
 	if (gf_bs_read_int_log(bs, 1, "b_more_bits")) {
 		gf_ac4_variable_bits(bs, 3); // tools_metadata_size << 7
 	}
-	
+
 	if (substream->sus_ver == 0) {
 		// sus_ver will not be 0 here because bitstream_version is always > 1
 		// drc_frame(bs, b_iframe);
@@ -18008,7 +18024,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 					}
 					// for others, immersive_audio_indicator should be derived from ES
 					// but if there is no immersive_audio_indicator in presentation substream, it should be derived from substream group information
-					else if (!p->b_additional_data) {	
+					else if (!p->b_additional_data) {
 						p->immersive_audio_indicator |= group->immersive_audio_indicator;
 
 						// channel based immersive
