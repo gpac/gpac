@@ -36,13 +36,13 @@ extern "C" {
 \file <gpac/scenegraph.h>
 \brief Scenegraph used for manipulating scenes (parsing, traversing, cleaning node status, ...)
 */
-	
-	
+
+
 /*!
 \addtogroup scene_grp Scene Graph
 \brief Scene graph management.
 */
-	
+
 /*!
 \addtogroup sscene Base Scenegraph
 \ingroup scene_grp
@@ -1007,6 +1007,13 @@ GF_Err gf_sg_command_apply_list(GF_SceneGraph *sg, GF_List *comList, Double time
 \return new commandFieldInfo structure*/
 GF_CommandField *gf_sg_command_field_new(GF_Command *com);
 
+
+/*! sets the target node of a command and registers the command as a back-reference on the
+node so that gf_node_free can null the pointer, preventing UAF if the node is force-freed
+by gf_sg_reset before the command is deleted */
+void gf_sg_command_set_node(GF_Command *com, GF_Node *node);
+
+
 /*! XML node from DOM parser */
 typedef struct _xml_node *GF_DOMXMLNODE;
 
@@ -1027,5 +1034,3 @@ GF_Err gf_sg_init_from_xml_node(GF_SceneGraph *document, GF_DOMXMLNODE root_node
 
 
 #endif /*_GF_SCENEGRAPH_H_*/
-
-

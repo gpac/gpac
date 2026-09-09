@@ -104,6 +104,7 @@ GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec)
 		tmp->dec_memory_mode = GF_TRUE;
 		tmp->force_keep_qp = GF_TRUE;
 	}
+	tmp->conditional_nodes = gf_list_new();
 	tmp->current_graph = NULL;
 	return tmp;
 }
@@ -237,6 +238,15 @@ void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 	gf_list_del(codec->streamInfo);
 
 	command_buffers_del(codec->command_buffers);
+
+	if (codec->conditional_nodes) {
+		u32 i;
+		for (i = 0; i < gf_list_count(codec->conditional_nodes); i++) {
+			GF_BifsDecoder** ptr = (GF_BifsDecoder**)gf_list_get(codec->conditional_nodes, i);
+			*ptr = NULL;
+		}
+		gf_list_del(codec->conditional_nodes);
+	}
 
 	gf_free(codec);
 }

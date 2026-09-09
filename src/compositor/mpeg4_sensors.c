@@ -934,7 +934,7 @@ static Bool OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF
 static GF_SensorHandler *plane_sensor_get_handler(GF_Node *n)
 {
 	PSStack *st = (PSStack *)gf_node_get_private(n);
-	return &st->hdl;
+	return st ? &st->hdl : NULL;
 }
 
 void compositor_init_plane_sensor(GF_Compositor *compositor, GF_Node *node)
@@ -1137,7 +1137,7 @@ static Bool OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel,
 static GF_SensorHandler *cylinder_sensor_get_handler(GF_Node *n)
 {
 	CylinderSensorStack *st = (CylinderSensorStack  *)gf_node_get_private(n);
-	return &st->hdl;
+	return st ? &st->hdl : NULL ;
 }
 
 void compositor_init_cylinder_sensor(GF_Compositor *compositor, GF_Node *node)
@@ -1315,7 +1315,7 @@ static Bool OnSphereSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, G
 static GF_SensorHandler *sphere_get_handler(GF_Node *n)
 {
 	SphereSensorStack *st = (SphereSensorStack *)gf_node_get_private(n);
-	return &st->hdl;
+	return st ? &st->hdl : NULL;
 }
 
 void compositor_init_sphere_sensor(GF_Compositor *compositor, GF_Node *node)
@@ -1481,9 +1481,11 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 	envtest->parameterValue.buffer=NULL;
 
 	smaller = larger = equal = 0;
+	par_value[0] = 0;
 	switch (envtest->parameter) {
 	/*screen aspect ratio*/
 	case 0:
+		if (!compositor) break;
 		if (compositor->display_width>compositor->display_height) {
 			ar = (Float) compositor->display_width;
 			ar /= compositor->display_height;
@@ -1500,11 +1502,13 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 		break;
 	/*screen is portrait */
 	case 1:
+		if (!compositor) break;
 		equal = (compositor->display_width < compositor->display_height) ? 1 : 2;
 		gf_strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
 	/*screen width */
 	case 2:
+		if (!compositor) break;
 		if (envtest->compareValue.buffer && (sscanf(envtest->compareValue.buffer, "%u", &par)==1)) {
 			if (compositor->display_width==par) equal=1;
 			else if (compositor->display_width>par) smaller=1;
@@ -1514,6 +1518,7 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 		break;
 	/*screen width */
 	case 3:
+		if (!compositor) break;
 		if (envtest->compareValue.buffer && (sscanf(envtest->compareValue.buffer, "%u", &par)==1)) {
 			if (compositor->display_height==par) equal=1;
 			else if (compositor->display_height>par) smaller=1;
@@ -1523,6 +1528,7 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 		break;
 	/*screen dpi horizontal */
 	case 4:
+		if (!compositor) break;
 		if (envtest->compareValue.buffer && (sscanf(envtest->compareValue.buffer, "%u", &par)==1)) {
 			if (compositor->video_out->dpi_x==par) equal=1;
 			else if (compositor->video_out->dpi_x>par) smaller=1;
@@ -1532,6 +1538,7 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 		break;
 	/*screen dpi vertical*/
 	case 5:
+		if (!compositor) break;
 		if (envtest->compareValue.buffer && (sscanf(envtest->compareValue.buffer, "%u", &par)==1)) {
 			if (compositor->video_out->dpi_y==par) equal=1;
 			else if (compositor->video_out->dpi_y>par) smaller=1;

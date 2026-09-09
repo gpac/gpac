@@ -158,13 +158,17 @@ void gf_sg_vrml_parent_setup(GF_Node *pNode)
 void gf_sg_vrml_parent_destroy(GF_Node *pNode)
 {
 	GF_VRMLParent* par = (GF_VRMLParent*)pNode;
-	GF_ChildNodeItem* children = par->children;
 	GF_ChildNodeItem* addChildren = par->addChildren;
 	GF_ChildNodeItem* removeChildren = par->removeChildren;
-	par->children = NULL;
 	par->addChildren = NULL;
 	par->removeChildren = NULL;
-	gf_node_unregister_children(pNode, children);
+	while (par->children) {
+		GF_ChildNodeItem *cur = par->children;
+		par->children = cur->next;
+		if (cur->node != pNode) gf_node_unregister(cur->node, pNode);
+		gf_free(cur);
+	}
+	par->children = NULL;
 	gf_node_unregister_children(pNode, addChildren);
 	gf_node_unregister_children(pNode, removeChildren);
 }
@@ -1374,8 +1378,12 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 		((SFImage *)dest)->height = ((SFImage *)orig)->height;
 		((SFImage *)dest)->numComponents  = ((SFImage *)orig)->numComponents;
 		size = ((SFImage *)dest)->width * ((SFImage *)dest)->height * ((SFImage *)dest)->numComponents;
-		((SFImage *)dest)->pixels = (u8*)gf_malloc(sizeof(char)*size);
-		memcpy(((SFImage *)dest)->pixels, ((SFImage *)orig)->pixels, sizeof(char)*size);
+		if (((SFImage *)orig)->pixels && size > 0) {
+			((SFImage *)dest)->pixels = (u8*)gf_malloc(sizeof(char)*size);
+			memcpy(((SFImage *)dest)->pixels, ((SFImage *)orig)->pixels, sizeof(char)*size);
+		} else {
+			((SFImage *)dest)->pixels = NULL;
+		}
 		break;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 	{

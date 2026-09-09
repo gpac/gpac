@@ -1890,10 +1890,13 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 	} else {
 		pb.buf =  (char *) data;
 		pb.buf_size = size - AVPROBE_PADDING_SIZE;
+		char sav = data[pb.buf_size];
+		pb.buf[pb.buf_size] = 0;
 		probe_fmt = av_probe_input_format3(&pb, GF_TRUE, &ffscore);
 		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;
 		if (!probe_fmt) probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
 		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;
+		pb.buf[pb.buf_size] = sav;
 	}
 	ff_probe_mode=GF_FALSE;
 

@@ -112,6 +112,16 @@ typedef struct _nodepriv
 
 	/*holder for all interactive stuff - THIS IS DYNAMICALLY CREATED*/
 	struct _node_interactive_ext *interact;
+
+	/* list of GF_Node** entries pointing to cmd->node fields; nulled out in gf_node_free
+	   to prevent UAF when gf_sg_reset force-frees a node still referenced by a command -
+	   THIS IS DYNAMICALLY CREATED */
+	GF_List* referencing_commands;
+
+	/* list of GF_Proto* whose node_code list still references this node; purged in
+	   gf_node_free to prevent UAF when a node shared across proto node_code lists is
+	   force-freed by another proto's gf_sg_reset teardown - THIS IS DYNAMICALLY CREATED */
+	GF_List* referencing_protos;
 } NodePriv;
 
 

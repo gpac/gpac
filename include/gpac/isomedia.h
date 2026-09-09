@@ -523,6 +523,22 @@ enum
 	GF_ISOM_BRAND_CMFC = GF_4CC('c','m','f','c'),
 	/* CMAF brand with neg ctts */
 	GF_ISOM_BRAND_CMF2 = GF_4CC('c','m','f','2'),
+	/* CMAF Media Profile */
+	GF_ISOM_BRAND_CHD1 = GF_4CC('c','h','d','1'),
+	GF_ISOM_BRAND_CLG1 = GF_4CC('c','l','g','1'),
+	GF_ISOM_BRAND_CHDF = GF_4CC('c','h','d','f'),
+
+	/* CMAF brand with AC-4 */
+	GF_ISOM_BRAND_CA4S = GF_4CC('c','a','4','s'),
+	GF_ISOM_BRAND_CA4M = GF_4CC('c','a','4','m'),
+	GF_ISOM_BRAND_CA4E = GF_4CC('c','a','4','e'),
+	/* CMAF brand with dolby vision */
+	GF_ISOM_BRAND_DV58 = GF_4CC( 'd', 'v', '5', '8' ),
+	GF_ISOM_BRAND_DV09 = GF_4CC( 'd', 'v', '0', '9' ),
+	GF_ISOM_BRAND_DV10 = GF_4CC( 'd', 'v', '1', '0' ),
+	GF_ISOM_BRAND_DV20 = GF_4CC( 'd', 'v', '2', '0' ),
+
+	GF_ISOM_BRAND_UNIF = GF_4CC('u','n','i','f'),
 
 	/* from ismacryp.c */
 	/* OMA DCF DRM Format 2.0 (OMA-TS-DRM-DCF-V2_0-20060303-A) */
@@ -534,8 +550,12 @@ enum
 	GF_ISOM_BRAND_COMP  = GF_4CC( 'c', 'o', 'm', 'p' ),
 	GF_ISOM_BRAND_ISOC  = GF_4CC( 'i', 's', 'o', 'C' ),
 
-	/* Dolby Vision */
+	/* Dolby */
 	GF_ISOM_BRAND_DBY1  = GF_4CC( 'd', 'b', 'y', '1' ),
+	GF_ISOM_BRAND_DB1P  = GF_4CC( 'd', 'b', '1', 'p' ),
+	GF_ISOM_BRAND_DB2G  = GF_4CC( 'd', 'b', '2', 'g' ),
+	GF_ISOM_BRAND_DB4H  = GF_4CC( 'd', 'b', '4', 'h' ),
+	GF_ISOM_BRAND_DB4G  = GF_4CC( 'd', 'b', '4', 'g' ),
 };
 
 /*! sample roll information type*/
@@ -2674,6 +2694,15 @@ GF_Err gf_isom_set_high_dynamic_range_info(GF_ISOFile *isom_file, u32 trackNumbe
 */
 GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_DOVIDecoderConfigurationRecord *dvcc);
 
+/*! sets Dolby Vision brands to ftyp box based on the given Dolby Vision configuration.
+\param isom_file the target ISO file
+\param trackNumber the target track number
+\param sampleDescriptionIndex the target sample description index
+\param dvcc the Dolby Vision configuration
+\param add_cmaf_brands GF_TRUE if iso_file is using CMAF guidelines
+\return error if any
+*/
+GF_Err gf_isom_set_dolby_vision_brands(GF_ISOFile* isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_DOVIDecoderConfigurationRecord *dvcc, Bool add_cmaf_brands);
 
 /*! sets image sequence coding constraints (mostly used for HEIF image files)
 \param isom_file the target ISO file
@@ -7332,6 +7361,7 @@ enum {
 	GF_ISOM_SAMPLE_GROUP_SULM = GF_4CC( 's', 'u', 'l', 'm'), //p15
 	GF_ISOM_SAMPLE_GROUP_ESGH = GF_4CC( 'e', 's', 'g', 'h'), //p12
 	GF_ISOM_SAMPLE_GROUP_ILCE = GF_4CC( 'i', 'l', 'c', 'e'), //uncv
+	GF_ISOM_SAMPLE_GROUP_PRSL = GF_4CC( 'p', 'r', 's', 'l'), //iso
 };
 
 /*! gets 'rap ' and 'roll' group info for the given sample
@@ -7561,6 +7591,20 @@ GF_Err gf_isom_get_sample_references(GF_ISOFile *isom_file, u32 trackNumber, u32
 \return error if any*/
 GF_Err gf_isom_fragment_add_sample_references(GF_ISOFile *isom_file, GF_ISOTrackID TrackID, s32 refID, u32 nb_refs, s32 *refs);
 #endif
+
+/*! sets preselection info to file
+\param isom_file the target ISO file
+\param TrackID the target track ID
+\param cfg_list the list of GF_PreselectionEntityToGroup
+\return error if any*/
+GF_Err gf_isom_set_preselection_info(GF_ISOFile *file, u32 track, GF_List *cfg_list);
+
+/*! sets preselection info from file
+\param isom_file the target ISO file
+\param data the address of the buffer
+\param data_size the address of the buffer size
+\return error if any*/
+GF_Err gf_isom_get_preselection_info(GF_ISOFile *file, u8 **data, u32 *data_size);
 
 /*! @} */
 

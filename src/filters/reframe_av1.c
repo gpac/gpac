@@ -36,6 +36,14 @@ typedef struct
 	Double duration;
 } AV1Idx;
 
+typedef struct {
+	u8 *data;
+	u32 size;
+	u64 cts;
+	s32 roll_distance;
+	u32 trim_at_end;
+} GF_IamfQueuedFrame;
+
 typedef enum {
 	//input format not probed yet
 	NOT_SET,
@@ -114,8 +122,11 @@ typedef struct
 	Bool copy_props;
 
 	GF_SEILoader *sei_loader;
+	GF_List *queued_iamf_frames; // Buffered IAMF frames waiting for PID configuration
 } GF_AV1DmxCtx;
 
+
+static void av1dmx_cleanup_iamf_queue(GF_AV1DmxCtx *ctx);
 
 GF_Err av1dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -128,6 +139,7 @@ GF_Err av1dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 			gf_filter_pid_remove(ctx->opid);
 			ctx->opid = NULL;
 		}
+		av1dmx_cleanup_iamf_queue(ctx);
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -555,7 +567,12 @@ static Bool av1dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_PLAY:
 		if (!ctx->is_playing) {
 			ctx->is_playing = GF_TRUE;
-			ctx->cts = 0;
+			// Only reset CTS if output PID is not configured yet. For IAMF, we might
+			// have already processed and queued/sent some frames before the initial PLAY
+			// event arrives (which is triggered late by PID creation).
+			if (!ctx->opid) {
+				ctx->cts = 0;
+			}
 		}
 		if (! ctx->is_file) {
 			return GF_FALSE;
@@ -631,6 +648,56 @@ static GFINLINE void av1dmx_update_cts(GF_AV1DmxCtx *ctx)
 	}
 }
 
+static GF_Err av1dmx_iamf_send_packet(GF_AV1DmxCtx *ctx, u8 *data, u32 size, u64 cts, s32 roll_distance, u32 trim_at_end)
+{
+	u8 *output;
+	GF_FilterPacket *pck;
+	u32 trimmed_duration = 0;
+
+	if (trim_at_end > 0) {
+		u32 samples = ctx->iamfstate.num_samples_per_frame;
+		if (samples > trim_at_end) {
+			trimmed_duration = samples - trim_at_end;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Dmx] trim_at_end (%u) is greater than or equal to the number of samples per frame (%u) in compliant bitstream\n", trim_at_end, samples));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+	}
+
+	pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!pck) return GF_OUT_OF_MEM;
+
+	if (ctx->src_pck)
+		gf_filter_pck_merge_properties(ctx->src_pck, pck);
+
+	gf_filter_pck_set_cts(pck, cts);
+	gf_filter_pck_set_sap(pck, roll_distance ? GF_FILTER_SAP_4 : GF_FILTER_SAP_1);
+	if (roll_distance) {
+		gf_filter_pck_set_roll_info(pck, roll_distance);
+	}
+
+	memcpy(output, data, size);
+
+	if (trim_at_end > 0) {
+		gf_filter_pck_set_duration(pck, trimmed_duration);
+	}
+	gf_filter_pck_send(pck);
+	return GF_OK;
+}
+
+static void av1dmx_cleanup_iamf_queue(GF_AV1DmxCtx *ctx)
+{
+	if (ctx->queued_iamf_frames) {
+		while (gf_list_count(ctx->queued_iamf_frames)) {
+			GF_IamfQueuedFrame *qf = (GF_IamfQueuedFrame *)gf_list_pop_back(ctx->queued_iamf_frames);
+			if (qf->data) gf_free(qf->data);
+			gf_free(qf);
+		}
+		gf_list_del(ctx->queued_iamf_frames);
+		ctx->queued_iamf_frames = NULL;
+	}
+}
+
 static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 {
 	u8 *dsi;
@@ -638,6 +705,8 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	//no config or no config change
 	if (ctx->is_av1 && !gf_list_count(ctx->state.frame_state.header_obus)) return;
+	//for IAMF, wait until the global pre-skip is finalized and descriptor OBUs are parsed
+	//(downstream filters require the pre-skip/delay and stream configuration on PID initialization)
 	if (ctx->is_iamf && (!ctx->iamfstate.frame_state.pre_skip_is_finalized || !gf_list_count(ctx->iamfstate.frame_state.descriptor_obus))) return;
 
 	if (ctx->is_iamf) {
@@ -805,6 +874,20 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(ctx->vp_cfg->video_fullRange_flag) );
 	}
 #endif
+
+	// Flush any IAMF frames queued while waiting for pre_skip to finalize
+	if (ctx->queued_iamf_frames) {
+		u32 i;
+		u32 count = gf_list_count(ctx->queued_iamf_frames);
+		for (i = 0; i < count; i++) {
+			GF_IamfQueuedFrame *qf = (GF_IamfQueuedFrame *)gf_list_get(ctx->queued_iamf_frames, i);
+			av1dmx_iamf_send_packet(ctx, qf->data, qf->size, qf->cts, qf->roll_distance, qf->trim_at_end);
+			gf_free(qf->data);
+			gf_free(qf);
+		}
+		gf_list_del(ctx->queued_iamf_frames);
+		ctx->queued_iamf_frames = NULL;
+	}
 }
 
 GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
@@ -1015,6 +1098,61 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	return GF_OK;
 }
 
+// Queue an IAMF frame when output PID is not yet configured (waiting for pre_skip to finalize)
+static GF_Err av1dmx_queue_iamf_frame(GF_AV1DmxCtx *ctx)
+{
+	u32 pck_size = 0;
+	GF_IamfQueuedFrame *qf;
+
+	if (ctx->iamfstate.temporal_unit_obus) {
+		gf_free(ctx->iamfstate.temporal_unit_obus);
+		ctx->iamfstate.temporal_unit_obus = NULL;
+	}
+	gf_bs_get_content_no_truncate(ctx->iamfstate.bs, &ctx->iamfstate.temporal_unit_obus, &pck_size, &ctx->iamfstate.temporal_unit_obus_alloc);
+
+	if (!pck_size) {
+		return GF_OK;
+	}
+
+	GF_SAFEALLOC(qf, GF_IamfQueuedFrame);
+	if (!qf) return GF_OUT_OF_MEM;
+
+	qf->data = (u8 *)gf_malloc(pck_size);
+	if (!qf->data) {
+		gf_free(qf);
+		return GF_OUT_OF_MEM;
+	}
+	memcpy(qf->data, ctx->iamfstate.temporal_unit_obus, pck_size);
+	qf->size = pck_size;
+	qf->cts = ctx->cts;
+	qf->roll_distance = ctx->iamfstate.audio_roll_distance;
+	qf->trim_at_end = ctx->iamfstate.frame_state.num_samples_to_trim_at_end;
+
+	if (qf->trim_at_end > 0) {
+		u32 samples = ctx->iamfstate.num_samples_per_frame;
+		if (samples <= qf->trim_at_end) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Dmx] trim_at_end (%u) is greater than or equal to the number of samples per frame (%u) in compliant bitstream\n", qf->trim_at_end, samples));
+			gf_free(qf->data);
+			gf_free(qf);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+	}
+
+	if (!ctx->queued_iamf_frames) {
+		ctx->queued_iamf_frames = gf_list_new();
+	}
+	gf_list_add(ctx->queued_iamf_frames, qf);
+
+	if (ctx->is_iamf && ctx->iamfstate.num_samples_per_frame) {
+		ctx->cur_fps.num = ctx->iamfstate.sample_rate;
+		ctx->cur_fps.den = ctx->iamfstate.num_samples_per_frame;
+	}
+	av1dmx_update_cts(ctx);
+	gf_iamf_reset_state(&ctx->iamfstate, GF_FALSE);
+
+	return GF_OK;
+}
+
 static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 {
 	u32 pck_size = 0;
@@ -1043,6 +1181,14 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		return GF_OK;
 	}
 
+	if (ctx->is_iamf) {
+		GF_Err e = av1dmx_iamf_send_packet(ctx, ctx->iamfstate.temporal_unit_obus, pck_size, ctx->cts, ctx->iamfstate.audio_roll_distance, ctx->iamfstate.frame_state.num_samples_to_trim_at_end);
+		if (e) return e;
+		av1dmx_update_cts(ctx);
+		gf_iamf_reset_state(&ctx->iamfstate, GF_FALSE);
+		return GF_OK;
+	}
+
 	pck = gf_filter_pck_new_alloc(ctx->opid, pck_size, &output);
 	if (!pck) return GF_OUT_OF_MEM;
 
@@ -1050,26 +1196,10 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		gf_filter_pck_merge_properties(ctx->src_pck, pck);
 
 	gf_filter_pck_set_cts(pck, ctx->cts);
-	if (ctx->is_iamf) {
-		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-	} else {
-		gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
-	}
+	gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
 	gf_filter_pck_set_switch_frame(pck, ctx->state.frame_state.switch_frame);
 
-	if (ctx->is_iamf) {
-		memcpy(output, ctx->iamfstate.temporal_unit_obus, pck_size);
-		if (ctx->iamfstate.audio_roll_distance != 0) {
-			gf_filter_pck_set_roll_info(pck, ctx->iamfstate.audio_roll_distance);
-			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_4);
-		}
-		if (ctx->iamfstate.frame_state.num_samples_to_trim_at_end > 0) {
-			u64 trimmed_duration = ctx->iamfstate.num_samples_per_frame - ctx->iamfstate.frame_state.num_samples_to_trim_at_end;
-			gf_filter_pck_set_duration(pck, (u32) trimmed_duration);
-		}
-	} else {
-		memcpy(output, ctx->state.frame_obus, pck_size);
-	}
+	memcpy(output, ctx->state.frame_obus, pck_size);
 
 	if (ctx->deps) {
 		u8 flags = 0;
@@ -1091,7 +1221,6 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	av1dmx_update_cts(ctx);
 	gf_av1_reset_state(&ctx->state, GF_FALSE);
-	gf_iamf_reset_state(&ctx->iamfstate, GF_FALSE);
 
 	return GF_OK;
 
@@ -1203,9 +1332,12 @@ GF_Err av1dmx_parse_iamf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (!ctx->opid) {
 		if (ctx->iamfstate.frame_state.pre_skip_is_finalized) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AV1Dmx] output pid not configured (no IAMF Descriptors yet?), skipping OBUs\n"));
+			gf_iamf_reset_state(&ctx->iamfstate, GF_FALSE);
+		} else {
+			// Queue frames until pre_skip is finalized and PID is created
+			e = av1dmx_queue_iamf_frame(ctx);
 		}
-		gf_iamf_reset_state(&ctx->iamfstate, GF_FALSE);
-		return GF_OK;
+		return e;
 	}
 
 	e = av1dmx_parse_flush_sample(filter, ctx);
@@ -1399,6 +1531,7 @@ static void av1dmx_finalize(GF_Filter *filter)
 	GF_AV1DmxCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);
+	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 
 	gf_av1_reset_state(&ctx->state, GF_TRUE);
 	if (ctx->state.config) gf_odf_av1_cfg_del(ctx->state.config);
@@ -1414,6 +1547,8 @@ static void av1dmx_finalize(GF_Filter *filter)
 	if (ctx->iamfstate.temporal_unit_obus) gf_free(ctx->iamfstate.temporal_unit_obus);
 	if (ctx->sei_loader)
 		gf_sei_loader_del(ctx->sei_loader);
+
+	av1dmx_cleanup_iamf_queue(ctx);
 }
 
 static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)

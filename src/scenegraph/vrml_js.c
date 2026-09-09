@@ -4134,7 +4134,8 @@ static void JSScript_LoadVRML(GF_Node *node)
 	str = NULL;
 	for (i=0; i<script->url.count; i++) {
 		str = script->url.vals[i].script_text;
-		while (strchr("\n\t ", str[0])) str++;
+		if (!str) continue;
+		while (str[0] && strchr("\n\t ", str[0])) str++;
 
 		if (!strnicmp(str, "javascript:", 11)) str += 11;
 		else if (!strnicmp(str, "vrmlscript:", 11)) str += 11;

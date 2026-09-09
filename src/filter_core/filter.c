@@ -3608,6 +3608,16 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 	s32 res;
 	GF_Err e;
 	GF_Filter *f = ((struct _gf_filter_setup_failure *)task->udta)->filter;
+
+	/* Defer teardown if a task for this filter is currently executing on the direct-call stack.
+	   gf_filter_process_task clears in_process_callback after freg->process() returns;
+	   gf_fs_post_task_ex clears DIRECT_SCHEDULED after any direct-call task returns.
+	   Running the teardown synchronously here would free the filter mid-stack. */
+	if (f->in_process_callback || f->scheduled_for_next_task == GF_FILTER_DIRECT_SCHEDULED) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
+
 	if (task->udta) {
 		e = ((struct _gf_filter_setup_failure *)task->udta)->e;
 		gf_free(task->udta);
@@ -3664,7 +3674,6 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 	gf_mx_v(f->tasks_mx);
 	//avoid destruction of the current task (ourselves)
 	gf_fq_pop(f->tasks);
-
 	gf_filter_del(f);
 	task->filter = NULL;
 	task->requeue_request = GF_FALSE;

@@ -3990,6 +3990,14 @@ restart:
 		gf_free(args);
 	}
 
+	/* Filter was marked removed during initialization (setup_failure was called synchronously
+	   then deferred by gf_filter_setup_failure_task). Do not return it. */
+	if (filter && filter->removed) {
+		if (err && !*err)
+			*err = filter->session->last_connect_error ? filter->session->last_connect_error : GF_SERVICE_ERROR;
+		return NULL;
+	}
+
 	if (!e && filter && !filter->num_output_pids && for_source)
 		gf_filter_post_process_task(filter);
 
@@ -5127,7 +5135,7 @@ static Bool fs_check_locales(void *__self, const char *locales_parent_path, cons
 		char *sep_lang = strchr(opt, ';');
 		if (sep_lang) sep_lang[0] = 0;
 
-		while (strchr(" \t", opt[0]))
+		while (opt[0] && strchr(" \t", opt[0]))
 			opt++;
 
 		gf_strcpy(lan, opt);

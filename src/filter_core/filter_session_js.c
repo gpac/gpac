@@ -924,6 +924,27 @@ static JSValue jsff_get_pid_source(JSContext *ctx, JSValueConst this_val, int ar
 	return jsfs_new_filter_obj(ctx, ipid->pid->filter);
 }
 
+static JSValue jsff_get_pid_source_opid_idx(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 idx;
+	GF_FilterPid *pid;
+	GF_FilterPidInst *ipid;
+	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
+	if (!f || (argc!=1) )
+		return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &idx, argv[0]))
+		return GF_JS_EXCEPTION(ctx);
+
+	pid = gf_filter_get_ipid(f, idx);
+	if (!pid) return JS_NewInt32(ctx, -1);
+
+	ipid = (GF_FilterPidInst *)pid;
+	GF_Filter *src = ipid->pid->filter;
+	if (!src) return JS_NewInt32(ctx, -1);
+	s32 src_idx = gf_list_find(src->output_pids, ipid->pid);
+	return JS_NewInt32(ctx, src_idx);
+}
+
 static JSValue jsff_get_pid_sinks(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 idx;
@@ -1745,6 +1766,7 @@ static const JSCFunctionListEntry fs_f_funcs[] = {
 	JS_CFUNC_DEF("opid_props", 0, jsff_enum_opid_props),
 	JS_CFUNC_DEF("ipid_source", 0, jsff_get_pid_source),
 	JS_CFUNC_DEF("opid_sinks", 0, jsff_get_pid_sinks),
+	JS_CFUNC_DEF("ipid_source_opid_idx", 0, jsff_get_pid_source_opid_idx),
 	JS_CFUNC_DEF("all_args", 0, jsff_all_args),
 	JS_CFUNC_DEF("get_arg", 0, jsff_get_arg),
 	JS_CFUNC_DEF("update", 0, jsff_update),

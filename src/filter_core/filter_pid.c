@@ -2054,6 +2054,7 @@ Bool filter_source_id_match(GF_FilterPid *src_pid, const char *src_filter_id, GF
 	Bool first_pass = GF_TRUE;
 	Bool has_default_match;
 	Bool is_pid_excluded;
+	u32 src_fid_len = src_filter_id ? (u32) strlen(src_filter_id) : 0;
 	*pid_excluded = GF_FALSE;
 	if (dst_filter) {
 		if (!dst_filter->source_ids)
@@ -2098,13 +2099,19 @@ sourceid_reassign:
 		//skip frag char
 		if (frag_name) frag_name++;
 
+		Bool match_prefix = GF_FALSE;
+		if ((sublen>1) && source_ids[sublen-1] == '*') {
+			sublen--;
+			match_prefix = GF_TRUE;
+		}
+
 		//any ID, always match
 		if (source_ids[0]=='*') { }
 		// id does not match
 		else {
 			Bool res;
 			if (src_filter_id)
-				res = strncmp(src_filter_id, source_ids, sublen) ? GF_FALSE : GF_TRUE;
+				res = ((!sublen || match_prefix || (src_fid_len==sublen)) && !strncmp(src_filter_id, source_ids, sublen)) ? GF_TRUE : GF_FALSE;
 			else
 				res = sublen ? GF_FALSE : GF_TRUE;
 			if (use_neg) res = !res;
@@ -5609,6 +5616,21 @@ single_retry:
 				if (skipped) {
 					continue;
 				}
+
+				//filter was reassigned (pid is destroyed), return
+				if (reassigned) {
+					if (num_pass==1) {
+						can_reassign_filter = GF_TRUE;
+						continue;
+					}
+					gf_mx_v(filter->session->filters_mx);
+					if (loaded_filters) gf_list_del(loaded_filters);
+					gf_list_del(linked_dest_filters);
+					gf_list_del(force_link_resolutions);
+					gf_list_del(possible_linked_resolutions);
+					return;
+				}
+
 				if (pid->filter->session->run_status!=GF_OK) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s init canceled (session abort)\n", pid->filter->name, pid->name));
 					gf_mx_v(filter->session->filters_mx);
@@ -5621,21 +5643,6 @@ single_retry:
 					return;
 				}
 
-				//filter was reassigned (pid is destroyed), return
-				if (reassigned) {
-					if (num_pass==1) {
-						can_reassign_filter = GF_TRUE;
-						continue;
-					}
-					gf_mx_v(filter->session->filters_mx);
-					gf_assert(pid->init_task_pending);
-					safe_int_dec(&pid->init_task_pending);
-					if (loaded_filters) gf_list_del(loaded_filters);
-					gf_list_del(linked_dest_filters);
-					gf_list_del(force_link_resolutions);
-					gf_list_del(possible_linked_resolutions);
-					return;
-				}
 				//we might had it wrong solving the chain initially, break the chain
 				if (filter_dst->dynamic_filter && filter_dst->dst_filter) {
 					GF_Filter *new_dst = filter_dst;

@@ -6758,6 +6758,31 @@ GF_Err gf_isom_get_sample_references(GF_ISOFile *the_file, u32 trackNumber, u32 
 }
 
 GF_EXPORT
+GF_Err gf_isom_get_preselection_info(GF_ISOFile *the_file, u8 **data, u32 *size)
+{
+	if (!the_file) return GF_BAD_PARAM;
+
+	GF_MetaBox *meta = (GF_MetaBox*)gf_isom_get_meta(the_file, GF_TRUE, 0);
+	if (!meta) return GF_NOT_FOUND;
+
+	GF_GroupListBox *grpl = (GF_GroupListBox*)gf_isom_box_find_child(meta->child_boxes, GF_ISOM_BOX_TYPE_GRPL);
+	if (!grpl) return GF_NOT_FOUND;
+
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	GF_List *childs = grpl->child_boxes;
+
+	for (u32 i=0; i<gf_list_count(childs); i++) {
+		GF_Box *child = gf_list_get(childs, i);
+		if (child->type == GF_ISOM_BOX_TYPE_PRSL) {
+			gf_isom_box_write(child, bs);
+		}
+	}
+
+	gf_bs_get_content(bs, data, size);
+	gf_bs_del(bs);
+}
+
+GF_EXPORT
 GF_Err gf_isom_override_dref_url(GF_ISOFile *the_file, const char *dref_url)
 {
 	if (!the_file) return GF_BAD_PARAM;

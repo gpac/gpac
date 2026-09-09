@@ -513,6 +513,9 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 		can_bubble = gf_sg_fire_dom_event(parent->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, parent);
 		if(!can_bubble) return;
 	}
+	// prevent inifinte loop
+	if (!cur_par_idx && !parent->sgprivate->interact)
+		return;
 	gf_sg_dom_event_bubble(parent, event, use_stack, cur_par_idx);
 }
 

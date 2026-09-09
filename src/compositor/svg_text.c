@@ -163,7 +163,7 @@ GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles
 
 	while (a_font) {
 		char *sep;
-		while (strchr("\t\r\n ", a_font[0])) a_font++;
+		while (a_font[0] && strchr("\t\r\n ", a_font[0])) a_font++;
 
 		sep = strchr(a_font, ',');
 		if (sep) sep[0] = 0;

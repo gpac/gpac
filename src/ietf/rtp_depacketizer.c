@@ -510,6 +510,10 @@ static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pa
 		type = gf_bs_read_int(bs, 3);
 		ttu_len = gf_bs_read_u16(bs);
 		if (ttu_len<2) break;
+		if (pay_start + ttu_len + 1 > (u64) size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Payload advertised size (%lu) incompatible with buffer size (%lu) - ignoring\n", ttu_len, size-pay_start-1));
+			break;
+		}
 
 		if (type==1) {
 			/*flush any existing packet*/

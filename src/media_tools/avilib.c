@@ -2054,7 +2054,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 						if(AVI->anum > AVI_MAX_TRACKS) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] error - only %d audio tracks supported\n", AVI_MAX_TRACKS));
-							return(-1);
+							ERR_EXIT(AVI_ERR_READ)
 						}
 
 						if ( (i+44+4>hdrl_len) || (i+sizeof(alAVISTREAMHEADER))>hdrl_len ) ERR_EXIT(AVI_ERR_READ)
@@ -2078,7 +2078,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					}
 					else if (strnicmp ((char*)hdrl_data+i,"iavs",4) ==0 && ! auds_strh_seen) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] AVILIB: error - DV AVI Type 1 no supported\n"));
-						return (-1);
+						ERR_EXIT(AVI_ERR_READ)
 					}
 					else
 						lasttag = 0;

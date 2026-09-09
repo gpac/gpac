@@ -427,7 +427,7 @@ GPAC core configuration:
 
 
 Extra libraries configuration:
-You can turn a library off or force using the local version in gpac/extra_lib/
+You can turn a library off or force using the local version in gpac/extra_lib/. It will fail if not found:
   --use-FOO=no             disable library FOO
   --use-FOO=local          force use of library FOO in gpac/extra_lib/include, gpac/extra_lib/lib/gcc/bin/
   --use-FOO=system         force using system version only of library FOO
@@ -1216,6 +1216,9 @@ if test "$want_gcov"  = "yes" ; then
     LDFLAGS="$LDFLAGS --coverage"
 fi
 
+# disable unsafe str functions for gpac
+CFLAGS="$CFLAGS -DGPAC_DISABLE_UNSAFE_STRFUNC"
+
 #force use of cflags with cc
 cc_naked=$cc
 cxx_naked=$cxx
@@ -1551,6 +1554,10 @@ config_package ()
     esac
 
     config_package_test "$1" "$2" "$3" "$4" "$5" "$6"
+    if test "$has_pck" = "no" -a "$forced" != "" -a "$forced" != "no" ; then
+        echo "error: $pname requested with --use-$pname=$forced but not found"
+        exit 1
+    fi
     if test "$has_pck" != "no" ; then
         eval "cflags_$pname=\"$pck_cflags\""
         eval "ldflags_$pname=\"$pck_ldflags\""
@@ -1736,7 +1743,7 @@ config_package faad "faad2" "" "-lfaad -lm" "" '#include <faad.h>
 int main( void ) { NeAACDecOpen(); return 0; }'
 
 
-ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lpostproc"
+ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale"
 ffmpeg_pck_names="libavcodec libavformat libswscale libavutil"
 
 if test "$is_em" = "yes" ; then

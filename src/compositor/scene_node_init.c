@@ -329,8 +329,20 @@ void gf_scene_on_node_modified(void *_is, GF_Node *node)
 
 static void gf_scene_on_node_destroyed(void *_is, GF_Node *node)
 {
-	GF_Scene *scene = (GF_Scene *)_is;
+	u32 i;
+	GF_ObjectManager* odm;
+	GF_Scene* scene = (GF_Scene*)_is;
 	if (!scene) return;
+
+	if (scene->root_od && scene->root_od->mo)
+		gf_mo_event_target_remove_by_node(scene->root_od->mo, node);
+
+	i = 0;
+	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
+		if (odm->mo)
+			gf_mo_event_target_remove_by_node(odm->mo, node);
+	}
+
 	gf_sc_node_destroy(scene->compositor, node, NULL);
 }
 

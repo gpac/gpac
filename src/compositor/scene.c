@@ -344,7 +344,19 @@ static void gf_scene_reset_urls(GF_Scene *scene)
 GF_EXPORT
 void gf_scene_del(GF_Scene *scene)
 {
-	gf_list_del(scene->resources);
+	// warn every external raw-pointer holder (e.g. BT/XMT loaders) that this scene/graph is
+	// about to be destroyed, while it is still fully valid, so they can release their leftover
+	// references now (their own finalize may run after this scene is gone)
+	if (scene->destroy_notify) {
+		while (gf_list_count(scene->destroy_notify)) {
+			GF_SceneDestroyNotify* n = (GF_SceneDestroyNotify*)gf_list_pop_back(scene->destroy_notify);
+			if (n->notify) n->notify(n->udta);
+			n->done = GF_TRUE;
+		}
+		gf_list_del(scene->destroy_notify);
+		scene->destroy_notify = NULL;
+	}
+
 	gf_assert(!gf_list_count(scene->extra_scenes) );
 	gf_list_del(scene->extra_scenes);
 
@@ -361,6 +373,10 @@ void gf_scene_del(GF_Scene *scene)
 
 	/*delete the scene graph*/
 	gf_sg_del(scene->graph);
+
+	// node destruction callbacks triggered by gf_sg_del (e.g. global_qp teardown) may still
+	// need to look scene->resources up - free it only after the graph is fully gone
+	gf_list_del(scene->resources);
 
 	/*don't touch the root_od, will be deleted by the parent scene*/
 
@@ -432,9 +448,11 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	if (for_shutdown && scene->root_od->mo) {
 		/*reset private stack of all inline nodes still registered*/
 		while (gf_mo_event_target_count(scene->root_od->mo)) {
-			gf_mo_event_target_remove_by_index(scene->root_od->mo, 0);
 #ifndef GPAC_DISABLE_VRML
 			GF_Node *n = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(scene->root_od->mo, 0));
+#endif
+			gf_mo_event_target_remove_by_index(scene->root_od->mo, 0);
+#ifndef GPAC_DISABLE_VRML
 			if (n) {
 				switch (gf_node_get_tag(n)) {
 				case TAG_MPEG4_Inline:
@@ -670,9 +688,11 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 			/*reset private stack of all inline nodes still registered*/
 			if (discard_obj) {
 				while (gf_mo_event_target_count(obj)) {
-					gf_mo_event_target_remove_by_index(obj, 0);
 #ifndef GPAC_DISABLE_VRML
 					GF_Node *n = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(obj, 0));
+#endif
+					gf_mo_event_target_remove_by_index(obj, 0);
+#ifndef GPAC_DISABLE_VRML
 					if (n) {
 						switch (gf_node_get_tag(n)) {
 						case TAG_MPEG4_Inline:
@@ -681,6 +701,9 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 #endif
 							if (obj->num_open) gf_mo_stop(&obj);
 							gf_node_set_private(n, NULL);
+							break;
+						case TAG_MPEG4_InputSensor:
+							gf_input_sensor_mo_destroyed(n);
 							break;
 						default:
 							gf_sc_mo_destroyed(n);

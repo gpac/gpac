@@ -4303,7 +4303,7 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			not_vvc++;
 			continue;
 		}
-		nal_type = data[1] >> 3;
+		nal_type = size > 1 ? data[1] >> 3 : 0;
 		if (nal_type>31) {
 			not_vvc++;
 			continue;

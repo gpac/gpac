@@ -562,7 +562,7 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 		char *sess_cookie = strstr(sess->tcp_buffer, "x-sessioncookie");
 		if (sess_cookie) sess_cookie = strchr(sess_cookie, ':');
 		if (sess_cookie) {
-			while (strchr(" :", sess_cookie[0]))
+			while (sess_cookie[0] && strchr(" :", sess_cookie[0]))
 				sess_cookie++;
 			char *sep = strchr(sess_cookie, '\r');
 			if (sep) {

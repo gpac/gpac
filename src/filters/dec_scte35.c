@@ -316,15 +316,17 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 
 			evt->dts += emib_dur;
 			dts += emib_dur;
-			evt->emib->presentation_time_delta -= evt->emib->presentation_time_delta;
+			evt->emib->presentation_time_delta = 0; //event is on-going
 			evt->emib->event_duration -= emib_dur;
 			if (max_dur != GF_UINT_MAX)
 				max_dur -= emib_dur;
 		}
 
-		if (!IS_SEGMENTED ||
-		    (evt->emib->presentation_time_delta <= 0 && (evt->emib->event_duration == GF_UINT_MAX || evt->emib->event_duration == 0)) ||
-			dts >= evt->dts + evt_dur) {
+		if (!IS_SEGMENTED
+		    || /*past event*/ (evt->emib->presentation_time_delta == 0
+		        && (evt->emib->event_duration == GF_UINT_MAX || evt->emib->event_duration == 0))
+		    || /*past event*/ dts >= evt->dts + evt_dur
+		) {
 			// we're done with the event
 			gf_isom_box_del((GF_Box*)evt->emib);
 			gf_free(evt);
@@ -476,7 +478,9 @@ Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *spl
 	/*u32 tier = */gf_bs_read_int(bs, 12);
 
 	u32 splice_command_length = gf_bs_read_int(bs, 12);
-	if (splice_command_length > gf_bs_available(bs)) {
+	/* 0xFFF indicates that splice_command_length is unspecified. */
+	Bool splice_command_length_unspecified = (splice_command_length == 0xFFF);
+	if (!splice_command_length_unspecified && (splice_command_length > gf_bs_available(bs))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short (" LLU " bytes) while parsing splice command (%u bytes)\n",
 			gf_bs_available(bs), splice_command_length));
 		goto exit;
@@ -544,7 +548,8 @@ Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *spl
 		break;
 	case 0x00: //splice_null()
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_null()\n"));
-		gf_bs_skip_bytes(bs, splice_command_length);
+		if (!splice_command_length_unspecified)
+			gf_bs_skip_bytes(bs, splice_command_length);
 		gf_bs_align(bs);
 		break;
 	default:
