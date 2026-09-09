@@ -1413,7 +1413,7 @@ enum
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
 	GF_PROP_PID_HLS_REF = GF_4CC('P','H','L','R'),
-	//internal for low latency HLS abd DASH:
+	//internal for low latency HLS and DASH:
 	//0 or not present: no low latency
 	//1: LL-HLS byte-range mode
 	//2: LL-HLS or DASH SSR separate parts mode
@@ -1432,6 +1432,8 @@ enum
 	GF_PROP_PCK_HLS_VARIANT_NAME = GF_4CC('D','H','L','N'),
 	GF_PROP_PID_HLS_KMS = GF_4CC('H','L','S','K'),
 	GF_PROP_PID_HLS_IV = GF_4CC('H','L','S','I'),
+	GF_PROP_PID_LAURL = GF_4CC('L','A','U','R'),
+	GF_PROP_PID_CERTURL = GF_4CC('C','E','U','R'),
 	GF_PROP_PID_CLEARKEY_URI = GF_4CC('C','C','K','U'),
 	GF_PROP_PID_CLEARKEY_KID = GF_4CC('C','C','K','I'),
 	GF_PROP_PID_DASH_SPARSE = GF_4CC('D','S','S','G'),

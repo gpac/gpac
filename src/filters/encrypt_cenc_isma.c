@@ -410,7 +410,68 @@ static GF_Err adobe_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 	return GF_OK;
 }
 
-static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const char *cfile_name)
+static GF_Err cenc_parse_cpix_pssh(GF_CENCStream *cstr, GF_CryptInfo *cinfo)
+{
+	GF_BitStream *pssh_bs;
+	u32 i, j, nb_pssh = 0, pos;
+	u8 *pssh = NULL;
+	u32 pssh_size = 0;
+	if (!cinfo || !cinfo->drm_infos)
+		return GF_OK;
+
+	pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!pssh_bs)
+		return GF_OUT_OF_MEM;
+
+	gf_bs_write_u32(pssh_bs, 0);
+	for (i=0; i<gf_list_count(cinfo->drm_infos); i++) {
+		GF_CryptDRMInfo *drm = (GF_CryptDRMInfo *) gf_list_get(cinfo->drm_infos, i);
+		Bool applies = GF_TRUE;
+		if (drm->has_associated_kid) {
+			applies = GF_FALSE;
+			for (j=0; j<cstr->tci->nb_keys; j++) {
+				if (!memcmp(drm->associated_kid, cstr->tci->keys[j].KID, sizeof(bin128))) {
+					applies = GF_TRUE;
+					break;
+				}
+			}
+		}
+		if (!applies)
+			continue;
+
+		gf_bs_write_data(pssh_bs, drm->systemID, sizeof(bin128));
+		gf_bs_write_u32(pssh_bs, drm->version);
+		if (drm->version) {
+			gf_bs_write_u32(pssh_bs, drm->nb_kids);
+			for (j=0; j<drm->nb_kids; j++)
+				gf_bs_write_data(pssh_bs, drm->kids[j], sizeof(bin128));
+		}
+		gf_bs_write_u32(pssh_bs, drm->private_data_size);
+		if (drm->private_data_size)
+			gf_bs_write_data(pssh_bs, drm->private_data, drm->private_data_size);
+
+		nb_pssh++;
+	}
+
+	if (!nb_pssh) {
+		gf_bs_del(pssh_bs);
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PSSH, NULL);
+		return GF_OK;
+	}
+
+	pos = (u32) gf_bs_get_position(pssh_bs);
+	gf_bs_seek(pssh_bs, 0);
+	gf_bs_write_u32(pssh_bs, nb_pssh);
+	gf_bs_seek(pssh_bs, pos);
+	gf_bs_get_content(pssh_bs, &pssh, &pssh_size);
+	gf_bs_del(pssh_bs);
+	if (!pssh)
+		return GF_OUT_OF_MEM;
+
+	return gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PSSH, &PROP_DATA_NO_COPY(pssh, pssh_size));;
+}
+
+static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const char *cfile_name, GF_CryptInfo *cinfo)
 {
 	GF_DOMParser *parser;
 	GF_XMLNode *root, *node;
@@ -418,6 +479,8 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 	GF_Err e;
 	u32 nb_pssh=0;
 	GF_BitStream *pssh_bs=NULL;
+	if (cinfo && cinfo->is_cpix)
+		return cenc_parse_cpix_pssh(cstr, cinfo);
 
 	parser = gf_xml_dom_new();
 	e = gf_xml_dom_parse(parser, cfile_name, NULL, NULL);
@@ -1153,7 +1216,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	}
 
 	//parse pssh even if reinit since we need to reassign pssh property
-	return cenc_parse_pssh(ctx, cstr, cfile_name);
+	return cenc_parse_pssh(ctx, cstr, cfile_name, cstr->cinfo ? cstr->cinfo : ctx->cinfo);
 }
 
 
@@ -2860,11 +2923,14 @@ static const GF_FilterArgs GF_CENCEncArgs[] =
 GF_FilterRegister CENCEncRegister = {
 	.name = "cecrypt",
 	GF_FS_SET_DESCRIPTION("CENC encryptor")
-	GF_FS_SET_HELP("The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a DRM config file for declaring keys.\n"
+	GF_FS_SET_HELP("The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a GPAC DRM XML or a CPIX document for declaring keys.\n"
 	"The syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption\n"
+	"CPIX input currently supports one plaintext 128-bit ContentKey with an explicit IV and unfiltered ContentKeyUsageRule. Encrypted key delivery and content-key filters are rejected.\n"
+	"For CPIX, commonEncryptionScheme is authoritative. A 'cenc' (AES-CTR) ContentKey combined with FairPlay signaling is reported as an error because FairPlay requires 'cbcs' (AES-CBC pattern); GPAC does not silently change the declared scheme.\n"
 	"The DRM config file can be set per PID using the property `CryptInfo`, or set at the filter level using [-cfile]().\n"
 	"When the DRM config file is set per PID, the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` is used (regardless of the `CrypTrack` ID).\n"
 	"When the DRM config file is set globally (not per PID), the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` with ID 0 or not set is used.\n"
+	"The DRM config file is reloaded automatically when it changes.\n"
 	"If no DRM config file is defined for a given PID, this PID will not be encrypted, or an error will be thrown if [-allc]() is specified.\n"
 	)
 	.private_size = sizeof(GF_CENCEncCtx),
