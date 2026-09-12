@@ -3330,10 +3330,14 @@ attach_node:
 					if (parser->command->in_scene && node->sgprivate->scenegraph
 					    && node->sgprivate->scenegraph != parser->command->in_scene) {
 						Bool is_subscene = GF_FALSE;
-						GF_SceneGraph *par = node->sgprivate->scenegraph->parent_scene;
-						while (par) {
-							if (par == parser->command->in_scene) { is_subscene = GF_TRUE; break; }
+						GF_SceneGraph *par = node->sgprivate->scenegraph;
+						/*only proto instance namespaces (pOwningProto set) live as long as their node; a PROTO declaration
+						  sub-graph (e.g. from an unclosed ProtoDeclare) is destroyed with its proto by a later SceneReplace,
+						  leaving the command node with a dangling scenegraph*/
+						while (par->pOwningProto) {
 							par = par->parent_scene;
+							if (!par) break;
+							if (par == parser->command->in_scene) { is_subscene = GF_TRUE; break; }
 						}
 						if (!is_subscene) {
 							xmt_report(parser, GF_OK, "Warning: node %s is from an unrelated scene - skipping in command", name);
