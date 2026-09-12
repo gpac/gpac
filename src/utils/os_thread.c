@@ -622,6 +622,10 @@ GF_EXPORT
 void gf_mx_v(GF_Mutex *mx)
 {
 	u32 caller;
+#ifndef GPAC_DISABLE_LOG
+	char released_name[256];
+	Bool log_release = GF_FALSE;
+#endif
 	if (!mx) return;
 	caller = gf_th_id();
 
@@ -636,6 +640,14 @@ void gf_mx_v(GF_Mutex *mx)
 	if (mx->HolderCount == 0) {
 		mx->Holder = 0;
 		gf_fatal_assert(mx->HolderCount == 0);
+
+#ifndef GPAC_DISABLE_LOG
+		if (mx->log_name && !mx->nolog) {
+			gf_strlcpy(released_name, mx->log_name, sizeof(released_name));
+			log_release = GF_TRUE;
+		}
+#endif
+
 #ifdef WIN32
 		{
 			BOOL ret = ReleaseMutex(mx->hMutex);
@@ -663,9 +675,9 @@ void gf_mx_v(GF_Mutex *mx)
 #endif
 
 #ifndef GPAC_DISABLE_LOG
-		if (mx->log_name && !mx->nolog) {
+		if (log_release) {
 			char szName[100];
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] Released by thread %s (hcount %u)\n", mx->log_name, log_th_name(mx->Holder, szName), mx->HolderCount ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] Released by thread %s (hcount 0)\n", released_name, log_th_name(caller, szName) ));
 		}
 #endif
 	}
