@@ -720,9 +720,54 @@ void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 	}
 }
 
+/*checks whether sg is still part of the scene graph forest reachable from root:
+  root itself, its ancestor chain, and the sub graphs of its (un)registered protos,
+  recursively. A sub graph destroyed through gf_sg_proto_del is unlinked from its
+  parent before being freed, so it can no longer be found this way.*/
+static Bool gf_sg_graph_in_scene(GF_SceneGraph *root, GF_SceneGraph *sg)
+{
+#ifndef GPAC_DISABLE_VRML
+	u32 i;
+	GF_Proto *proto;
+#endif
+	GF_SceneGraph *p;
+	if (root == sg) return GF_TRUE;
+	/*check ancestors*/
+	p = root->parent_scene;
+	while (p) {
+		if (p == sg) return GF_TRUE;
+		p = p->parent_scene;
+	}
+#ifndef GPAC_DISABLE_VRML
+	/*check sub graphs of declared and not yet registered protos*/
+	if (root->protos) {
+		i=0;
+		while ((proto = (GF_Proto*)gf_list_enum(root->protos, &i))) {
+			if (proto->sub_graph && gf_sg_graph_in_scene(proto->sub_graph, sg))
+				return GF_TRUE;
+		}
+	}
+	if (root->unregistered_protos) {
+		i=0;
+		while ((proto = (GF_Proto*)gf_list_enum(root->unregistered_protos, &i))) {
+			if (proto->sub_graph && gf_sg_graph_in_scene(proto->sub_graph, sg))
+				return GF_TRUE;
+		}
+	}
+#endif
+	return GF_FALSE;
+}
+
 GF_Err gf_node_try_destroy(GF_SceneGraph *sg, GF_Node *pNode, GF_Node *parentNode)
 {
 	if (!pNode || !sg) return GF_OK;
+	/*the node's owning scene graph may already be gone, e.g. a PROTO sub graph
+	  freed while a pending command still referenced one of its nodes: in that case
+	  the graph pointer is dangling and the graph-coupled teardown in
+	  gf_node_unregister would read freed memory, so just drop the reference*/
+	if (pNode->sgprivate->scenegraph && (pNode->sgprivate->scenegraph != sg)
+	        && !gf_sg_graph_in_scene(sg, pNode->sgprivate->scenegraph))
+		return GF_OK;
 	if (gf_list_find(sg->exported_nodes, pNode) >= 0) return GF_OK;
 	if (!pNode->sgprivate->num_instances) return GF_OK;
 	return gf_node_unregister(pNode, parentNode);
