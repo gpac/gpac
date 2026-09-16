@@ -970,8 +970,13 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread 0 task#%d %p executing Filter %s::%s (%d tasks pending)\n", fsess->main_th.nb_tasks, &atask, filter ? filter->name : "none", log_name, fsess->tasks_pending));
 		if (filter && !filter->scheduled_for_next_task)
 			filter->scheduled_for_next_task = GF_FILTER_DIRECT_SCHEDULED;
+		//count tasks executing on the filter so that destruction tasks can defer
+		//while another thread is still inside a task for the same filter
+		if (filter) safe_int_inc(&filter->nb_tasks_running);
 		task_fun(&atask);
+		//atask.filter may be NULL if the task destroyed the filter
 		filter = atask.filter;
+		if (filter) safe_int_dec(&filter->nb_tasks_running);
 		if (filter) {
 			filter->last_task_time = (u32) (gf_sys_clock_high_res() - task_time);
 			filter->time_process += filter->last_task_time;
@@ -2417,7 +2422,17 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		task->can_swap = 0;
 		task->requeue_request = GF_FALSE;
 		task->thid = 1+thid;
+		//count tasks executing on the filter so that destruction tasks can defer
+		//while another thread is still inside a task for the same filter. The
+		//count is only decremented once this thread is done touching the filter
+		//(see bottom of this dispatch loop).
+		GF_Filter *done_filter = task->filter;
+		if (done_filter)
+			safe_int_inc(&done_filter->nb_tasks_running);
 		task->run_task(task);
+		//task->filter may be NULL if the task destroyed the filter - in that
+		//case the count no longer matters and done_filter must not be used
+		if (!task->filter) done_filter = NULL;
 		task->thid = 0;
 		requeue = task->requeue_request;
 
@@ -2623,6 +2638,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			current_filter->process_th_id = 0;
 			current_filter->in_process = GF_FALSE;
 		}
+		//we are done touching the filter - use done_filter since task may have
+		//been swapped for requeueing above
+		if (done_filter) safe_int_dec(&done_filter->nb_tasks_running);
 		//not requeuing and first time we have an empty task queue, flush to detect if we are indeed done
 		if (!current_filter && !fsess->tasks_pending && !sess_thread->has_seen_eot && !gf_fq_count(fsess->tasks)) {
 			//if not the main thread, or if main thread and task list is empty, enter end of session probing mode
