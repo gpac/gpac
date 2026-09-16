@@ -1138,8 +1138,24 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	for (i=0; i<count; i++) {
 		Bool post_task=GF_FALSE;
 		GF_FilterPacketInstance *inst;
-		GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
-		if (!dst->filter || dst->filter->finalized || (dst->filter->removed==1) || !dst->filter->freg->process || dst->in_swap) continue;
+		GF_FilterPidInst *dst;
+		GF_Filter *df = NULL;
+		/* The destination filter may be tearing down on another thread, which
+		   detaches its pid instances and frees the filter. Grab the pid instance
+		   under the source filter tasks_mx (which serializes against the
+		   destination detach) and mark the destination filter as in use so that
+		   teardown defers gf_filter_del until we are done dispatching to it. */
+		gf_mx_p(pid->filter->tasks_mx);
+		dst = gf_list_get(pck->pid->destinations, i);
+		if (dst && dst->filter && (dst->filter->removed!=1) && !dst->filter->finalized) {
+			safe_int_inc(&dst->filter->nb_ext_use);
+			safe_int_inc(&dst->nb_ext_use);
+			df = dst->filter;
+		}
+		gf_mx_v(pid->filter->tasks_mx);
+		if (!df) continue;
+
+		if (dst->in_swap || !df->freg->process) goto next_dst;
 
 		if (dst->discard_inputs==GF_PIDI_DISCARD_ON) {
 			//in discard input mode, we drop all input packets but trigger reconfigure as they happen
@@ -1158,39 +1174,43 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				dst->props = pck->pid_props;
 				safe_int_inc( & dst->props->reference_count);
 
-				gf_assert(dst->filter->freg->configure_pid);
+				gf_assert(df->freg->configure_pid);
 				//reset the blacklist whenever reconfiguring, since we may need to reload a new filter chain
 				//in which a previously blacklisted filter (failing (re)configure for previous state) could
 				//now work, eg moving from formatA to formatB then back to formatA
-				gf_list_reset(dst->filter->blacklisted);
+				gf_list_reset(df->blacklisted);
 				dst->discard_inputs = GF_PIDI_DISCARD_RCFG;
 				//and post a reconfigure task
-				gf_fs_post_task(dst->filter->session, gf_filter_pid_reconfigure_task_discard, dst->filter, (GF_FilterPid *)dst, "pidinst_reconfigure", NULL);
+				gf_fs_post_task(df->session, gf_filter_pid_reconfigure_task_discard, df, (GF_FilterPid *)dst, "pidinst_reconfigure", NULL);
 				//keep packets, they will be trashed if we are still in discard when executing gf_filter_pid_reconfigure_task_discard
 			} else {
-				continue;
+				goto next_dst;
 			}
 		}
 		//ignore flush packets if destination requires full blocks and block is in progress
 		if (dst->requires_full_data_block && !dst->last_block_ended && (pck->info.flags & GF_PCKF_IS_FLUSH)) {
-			continue;
+			goto next_dst;
 		}
 		//stop forwarding clock packets when in EOS
 		if (dst->is_end_of_stream && cktype) {
-			continue;
+			goto next_dst;
 		}
 
 		inst = gf_fq_pop(pck->pid->filter->pcks_inst_reservoir);
 		if (!inst) {
 			GF_SAFEALLOC(inst, GF_FilterPacketInstance);
-			if (!inst) return GF_OUT_OF_MEM;
+			if (!inst) {
+				safe_int_dec(&dst->nb_ext_use);
+				safe_int_dec(&df->nb_ext_use);
+				return GF_OUT_OF_MEM;
+			}
 		}
 		inst->pck = pck;
 		inst->pid = dst;
 
 		//if packet is forcing main thread processing increase destination filter main_thread
 		if (force_main_thread) {
-			safe_int_inc(&dst->filter->nb_main_thread_forced);
+			safe_int_inc(&df->nb_main_thread_forced);
 		}
 
 		if ((inst->pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS)  {
@@ -1204,12 +1224,12 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		safe_int_inc(&pck->reference_count);
 		nb_dispatch++;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID %s buffer ("LLU" us buffer)\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets), pid->name, dst->buffer_duration ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID %s buffer ("LLU" us buffer)\n", pid->filter->name, df->name, gf_fq_count(dst->packets), pid->name, dst->buffer_duration ));
 
 		u64 us_duration = 0;
 
 		if (cktype) {
-			safe_int_inc(&dst->filter->pending_packets);
+			safe_int_inc(&df->pending_packets);
 			gf_fq_add(dst->packets, inst);
 			post_task = GF_TRUE;
 		} else if (dst->requires_full_data_block) {
@@ -1245,7 +1265,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 						safe_int64_add(&dst->buffer_duration, us_duration);
 					}
 					inst->pck->info.flags |= GF_PCKF_BLOCK_START;
-					safe_int_inc(&dst->filter->pending_packets);
+					safe_int_inc(&df->pending_packets);
 					gf_fq_add(dst->packets, inst);
 				}
 				dst->last_block_ended = GF_TRUE;
@@ -1265,7 +1285,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 					inst->pck = gf_filter_pck_new_alloc_internal(pck->pid, pck->data_length, &data);
 					if (!inst->pck) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s: failed to allocate new packet\n", pid->filter->name));
-						continue;
+						goto next_dst;
 					}
 
 					alloc_size = inst->pck->alloc_size;
@@ -1325,7 +1345,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				us_duration = gf_timestamp_rescale(pck_dur, timescale, 1000000);
 				safe_int64_add(&dst->buffer_duration, us_duration);
 			}
-			safe_int_inc(&dst->filter->pending_packets);
+			safe_int_inc(&df->pending_packets);
 
 			gf_fq_add(dst->packets, inst);
 			post_task = GF_TRUE;
@@ -1334,7 +1354,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			if (!is_cmd_pck) {
 				if (dst->is_end_of_stream) {
 					dst->is_end_of_stream = GF_FALSE;
-					dst->filter->in_eos_resume = GF_TRUE;
+					df->in_eos_resume = GF_TRUE;
 				}
 				pid->filter->in_eos_resume = GF_FALSE;
 			}
@@ -1356,8 +1376,11 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			gf_mx_v(pid->filter->tasks_mx);
 
 			//post process task
-			gf_filter_post_process_task_internal(dst->filter, pid->direct_dispatch);
+			gf_filter_post_process_task_internal(df, pid->direct_dispatch);
 		}
+next_dst:
+		safe_int_dec(&dst->nb_ext_use);
+		safe_int_dec(&df->nb_ext_use);
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
