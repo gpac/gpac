@@ -4325,17 +4325,38 @@ static void hls_insert_crypt_info(FILE *out, GF_MPD_Representation *rep, GF_DASH
 	}
 }
 
-static void hls_insert_scte35_info(FILE *out, u64 ast, const GF_MPD_Period *period, GF_DASH_SegmentContext *sctx)
+static void hls_insert_scte35_info(FILE *out, u64 ast, GF_MPD_Period *period, GF_MPD_AdaptationSet *adaptation_set, GF_MPD_Representation *representation, GF_DASH_SegmentContext *sctx)
 {
+	u64 segment_duration = 0;
+	u64 presentation_time_offset = 0;
+	u32 segment_timescale = 1;
 	GF_MPD_EventStream *es = NULL;
+
+	/* Segment contexts are presentation-relative, while SCTE-35 splice_time is
+	 * carried on the source timeline. Resolve the inherited PTO once so both
+	 * values are compared in the same clock domain. */
+	gf_mpd_resolve_segment_duration(representation, adaptation_set, period,
+		&segment_duration, &segment_timescale, &presentation_time_offset, NULL);
+	if (!segment_timescale) segment_timescale = 1;
 	u32 i = 0;
 	while ( (es = gf_list_enum(period->event_streams, &i)) ) {
 		GF_MPD_EventStreamEntry *ese = NULL;
 		u32 j = 0;
 		while ( (ese = gf_list_enum(es->entries, &j)) ) {
-			if (ese->state == 0 && sctx->time <= ese->presentation_time && ese->presentation_time < sctx->time+sctx->dur) {
+			u64 event_time = ese->presentation_time;
+			u64 event_time_in_representation_timescale;
+			u64 event_duration_in_representation_timescale;
+			u64 presentation_time_offset_in_event_timescale = gf_timestamp_rescale(presentation_time_offset, segment_timescale, es->timescale);
+
+			if (event_time >= presentation_time_offset_in_event_timescale)
+				event_time -= presentation_time_offset_in_event_timescale;
+
+			event_time_in_representation_timescale = gf_timestamp_rescale(event_time, es->timescale, representation->timescale);
+			event_duration_in_representation_timescale = gf_timestamp_rescale(ese->duration, es->timescale, representation->timescale);
+
+			if (ese->state == 0 && sctx->time <= event_time_in_representation_timescale && event_time_in_representation_timescale < sctx->time+sctx->dur) {
 				gf_fprintf(out, "#EXT-X-DATERANGE:ID=\"%d-%04d\",", ese->id, ese->state);
-				gf_mpd_print_date(out, "START-DATE", ast + (ese->presentation_time * 1000) / es->timescale);
+				gf_mpd_print_date(out, "START-DATE", ast + (event_time * 1000) / es->timescale);
 				gf_fprintf(out, ",PLANNED-DURATION=%g", ese->duration/(Double)es->timescale);
 				if (ese->message) {
 					gf_fprintf(out, ",SCTE35-OUT=0x");
@@ -4348,7 +4369,7 @@ static void hls_insert_scte35_info(FILE *out, u64 ast, const GF_MPD_Period *peri
 				ese->state = 1;
 			}
 
-			if (ese->state == 1 && ese->presentation_time+ese->duration <= sctx->time+sctx->dur) {
+			if (ese->state == 1 && event_time_in_representation_timescale+event_duration_in_representation_timescale <= sctx->time+sctx->dur) {
 				gf_fprintf(out, "#EXT-X-CUE-IN\n");
 				ese->state = 0;
 			}
@@ -4575,7 +4596,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			// 0-duration may be encountered in non-LL modes when the duration is not known yet, but players may not like (cf issue 3462)
 			if (!sctx->dur) continue;
 
-			hls_insert_scte35_info(out, mpd->availabilityStartTime, period, sctx);
+			hls_insert_scte35_info(out, mpd->availabilityStartTime, period, as, rep, sctx);
 
 			//signal discontinuity if needed
 			if (sctx && sctx->is_discontinuity)
