@@ -1213,15 +1213,15 @@ static JSValue js_sys_rmt_client_send(JSContext *ctx, JSValueConst this_val, int
 	if (JS_IsString(argv[0])) {
 		const char *msg = JS_ToCString(ctx, argv[0]);
 		GF_Err e = gf_rmt_client_send_to_ws(client, msg, strlen(msg), GF_FALSE);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent msg <%s> to client <%p> returned <%d>\n", __FILE__, __LINE__, msg, client, e));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("[RMTWS] sent msg <%s> to client <%p> returned <%d>\n", msg, client, e));
 		JS_FreeCString(ctx, msg);
 	}
 	else if (JS_IsArrayBuffer(ctx, argv[0])) {
-		u32 bufsize=0;
-		u8* buf = JS_GetArrayBuffer(ctx, (size_t*)&bufsize, argv[0]);
+		size_t bufsize=0;
+		u8* buf = JS_GetArrayBuffer(ctx, &bufsize, argv[0]);
 		if (buf && bufsize) {
 			GF_Err e = gf_rmt_client_send_to_ws(client, buf, bufsize, GF_TRUE);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent binary msg <%.*s> to client <%p> returned <%d>\n", __FILE__, __LINE__, bufsize, buf, client, e));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("[RMTWS] sent binary msg <"LLU" bytes> to client <%p> returned <%d>\n", (u64) bufsize, client, e));
 		}
 
 	}
