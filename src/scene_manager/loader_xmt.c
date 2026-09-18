@@ -3228,6 +3228,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 				gf_list_rem_last(parser->nodes);
 				node = top->node;
 				xmt_node_stack_del(top);
+				parser->current_node_tag = 0;
 				goto attach_node;
 			}
 		}
@@ -3235,6 +3236,10 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 		node = top->node;
 		gf_list_rem_last(parser->nodes);
 		xmt_node_stack_del(top);
+		/*invalidate the tag remembered by xmt_node_start: the element it was
+		  set for has just been closed, keeping it would let a stray closing
+		  tag of the same name match below and pop the parent's entry*/
+		parser->current_node_tag = 0;
 
 attach_node:
 		top = (XMTNodeStack*)gf_list_last(parser->nodes);
@@ -3536,6 +3541,7 @@ attach_node:
 	} else if (parser->current_node_tag==tag) {
 		gf_list_rem_last(parser->nodes);
 		xmt_node_stack_del(top);
+		parser->current_node_tag = 0;
 	} else {
 		xmt_report(parser, GF_NON_COMPLIANT_BITSTREAM, "Warning: closing element %s doesn't match created node %s", name, gf_node_get_class_name(top->node) );
 	}
