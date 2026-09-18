@@ -7686,7 +7686,11 @@ GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 
 
 	if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = 0;
 
-	if (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) {
+	//oinf and linf describe the track, not a sample - keep them in the sample
+	//table instead of duplicating into each traf
+	Bool force_stbl = (grouping_type==GF_ISOM_SAMPLE_GROUP_OINF) || (grouping_type==GF_ISOM_SAMPLE_GROUP_LINF);
+
+	if (!force_stbl && (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY)) {
 		trak = gf_isom_get_track_box(movie, track);
 		if (!trak) return GF_BAD_PARAM;
 		trafID = trak->Header->trackID;
