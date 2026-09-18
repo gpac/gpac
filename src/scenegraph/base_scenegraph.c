@@ -720,42 +720,63 @@ void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 	}
 }
 
-/*checks whether sg is still part of the scene graph forest reachable from root:
-  root itself, its ancestor chain, and the sub graphs of its (un)registered protos,
-  recursively. A sub graph destroyed through gf_sg_proto_del is unlinked from its
-  parent before being freed, so it can no longer be found this way.*/
-static Bool gf_sg_graph_in_scene(GF_SceneGraph *root, GF_SceneGraph *sg)
+/*checks whether sg is a subgraph of the live graph g: the sub graphs of
+  g's (un)registered protos and the sub scenes of their live instances,
+  recursively. A sub graph destroyed through gf_sg_proto_del or
+  gf_sg_proto_del_instance is unlinked from its parent proto/instance lists
+  before being freed, so it can no longer be found this way.*/
+static Bool gf_sg_graph_in_graph(GF_SceneGraph *g, GF_SceneGraph *sg, u32 depth)
 {
 #ifndef GPAC_DISABLE_VRML
-	u32 i;
+	u32 i, k;
 	GF_Proto *proto;
+	GF_ProtoInstance *inst;
 #endif
-	GF_SceneGraph *p;
-	if (root == sg) return GF_TRUE;
-	/*check ancestors*/
-	p = root->parent_scene;
-	while (p) {
-		if (p == sg) return GF_TRUE;
-		p = p->parent_scene;
-	}
+	if (g == sg) return GF_TRUE;
+	/*pathological nesting depth: bail out, the caller then drops the reference*/
+	if (depth > 255) return GF_FALSE;
 #ifndef GPAC_DISABLE_VRML
-	/*check sub graphs of declared and not yet registered protos*/
-	if (root->protos) {
+	if (g->protos) {
 		i=0;
-		while ((proto = (GF_Proto*)gf_list_enum(root->protos, &i))) {
-			if (proto->sub_graph && gf_sg_graph_in_scene(proto->sub_graph, sg))
+		while ((proto = (GF_Proto*)gf_list_enum(g->protos, &i))) {
+			if (proto->sub_graph && gf_sg_graph_in_graph(proto->sub_graph, sg, depth+1))
 				return GF_TRUE;
+			k=0;
+			while ((inst = (GF_ProtoInstance*)gf_list_enum(proto->instances, &k))) {
+				if (inst->sgprivate->scenegraph
+				        && gf_sg_graph_in_graph(inst->sgprivate->scenegraph, sg, depth+1))
+					return GF_TRUE;
+			}
 		}
 	}
-	if (root->unregistered_protos) {
+	if (g->unregistered_protos) {
 		i=0;
-		while ((proto = (GF_Proto*)gf_list_enum(root->unregistered_protos, &i))) {
-			if (proto->sub_graph && gf_sg_graph_in_scene(proto->sub_graph, sg))
+		while ((proto = (GF_Proto*)gf_list_enum(g->unregistered_protos, &i))) {
+			if (proto->sub_graph && gf_sg_graph_in_graph(proto->sub_graph, sg, depth+1))
 				return GF_TRUE;
+			k=0;
+			while ((inst = (GF_ProtoInstance*)gf_list_enum(proto->instances, &k))) {
+				if (inst->sgprivate->scenegraph
+				        && gf_sg_graph_in_graph(inst->sgprivate->scenegraph, sg, depth+1))
+					return GF_TRUE;
+			}
 		}
 	}
 #endif
 	return GF_FALSE;
+}
+
+/*checks whether sg is still part of the scene graph forest containing root:
+  root's ancestor chain, plus every subgraph hanging off the top ancestor.*/
+static Bool gf_sg_graph_in_scene(GF_SceneGraph *root, GF_SceneGraph *sg)
+{
+	GF_SceneGraph *top = root;
+	while (top) {
+		if (top == sg) return GF_TRUE;
+		if (!top->parent_scene) break;
+		top = top->parent_scene;
+	}
+	return top ? gf_sg_graph_in_graph(top, sg, 0) : GF_FALSE;
 }
 
 GF_Err gf_node_try_destroy(GF_SceneGraph *sg, GF_Node *pNode, GF_Node *parentNode)
