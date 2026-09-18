@@ -764,8 +764,15 @@ GF_Err gf_node_try_destroy(GF_SceneGraph *sg, GF_Node *pNode, GF_Node *parentNod
 	/*the node's owning scene graph may already be gone, e.g. a PROTO sub graph
 	  freed while a pending command still referenced one of its nodes: in that case
 	  the graph pointer is dangling and the graph-coupled teardown in
-	  gf_node_unregister would read freed memory, so just drop the reference*/
+	  gf_node_unregister would read freed memory, so just drop the reference.
+	  A proto instance node is exempt: its scenegraph is its own internal sub
+	  scene, which can only be freed inside gf_sg_proto_del_instance after the
+	  instance node itself is gone - so a live instance node always has a live
+	  graph and still needs regular unregistering*/
 	if (pNode->sgprivate->scenegraph && (pNode->sgprivate->scenegraph != sg)
+#ifndef GPAC_DISABLE_VRML
+	        && (pNode->sgprivate->tag != TAG_ProtoNode)
+#endif
 	        && !gf_sg_graph_in_scene(sg, pNode->sgprivate->scenegraph))
 		return GF_OK;
 	if (gf_list_find(sg->exported_nodes, pNode) >= 0) return GF_OK;
