@@ -54,3 +54,54 @@ unittest(mpd_event_streams)
 	gf_xml_dom_del(dom);
 	gf_mpd_del(mpd);
 }
+
+/*************************************/
+
+unittest(mpd_hls_scte35_nonzero_presentation_time_offset)
+{
+	GF_MPD_Period period = {0};
+	GF_MPD_AdaptationSet adaptation_set = {0};
+	GF_MPD_Representation representation = {0};
+	GF_MPD_SegmentTemplate segment_template = {0};
+	GF_DASH_SegmentContext segment = {0};
+	GF_MPD_EventStream event_stream = {0};
+	GF_MPD_EventStreamEntry event = {0};
+
+	period.event_streams = gf_list_new();
+	event_stream.entries = gf_list_new();
+	assert_true(period.event_streams != NULL);
+	assert_true(event_stream.entries != NULL);
+
+	segment_template.timescale = 90000;
+	segment_template.presentation_time_offset = 8070463950ULL;
+	adaptation_set.segment_template = &segment_template;
+	representation.timescale = 90000;
+
+	event_stream.timescale = 90000;
+	event.presentation_time = 8076794552ULL;
+	event.duration = 21780000U;
+	event.id = 662;
+	gf_list_add(event_stream.entries, &event);
+	gf_list_add(period.event_streams, &event_stream);
+
+	/* PTO-normalized event time is 6330602 and falls inside this segment. */
+	segment.time = 6105600ULL;
+	segment.dur = 417600U;
+
+	FILE *output = tmpfile();
+	assert_true(output != NULL);
+	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment);
+	fflush(output);
+	rewind(output);
+
+	char text[1024] = {0};
+	size_t bytes_read = fread(text, 1, sizeof(text)-1, output);
+	text[bytes_read] = 0;
+	assert_true(strstr(text, "#EXT-X-DATERANGE:ID=\"662-0000\"") != NULL);
+	assert_true(strstr(text, "#EXT-X-CUE-OUT:242") != NULL);
+	assert_equal(event.state, 1, "%u");
+
+	fclose(output);
+	gf_list_del(event_stream.entries);
+	gf_list_del(period.event_streams);
+}
