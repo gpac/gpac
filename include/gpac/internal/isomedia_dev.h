@@ -43,6 +43,7 @@ enum
 	GF_ISOM_BOX_TYPE_CTTS	= GF_4CC( 'c', 't', 't', 's' ),
 	GF_ISOM_BOX_TYPE_CPRT	= GF_4CC( 'c', 'p', 'r', 't' ),
 	GF_ISOM_BOX_TYPE_KIND	= GF_4CC( 'k', 'i', 'n', 'd' ),
+	GF_ISOM_BOX_TYPE_CTLC	= GF_4CC( 'c', 't', 'l', 'c' ),
 	GF_ISOM_BOX_TYPE_CHPL	= GF_4CC( 'c', 'h', 'p', 'l' ),
 	GF_ISOM_BOX_TYPE_URL	= GF_4CC( 'u', 'r', 'l', ' ' ),
 	GF_ISOM_BOX_TYPE_URN	= GF_4CC( 'u', 'r', 'n', ' ' ),
@@ -2337,6 +2338,17 @@ typedef struct
 	char *value;
 } GF_KindBox;
 
+enum
+{
+	GF_ISOM_CTLC_FLAG_ADVERTISEMENT = 1 << 0,
+	GF_ISOM_CTLC_FLAG_IMMERSIVE_AUDIO = 1 << 1
+};
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 content_type;
+} GF_ContentTypeForLoudnessControlBox;
 
 typedef struct
 {
