@@ -4354,7 +4354,13 @@ static void hls_insert_scte35_info(FILE *out, u64 ast, GF_MPD_Period *period, GF
 			event_time_in_representation_timescale = gf_timestamp_rescale(event_time, es->timescale, representation->timescale);
 			event_duration_in_representation_timescale = gf_timestamp_rescale(ese->duration, es->timescale, representation->timescale);
 
-			if (ese->state == 0 && sctx->time <= event_time_in_representation_timescale && event_time_in_representation_timescale < sctx->time+sctx->dur) {
+			/* HLS cue tags describe segment boundaries. If an SCTE event falls
+			 * inside a segment, associate CUE-OUT with the first segment that
+			 * starts at or after the splice point rather than with the segment
+			 * that started before it. */
+			if (ese->state == 0
+				&& event_time_in_representation_timescale <= sctx->time
+				&& sctx->time < event_time_in_representation_timescale + event_duration_in_representation_timescale) {
 				gf_fprintf(out, "#EXT-X-DATERANGE:ID=\"%d-%04d\",", ese->id, ese->state);
 				gf_mpd_print_date(out, "START-DATE", ast + (event_time * 1000) / es->timescale);
 				gf_fprintf(out, ",PLANNED-DURATION=%g", ese->duration/(Double)es->timescale);
@@ -4369,7 +4375,11 @@ static void hls_insert_scte35_info(FILE *out, u64 ast, GF_MPD_Period *period, GF
 				ese->state = 1;
 			}
 
-			if (ese->state == 1 && event_time_in_representation_timescale+event_duration_in_representation_timescale <= sctx->time+sctx->dur) {
+			/* Likewise, CUE-IN belongs before the first segment beginning at or
+			 * after the end of the break, not before a segment that still
+			 * contains media preceding the return point. */
+			if (ese->state == 1
+				&& event_time_in_representation_timescale + event_duration_in_representation_timescale <= sctx->time) {
 				gf_fprintf(out, "#EXT-X-CUE-IN\n");
 				ese->state = 0;
 			}
