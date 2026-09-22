@@ -198,7 +198,7 @@ u32 gf_xml_sax_get_line(GF_SAXParser *parser);
 \param att_name attribute name to look for
 \param att_value value for this attribute
 \param substitute gives the name of an additional XML node type to inspect to match the node. May be NULL.
-\param get_attr gives the name of the attribute in the substitute node that matches the condition. If substitue node with name atribute is found, the content of the name attribute is returned. May be NULL.
+\param get_attr gives the name of the attribute in the substitute node that matches the condition. If substitute node with name attribute is found, the content of the name attribute is returned. May be NULL.
 \param end_pattern gives a string indicating where to stop looking in the document. May be NULL.
 \param is_substitute is set to GF_TRUE if the return value corresponds to the content of the name attribute of the substitute element
 \return name of the XML node found, or NULL if no match. This string has to be freed by the caller using gf_free
