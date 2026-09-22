@@ -1759,8 +1759,10 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_DASH_PERIOD_START, "DFPStart", "Value of active period start time in ms in forward mode", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_DASH_PERIOD_START, "DFPckPStart", "Indicate new period start (only set on first packets of non-first periods)", GF_PROP_BOOL, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 
-	DEC_PROP( GF_PROP_PID_HLS_KMS, "HLSKey", "URI, KEYFORMAT and KEYFORMATVERSIONS for HLS full segment encryption creation, Key URI otherwise ( decoding and sample-AES)", GF_PROP_STRING),
+	DEC_PROP( GF_PROP_PID_HLS_KMS, "HLSKey", "URI, KEYFORMAT and KEYFORMATVERSIONS for HLS full segment encryption creation, Key URI otherwise (decoding and sample-AES)", GF_PROP_STRING),
 	DEC_PROP( GF_PROP_PID_HLS_IV, "HLSIV", "Init Vector for HLS decode", GF_PROP_DATA),
+	DEC_PROP( GF_PROP_PID_LAURL, "LAUrl", "URLs for License Acquisition server, formatted as a comma-separated list of (System)URL", GF_PROP_STRING),
+	DEC_PROP( GF_PROP_PID_CERTURL, "CertUrl", "Certificate URLs, formatted as a comma-separated list of (System)URL", GF_PROP_STRING),
 	DEC_PROP( GF_PROP_PID_CLEARKEY_URI, "CKUrl", "URL for ClearKey licence server", GF_PROP_STRING),
 
 	DEC_PROP_F( GF_PROP_PID_COLR_PRIMARIES, "ColorPrimaries", "Color primaries", GF_PROP_CICP_COL_PRIM, GF_PROP_FLAG_GSF_REM),

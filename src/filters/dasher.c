@@ -243,7 +243,7 @@ typedef struct
 	char *utcs;
 	char *mname;
 	char *hlsdrm;
-	char *ckurl;
+	char *ckurl, *laurl, *certurl;
 	GF_PropStringList hlsx;
 	GF_DashHLSLowLatencyType llhls;
 	Bool hlsiv;
@@ -2575,31 +2575,32 @@ static void get_canon_urn(bin128 URN, char res[40])
 	for (i=10; i<16; i++) { sprintf(sres, "%02x", URN[i]); gf_strlcat(res, sres, 40); }
 }
 
-static const char *get_drm_kms_name(const char *canURN)
+// DRM are known to users by their vernacular name even though systems use a different canonical one
+static const char *get_drm_kms_name(const char *canURN, Bool vernacular)
 {
 	if (!stricmp(canURN, "67706163-6365-6E63-6472-6D746F6F6C31")) return "GPAC1.0";
 	else if (!stricmp(canURN, "5E629AF5-38DA-4063-8977-97FFBD9902D4")) return "Marlin1.0";
-	else if (!strcmp(canURN, "adb41c24-2dbf-4a6d-958b-4457c0d27b95")) return "MediaAccess3.0";
-	else if (!strcmp(canURN, "A68129D3-575B-4F1A-9CBA-3223846CF7C3")) return "VideoGuard";
-	else if (!strcmp(canURN, "9a04f079-9840-4286-ab92-e65be0885f95")) return "PlayReady";
-	else if (!strcmp(canURN, "9a27dd82-fde2-4725-8cbc-4234aa06ec09")) return "VCAS";
-	else if (!strcmp(canURN, "F239E769-EFA3-4850-9C16-A903C6932EFB")) return "Adobe";
-	else if (!strcmp(canURN, "1f83e1e8-6ee9-4f0d-ba2f-5ec4e3ed1a66")) return "SecureMedia";
-	else if (!strcmp(canURN, "644FE7B5-260F-4FAD-949A-0762FFB054B4")) return "CMLA (OMA DRM)";
-	else if (!strcmp(canURN, "6a99532d-869f-5922-9a91-113ab7b1e2f3")) return "MobiTVDRM";
-	else if (!strcmp(canURN, "35BF197B-530E-42D7-8B65-1B4BF415070F")) return "DivX DRM";
-	else if (!strcmp(canURN, "B4413586-C58C-FFB0-94A5-D4896C1AF6C3")) return "VODRM";
-	else if (!strcmp(canURN, "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")) return "Widevine";
-	else if (!strcmp(canURN, "80a6be7e-1448-4c37-9e70-d5aebe04c8d2")) return "Irdeto";
-	else if (!strcmp(canURN, "dcf4e3e3-62f1-5818-7ba6-0a6fe33ff3dd")) return "CA 1.0, DRM+ 2.0";
-	else if (!strcmp(canURN, "45d481cb-8fe0-49c0-ada9-ab2d2455b2f2")) return "CoreCrypt";
-	else if (!strcmp(canURN, "616C7469-6361-7374-2D50-726F74656374")) return "altiProtect";
-	else if (!strcmp(canURN, "992c46e6-c437-4899-b6a0-50fa91ad0e39")) return "Arris SecureMedia SteelKnot version 1";
-	else if (!strcmp(canURN, "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b")) return "cenc initData";
-	else if (!strcmp(canURN, "e2719d58-a985-b3c9-781a-b030af78d30e")) return "ClearKey1.0";
-	else if (!strcmp(canURN, "94CE86FB-07FF-4F43-ADB8-93D2FA968CA2")) return "FairPlay";
-	else if (!strcmp(canURN, "279fe473-512c-48fe-ade8-d176fee6b40f")) return "Arris Titanium";
-	else if (!strcmp(canURN, "aa11967f-cc01-4a4a-8e99-c5d3dddfea2d")) return "UDRM";
+	else if (!stricmp(canURN, "adb41c24-2dbf-4a6d-958b-4457c0d27b95")) return "MediaAccess3.0";
+	else if (!stricmp(canURN, "A68129D3-575B-4F1A-9CBA-3223846CF7C3")) return "VideoGuard";
+	else if (!stricmp(canURN, "9a04f079-9840-4286-ab92-e65be0885f95")) return vernacular ? "PlayReady" :  "MSPR 2.0";
+	else if (!stricmp(canURN, "9a27dd82-fde2-4725-8cbc-4234aa06ec09")) return "VCAS";
+	else if (!stricmp(canURN, "F239E769-EFA3-4850-9C16-A903C6932EFB")) return "Adobe";
+	else if (!stricmp(canURN, "1f83e1e8-6ee9-4f0d-ba2f-5ec4e3ed1a66")) return "SecureMedia";
+	else if (!stricmp(canURN, "644FE7B5-260F-4FAD-949A-0762FFB054B4")) return "CMLA (OMA DRM)";
+	else if (!stricmp(canURN, "6a99532d-869f-5922-9a91-113ab7b1e2f3")) return "MobiTVDRM";
+	else if (!stricmp(canURN, "35BF197B-530E-42D7-8B65-1B4BF415070F")) return "DivX DRM";
+	else if (!stricmp(canURN, "B4413586-C58C-FFB0-94A5-D4896C1AF6C3")) return "VODRM";
+	else if (!stricmp(canURN, "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")) return "Widevine";
+	else if (!stricmp(canURN, "80a6be7e-1448-4c37-9e70-d5aebe04c8d2")) return "Irdeto";
+	else if (!stricmp(canURN, "dcf4e3e3-62f1-5818-7ba6-0a6fe33ff3dd")) return "CA 1.0, DRM+ 2.0";
+	else if (!stricmp(canURN, "45d481cb-8fe0-49c0-ada9-ab2d2455b2f2")) return "CoreCrypt";
+	else if (!stricmp(canURN, "616C7469-6361-7374-2D50-726F74656374")) return "altiProtect";
+	else if (!stricmp(canURN, "992c46e6-c437-4899-b6a0-50fa91ad0e39")) return "Arris SecureMedia SteelKnot version 1";
+	else if (!stricmp(canURN, "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b")) return "cenc initData";
+	else if (!stricmp(canURN, "e2719d58-a985-b3c9-781a-b030af78d30e")) return "ClearKey1.0";
+	else if (!stricmp(canURN, "94CE86FB-07FF-4F43-ADB8-93D2FA968CA2")) return "Fairplay";
+	else if (!stricmp(canURN, "279fe473-512c-48fe-ade8-d176fee6b40f")) return "Arris Titanium";
+	else if (!stricmp(canURN, "aa11967f-cc01-4a4a-8e99-c5d3dddfea2d")) return "UDRM";
 	return "unknown";
 }
 
@@ -2685,7 +2686,6 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 				ctx->use_clearkey = GF_TRUE;
 			}
 
-
 			if ((ctx->pssh <= GF_DASH_PSSH_MOOF) || (ctx->pssh == GF_DASH_PSSH_NONE)) {
 				continue;
 			}
@@ -2742,7 +2742,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 				desc->x_children = gf_list_new();
 				sprintf(szVal, "urn:uuid:%s", sCan);
 				desc->scheme_id_uri = gf_strdup(szVal);
-				desc->value = gf_strdup(get_drm_kms_name(sCan));
+				desc->value = gf_strdup(get_drm_kms_name(sCan, GF_FALSE));
 				gf_list_add(res, desc);
 
 				GF_SAFEALLOC(node, GF_XMLNode);
@@ -2766,6 +2766,162 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 						}
 					}
 				}
+
+				// License acquisition URL
+				{
+					char la_url_mem[GF_MAX_PATH] = {0};
+
+					char *la_url = ctx->laurl;
+					p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_LAURL);
+					if (p && p->value.string) la_url = p->value.string;
+					if (la_url) {
+						gf_strlcpy(la_url_mem, la_url, GF_MAX_PATH);
+						la_url = la_url_mem;
+					}
+
+					while (la_url) {
+						Bool last = GF_FALSE;
+						char *system_id = NULL;
+
+						// localize end of parsing
+						char *end = strchr(la_url, ',');
+						if (end) end[0] = 0;
+						else { end = la_url + strlen(la_url) + 1; last = GF_TRUE; }
+
+						// check if this is the right system id
+						if (la_url[0] == '(') {
+							char *next = strchr(la_url, ')');
+							if (!next) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid systemID while parsing license acquisition URL \"%s\" - stop parsing\n", la_url));
+								break;
+							}
+
+							system_id = la_url+1;
+							next[0] = 0;
+							la_url = next + 1;
+						}
+						if (system_id) {
+							if (stricmp(get_drm_kms_name(sCan, GF_TRUE), system_id)) {
+								la_url = last ? NULL : end+1;
+								continue; // not applicable to this system
+							}
+						}
+
+						if (!la_url || la_url[0] == 0) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid license acquisition URL \"%s\" - stop parsing\n", la_url));
+							break;
+						}
+
+						GF_XMLNode *la_node;
+						GF_SAFEALLOC(la_node, GF_XMLNode);
+						if (la_node) {
+							la_node->orig_pos = gf_list_count(desc->x_children);
+							GF_XMLAttribute *ns, *lt;
+							la_node->type = GF_XML_NODE_TYPE;
+							la_node->name = gf_strdup("dashif:Laurl");
+							la_node->content = gf_list_new();
+							gf_list_add(desc->x_children, la_node);
+
+							la_node->attributes = gf_list_new();
+							GF_SAFEALLOC(ns, GF_XMLAttribute);
+							ns->name = gf_strdup("xmlns:dashif");
+							ns->value = gf_strdup("https://dashif.org/CPS");
+							gf_list_add(la_node->attributes, ns);
+
+							GF_SAFEALLOC(lt, GF_XMLAttribute);
+							lt->name = gf_strdup("licenseType");
+							lt->value = gf_strdup("EME-1.0");
+							gf_list_add(la_node->attributes, lt);
+
+							GF_XMLNode *val_node;
+							GF_SAFEALLOC(val_node, GF_XMLNode);
+							if (val_node) {
+								val_node->type = GF_XML_TEXT_TYPE;
+								val_node->name = (char*)gf_malloc(strlen(la_url) + 1);
+								gf_strlcpy(val_node->name, la_url, strlen(la_url) + 1);
+								gf_list_add(la_node->content, val_node);
+							}
+						}
+
+						la_url = last ? NULL : end+1;
+					}
+				}
+
+				{
+					// Certificate URL (mostly used by FairPlay)
+					char cert_url_mem[GF_MAX_PATH] = {0};
+
+					char *cert_url = ctx->certurl;
+					p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CERTURL);
+					if (p && p->value.string) cert_url = p->value.string;
+					if (cert_url) {
+						gf_strlcpy(cert_url_mem, cert_url, GF_MAX_PATH);
+						cert_url = cert_url_mem;
+					}
+
+					while (cert_url) {
+						Bool last = GF_FALSE;
+						char *system_id = NULL;
+
+						// localize end of parsing
+						char *end = strchr(cert_url, ',');
+						if (end) end[0] = 0;
+						else { end = cert_url + strlen(cert_url) + 1; last = GF_TRUE; }
+
+						// check if this is the right system id
+						if (cert_url[0] == '(') {
+							char *next = strchr(cert_url, ')');
+							if (!next) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid systemID while parsing certificate URL \"%s\" - stop parsing\n", cert_url));
+								break;
+							}
+
+							system_id = cert_url+1;
+							next[0] = 0;
+							cert_url = next + 1;
+						}
+						if (system_id) {
+							if (stricmp(get_drm_kms_name(sCan, GF_TRUE), system_id)) {
+								cert_url = last ? NULL : end+1;
+								continue; // not applicable to this system
+							}
+						}
+
+						if (!cert_url || cert_url[0] == 0) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid certificate URL \"%s\" - stop parsing\n", cert_url));
+							break;
+						}
+
+						GF_XMLNode *cert_node;
+						GF_SAFEALLOC(cert_node, GF_XMLNode);
+						if (cert_node) {
+							cert_node->orig_pos = gf_list_count(desc->x_children);
+							GF_XMLAttribute *ns;
+							cert_node->type = GF_XML_NODE_TYPE;
+							cert_node->name = gf_strdup("dashif:Certurl");
+							cert_node->content = gf_list_new();
+							gf_list_add(desc->x_children, cert_node);
+
+							cert_node->attributes = gf_list_new();
+							GF_SAFEALLOC(ns, GF_XMLAttribute);
+							ns->name = gf_strdup("xmlns:dashif");
+							ns->value = gf_strdup("https://dashif.org/CPS");
+							gf_list_add(cert_node->attributes, ns);
+
+							GF_XMLNode *val_node;
+							GF_SAFEALLOC(val_node, GF_XMLNode);
+							if (val_node) {
+								val_node->type = GF_XML_TEXT_TYPE;
+								val_node->name = (char*)gf_malloc(strlen(cert_url) + 1);
+								gf_strlcpy(val_node->name, cert_url, strlen(cert_url) + 1);
+								gf_list_add(cert_node->content, val_node);
+							}
+						}
+
+						cert_url = last ? NULL : end+1;
+					}
+				}
+
 				gf_free(pssh_data);
 			}
 		} else
@@ -4652,9 +4808,9 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			gf_assert(ctx->sigfrag || ds->muxed_base->dst_filter || ctx->from_index);
 			gf_list_transfer(ds->muxed_base->rep->audio_channels, rep->audio_channels);
 			gf_list_transfer(ds->muxed_base->rep->base_URLs, rep->base_URLs);
-			gf_list_transfer(ds->muxed_base->rep->content_protection , rep->content_protection);
-			gf_list_transfer(ds->muxed_base->rep->essential_properties , rep->essential_properties);
-			gf_list_transfer(ds->muxed_base->rep->frame_packing , rep->frame_packing);
+			gf_list_transfer(ds->muxed_base->rep->content_protection, rep->content_protection);
+			gf_list_transfer(ds->muxed_base->rep->essential_properties, rep->essential_properties);
+			gf_list_transfer(ds->muxed_base->rep->frame_packing, rep->frame_packing);
 			if (rep->x_children) {
 				if (!ds->muxed_base->rep->x_children) ds->muxed_base->rep->x_children = gf_list_new();
 				gf_list_transfer(ds->muxed_base->rep->x_children, rep->x_children);
@@ -12331,6 +12487,8 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(ll_rend_rep), "inject rendition reports for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_part_hb), "user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session", GF_PROP_DOUBLE, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ckurl), "set the ClearKey URL common to all encrypted streams (overridden by `CKUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(laurl), "set the License Acquisition URL common to all encrypted streams (overridden by `LAUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(certurl), "set the Certificate URL for Apple FairPlay (overridden by `CertUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(hls_absu), "use absolute url in HLS generation using first URL in [base]()\n"
 	"- no: do not use absolute URL\n"
