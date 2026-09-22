@@ -445,7 +445,6 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 	u32 i, j;
 	XMT_ESDLink *esdl, *esdl2;
 	XMT_ODLink *l;
-	char szURL[5000];
 
 	/*fix ESD IDs*/
 	i=0;
@@ -599,9 +598,14 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 					seg = NULL;
 					if (url->url) seg = strstr(url->url, "#");
 					if (seg) {
-						sprintf(szURL, "od:%d#%s", l->od->objectDescriptorID, seg+1);
-						gf_free(url->url);
-						url->url = gf_strdup(szURL);
+						// the fragment comes from the scene and has no length limit: size the new URL from it
+						u32 len = (u32) strlen(seg+1) + 20;
+						char *new_url = (char *) gf_malloc(len);
+						if (new_url) {
+							snprintf(new_url, len, "od:%d#%s", l->od->objectDescriptorID, seg+1);
+							gf_free(url->url);
+							url->url = new_url;
+						}
 					} else {
 						if (url->url) gf_free(url->url);
 						url->url = NULL;
