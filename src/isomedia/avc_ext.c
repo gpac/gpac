@@ -186,6 +186,11 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 			if (e) return e;
 			if (!mdia->extracted_samp->alloc_size)
 				mdia->extracted_samp->alloc_size = mdia->extracted_samp->dataLength;
+			if (data_offset > mdia->extracted_samp->dataLength) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMF: Extractor data offset %u is larger than referenced sample size %u - skipping.\n", data_offset, mdia->extracted_samp->dataLength));
+				gf_isom_set_nalu_extract_mode(file, ref_track_num, cur_extract_mode);
+				continue;
+			}
 #if 0
 			if (!header_written && rewrite_start_codes) {
 				gf_bs_write_int(dst_bs, 1, 32);
