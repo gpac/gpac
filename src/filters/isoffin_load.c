@@ -777,6 +777,13 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ROLE, &kinds);
 	}
 
+	u8 *pre_data = NULL;
+	u32 pre_size = 0;
+	gf_isom_get_preselection_info(read->mov, &pre_data, &pre_size);
+	if (pre_data && pre_size) {
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PRESELECTION, &PROP_DATA_NO_COPY(pre_data, pre_size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4DMX] Set preselection info to property ptr = %p size = %d\n", pre_data, pre_size));
+	}
 
 	//delcare track groups
 	idx=0;

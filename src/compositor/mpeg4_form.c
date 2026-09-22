@@ -691,7 +691,7 @@ static void av_apply(FormStack *st, u32 *group_idx, u32 count)
 {
 	u32 i;
 	Fixed top, bottom, center;
-	GF_Rect *rc;
+	GF_Rect *rc = NULL;
 	top = bottom = center = 0;
 
 	for (i=0; i<count; i++) {

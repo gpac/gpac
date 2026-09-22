@@ -201,6 +201,11 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	switch (com->tag) {
 #ifndef GPAC_DISABLE_VRML
 	case GF_SG_SCENE_REPLACE:
+		// proto instances own their private namespace, any other foreign graph (proto code) dangles once protos are destroyed below
+		if (com->node && (com->node->sgprivate->scenegraph != graph)
+		    && !((com->node->sgprivate->tag == TAG_ProtoNode) && (com->node->sgprivate->scenegraph->parent_scene == graph))) {
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		/*unregister root*/
 		gf_node_unregister(graph->RootNode, NULL);
 		/*remove all protos and routes*/
@@ -256,6 +261,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	{
 		u32 j;
 		GF_ChildNodeItem *list, *cur, *prev;
+		GF_ChildNodeItem single_item;
 		j=0;
 		while ((inf = (GF_CommandField*)gf_list_enum(com->command_fields, &j))) {
 			e = gf_node_get_field(com->node, inf->fieldIndex, &field);
@@ -274,7 +280,16 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				gf_node_unregister_children(com->node, * ((GF_ChildNodeItem **) field.far_ptr));
 				* ((GF_ChildNodeItem **) field.far_ptr) = NULL;
 				if (!inf->field_ptr) break;
-				list = * ((GF_ChildNodeItem **) inf->field_ptr);
+				// field_ptr aliases inf->node_list, except for a single node value where it aliases inf->new_node
+				if (inf->field_ptr == (void*)&inf->node_list) {
+					list = inf->node_list;
+				} else if ((inf->field_ptr == (void*)&inf->new_node) && inf->new_node) {
+					single_item.node = inf->new_node;
+					single_item.next = NULL;
+					list = &single_item;
+				} else {
+					break;
+				}
 				prev=NULL;
 				while (list) {
 					cur = gf_malloc(sizeof(GF_ChildNodeItem));
@@ -494,11 +509,20 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		break;
 	}
 	case GF_SG_PROTO_INSERT:
-		/*destroy all proto*/
+		/*promote newly-declared protos from this command into the target graph,
+		  but only those we can still verify are live: xmt_parse_proto/gf_sg_proto_new
+		  file every fresh proto in graph->unregistered_protos alongside the command's
+		  new_proto_list, so a pointer that is NOT in unregistered_protos was either
+		  (a) already promoted by a peer PROTO_INSERT, or (b) freed by an earlier
+		  PROTO_DELETE. Either way, handing it to graph->protos would leave a stale
+		  pointer that a later PROTO_DELETE_ALL walk would deref at
+		  scenegraph/vrml_proto.c:108 (heap-use-after-free). gf_list_del_item only
+		  compares pointer identity, so this check is safe on a dangling p.*/
 		while (gf_list_count(com->new_proto_list)) {
 			GF_Proto *p = (GF_Proto*)gf_list_get(com->new_proto_list, 0);
 			gf_list_rem(com->new_proto_list, 0);
-			gf_list_del_item(graph->unregistered_protos, p);
+			if (gf_list_del_item(graph->unregistered_protos, p) < 0)
+				continue;
 			gf_list_add(graph->protos, p);
 		}
 		return GF_OK;
@@ -583,6 +607,10 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		}
 		/*indexed replacement*/
 		if (pos>=-1) {
+			/*a well-formed indexed replacement always carries a field payload;
+			  a missing payload (inf->field_ptr NULL) reaches value.far_ptr as
+			  NULL and would fault on the deref below*/
+			if (!value.far_ptr) return GF_NON_COMPLIANT_BITSTREAM;
 			/*if MFNode remove the child and set new node*/
 			if (field.fieldType == GF_SG_VRML_MFNODE) {
 				GF_Node *nn = *(GF_Node**)value.far_ptr;

@@ -669,6 +669,14 @@ static GF_Err ctxload_process(GF_Filter *filter)
 							GF_MuxInfo *mux = NULL;
 							GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, 0);
 							gf_list_rem(odU->objectDescriptors, 0);
+							/*only the OD family carries ESDescriptors; a type-confused entry
+							  from malformed XMT reads a garbage pointer at od->ESDescriptors
+							  and faults in gf_list_get*/
+							if (!od || (od->tag != GF_ODF_OD_TAG && od->tag != GF_ODF_IOD_TAG
+							            && od->tag != GF_ODF_ISOM_OD_TAG && od->tag != GF_ODF_ISOM_IOD_TAG)) {
+								if (od) gf_odf_desc_del((GF_Descriptor *) od);
+								continue;
+							}
 							/*we can only work with single-stream ods*/
 							esd = (GF_ESD*)gf_list_get(od->ESDescriptors, 0);
 							if (!esd) {

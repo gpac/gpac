@@ -320,7 +320,7 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 {
 	u32 i;
 	if (sc_enc->err) return GF_FALSE;
-	while (strchr(" \t\r\n", sc_enc->cur_buf[0])) {
+	while (sc_enc->cur_buf && sc_enc->cur_buf[0] && strchr(" \t\r\n", sc_enc->cur_buf[0])) {
 		if (sc_enc->cur_buf[0]=='\n') sc_enc->cur_line ++;
 		sc_enc->cur_buf++;
 	}
