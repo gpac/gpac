@@ -2338,12 +2338,6 @@ typedef struct
 	char *value;
 } GF_KindBox;
 
-enum
-{
-	GF_ISOM_CTLC_FLAG_ADVERTISEMENT = 1 << 0,
-	GF_ISOM_CTLC_FLAG_IMMERSIVE_AUDIO = 1 << 1
-};
-
 typedef struct
 {
 	GF_ISOM_FULL_BOX

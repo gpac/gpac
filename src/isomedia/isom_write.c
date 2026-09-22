@@ -3515,6 +3515,87 @@ GF_Err gf_isom_remove_track_kind(GF_ISOFile *movie, u32 trackNumber, const char 
 }
 
 GF_EXPORT
+GF_Err gf_isom_set_track_loudness_content_type(GF_ISOFile *movie, u32 trackNumber, u8 content_type, u32 flags)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_UserDataMap *map;
+	GF_ContentTypeForLoudnessControlBox *ptr = NULL;
+	u32 i;
+
+	if (flags & ~(GF_ISOM_CTLC_FLAG_ADVERTISEMENT | GF_ISOM_CTLC_FLAG_IMMERSIVE_AUDIO))
+		return GF_BAD_PARAM;
+
+	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	e = gf_isom_insert_moov(movie);
+	if (e) return e;
+
+	trak = gf_isom_get_track_box(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	if (!trak->udta) {
+		e = trak_on_child_box((GF_Box *)trak, gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_UDTA), GF_FALSE);
+		if (e) return e;
+	}
+
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_CTLC, NULL);
+	if (map) {
+		for (i=0; i<gf_list_count(map->boxes); i++) {
+			GF_Box *box = (GF_Box *)gf_list_get(map->boxes, i);
+			if (box->type != GF_ISOM_BOX_TYPE_CTLC) continue;
+			if (!ptr) {
+				ptr = (GF_ContentTypeForLoudnessControlBox *)box;
+			} else {
+				gf_isom_box_del_parent(&map->boxes, box);
+				i--;
+			}
+		}
+	}
+
+	if (!ptr) {
+		ptr = (GF_ContentTypeForLoudnessControlBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_CTLC);
+		if (!ptr) return GF_OUT_OF_MEM;
+		e = udta_on_child_box_ex((GF_Box *)trak->udta, (GF_Box *)ptr, GF_FALSE, GF_FALSE);
+		if (e) {
+			gf_isom_box_del((GF_Box *)ptr);
+			return e;
+		}
+	}
+	ptr->version = 0;
+	ptr->flags = flags;
+	ptr->content_type = content_type;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_remove_track_loudness_content_type(GF_ISOFile *movie, u32 trackNumber)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_UserDataMap *map;
+	u32 i;
+
+	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	e = gf_isom_insert_moov(movie);
+	if (e) return e;
+
+	trak = gf_isom_get_track_box(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	if (!trak->udta) return GF_OK;
+
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_CTLC, NULL);
+	if (!map) return GF_OK;
+	for (i=0; i<gf_list_count(map->boxes); i++) {
+		GF_Box *box = (GF_Box *)gf_list_get(map->boxes, i);
+		if (box->type != GF_ISOM_BOX_TYPE_CTLC) continue;
+		gf_isom_box_del_parent(&map->boxes, box);
+		i--;
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_isom_add_chapter(GF_ISOFile *movie, u32 trackNumber, u64 timestamp, char *name)
 {
 	GF_Err e;
