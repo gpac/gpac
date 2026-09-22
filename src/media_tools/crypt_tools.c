@@ -98,34 +98,17 @@ static GF_XMLNode *crypt_xml_find_descendant(const GF_XMLNode *node, const char 
 
 static char *crypt_xml_get_text(const GF_XMLNode *node)
 {
-	u32 i, len = 0, pos = 0;
+	u32 i;
 	GF_XMLNode *child;
-	char *text, *start, *end;
 	if (!node || !node->content) return NULL;
 	for (i=0; i<gf_list_count(node->content); i++) {
 		child = (GF_XMLNode *) gf_list_get(node->content, i);
-		if (child && ((child->type == GF_XML_TEXT_TYPE) || (child->type == GF_XML_CDATA_TYPE)))
-			len += (u32) strlen(child->name);
-	}
-	if (!len) return NULL;
-	text = (char *) gf_malloc(len+1);
-	if (!text) return NULL;
-	for (i=0; i<gf_list_count(node->content); i++) {
-		child = (GF_XMLNode *) gf_list_get(node->content, i);
 		if (child && ((child->type == GF_XML_TEXT_TYPE) || (child->type == GF_XML_CDATA_TYPE))) {
-			u32 clen = (u32) strlen(child->name);
-			memcpy(text+pos, child->name, clen);
-			pos += clen;
+			if (strlen(child->name))
+				return child->name;
 		}
 	}
-	text[pos] = 0;
-	start = text;
-	while (*start && isspace(*start)) start++;
-	end = text + strlen(text);
-	while ((end > start) && isspace(end[-1])) end--;
-	*end = 0;
-	if (start != text) memmove(text, start, (size_t) (end-start)+1);
-	return text;
+	return NULL;
 }
 
 static GF_Err crypt_cpix_decode_b64(const char *input, u8 **out_data, u32 *out_size)
@@ -450,10 +433,6 @@ static GF_Err cryptinfo_load_cpix(const char *file, GF_CryptInfo **out_info)
 
 	text = crypt_xml_get_text(plain_node);
 	e = crypt_cpix_decode_b64(text, &decoded, &decoded_size);
-	if (text) {
-		gf_free(text);
-		text = NULL;
-	}
 	if (e || (decoded_size != 16)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CPIX] ContentKey PlainValue must decode to 16 bytes\n"));
 		if (!e) e = GF_BAD_PARAM;
@@ -549,10 +528,6 @@ static GF_Err cryptinfo_load_cpix(const char *file, GF_CryptInfo **out_info)
 			if (pssh_node) {
 				text = crypt_xml_get_text(pssh_node);
 				e = text ? crypt_cpix_parse_pssh(text, drm) : GF_BAD_PARAM;
-				if (text) {
-					gf_free(text);
-					text = NULL;
-				}
 				if (e) {
 					crypt_cpix_drm_del(drm);
 					goto exit;
@@ -581,8 +556,6 @@ static GF_Err cryptinfo_load_cpix(const char *file, GF_CryptInfo **out_info)
 					continue;
 
 				hls = crypt_cpix_hls_info(text);
-				gf_free(text);
-				text = NULL;
 				if (!hls)
 					continue;
 
@@ -599,7 +572,6 @@ static GF_Err cryptinfo_load_cpix(const char *file, GF_CryptInfo **out_info)
 	}
 
 exit:
-	if (text) gf_free(text);
 	if (hls) gf_free(hls);
 	if (decoded) gf_free(decoded);
 	if (tci) {
