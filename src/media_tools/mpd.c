@@ -4325,7 +4325,7 @@ static void hls_insert_crypt_info(FILE *out, GF_MPD_Representation *rep, GF_DASH
 	}
 }
 
-static void hls_insert_scte35_info(FILE *out, u64 ast, GF_MPD_Period *period, GF_MPD_AdaptationSet *adaptation_set, GF_MPD_Representation *representation, GF_DASH_SegmentContext *sctx)
+static void hls_insert_scte35_info(FILE *out, u64 ast, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *adaptation_set, const GF_MPD_Representation *representation, GF_DASH_SegmentContext *sctx)
 {
 	u64 segment_duration = 0;
 	u64 presentation_time_offset = 0;
@@ -5891,7 +5891,7 @@ Double gf_mpd_get_duration(GF_MPD *mpd)
 }
 
 GF_EXPORT
-void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline)
+void gf_mpd_resolve_segment_duration(const GF_MPD_Representation *rep, const GF_MPD_AdaptationSet *set, const GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline)
 {
 	u32 timescale = 0;
 	u64 pts_offset = 0;
