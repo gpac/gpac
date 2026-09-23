@@ -82,14 +82,24 @@ unittest(ctlc_box_truncated)
 	GF_Err e;
 	GF_BitStream *bs;
 	GF_Box *box = NULL;
+	u32 log_level;
+
 	/* a ctlc box declaring a size too small to hold the mandatory content_type byte */
 	u8 truncated_ctlc[] = { 0x00, 0x00, 0x00, 0x0C, 'c', 't', 'l', 'c', 0x00, 0x00, 0x00, 0x00 };
 
 	bs = gf_bs_new(truncated_ctlc, sizeof(truncated_ctlc), GF_BITSTREAM_READ);
 	assert_not_null(bs);
 	if (!bs) return;
+
+	/* This malformed box is expected to be rejected. Keep the parser's
+	 * diagnostic from making the unit-test run look like it failed. */
+	log_level = gf_log_get_tool_level(GF_LOG_CONTAINER);
+	gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_QUIET);
+
 	e = gf_isom_box_parse(&box, bs);
 	gf_bs_del(bs);
+
+	gf_log_set_tool_level(GF_LOG_CONTAINER, (GF_LOG_Level) log_level);
 
 	assert_true(e != GF_OK);
 	if (box) gf_isom_box_del(box);
