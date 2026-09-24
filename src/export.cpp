@@ -1148,6 +1148,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track_kind) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_kind) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_kind_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_loudness_content_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track_loudness_content_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_edit) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_edit_with_rate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_modify_edit) )
