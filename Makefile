@@ -57,7 +57,7 @@ depend:
 	$(MAKE) -C applications dep
 	$(MAKE) -C modules dep
 
-clean: unit_tests_clean
+clean: unit_tests_clean swigclean
 	$(MAKE) -C src clean
 	$(MAKE) -C applications clean
 	$(MAKE) -C modules clean
@@ -80,6 +80,20 @@ doc:
 man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
 
+swigclean:
+	@echo "Cleaning SWIG files"
+	@cd $(SRC_PATH)/share/swig && git clean -fdX
+
+swig: lib
+ifneq ($(strip $(SWIG)),)
+	@echo "Generating SWIG files"
+	@cd $(SRC_PATH)/share/swig && python3 src/main.py -s -l $(SWIG)
+ifeq ($(SWIG),node)
+	@cd $(SRC_PATH)/share/swig && npm -C node --silent --ignore-scripts install
+	@cd $(SRC_PATH)/share/swig && npm -C node run build
+	@echo "Try running 'node test.js' in share/swig/node"
+endif
+endif
 
 UT_CFG_PATH:=unittests/build/config
 

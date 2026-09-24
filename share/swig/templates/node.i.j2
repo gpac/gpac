@@ -1,0 +1,106 @@
+{#-------------------------------------------------------------#}
+{# File: node.i.j2                                             #}
+{# Minimal non-threadsafe synchronous callback helper          #}
+{# Handles arguments: number, string, pointer                  #}
+{#-------------------------------------------------------------#}
+
+{%- macro SETUP_CALLBACK_HANDLER() -%}
+%{
+#include <node_api.h>
+#include <stdexcept>
+%}
+{%- endmacro -%}
+
+{%- macro C_TO_JS(index, name, type) %}
+{% if type == "int" or type == "GF_Err" or type == "u32" or type == "Bool" %}
+    napi_create_int32(env, {{name}}, &args[{{index}}]);
+{% elif type == "u64" %}
+    napi_create_bigint_uint64(env, {{name}}, &args[{{index}}]);
+{% elif type == "double" %}
+    napi_create_double(env, {{name}}, &args[{{index}}]);
+{% elif "char" in type %}
+    napi_create_string_utf8(env, {{name}}, NAPI_AUTO_LENGTH, &args[{{index}}]);
+{% elif type.startswith('__') %}
+    args[{{index}}] = SWIG_NewPointerObj(SWIG_as_voidptr({{name}}), SWIGTYPE_p_{{ type|replace('*', '')|trim }}, 0 | 0);
+{% elif type.endswith('*') %}
+    napi_create_external(env, (void *){{name}}, NULL, NULL, &args[{{index}}]);
+{% else %}
+    SWIG_exception(SWIG_RuntimeError, "Unsupported argument type: {{type}} in callback");
+{% endif %}
+{%- endmacro -%}
+
+{%- macro GENERATE_CALLBACK_HELPER(cb_name, ret_type, arg_list, arg_names, arg_types) -%}
+%{
+// Persistent JS callback reference and env
+static napi_ref {{cb_name}}_ref = nullptr;
+static napi_env {{cb_name}}_env = nullptr;
+
+// C trampoline: matches the C function pointer signature
+extern "C" {{ret_type}} {{cb_name}}_trampoline({{arg_list}}) {
+    napi_env env = {{cb_name}}_env;
+    if (!{{cb_name}}_ref || !env) return ({{ret_type}})0;
+
+    napi_value js_cb;
+    napi_status status = napi_get_reference_value(env, {{cb_name}}_ref, &js_cb);
+    if (status != napi_ok) return ({{ret_type}})0;
+
+    napi_value global, result;
+    status = napi_get_global(env, &global);
+    if (status != napi_ok) return ({{ret_type}})0;
+
+    napi_value args[{{arg_names|length}}];
+
+    {% for i in range(arg_names|length) %}
+    {{- C_TO_JS(i, arg_names[i], arg_types[i]) -}}
+    {% endfor %}
+
+    napi_call_function(env, global, js_cb, {{arg_names|length}}, args, &result);
+
+{% if ret_type == "Bool" %}
+    bool r = false;
+    napi_get_value_bool(env, result, &r);
+    return ({{ret_type}})r;
+{% elif ret_type == "GF_Err" %}
+    int32_t r = 0;
+    napi_get_value_int32(env, result, &r);
+    return ({{ret_type}})r;
+{% elif ret_type.startswith('__') %}
+    void *ptr = nullptr;
+    napi_get_value_external(env, result, &ptr);
+    return ({{ret_type}})ptr;
+{% elif ret_type == "void" %}
+    return;
+{% else %}
+    SWIG_exception(SWIG_RuntimeError, "Unsupported return type: {{ret_type}} in callback");
+    return ({{ret_type}})0;
+{% endif %}
+}
+
+// Setter: store JS callback and env, return the C pointer
+extern "C" {{ret_type}} (*set_{{cb_name}}_callback(napi_env env, napi_value js_cb))({{arg_list}}) {
+    if ({{cb_name}}_ref) {
+        napi_delete_reference({{cb_name}}_env, {{cb_name}}_ref);
+        {{cb_name}}_ref = nullptr;
+        {{cb_name}}_env = nullptr;
+    }
+
+    if (!js_cb) return nullptr;
+
+    napi_status s = napi_create_reference(env, js_cb, 1, &{{cb_name}}_ref);
+    if (s != napi_ok) {
+        throw std::runtime_error("Failed to create JS callback reference");
+    }
+    {{cb_name}}_env = env;
+
+    return &{{cb_name}}_trampoline;
+}
+%}
+
+%typemap(in) {{ret_type}} (*)({{arg_types|join(', ')}}) {
+    if (!$input.IsFunction()) {
+        SWIG_exception_fail(SWIG_TypeError, "Expected function for {{cb_name}} callback");
+    }
+    Napi::Function fn = $input.As<Napi::Function>();
+    $1 = set_{{cb_name}}_callback(env, fn);
+}
+{%- endmacro -%}
