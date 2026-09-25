@@ -652,6 +652,14 @@ struct __gf_filter
 	volatile GF_FilterScheduledType scheduled_for_next_task;
 	//set to true when the filter is being processed by a thread
 	volatile Bool in_process;
+	//number of tasks of this filter currently executing (scheduled or direct calls)
+	volatile u32 nb_tasks_running;
+	//number of packet dispatches from other filters currently accessing this filter
+	//through a destination pid instance. Destruction tasks must defer while non-zero.
+	volatile u32 nb_ext_use;
+	//set once the destruction task has detached all input pid instances, so that a
+	//requeued destruction task does not run the one-shot teardown steps twice
+	Bool input_pids_detached;
 	u32 process_th_id, restrict_th_idx;
 	//user data for the filter implementation
 	void *filter_udta;
@@ -991,6 +999,11 @@ struct __gf_filter_pid_inst
 
 	volatile s32 detach_pending;
 	Bool force_flush;
+
+	//number of packet dispatches currently accessing this pid instance from the
+	//source pid's destinations list. Destruction paths must not free the
+	//instance while non-zero.
+	volatile u32 nb_ext_use;
 
 	void *udta;
 	u32 udta_flags;

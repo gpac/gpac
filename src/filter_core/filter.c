@@ -3607,7 +3607,10 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 {
 	s32 res;
 	GF_Err e;
-	GF_Filter *f = ((struct _gf_filter_setup_failure *)task->udta)->filter;
+	//the task is always posted on the filter being torn down, use task->filter
+	//instead of udta->filter so that requeueing (deferral below) remains safe
+	//after udta is freed
+	GF_Filter *f = task->filter;
 
 	/* Defer teardown if a task for this filter is currently executing on the direct-call stack.
 	   gf_filter_process_task clears in_process_callback after freg->process() returns;
@@ -3618,60 +3621,103 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 		return;
 	}
 
-	if (task->udta) {
-		e = ((struct _gf_filter_setup_failure *)task->udta)->e;
-		gf_free(task->udta);
-		if (e)
-			f->session->last_connect_error = e;
+	/* Also defer while another thread is still executing a task for this filter
+	   (nb_tasks_running counts ourselves plus any in-flight task). Freeing the
+	   filter now would race with that thread's use of f->tasks_mx and friends. */
+	if (f->nb_tasks_running > 1) {
+		task->requeue_request = GF_TRUE;
+		return;
 	}
 
-	if (!f->finalized && f->freg->finalize) {
-		FSESS_CHECK_THREAD(f)
-
-		gf_logs_thread_tag(f, GF_LOG_TAG_FILTER);
-		f->freg->finalize(f);
-		gf_logs_thread_tag_del(f);
-	}
-	gf_mx_p(f->session->filters_mx);
-
-	res = gf_list_del_item(f->session->filters, f);
-	if (res < 0) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s task failure callback on already removed filter!\n", f->name));
+	/* Early-out while packet dispatches hold a reference on this filter
+	   (checked again after the pid instance detach below, which is the point
+	   after which no new reference can be taken) */
+	if (f->nb_ext_use) {
+		task->requeue_request = GF_TRUE;
+		return;
 	}
 
-	//we will detach output pids, so drop any pending packets before
-	gf_filter_reset_pending_packets(f);
+	/* The teardown steps below are not idempotent (udta free, finalize,
+	   session filters removal) and the task may be requeued if a packet
+	   dispatch is in flight, so they must only run once. Input pid instances
+	   are detached under the source filter's tasks_mx, which serializes
+	   against gf_filter_pck_send_internal grabbing the pid instance from the
+	   source pid's destinations list. Once detached, a dispatch holding our
+	   nb_ext_use ref observes the detach (pidinst->filter = NULL) and no new
+	   reference can be taken. */
+	if (!f->input_pids_detached) {
+		if (task->udta) {
+			e = ((struct _gf_filter_setup_failure *)task->udta)->e;
+			gf_free(task->udta);
+			//task may be requeued below, don't keep a dangling udta pointer
+			task->udta = NULL;
+			if (e)
+				f->session->last_connect_error = e;
+		}
 
-	gf_mx_v(f->session->filters_mx);
+		if (!f->finalized && f->freg->finalize) {
+			FSESS_CHECK_THREAD(f)
 
-	gf_mx_p(f->tasks_mx);
-	//detach all input pids
-	while (gf_list_count(f->input_pids)) {
-		GF_FilterPidInst *pidinst = gf_list_pop_back(f->input_pids);
-		gf_filter_instance_detach_pid(pidinst);
-	}
-	//detach all output pids
-	while (gf_list_count(f->output_pids)) {
-		u32 j;
-		GF_FilterPid *pid = gf_list_pop_back(f->output_pids);
-		for (j=0; j<pid->num_destinations; j++) {
-			GF_FilterPidInst *pidinst = gf_list_get(pid->destinations, j);
-			//pid instance already detached, remove it
-			if (!pidinst->filter) {
-				gf_list_rem(pid->destinations, j);
-				pid->num_destinations--;
-				j--;
-				gf_filter_pid_inst_check_delete(pidinst);
-			}
-			//marked as detached
-			else {
-				pidinst->pid = NULL;
+			gf_logs_thread_tag(f, GF_LOG_TAG_FILTER);
+			f->freg->finalize(f);
+			gf_logs_thread_tag_del(f);
+		}
+		gf_mx_p(f->session->filters_mx);
+
+		res = gf_list_del_item(f->session->filters, f);
+		if (res < 0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s task failure callback on already removed filter!\n", f->name));
+		}
+
+		//we will detach output pids, so drop any pending packets before
+		gf_filter_reset_pending_packets(f);
+
+		gf_mx_v(f->session->filters_mx);
+
+		gf_mx_p(f->tasks_mx);
+		//detach all input pids
+		while (gf_list_count(f->input_pids)) {
+			GF_FilterPidInst *pidinst = gf_list_pop_back(f->input_pids);
+			if (pidinst->pid && pidinst->pid->filter) {
+				gf_mx_v(f->tasks_mx);
+				gf_mx_p(pidinst->pid->filter->tasks_mx);
+				gf_filter_instance_detach_pid(pidinst);
+				gf_mx_v(pidinst->pid->filter->tasks_mx);
+				gf_mx_p(f->tasks_mx);
+			} else {
+				gf_filter_instance_detach_pid(pidinst);
 			}
 		}
-		gf_list_reset(pid->destinations);
-		gf_filter_pid_del(pid);
+		//detach all output pids
+		while (gf_list_count(f->output_pids)) {
+			u32 j;
+			GF_FilterPid *pid = gf_list_pop_back(f->output_pids);
+			for (j=0; j<pid->num_destinations; j++) {
+				GF_FilterPidInst *pidinst = gf_list_get(pid->destinations, j);
+				//pid instance already detached, remove it
+				if (!pidinst->filter) {
+					gf_list_rem(pid->destinations, j);
+					pid->num_destinations--;
+					j--;
+					gf_filter_pid_inst_check_delete(pidinst);
+				}
+				//marked as detached
+				else {
+					pidinst->pid = NULL;
+				}
+			}
+			gf_list_reset(pid->destinations);
+			gf_filter_pid_del(pid);
+		}
+		gf_mx_v(f->tasks_mx);
+		f->input_pids_detached = GF_TRUE;
 	}
-	gf_mx_v(f->tasks_mx);
+	/* Defer destruction while a dispatch in flight on another thread still
+	   holds a reference on this filter. */
+	if (f->nb_ext_use) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
 	//avoid destruction of the current task (ourselves)
 	gf_fq_pop(f->tasks);
 	gf_filter_del(f);
@@ -3799,6 +3845,20 @@ void gf_filter_remove_task(GF_FSTask *task)
 		return;
 	}
 
+	//defer while another thread is still executing a task for this filter
+	//(nb_tasks_running counts ourselves plus any in-flight task)
+	if (f->nb_tasks_running > 1) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
+
+	//early-out while packet dispatches hold a reference on this filter
+	//(checked again after the pid instance detach below)
+	if (f->nb_ext_use) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
+
 	gf_assert(f->finalized);
 
 	if (count!=1) {
@@ -3812,35 +3872,62 @@ void gf_filter_remove_task(GF_FSTask *task)
 		return;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s destruction task\n", f->name));
-	safe_int_dec(&f->session->remove_tasks);
+
+	/* The teardown steps below are not idempotent (remove_tasks dec, finalize,
+	   session filters removal) and the task may be requeued if a packet
+	   dispatch is in flight, so they must only run once. Input pid instances
+	   are detached under the source filter's tasks_mx, which serializes
+	   against gf_filter_pck_send_internal grabbing the pid instance from the
+	   source pid's destinations list. Once detached, a dispatch holding our
+	   nb_ext_use ref observes the detach (pidinst->filter = NULL) and no new
+	   reference can be taken. The detach must run after finalize, since
+	   finalize may still pull pending input packets. */
+	if (!f->input_pids_detached) {
+		safe_int_dec(&f->session->remove_tasks);
+
+		if (f->freg->finalize) {
+			FSESS_CHECK_THREAD(f)
+
+			gf_logs_thread_tag(f, GF_LOG_TAG_FILTER);
+			f->freg->finalize(f);
+			gf_logs_thread_tag_del(f);
+		}
+
+		gf_mx_p(f->session->filters_mx);
+
+		res = gf_list_del_item(f->session->filters, f);
+		if (res<0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s destruction task on already removed filter\n", f->name));
+		}
+
+		gf_mx_v(f->session->filters_mx);
+
+		gf_mx_p(f->tasks_mx);
+		//detach all input pids
+		while (gf_list_count(f->input_pids)) {
+			GF_FilterPidInst *pidinst = gf_list_pop_back(f->input_pids);
+			if (pidinst->pid && pidinst->pid->filter) {
+				gf_mx_v(f->tasks_mx);
+				gf_mx_p(pidinst->pid->filter->tasks_mx);
+				gf_filter_instance_detach_pid(pidinst);
+				gf_mx_v(pidinst->pid->filter->tasks_mx);
+				gf_mx_p(f->tasks_mx);
+			} else {
+				gf_filter_instance_detach_pid(pidinst);
+			}
+		}
+		gf_mx_v(f->tasks_mx);
+		f->input_pids_detached = GF_TRUE;
+	}
+	/* Defer destruction while a dispatch in flight on another thread still
+	   holds a reference on this filter. */
+	if (f->nb_ext_use) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
 
 	//avoid destruction of the current task
 	gf_fq_pop(f->tasks);
-
-	if (f->freg->finalize) {
-		FSESS_CHECK_THREAD(f)
-
-		gf_logs_thread_tag(f, GF_LOG_TAG_FILTER);
-		f->freg->finalize(f);
-		gf_logs_thread_tag_del(f);
-	}
-
-	gf_mx_p(f->session->filters_mx);
-
-	res = gf_list_del_item(f->session->filters, f);
-	if (res<0) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s destruction task on already removed filter\n", f->name));
-	}
-
-	gf_mx_v(f->session->filters_mx);
-
-	gf_mx_p(f->tasks_mx);
-	//detach all input pids
-	while (gf_list_count(f->input_pids)) {
-		GF_FilterPidInst *pidinst = gf_list_pop_back(f->input_pids);
-		gf_filter_instance_detach_pid(pidinst);
-	}
-	gf_mx_v(f->tasks_mx);
 
 	gf_filter_del(f);
 	task->filter = NULL;
