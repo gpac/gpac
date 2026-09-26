@@ -107,6 +107,7 @@ typedef struct
 
 //in src/filters/hevcsplit.c
 void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, char **out_SPS, u32 *out_SPS_length);
+u8 hevc_level_idc_for_pic_size(u32 width, u32 height);
 
 #if 0 //todo
 //rewrite the profile and level
@@ -460,6 +461,15 @@ static GF_Err hevcmerge_rewrite_config(GF_HEVCMergeCtx *ctx, GF_FilterPid *opid,
 			}
 		}
 	}
+	//the HEVCConfigurationBox record carries its own level_idc, redundant with (and not
+	//automatically kept in sync with) the level_idc rewritten into the SPS above - raise it
+	//to the level required by the merged picture size so container-level readers (and hardware
+	//decoders that trust this field rather than re-parsing the SPS) see a spec-compliant level
+	{
+		u8 min_level_idc = hevc_level_idc_for_pic_size(ctx->out_width, ctx->out_height);
+		if (min_level_idc > hvcc->level_idc) hvcc->level_idc = min_level_idc;
+	}
+
 	gf_odf_hevc_cfg_write(hvcc, &new_dsi, &new_size);
 	gf_odf_hevc_cfg_del(hvcc);
 
