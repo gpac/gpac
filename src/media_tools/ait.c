@@ -165,7 +165,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 			case APPLICATION_DESCRIPTOR:
 			{
 				u64 pre_processing_pos;
-				u8 i;
+				u32 i;
 				GF_M2TS_APPLICATION_DESCRIPTOR *application_descriptor;
 				GF_SAFEALLOC(application_descriptor, GF_M2TS_APPLICATION_DESCRIPTOR);
 				if (!application_descriptor) break;
@@ -186,7 +186,9 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				application_descriptor->application_priority = gf_bs_read_int(bs,8);
 				if (nb_of_protocol > 0) {
 					for (i=0; i<nb_of_protocol; i++) {
-						application_descriptor->transport_protocol_label[i] = gf_bs_read_int(bs,8);
+						u8 label = gf_bs_read_int(bs,8);
+						if (i < GF_ARRAY_LENGTH(application_descriptor->transport_protocol_label))
+							application_descriptor->transport_protocol_label[i] = label;
 					}
 				} else {
 					application_descriptor->transport_protocol_label[0] = gf_bs_read_int(bs,8);
