@@ -160,7 +160,13 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 		nb_of_protocol = 0;
 
 		while (app_desc_data_shift< application->application_descriptors_loop_length) {
-			u8 temp_descriptor_tag = gf_bs_read_int(bs,8);
+			u8 temp_descriptor_tag;
+			if (application->index_app_desc_id >= GF_ARRAY_LENGTH(application->application_descriptors_id)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Process AIT] Too many application descriptors, skipping %d remaining bytes\n", application->application_descriptors_loop_length - app_desc_data_shift));
+				gf_bs_skip_bytes(bs, application->application_descriptors_loop_length - app_desc_data_shift);
+				break;
+			}
+			temp_descriptor_tag = gf_bs_read_int(bs,8);
 			switch (temp_descriptor_tag) {
 			case APPLICATION_DESCRIPTOR:
 			{
