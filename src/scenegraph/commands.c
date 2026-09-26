@@ -128,6 +128,15 @@ void gf_sg_command_del(GF_Command *com)
 #ifndef GPAC_DISABLE_VRML
 	i=0;
 	while ((proto = (GF_Proto*)gf_list_enum(com->new_proto_list, &i))) {
+		/*the proto may already have been destroyed by a GF_SG_PROTO_DELETE command
+		  applied in the same AU: only delete protos the scene graph still owns.
+		  gf_list_find only compares pointer identity, so this check is safe on a
+		  dangling p. If com->in_scene was reset (graph destroyed, protos with it),
+		  no entry can be verified live either, so we skip it too.*/
+		if (!com->in_scene
+			|| (gf_list_find(com->in_scene->protos, proto) < 0
+				&& (!com->in_scene->unregistered_protos || gf_list_find(com->in_scene->unregistered_protos, proto) < 0)))
+			continue;
 		gf_sg_proto_del(proto);
 	}
 	gf_list_del(com->new_proto_list);
