@@ -30,6 +30,79 @@
 
 #include <gpac/internal/laser_dev.h>
 
+#ifndef GPAC_DISABLE_VRML
+/*A node kept in a command field may belong to a scene graph that was already
+  destroyed - e.g. a PROTO declaration sub-graph freed by a peer
+  GF_SG_PROTO_DELETE command or by scene teardown before this command is
+  destroyed. Unlike com->in_scene (NULLed through graph->referencing_commands)
+  and com->node (NULLed through node->sgprivate->referencing_commands), nodes
+  stored in command_fields are not back-patched when their graph dies, so their
+  sgprivate->scenegraph pointer may be dangling. Only graphs that can be proven
+  live are safe to use here: the command's own in_scene and every graph
+  reachable from it through proto ownership - gf_sg_proto_del removes the proto
+  from protos/unregistered_protos before freeing its sub_graph, and dead
+  instances are removed from proto->instances, so plain pointer-identity
+  comparisons suffice and never dereference the suspect pointer.*/
+
+/*scenes cannot legally nest protos deeper than this - the same bound is
+  enforced while loading/instantiating protos (GF_MAX_PROTO_INSTANTIATION_DEPTH
+  in vrml_proto.c), so the cap cannot regress cleanup of any valid graph*/
+#define GF_SG_CMD_PROTO_DEPTH_MAX 256
+
+static Bool gf_sg_cmd_graph_alive(GF_SceneGraph *in_scene, GF_SceneGraph *sg, u32 depth);
+
+static Bool gf_sg_cmd_proto_graph_alive(GF_Proto *proto, GF_SceneGraph *sg, u32 depth)
+{
+	u32 i;
+	GF_ProtoInstance *inst;
+
+	/*declaration sub-graph of the proto (may declare its own protos)*/
+	if (sg == proto->sub_graph) return GF_TRUE;
+	if (proto->sub_graph && gf_sg_cmd_graph_alive(proto->sub_graph, sg, depth+1)) return GF_TRUE;
+	/*instance namespace graphs live as long as their ProtoNode; a live
+	  instance's scenegraph is that namespace graph (cf gf_sg_proto_instantiate)*/
+	i=0;
+	while ((inst = (GF_ProtoInstance*)gf_list_enum(proto->instances, &i))) {
+		if (!inst->sgprivate) continue;
+		if ((sg == inst->sgprivate->scenegraph)
+			|| (inst->sgprivate->scenegraph && gf_sg_cmd_graph_alive(inst->sgprivate->scenegraph, sg, depth+1)))
+			return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+static Bool gf_sg_cmd_graph_alive(GF_SceneGraph *in_scene, GF_SceneGraph *sg, u32 depth)
+{
+	u32 i;
+	GF_Proto *proto;
+
+	if (!in_scene || !sg) return GF_FALSE;
+	if (sg == in_scene) return GF_TRUE;
+	/*failing to prove a deeper graph alive only skips the unregister, which is
+	  the safe direction - cap proto nesting depth to keep teardown stack-safe*/
+	if (depth > GF_SG_CMD_PROTO_DEPTH_MAX) return GF_FALSE;
+
+	i=0;
+	while ((proto = (GF_Proto*)gf_list_enum(in_scene->protos, &i))) {
+		if (gf_sg_cmd_proto_graph_alive(proto, sg, depth)) return GF_TRUE;
+	}
+	i=0;
+	while ((proto = (GF_Proto*)gf_list_enum(in_scene->unregistered_protos, &i))) {
+		if (gf_sg_cmd_proto_graph_alive(proto, sg, depth)) return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+#else
+#define gf_sg_cmd_graph_alive(in_scene, sg, depth) ((in_scene) && ((sg) == (in_scene)))
+#endif
+
+/*unregister a command-stored node only if its scene graph is still alive*/
+static void gf_sg_cmd_node_try_destroy(GF_SceneGraph *in_scene, GF_Node *node)
+{
+	if (!node || !node->sgprivate) return;
+	if (!gf_sg_cmd_graph_alive(in_scene, node->sgprivate->scenegraph, 0)) return;
+	gf_node_try_destroy(in_scene, node, NULL);
+}
 
 GF_EXPORT
 GF_Command *gf_sg_command_new(GF_SceneGraph *graph, u32 tag)
@@ -75,7 +148,7 @@ void gf_sg_command_del(GF_Command *com)
 
 			switch (inf->fieldType) {
 			case GF_SG_VRML_SFNODE:
-				if (inf->new_node) gf_node_try_destroy(com->in_scene, inf->new_node, NULL);
+				if (inf->new_node) gf_sg_cmd_node_try_destroy(com->in_scene, inf->new_node);
 				break;
 			case GF_SG_VRML_MFNODE:
 				if (inf->field_ptr) {
@@ -83,7 +156,7 @@ void gf_sg_command_del(GF_Command *com)
 					child = inf->node_list;
 					while (child) {
 						GF_ChildNodeItem *cur = child;
-						gf_node_try_destroy(com->in_scene, child->node, NULL);
+						gf_sg_cmd_node_try_destroy(com->in_scene, child->node);
 						child = child->next;
 						gf_free(cur);
 					}
@@ -93,7 +166,7 @@ void gf_sg_command_del(GF_Command *com)
 				if (inf->field_ptr && inf->field_ptr != (void *)&inf->new_node 	&& inf->field_ptr != (void *)&inf->node_list) {
 					gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
 				}
-				if (inf->new_node) gf_node_try_destroy(com->in_scene, inf->new_node, NULL);
+				if (inf->new_node) gf_sg_cmd_node_try_destroy(com->in_scene, inf->new_node);
 				break;
 			}
 			gf_free(inf);
@@ -106,13 +179,13 @@ void gf_sg_command_del(GF_Command *com)
 			gf_list_rem(com->command_fields, 0);
 
 			if (inf->new_node)
-				gf_node_try_destroy(com->in_scene, inf->new_node, NULL);
+				gf_sg_cmd_node_try_destroy(com->in_scene, inf->new_node);
 			else if (inf->node_list) {
 				GF_ChildNodeItem *child;
 				child = inf->node_list;
 				while (child) {
 					GF_ChildNodeItem *cur = child;
-					gf_node_try_destroy(com->in_scene, child->node, NULL);
+					gf_sg_cmd_node_try_destroy(com->in_scene, child->node);
 					child = child->next;
 					gf_free(cur);
 				}
@@ -134,7 +207,7 @@ void gf_sg_command_del(GF_Command *com)
 #endif
 
 	if (com->node) {
-		gf_node_try_destroy(com->in_scene, com->node, NULL);
+		gf_sg_cmd_node_try_destroy(com->in_scene, com->node);
 	}
 
 	if (com->del_proto_list) gf_free(com->del_proto_list);
