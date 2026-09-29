@@ -794,9 +794,22 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CACHE, ("[CACHE] Opening cache file %s for write (%s)...\n", entry->cache_filename, entry->url));
 		if (!entry->mem_allocated || (entry->mem_allocated < entry->contentLength)) {
-			if (entry->contentLength) entry->mem_allocated = entry->contentLength;
-			else if (!entry->mem_allocated) entry->mem_allocated = 81920;
-			entry->mem_storage = (u8*)gf_realloc(entry->mem_storage, sizeof(char)* (entry->mem_allocated + 2) );
+			u32 capacity = entry->contentLength ? entry->contentLength : 81920;
+			u8 *storage;
+			// Memory cache entries reserve two trailing zero bytes.
+			if (capacity > GF_UINT_MAX - 2) {
+				gf_mx_v(entry->cache_blob.mx);
+				entry->write_session = NULL;
+				return GF_BAD_PARAM;
+			}
+			storage = (u8 *) gf_realloc(entry->mem_allocated ? entry->mem_storage : NULL, (size_t) capacity + 2);
+			if (!storage) {
+				gf_mx_v(entry->cache_blob.mx);
+				entry->write_session = NULL;
+				return GF_OUT_OF_MEM;
+			}
+			entry->mem_storage = storage;
+			entry->mem_allocated = capacity;
 		}
 		entry->cache_blob.data = entry->mem_storage;
 		entry->cache_blob.size = entry->contentLength;
@@ -807,10 +820,6 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 		}
 		gf_mx_v(entry->cache_blob.mx);
 
-		if (!entry->mem_allocated) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CACHE, ("[CACHE] Failed to create memory storage for file %s\n", entry->url));
-			return GF_OUT_OF_MEM;
-		}
 		return GF_OK;
 	}
 
@@ -911,7 +920,7 @@ void gf_cache_delete_entry( const DownloadedCacheEntry entry )
 		gf_blob_unregister(entry->external_blob);
 	}
 
-	if (!entry->mem_storage ) {
+	if (entry->cfg_filename) {
 		char szLOCK[GF_MAX_PATH];
 		snprintf(szLOCK, sizeof(szLOCK), "%s.lock", entry->cfg_filename);
 		GF_LockStatus lock_type = cache_entry_lock(szLOCK);
