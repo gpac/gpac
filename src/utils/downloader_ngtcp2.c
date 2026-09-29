@@ -520,6 +520,14 @@ static int ngh3_stream_close(nghttp3_conn *conn, int64_t stream_id, uint64_t app
 	Bool do_retry = GF_FALSE;
 	GF_DownloadSession *sess = stream_user_data;
 
+	//server: give the peer back the credit of each closed request stream, otherwise a connection can only ever
+	//open hx-max-st request streams (initial_max_streams_bidi is a total, not a concurrency limit)
+	if (ngtcp2_is_bidi_stream(stream_id)) {
+		GF_QuicConnection *qc = (GF_QuicConnection *)conn_user_data;
+		if (!ngtcp2_conn_is_local_stream(qc->conn, stream_id))
+			ngtcp2_conn_extend_max_streams_bidi(qc->conn, 1);
+	}
+
 	//session may have been detached once we detect EOS, ignore streamid mismatch
 	if (!sess|| (sess->hmux_stream_id != stream_id))
 		return 0;
