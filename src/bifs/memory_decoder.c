@@ -36,7 +36,7 @@ GF_Err ParseMFFieldVec(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Node *node, G
 
 static void BM_SetCommandNode(GF_Command *com, GF_Node *node)
 {
-	com->node = node;
+	gf_sg_command_set_node(com, node);
 	gf_node_register(node, NULL);
 }
 
@@ -444,6 +444,9 @@ GF_Err BM_ParseNodeInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_
 		gf_list_add(com_list, com);
 		/*register*/
 		gf_node_register(node, NULL);
+	} else {
+		gf_node_register(node, NULL);
+		gf_node_unregister(node, NULL);
 	}
 	return codec->LastError;
 }
@@ -864,6 +867,7 @@ GF_Err BM_SceneReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 	GF_Node *backup_root;
 	GF_List *backup_routes;
 	u32 i=0; GF_Route* r=NULL;
+	u32 nbBufs = gf_list_count(codec->command_buffers);
 	GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *proto_list);
 
 	backup_routes = gf_list_new();
@@ -876,6 +880,11 @@ GF_Err BM_SceneReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 	codec->current_graph = codec->scenegraph;
 	codec->LastError = BD_DecSceneReplace(codec, bs, com->new_proto_list);
 	if (codec->LastError) {
+		while (gf_list_count(codec->command_buffers) > nbBufs) {
+			CommandBufferItem *cbi = (CommandBufferItem *)gf_list_pop_back(codec->command_buffers);
+			gf_node_unregister(cbi->node, NULL);
+			gf_free(cbi);
+		}
 		gf_sg_command_del(com);
 		i=0;
 		while ((r = (GF_Route*)gf_list_enum(codec->scenegraph->Routes, &i))) {
@@ -894,6 +903,7 @@ GF_Err BM_SceneReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 		com->use_names = codec->UseName;
 
 		/*restore*/
+		gf_sg_command_set_node(com, codec->scenegraph->RootNode);
 		com->node = codec->scenegraph->RootNode;
 		codec->scenegraph->RootNode = backup_root;
 		gf_list_add(com_list, com);

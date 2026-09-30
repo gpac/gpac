@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP input module
@@ -510,6 +510,10 @@ static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pa
 		type = gf_bs_read_int(bs, 3);
 		ttu_len = gf_bs_read_u16(bs);
 		if (ttu_len<2) break;
+		if (pay_start + ttu_len + 1 > (u64) size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Payload advertised size (%lu) incompatible with buffer size (%lu) - ignoring\n", ttu_len, size-pay_start-1));
+			break;
+		}
 
 		if (type==1) {
 			/*flush any existing packet*/
@@ -1125,7 +1129,7 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u
 static void gf_rtp_parse_ac3_eac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size, Bool is_eac3)
 {
 	u8 ft;
-
+	if (size < 2) return;
 	rtp->sl_hdr.compositionTimeStampFlag = 1;
 	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 	rtp->sl_hdr.randomAccessPointFlag = 1;
@@ -1304,8 +1308,7 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 	else if (!stricmp(param_name, "StreamType"))
 		rtp->sl_map.StreamType = atoi(param_val);
 	else if (!stricmp(param_name, "mode")) {
-		strncpy(rtp->sl_map.mode, param_val, sizeof(rtp->sl_map.mode)-1);
-		rtp->sl_map.mode[sizeof(rtp->sl_map.mode)-1] = 0;
+		gf_strcpy(rtp->sl_map.mode, param_val);
 		/*in case no IOD and no streamType/OTI in the file*/
 		if (!stricmp(param_val, "AAC-hbr") || !stricmp(param_val, "AAC-lbr") || !stricmp(param_val, "CELP-vbr") || !stricmp(param_val, "CELP-cbr")) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;

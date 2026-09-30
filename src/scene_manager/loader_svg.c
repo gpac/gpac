@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -1003,7 +1003,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			/* An observer was specified, so it needs to be used */
 			gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_observer, GF_TRUE, GF_FALSE, &info);
 			gf_svg_parse_attribute((GF_Node *)elt, &info, (char*)ev_observer, 0);
-		} else {
+		} else if (((XMLRI *)info.far_ptr)->target && parent) {
 			/* No observer specified, this listener listens with the parent of the handler as the event target */
 			gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_target, GF_TRUE, GF_FALSE, &info);
 			((XMLRI *)info.far_ptr)->target = parent->node;
@@ -1576,13 +1576,13 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 					FILE *nhml;
 					char szName[1024];
 					if (parser->load->localPath) {
-						strcpy(szName, parser->load->localPath);
-						strcat(szName, "/");
-						strcat(szName, ID ? ID : "");
+						gf_strcpy(szName, parser->load->localPath);
+						gf_strcat(szName, "/");
+						gf_strcat(szName, ID ? ID : "");
 					} else {
-						strcpy(szName, ID ? ID : "");
+						gf_strcpy(szName, ID ? ID : "");
 					}
-					strcat(szName, "_temp.nhml");
+					gf_strcat(szName, "_temp.nhml");
 					mux->file_name = gf_strdup(szName);
 					st->nhml_info = mux->file_name;
 					nhml = gf_fopen(st->nhml_info, "wt");

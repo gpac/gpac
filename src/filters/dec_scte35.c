@@ -71,6 +71,10 @@ typedef struct {
 	GF_List *ordered_events;
 	u32 last_event_id;
 
+	// pass-through mode cue state
+	Bool passthru_splice_pending;
+	u64 passthru_splice_cts;
+
 	// used to compute immediate dispatch event duration
 	u32 timescale;
 	u32 last_pck_dur;
@@ -316,23 +320,27 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 
 			evt->dts += emib_dur;
 			dts += emib_dur;
-			evt->emib->presentation_time_delta -= evt->emib->presentation_time_delta;
+			evt->emib->presentation_time_delta = 0; //event is on-going
 			evt->emib->event_duration -= emib_dur;
 			if (max_dur != GF_UINT_MAX)
 				max_dur -= emib_dur;
 		}
 
-		if (!IS_SEGMENTED ||
-		    (evt->emib->presentation_time_delta <= 0 && (evt->emib->event_duration == GF_UINT_MAX || evt->emib->event_duration == 0)) ||
-			dts >= evt->dts + evt_dur) {
+		if (!IS_SEGMENTED
+		    || /*past event*/ (evt->emib->presentation_time_delta == 0
+		        && (evt->emib->event_duration == GF_UINT_MAX || evt->emib->event_duration == 0))
+		    || /*past event*/ dts >= evt->dts + evt_dur
+		) {
 			// we're done with the event
 			gf_isom_box_del((GF_Box*)evt->emib);
 			gf_free(evt);
+			evt = NULL;
 		} else {
 			e = scte35dec_schedule(ctx, evt->dts, evt->emib);
-			gf_free(evt);
 			if(e)
 				goto exit;
+			gf_free(evt);
+			evt = NULL;
 			if (max_dur != GF_UINT_MAX && max_dur > 0)
 				continue; // still time within time scope: re-schedule and continue to process
 			else
@@ -341,7 +349,7 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 	}
 
 exit:
-	if (e) {
+	if (e && evt) {
 		gf_isom_box_del((GF_Box*)evt->emib);
 		gf_free(evt);
 	}
@@ -474,7 +482,9 @@ Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *spl
 	/*u32 tier = */gf_bs_read_int(bs, 12);
 
 	u32 splice_command_length = gf_bs_read_int(bs, 12);
-	if (splice_command_length > gf_bs_available(bs)) {
+	/* 0xFFF indicates that splice_command_length is unspecified. */
+	Bool splice_command_length_unspecified = (splice_command_length == 0xFFF);
+	if (!splice_command_length_unspecified && (splice_command_length > gf_bs_available(bs))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short (" LLU " bytes) while parsing splice command (%u bytes)\n",
 			gf_bs_available(bs), splice_command_length));
 		goto exit;
@@ -542,7 +552,8 @@ Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *spl
 		break;
 	case 0x00: //splice_null()
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_null()\n"));
-		gf_bs_skip_bytes(bs, splice_command_length);
+		if (!splice_command_length_unspecified)
+			gf_bs_skip_bytes(bs, splice_command_length);
 		gf_bs_align(bs);
 		break;
 	default:
@@ -763,17 +774,46 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts, u32 dur)
 	return GF_OK;
 }
 
-static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 cts)
+static void scte35dec_update_passthrough_cue(SCTE35DecCtx *ctx, const u8 *data, u32 size)
 {
-	Event *evt = gf_list_get(ctx->ordered_events, 0);
-	if (!evt) return GF_FALSE;
-	Bool is_splice = (evt->dts + evt->emib->presentation_time_delta == cts);
-	if (is_splice) {
-		Event *evt = gf_list_pop_front(ctx->ordered_events);
-		gf_isom_box_del((GF_Box*)evt->emib);
-		gf_free(evt);
+	u64 pts = 0;
+	u64 dur = (u64) -1;
+	u32 event_id = 0;
+	Bool needs_idr = GF_FALSE;
+
+	if (!scte35dec_get_timing(data, size, &pts, &dur, &event_id, &needs_idr))
+		return;
+	if (!needs_idr)
+		return;
+
+	ctx->passthru_splice_cts = pts;
+	ctx->passthru_splice_pending = GF_TRUE;
+}
+
+static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, GF_FilterPacket *pck)
+{
+	if (!ctx->passthru_splice_pending)
+		return GF_FALSE;
+
+	u64 cts = gf_filter_pck_get_cts(pck);
+	if (cts < ctx->passthru_splice_cts)
+		return GF_FALSE;
+
+	/* The splice timestamp may fall between decodable picture timestamps (for
+	 * example, one field before a frame in interlaced content). Accept a SAP
+	 * within one packet duration of the signaled splice time. */
+	u64 delta = cts - ctx->passthru_splice_cts;
+	u32 tolerance = gf_filter_pck_get_duration(pck);
+	if (delta > tolerance) {
+		ctx->passthru_splice_pending = GF_FALSE;
+		return GF_FALSE;
 	}
-	return is_splice;
+
+	if (!gf_filter_pck_get_sap(pck))
+		return GF_FALSE;
+
+	ctx->passthru_splice_pending = GF_FALSE;
+	return GF_TRUE;
 }
 
 static GF_Err scte35dec_process_m2tssec(SCTE35DecCtx *ctx, const u8 *data, u32 size, u64 dts, u32 dur)
@@ -795,7 +835,7 @@ static GF_Err scte35dec_process_passthrough(SCTE35DecCtx *ctx, GF_FilterPacket *
 		return GF_OUT_OF_MEM;
 
 	u64 cts = gf_filter_pck_get_cts(pck);
-	if (scte35dec_is_splice_point(ctx, cts)) {
+	if (scte35dec_is_splice_point(ctx, pck)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at cts=" LLU " - adding cue start property\n", cts));
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 	}
@@ -911,6 +951,8 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 			GF_Err e = scte35dec_process_emsg(ctx, data, size, dts);
 			if (e)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Detected error while processing 'emsg' at dts="LLU"\n", dts));
+		} else if (ctx->mode == PASSTHRU) {
+			scte35dec_update_passthrough_cue(ctx, data, size);
 		}
 	}
 

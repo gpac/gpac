@@ -185,9 +185,10 @@ void GF_IPMPX_ParseBin128(char *val, bin128 *data)
 		gf_bs_del(bs);
 	} else {
 		u32 i, b;
+		u32 len = (u32) strlen(val);
 		char szB[3];
 		szB[2] = 0;
-		for (i=0; i<16; i++) {
+		for (i=0; i<16 && 2*i+1 < len; i++) {
 			szB[0] = val[2*i];
 			szB[1] = val[2*i+1];
 			sscanf(szB, "%x", &b);

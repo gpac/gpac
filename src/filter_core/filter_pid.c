@@ -339,6 +339,9 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 		if ((mtype==i_type) && (codecid != i_codecid)) {
 
 			buffer_us = pid->filter->pid_decode_buffer_max_us ? pid->filter->pid_decode_buffer_max_us : pid->filter->session->decoder_pid_buffer_max_us;
+			//buffer req was set on this pid but this is a decoder, move requirement to source and setup compostion (decoded) buffer based on media type
+			if (pid->user_max_buffer_time)
+				buffer_us = pid->user_max_buffer_time;
 			//default decoder buffer
 			pidi->pid->max_buffer_time = MAX(pidi->pid->user_max_buffer_time, buffer_us);
 			pidi->pid->max_buffer_unit = 0;
@@ -346,10 +349,13 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 			//composition buffer
 			if (pid->filter->pid_buffer_max_units) {
 				pid->max_buffer_unit = pid->filter->pid_buffer_max_units;
+				pid->max_buffer_time = 0;
 			} else if (mtype==GF_STREAM_VISUAL) {
-				pid->max_buffer_unit = 4;
+				pid->max_buffer_unit = 3;
+				pid->max_buffer_time = 0;
 			} else if (mtype==GF_STREAM_AUDIO) {
-				pid->max_buffer_unit = 20;
+				pid->max_buffer_unit = 5;
+				pid->max_buffer_time = 0;
 			}
 
 			if (!pidi->is_decoder_input) {
@@ -2048,6 +2054,7 @@ Bool filter_source_id_match(GF_FilterPid *src_pid, const char *src_filter_id, GF
 	Bool first_pass = GF_TRUE;
 	Bool has_default_match;
 	Bool is_pid_excluded;
+	u32 src_fid_len = src_filter_id ? (u32) strlen(src_filter_id) : 0;
 	*pid_excluded = GF_FALSE;
 	if (dst_filter) {
 		if (!dst_filter->source_ids)
@@ -2092,13 +2099,19 @@ sourceid_reassign:
 		//skip frag char
 		if (frag_name) frag_name++;
 
+		Bool match_prefix = GF_FALSE;
+		if ((sublen>1) && source_ids[sublen-1] == '*') {
+			sublen--;
+			match_prefix = GF_TRUE;
+		}
+
 		//any ID, always match
 		if (source_ids[0]=='*') { }
 		// id does not match
 		else {
 			Bool res;
 			if (src_filter_id)
-				res = strncmp(src_filter_id, source_ids, sublen) ? GF_FALSE : GF_TRUE;
+				res = ((!sublen || match_prefix || (src_fid_len==sublen)) && !strncmp(src_filter_id, source_ids, sublen)) ? GF_TRUE : GF_FALSE;
 			else
 				res = sublen ? GF_FALSE : GF_TRUE;
 			if (use_neg) res = !res;
@@ -2140,12 +2153,13 @@ sourceid_reassign:
 						u32 frag_sep_len = (u32) (frag_sep-frag_name+1);
 						if (next_frag) next_frag[0] = src_pid->filter->session->sep_frag;
 
-						char *new_source_ids = gf_malloc(sizeof(char) * (strlen(sid) + strlen(prop_dump_buffer)+1));
+						u32 blen = (u32) strlen(sid) + (u32) strlen(prop_dump_buffer)+1;
+						char *new_source_ids = gf_malloc(sizeof(char) * blen);
 						u32 clen = (u32) sublen + frag_sep_len + 1;
-						strncpy(new_source_ids, sid, clen);
+						memcpy(new_source_ids, sid, clen);
 						new_source_ids[clen]=0;
-						strcat(new_source_ids, prop_dump_buffer);
-						if (next_frag) strcat(new_source_ids, next_frag);
+						gf_strlcat(new_source_ids, prop_dump_buffer, blen);
+						if (next_frag) gf_strlcat(new_source_ids, next_frag, blen);
 
 						if (resolved_source_ids) {
 
@@ -2934,9 +2948,9 @@ static void concat_reg(GF_FilterSession *sess, char prefRegister[1001], const ch
 		char szSepChar[2];
 		szSepChar[0] = sess->sep_args;
 		szSepChar[1] = 0;
-		strcat(prefRegister, szSepChar);
+		gf_strlcat(prefRegister, szSepChar, 1001);
 	}
-	strncat(prefRegister, forced_reg, len);
+	gf_strlcat(prefRegister, forced_reg, 1001);
 }
 
 static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *freg, u32 bundle_idx)
@@ -4415,8 +4429,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 		if (parse_prop && value && strpbrk(value, "$@")) {
 			char *a_value = gf_strdup(value);
 			filter_solve_prop_template(filter, pid, &a_value);
-			strncpy(ref_prop_dump, a_value, GF_PROP_DUMP_ARG_SIZE-1);
-			ref_prop_dump[GF_PROP_DUMP_ARG_SIZE-1]=0;
+			gf_strcpy(ref_prop_dump, a_value);
 			gf_free(a_value);
 			value = (char*) ref_prop_dump;
 			if (!value[0])
@@ -5603,6 +5616,21 @@ single_retry:
 				if (skipped) {
 					continue;
 				}
+
+				//filter was reassigned (pid is destroyed), return
+				if (reassigned) {
+					if (num_pass==1) {
+						can_reassign_filter = GF_TRUE;
+						continue;
+					}
+					gf_mx_v(filter->session->filters_mx);
+					if (loaded_filters) gf_list_del(loaded_filters);
+					gf_list_del(linked_dest_filters);
+					gf_list_del(force_link_resolutions);
+					gf_list_del(possible_linked_resolutions);
+					return;
+				}
+
 				if (pid->filter->session->run_status!=GF_OK) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s init canceled (session abort)\n", pid->filter->name, pid->name));
 					gf_mx_v(filter->session->filters_mx);
@@ -5615,21 +5643,6 @@ single_retry:
 					return;
 				}
 
-				//filter was reassigned (pid is destroyed), return
-				if (reassigned) {
-					if (num_pass==1) {
-						can_reassign_filter = GF_TRUE;
-						continue;
-					}
-					gf_mx_v(filter->session->filters_mx);
-					gf_assert(pid->init_task_pending);
-					safe_int_dec(&pid->init_task_pending);
-					if (loaded_filters) gf_list_del(loaded_filters);
-					gf_list_del(linked_dest_filters);
-					gf_list_del(force_link_resolutions);
-					gf_list_del(possible_linked_resolutions);
-					return;
-				}
 				//we might had it wrong solving the chain initially, break the chain
 				if (filter_dst->dynamic_filter && filter_dst->dst_filter) {
 					GF_Filter *new_dst = filter_dst;
@@ -7653,16 +7666,34 @@ Bool gf_filter_pid_is_sparse(GF_FilterPid *pid)
 	return pid->pid->is_sparse;
 }
 
-static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool check_pid_full, Bool force_update)
+static GFINLINE u32 get_pid_buf_max(GF_FilterPid *pid)
+{
+	if (pid->max_buffer_time) {
+		return pid->max_buffer_time;
+	} else if (pid->nb_buffer_unit==pid->max_buffer_unit) {
+		return pid->buffer_duration;
+	} else if (pid->nb_buffer_unit) {
+		return pid->buffer_duration * pid->nb_buffer_unit / pid->max_buffer_unit;
+	} else {
+		GF_PropertyMap *props = gf_list_last(pid->properties);
+		if (props->timescale)
+			return gf_timestamp_rescale(pid->min_pck_duration * pid->max_buffer_unit, props->timescale, 1000000);
+	}
+	return 0;
+}
+
+static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool check_pid_full, Bool force_update, u32 *buffer_max)
 {
 	u32 count, i, j;
 	u64 duration=0;
-	if (!pid || pid->filter->session->in_final_flush)
-		return GF_FILTER_NO_TS;
+	if (!pid)
+		return 0;
 
 	if (PID_IS_INPUT(pid)) {
 		GF_Filter *filter;
 		GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
+		if (buffer_max)
+			*buffer_max  = 0;
 		if (!pidinst->pid) return 0;
 		filter = pidinst->pid->filter;
 		if (check_pid_full) {
@@ -7693,6 +7724,7 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 		//if many PIDs (large tiling configurations for example)
 		//we cache the last computed value and only update every 10 ms
 		if (!force_update && (pidinst->filter->last_schedule_task_time - pidinst->last_buf_query_clock < 10000)) {
+			if (buffer_max) *buffer_max = pidinst->last_buf_query_max;
 			return pidinst->last_buf_query_dur;
 		}
 		pidinst->last_buf_query_clock = pidinst->filter->last_schedule_task_time;
@@ -7700,10 +7732,14 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 
 		gf_mx_p(filter->tasks_mx);
 		count = filter->num_input_pids;
+		u32 bmax=0;
 		for (i=0; i<count; i++) {
-			u64 dur = gf_filter_pid_query_buffer_duration_internal( gf_list_get(filter->input_pids, i), GF_FALSE, force_update);
+			u32 loc_bmax=0;
+			u64 dur = gf_filter_pid_query_buffer_duration_internal( gf_list_get(filter->input_pids, i), GF_FALSE, force_update, buffer_max ? &loc_bmax : NULL);
 			if (dur > duration)
 				duration = dur;
+			if (buffer_max && (bmax<loc_bmax))
+				bmax = loc_bmax;
 
 			//only probe for first pid when this is a mux or a reassembly filter
 			//this is not as precise but avoids spending too much time here for very large number of input pids (tiling)
@@ -7711,8 +7747,15 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 				break;
 		}
 		gf_mx_v(filter->tasks_mx);
+		if (buffer_max) {
+			*buffer_max += bmax;
+			*buffer_max += get_pid_buf_max(pidinst->pid);
+		}
 		duration += pidinst->buffer_duration;
 		pidinst->last_buf_query_dur = duration;
+		if (buffer_max) {
+			pidinst->last_buf_query_max = *buffer_max;
+		}
 		return duration;
 	} else {
 		u32 count2;
@@ -7726,17 +7769,27 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 		}
 
 		count = pid->num_destinations;
+		u32 bmax = 0;
 		for (i=0; i<count; i++) {
 			GF_FilterPidInst *pidinst = gf_list_get(pid->destinations, i);
 
 			count2 = pidinst->filter->num_output_pids;
 			for (j=0; j<count2; j++) {
 				GF_FilterPid *pid_n = gf_list_get(pidinst->filter->output_pids, i);
-				u64 dur = gf_filter_pid_query_buffer_duration_internal(pid_n, GF_FALSE, GF_FALSE);
-				if (dur > max_dur ) max_dur = dur;
+				u32 loc_bmax=0;
+				u64 dur = gf_filter_pid_query_buffer_duration_internal(pid_n, GF_FALSE, GF_FALSE, buffer_max ? &loc_bmax : 0);
+				if (dur > max_dur )
+					max_dur = dur;
+				if (buffer_max && (bmax < loc_bmax))
+					bmax = loc_bmax;
 			}
 		}
 		duration += max_dur;
+		if (buffer_max) {
+			*buffer_max += bmax;
+			*buffer_max += get_pid_buf_max(pid);
+
+		}
 	}
 	return duration;
 }
@@ -7744,9 +7797,15 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 GF_EXPORT
 u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 {
-	return gf_filter_pid_query_buffer_duration_internal(pid, check_pid_full, GF_FALSE);
-
+	return gf_filter_pid_query_buffer_duration_internal(pid, check_pid_full, GF_FALSE, NULL);
 }
+
+GF_EXPORT
+u64 gf_filter_pid_query_buffer_duration_and_max(GF_FilterPid *pid, u32 *buffer_max)
+{
+	return gf_filter_pid_query_buffer_duration_internal(pid, GF_FALSE, GF_FALSE, buffer_max);
+}
+
 GF_EXPORT
 Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 {
@@ -7990,10 +8049,10 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 			if (!url) {
 				*url_addr_dst = NULL;
 			} else {
-				u32 len = (u32) strlen(url);
+				u32 len = 1 + (u32) strlen(url);
 				GF_RefString *rstr = gf_malloc(sizeof(GF_RefString) + sizeof(char)*len);
 				rstr->ref_count=1;
-				strcpy( (char *) &rstr->string[0], url);
+				gf_strlcpy( (char *) &rstr->string[0], url, len);
 				*url_addr_dst = (char *) &rstr->string[0];
 			}
 		}
@@ -9032,9 +9091,30 @@ u32 gf_filter_pid_get_max_buffer(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Querying max buffer on output PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
 		return 0;
 	}
-	return pid->pid->user_max_buffer_time;
+	u32 max_buf;
+	gf_filter_pid_query_buffer_duration_and_max(pid, &max_buf);
+	return max_buf;
+	//return pid->pid->user_max_buffer_time;
 }
 
+GF_EXPORT
+void gf_filter_pid_copy_buffer_req(GF_FilterPid *dst, GF_FilterPid *src)
+{
+	if (PID_IS_OUTPUT(src) || PID_IS_INPUT(dst)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Copying buffer requirement settings between incompatile source/dest PIDs (%s:%s to %s;%s)\n", src->pid->name, src->filter->name, dst->pid->name, dst->filter->name));
+		return;
+	}
+	src = src->pid;
+	if (src->max_buffer_unit) {
+		dst->max_buffer_unit = src->max_buffer_unit;
+		src->max_buffer_unit = 1;
+		dst->max_buffer_time = 0;
+	} else {
+		dst->max_buffer_time = src->max_buffer_time;
+		src->max_buffer_time = 1000;
+		dst->max_buffer_unit = 0;
+	}
+}
 
 GF_EXPORT
 void gf_filter_pid_set_loose_connect(GF_FilterPid *pid)
@@ -9151,7 +9231,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 	char szFormat[30], szTemplateVal[GF_MAX_PATH], szPropVal[GF_PROP_DUMP_ARG_SIZE];
 	const char *name = szTemplate;
 	if (!strchr(szTemplate, '$')) {
-		strcpy(szFinalName, szTemplate);
+		gf_strlcpy(szFinalName, szTemplate, GF_MAX_PATH);
 		return GF_OK;
 	}
 	pck = gf_filter_pid_get_packet(pid);
@@ -9189,7 +9269,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 		sep = strchr(name+1, '$');
 		if (!sep) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] broken file template `%s` expecting $KEYWORD$, couldn't find second '$'\n", szTemplate));
-			strcpy(szFinalName, szTemplate);
+			gf_strlcpy(szFinalName, szTemplate, GF_MAX_PATH);
 			return GF_BAD_PARAM;
 		}
 		szFormat[0] = '%';
@@ -9201,7 +9281,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 		sep[0]=0;
 		fsep = strchr(name, '%');
 		if (fsep) {
-			strcpy(szFormat, fsep);
+			gf_strcpy(szFormat, fsep);
 			fsep[0]=0;
 		}
 
@@ -9423,7 +9503,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 					str_val = gf_fileio_translate_url(str_val);
 
 				if (filename) {
-					strcpy(szTemplateVal, filename);
+					gf_strcpy(szTemplateVal, filename);
 				} else {
 					char *ext, *sname;
 					ext = strstr(str_val, "://");
@@ -9439,14 +9519,15 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 
 					if (ext && (ext > sname) ) {
 						u32 len = (u32) (ext - sname);
-						strncpy(szTemplateVal, sname, ext - sname);
+						if (len>=GF_MAX_PATH) len = GF_MAX_PATH-1;
+						memcpy(szTemplateVal, sname, len);
 						szTemplateVal[len] = 0;
 					} else {
-						strcpy(szTemplateVal, sname);
+						gf_strcpy(szTemplateVal, sname);
 					}
 				}
 			} else {
-				strcpy(szTemplateVal, str_val);
+				gf_strcpy(szTemplateVal, str_val);
 			}
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] property %s not found for pid, cannot resolve template\n", name));
@@ -9457,7 +9538,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 			return GF_OUT_OF_MEM;
 		}
 
-		strcat(szFinalName, szTemplateVal);
+		gf_strlcat(szFinalName, szTemplateVal, GF_MAX_PATH);
 		k = (u32) strlen(szFinalName);
 
 		if (!sep) break;
@@ -9468,7 +9549,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 			name++;
 
 	}
-	szFinalName[k] = 0;
+	szFinalName[MIN(k, GF_MAX_PATH-1)] = 0;
 	return GF_OK;
 }
 
@@ -9853,7 +9934,7 @@ GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id);
 
 
 GF_EXPORT
-GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec, Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, u32 *out_inband_forced)
+GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char szCodec[RFC6381_CODEC_NAME_SIZE_MAX], Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, u32 *out_inband_forced)
 {
 	u32 subtype=0, subtype_src=0, codec_id, stream_type;
 	s32 mha_pl=-1;
@@ -10192,11 +10273,11 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 			if (mime) mime++;
 			if (mime && mime[0] && strcmp(mime, "octet-string")) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[RFC6381] Codec parameters not known, using mime type %s\n", mime));
-				strcpy(szCodec, mime);
+				gf_strlcpy(szCodec, mime, RFC6381_CODEC_NAME_SIZE_MAX);
 				return GF_OK;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[RFC6381] Codec parameters not known, cannot set codec string\n" ));
-			strcpy(szCodec, "unkn");
+			gf_strlcpy(szCodec, "unkn", RFC6381_CODEC_NAME_SIZE_MAX);
 			return GF_OK;
 		}
 

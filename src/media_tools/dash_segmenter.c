@@ -587,9 +587,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	}
 
 	if (dasher->segment_duration == (u32) dasher->segment_duration) {
-		sprintf(szArg, "segdur=%u/%u", (u32) dasher->segment_duration, dasher->dash_scale);
+		snprintf(szArg, sizeof(szArg), "segdur=%u/%u", (u32) dasher->segment_duration, dasher->dash_scale);
 	} else {
-		sprintf(szArg, "segdur=%g", dasher->segment_duration/dasher->dash_scale);
+		snprintf(szArg, sizeof(szArg), "segdur=%g", dasher->segment_duration/dasher->dash_scale);
 	}
 	e = gf_dynstrcat(&args, szArg, ":");
 
@@ -638,19 +638,19 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	}
 
 	if (dasher->seg_rad_name) {
-		sprintf(szArg, "template=%s", dasher->seg_rad_name);
+		snprintf(szArg, sizeof(szArg), "template=%s", dasher->seg_rad_name);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->seg_ext) {
-		sprintf(szArg, "segext=%s", dasher->seg_ext);
+		snprintf(szArg, sizeof(szArg), "segext=%s", dasher->seg_ext);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->seg_init_ext) {
-		sprintf(szArg, "initext=%s", dasher->seg_init_ext);
+		snprintf(szArg, sizeof(szArg), "initext=%s", dasher->seg_init_ext);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->ast_offset_ms) {
-		sprintf(szArg, "asto=%d", -dasher->ast_offset_ms);
+		snprintf(szArg, sizeof(szArg), "asto=%d", -dasher->ast_offset_ms);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 
@@ -689,11 +689,11 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	else if (dasher->cp_location_mode==GF_DASH_CPMODE_BOTH) e |= gf_dynstrcat(&args, "cp=both", ":");
 
 	if (dasher->min_buffer_time) {
-		sprintf(szArg, "buf=%d", dasher->min_buffer_time);
+		snprintf(szArg, sizeof(szArg), "buf=%d", dasher->min_buffer_time);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->dash_scale != 1000) {
-		sprintf(szArg, "timescale=%d", dasher->dash_scale);
+		snprintf(szArg, sizeof(szArg), "timescale=%d", dasher->dash_scale);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (!dasher->check_duration) e |= gf_dynstrcat(&args, "!check_dur", ":");
@@ -704,30 +704,30 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->dash_mode >= GF_DASH_DYNAMIC) {
 		if (dasher->time_shift_depth<0) e |= gf_dynstrcat(&args, "tsb=-1", ":");
 		else {
-			sprintf(szArg, "tsb=%u", (u32) dasher->time_shift_depth);
+			snprintf(szArg, sizeof(szArg), "tsb=%u", (u32) dasher->time_shift_depth);
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 
 		if (dasher->utc_start_date) {
-			sprintf(szArg, "ast=%s", dasher->utc_start_date);
+			snprintf(szArg, sizeof(szArg), "ast=%s", dasher->utc_start_date);
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		if (dasher->mpd_update_time) {
-			sprintf(szArg, "refresh=%g", dasher->mpd_update_time);
+			snprintf(szArg, sizeof(szArg), "refresh=%g", dasher->mpd_update_time);
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		else {
-			sprintf(szArg, "refresh=-%g", dasher->mpd_live_duration);
+			snprintf(szArg, sizeof(szArg), "refresh=-%g", dasher->mpd_live_duration);
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 	}
 	if (dasher->sub_duration) {
 		//subdur is in seconds in dasher filter
-		sprintf(szArg, "subdur=%g", dasher->sub_duration/dasher->dash_scale);
+		snprintf(szArg, sizeof(szArg), "subdur=%g", dasher->sub_duration/dasher->dash_scale);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->dash_state) {
-		sprintf(szArg, "state=%s", dasher->dash_state);
+		snprintf(szArg, sizeof(szArg), "state=%s", dasher->dash_state);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (! dasher->disable_loop && dasher->dash_state) e |= gf_dynstrcat(&args, "loop", ":");
@@ -736,10 +736,10 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	//the rest is not yet exposed through the old api, but can be set through output file name
 
 	if (dasher->dash_mode>=GF_DASH_DYNAMIC) {
-	 	sprintf(szArg, "_p_gentime=%p", &dasher->next_gen_ntp_ms);
-	 	e |= gf_dynstrcat(&args, szArg, ":");
-	 	sprintf(szArg, "_p_mpdtime=%p", &dasher->mpd_time_ms);
-	 	e |= gf_dynstrcat(&args, szArg, ":");
+		snprintf(szArg, sizeof(szArg), "_p_gentime=%p", &dasher->next_gen_ntp_ms);
+		e |= gf_dynstrcat(&args, szArg, ":");
+		snprintf(szArg, sizeof(szArg), "_p_mpdtime=%p", &dasher->mpd_time_ms);
+		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 
 	//append ISOBMFF options
@@ -749,25 +749,25 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		if (diff<0) diff = -diff;
 		if (diff > 0.01) {
 			if (dasher->fragment_duration == (u32) dasher->fragment_duration) {
-				sprintf(szArg, "cdur=%u/%u", (u32) dasher->fragment_duration, dasher->dash_scale);
+				snprintf(szArg, sizeof(szArg), "cdur=%u/%u", (u32) dasher->fragment_duration, dasher->dash_scale);
 			} else {
-				sprintf(szArg, "cdur=%g", dasher->fragment_duration/dasher->dash_scale);
+				snprintf(szArg, sizeof(szArg), "cdur=%g", dasher->fragment_duration/dasher->dash_scale);
 			}
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 	}
 	if (dasher->segment_marker_4cc) {
-		sprintf(szArg, "m4cc=%s", gf_4cc_to_str(dasher->segment_marker_4cc) );
+		snprintf(szArg, sizeof(szArg), "m4cc=%s", gf_4cc_to_str(dasher->segment_marker_4cc) );
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->daisy_chain_sidx) e |= gf_dynstrcat(&args, "chain_sidx", ":");
 	if (dasher->use_ssix) e |= gf_dynstrcat(&args, "ssix", ":");
 	if (dasher->initial_moof_sn) {
-		sprintf(szArg, "msn=%d", dasher->initial_moof_sn );
+		snprintf(szArg, sizeof(szArg), "msn=%d", dasher->initial_moof_sn );
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->initial_tfdt) {
-		sprintf(szArg, "tfdt="LLU"", dasher->initial_tfdt );
+		snprintf(szArg, sizeof(szArg), "tfdt="LLU"", dasher->initial_tfdt );
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->no_fragments_defaults) e |= gf_dynstrcat(&args, "nofragdef", ":");
@@ -807,14 +807,14 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	}
 
 	if (dasher->enable_sidx) {
-		sprintf(szArg, "subs_sidx=%d", dasher->subsegs_per_sidx );
+		snprintf(szArg, sizeof(szArg), "subs_sidx=%d", dasher->subsegs_per_sidx );
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 
 	if (dasher->fragments_start_with_rap) e |= gf_dynstrcat(&args, "sfrag", ":");
 
 	if (dasher->cues_file) {
-		sprintf(szArg, "cues=%s", dasher->cues_file );
+		snprintf(szArg, sizeof(szArg), "cues=%s", dasher->cues_file );
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->strict_cues) e |= gf_dynstrcat(&args, "strict_cues", ":");
@@ -836,35 +836,35 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	//finally append profiles/info/etc with double separators as these may contain ':'
 	if (dasher->dash_profile_extension) {
-		sprintf(szArg, "profX=%s", dasher->dash_profile_extension);
+		snprintf(szArg, sizeof(szArg), "profX=%s", dasher->dash_profile_extension);
 		e |= gf_dynstrcat(&args, szArg, "::");
 	}
 	if (dasher->title) {
-		sprintf(szArg, "title=%s", dasher->title);
+		snprintf(szArg, sizeof(szArg), "title=%s", dasher->title);
 		e |= gf_dynstrcat(&args, szArg, "::");
 	}
 	if (dasher->sourceInfo) {
-		sprintf(szArg, "source=%s", dasher->sourceInfo);
+		snprintf(szArg, sizeof(szArg), "source=%s", dasher->sourceInfo);
 		e |= gf_dynstrcat(&args, szArg, "::");
 	}
 	if (dasher->moreInfoURL) {
-		sprintf(szArg, "info=%s", dasher->moreInfoURL);
+		snprintf(szArg, sizeof(szArg), "info=%s", dasher->moreInfoURL);
 		e |= gf_dynstrcat(&args, szArg, "::");
 	}
 	if (dasher->copyright) {
-		sprintf(szArg, "cprt=%s", dasher->copyright);
+		snprintf(szArg, sizeof(szArg), "cprt=%s", dasher->copyright);
 		e |= gf_dynstrcat(&args, szArg, "::");
 	}
 	if (dasher->lang) {
-		sprintf(szArg, "lang=%s", dasher->lang);
+		snprintf(szArg, sizeof(szArg), "lang=%s", dasher->lang);
 		e |= gf_dynstrcat(&args, szArg, "::");
 	}
 	if (dasher->locations) {
-		sprintf(szArg, "location=%s", dasher->locations);
+		snprintf(szArg, sizeof(szArg), "location=%s", dasher->locations);
 		e |= gf_dynstrcat(&args, szArg, "::");
 	}
 	if (dasher->base_urls) {
-		sprintf(szArg, "base=%s", dasher->base_urls);
+		snprintf(szArg, sizeof(szArg), "base=%s", dasher->base_urls);
 		e |= gf_dynstrcat(&args, szArg, "::");
 	}
 
@@ -974,13 +974,13 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			}
 			if (fID || !strcmp(frag_val, "audio") || !strcmp(frag_val, "video") || (strlen(frag_val)==4)) {
 				//we set tkid for demuxers able to fetch specific tracks (eg isobmf)
-				sprintf(szArg, "tkid=%s", frag_val);
+				snprintf(szArg, sizeof(szArg), "tkid=%s", frag_val);
 				e |= gf_dynstrcat(&args, szArg, ":");
 			}
 		} else if (di->track_id) {
 			sprintf(szSourceID, "PID=%d", di->track_id);
 			//we set tkid for isobmf
-			sprintf(szArg, "tkid=%d", di->track_id);
+			snprintf(szArg, sizeof(szArg), "tkid=%d", di->track_id);
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		if (szSourceID[0]) source_id = szSourceID;
@@ -991,57 +991,57 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 		//set all args
 		if (!use_filter_chains && di->representationID && strcmp(di->representationID, "NULL")) {
-			sprintf(szArg, "#Representation=%s", di->representationID );
+			snprintf(szArg, sizeof(szArg), "#Representation=%s", di->representationID );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		if (di->periodID) {
-			sprintf(szArg, "#Period=%s", di->periodID );
+			snprintf(szArg, sizeof(szArg), "#Period=%s", di->periodID );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		if (di->asID)  {
-			sprintf(szArg, "#ASID=%d", di->asID );
+			snprintf(szArg, sizeof(szArg), "#ASID=%d", di->asID );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		//period start as negative to keep declaration order
 		if (multi_period && di->period_order) {
-			sprintf(szArg, "#PStart=-%d", di->period_order);
+			snprintf(szArg, sizeof(szArg), "#PStart=-%d", di->period_order);
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 
 		if (di->period_duration.num && di->period_duration.den) {
 			if (di->period_duration.den==1)
-				sprintf(szArg, "#PDur=%d", di->period_duration.num );
+				snprintf(szArg, sizeof(szArg), "#PDur=%d", di->period_duration.num );
 			else
-				sprintf(szArg, "#PDur=%d/%u", di->period_duration.num, di->period_duration.den );
+				snprintf(szArg, sizeof(szArg), "#PDur=%d/%u", di->period_duration.num, di->period_duration.den );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 
 		if (di->dash_duration.num && di->dash_duration.den) {
 			if (di->dash_duration.den==1)
-				sprintf(szArg, "#DashDur=%d", di->dash_duration.num );
+				snprintf(szArg, sizeof(szArg), "#DashDur=%d", di->dash_duration.num );
 			else
-				sprintf(szArg, "#DashDur=%d/%u", di->dash_duration.num, di->dash_duration.den);
+				snprintf(szArg, sizeof(szArg), "#DashDur=%d/%u", di->dash_duration.num, di->dash_duration.den);
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		if (url && di->media_duration.num && di->media_duration.den) {
-			sprintf(szArg, "#ClampDur="LLU"/"LLD"", di->media_duration.num, di->media_duration.den );
+			snprintf(szArg, sizeof(szArg), "#ClampDur="LLU"/"LLD"", di->media_duration.num, di->media_duration.den );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 
 		if (di->xlink) {
-			sprintf(szArg, "#xlink=%s", di->xlink );
+			snprintf(szArg, sizeof(szArg), "#xlink=%s", di->xlink );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		if (di->bandwidth)  {
-			sprintf(szArg, "#Bitrate=%d", di->bandwidth );
+			snprintf(szArg, sizeof(szArg), "#Bitrate=%d", di->bandwidth );
 			e |= gf_dynstrcat(&args, szArg, ":");
-			sprintf(szArg, "#Maxrate=%d", di->bandwidth );
+			snprintf(szArg, sizeof(szArg), "#Maxrate=%d", di->bandwidth );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 
 		for (j=0;j<di->nb_baseURL; j++) {
 			if (!j) {
-				sprintf(szArg, "#BUrl=%s", di->baseURL[j] );
+				snprintf(szArg, sizeof(szArg), "#BUrl=%s", di->baseURL[j] );
 				e |= gf_dynstrcat(&args, szArg, ":");
 			} else {
 				e |= gf_dynstrcat(&args, di->baseURL[j], ",");
@@ -1049,7 +1049,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 		for (j=0;j<di->nb_roles; j++) {
 			if (!j) {
-				sprintf(szArg, "#Role=%s", di->roles[j] );
+				snprintf(szArg, sizeof(szArg), "#Role=%s", di->roles[j] );
 				e |= gf_dynstrcat(&args, szArg, ":");
 			} else {
 				e |= gf_dynstrcat(&args, di->roles[j], ",");
@@ -1058,7 +1058,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 		for (j=0;j<di->nb_rep_descs; j++) {
 			if (!j) {
-				sprintf(szArg, "#RDesc=%s", di->rep_descs[j] );
+				snprintf(szArg, sizeof(szArg), "#RDesc=%s", di->rep_descs[j] );
 				e |= gf_dynstrcat(&args, szArg, ":");
 			} else {
 				e |= gf_dynstrcat(&args, di->rep_descs[j], ",");
@@ -1067,7 +1067,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 		for (j=0;j<di->nb_p_descs; j++) {
 			if (!j) {
-				sprintf(szArg, "#PDesc=%s", di->p_descs[j] );
+				snprintf(szArg, sizeof(szArg), "#PDesc=%s", di->p_descs[j] );
 				e |= gf_dynstrcat(&args, szArg, ":");
 			} else {
 				e |= gf_dynstrcat(&args, di->p_descs[j], ",");
@@ -1076,7 +1076,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 		for (j=0;j<di->nb_as_descs; j++) {
 			if (!j) {
-				sprintf(szArg, "#ASDesc=%s", di->as_descs[j] );
+				snprintf(szArg, sizeof(szArg), "#ASDesc=%s", di->as_descs[j] );
 				e |= gf_dynstrcat(&args, szArg, ":");
 			} else {
 				e |= gf_dynstrcat(&args, di->as_descs[j], ",");
@@ -1085,7 +1085,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 		for (j=0;j<di->nb_as_c_descs; j++) {
 			if (!j) {
-				sprintf(szArg, "#ASCDesc=%s", di->as_c_descs[j] );
+				snprintf(szArg, sizeof(szArg), "#ASCDesc=%s", di->as_c_descs[j] );
 				e |= gf_dynstrcat(&args, szArg, ":");
 			} else {
 				e |= gf_dynstrcat(&args, di->as_c_descs[j], ",");
@@ -1093,15 +1093,15 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 
 		if (di->startNumber) {
-			sprintf(szArg, "#StartNumber=%d", di->startNumber );
+			snprintf(szArg, sizeof(szArg), "#StartNumber=%d", di->startNumber );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		if (di->seg_template) {
-			sprintf(szArg, "#Template=%s", di->seg_template );
+			snprintf(szArg, sizeof(szArg), "#Template=%s", di->seg_template );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		if (di->hls_pl) {
-			sprintf(szArg, "#HLSPL=%s", di->hls_pl );
+			snprintf(szArg, sizeof(szArg), "#HLSPL=%s", di->hls_pl );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 

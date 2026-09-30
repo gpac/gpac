@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Context loader filter
@@ -45,6 +45,7 @@ typedef struct
 
 	GF_SceneManager *ctx;
 	GF_SceneLoader load;
+	GF_SceneDestroyNotify *destroy_notify;
 	u64 file_size;
 	u32 load_flags;
 	u32 nb_streams;
@@ -258,6 +259,15 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	return GF_OK;
 }
 
+static void ctxload_on_scene_destroy(void* udta)
+{
+	CTXLoadPriv* priv = (CTXLoadPriv*)udta;
+	// scene/graph is still fully valid here (called from gf_scene_del before it tears
+	// anything down) - release our leftover node references now, in case our own
+	// finalize runs later, after the scene is gone
+	gf_sm_load_done(&priv->load);
+}
+
 static Bool ctxload_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
@@ -294,6 +304,18 @@ static Bool ctxload_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				gf_sg_set_node_callback(priv->scene->graph, CTXLoad_NodeCallback);
 
 				priv->service_url = odm->scene_ns->url;
+
+				// ask the scene to warn us before it starts destroying itself, so we can
+				// release our leftover node references while it's still valid (finalize
+				// order across filters is not guaranteed)
+				GF_SAFEALLOC(priv->destroy_notify, GF_SceneDestroyNotify);
+				if (priv->destroy_notify) {
+					priv->destroy_notify->notify = ctxload_on_scene_destroy;
+					priv->destroy_notify->udta = priv;
+					if (!priv->scene->destroy_notify)
+						priv->scene->destroy_notify = gf_list_new();
+					gf_list_add(priv->scene->destroy_notify, priv->destroy_notify);
+				}
 
 				if (!priv->ctx)	CTXLoad_Setup(filter, priv);
 
@@ -520,7 +542,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		else {
 			priv->load_flags = 2;
 			e = gf_sm_load_run(&priv->load);
-			gf_sm_load_done(&priv->load);
+			//gf_sm_load_done(&priv->load); // better done in finalize
 			/*in case this was not set in the first pass (XMT)*/
 			gf_sg_set_scene_size_info(priv->scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
 		}
@@ -602,16 +624,18 @@ static GF_Err ctxload_process(GF_Filter *filter)
 			}
 
 			s32 early = flush_all ? 0 : gf_clock_diff(priv->scene->root_od->ck, stream_time, au_time);
-			if (early>0) {
-				if (!min_next_time_ms || (min_next_time_ms > (u32) early))
+
+			if (early > 0) {
+				if (!min_next_time_ms || (min_next_time_ms > (u32)early))
 					min_next_time_ms = early;
 
 				updates_pending++;
 
 				u64 cts = gf_timestamp_rescale(au->timing, sc->timeScale, 1000);
-				gf_sc_sys_frame_pending(priv->scene->compositor, (u32) cts, stream_time, filter);
+				gf_sc_sys_frame_pending(priv->scene->compositor, (u32)cts, stream_time, filter);
 				break;
 			}
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[CtxLoad] %s applying AU time %d\n", priv->file_name, au_time ));
 
 			if (sc->streamType == GF_STREAM_SCENE) {
@@ -645,6 +669,14 @@ static GF_Err ctxload_process(GF_Filter *filter)
 							GF_MuxInfo *mux = NULL;
 							GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, 0);
 							gf_list_rem(odU->objectDescriptors, 0);
+							/*only the OD family carries ESDescriptors; a type-confused entry
+							  from malformed XMT reads a garbage pointer at od->ESDescriptors
+							  and faults in gf_list_get*/
+							if (!od || (od->tag != GF_ODF_OD_TAG && od->tag != GF_ODF_IOD_TAG
+							            && od->tag != GF_ODF_ISOM_OD_TAG && od->tag != GF_ODF_ISOM_IOD_TAG)) {
+								if (od) gf_odf_desc_del((GF_Descriptor *) od);
+								continue;
+							}
 							/*we can only work with single-stream ods*/
 							esd = (GF_ESD*)gf_list_get(od->ESDescriptors, 0);
 							if (!esd) {
@@ -690,8 +722,9 @@ static GF_Err ctxload_process(GF_Filter *filter)
 									ODS_SetupOD(priv->scene, od);
 								} else if (esd->decoderConfig->streamType==GF_STREAM_INTERACT) {
 									GF_UIConfig *cfg = (GF_UIConfig *) esd->decoderConfig->decoderSpecificInfo;
-									gf_odf_encode_ui_config(cfg, &esd->decoderConfig->decoderSpecificInfo);
-									gf_odf_desc_del((GF_Descriptor *) cfg);
+									if (gf_odf_encode_ui_config(cfg, &esd->decoderConfig->decoderSpecificInfo) == GF_OK) {
+										gf_odf_desc_del((GF_Descriptor*)cfg);
+									}
 									ODS_SetupOD(priv->scene, od);
 								} else if (esd->decoderConfig->streamType==GF_STREAM_OCR) {
 									ODS_SetupOD(priv->scene, od);
@@ -741,9 +774,8 @@ static GF_Err ctxload_process(GF_Filter *filter)
 								gf_fclose(t);
 							}
 							/*remap to remote URL - warning, the URL has already been resolved according to the parent path*/
-							remote = (char*)gf_malloc(sizeof(char) * (strlen("gpac://")+strlen(mux->file_name)+1) );
-							strcpy(remote, "gpac://");
-							strcat(remote, mux->file_name);
+							remote = gf_strdup("gpac://");
+							gf_dynstrcat(&remote, mux->file_name, NULL);
 							k = od->objectDescriptorID;
 							/*if files were created we'll have to clean up (swf import)*/
 							if (mux->delete_file) gf_list_add(priv->files_to_delete, gf_strdup(remote));
@@ -827,6 +859,16 @@ static void ctxload_finalize(GF_Filter *filter)
 {
 	CTXLoadPriv *priv = gf_filter_get_udta(filter);
 
+	if (priv->destroy_notify) {
+		// scene hasn't been destroyed yet (we're finalizing first) - remove our entry so
+		// gf_scene_del doesn't call back into us after we're freed below
+		if (!priv->destroy_notify->done && priv->scene && priv->scene->destroy_notify)
+			gf_list_del_item(priv->scene->destroy_notify, priv->destroy_notify);
+		gf_free(priv->destroy_notify);
+		priv->destroy_notify = NULL;
+	}
+
+	gf_sm_load_done(&priv->load);
 	if (priv->ctx) gf_sm_del(priv->ctx);
 	if (priv->files_to_delete) gf_list_del(priv->files_to_delete);
 
@@ -861,6 +903,8 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 		probe_size--;
 	}
 
+	if (!probe_size) goto exit;
+
 	//for XML, strip doctype, <?xml and comments
 	while (1) {
 		char *search=NULL;
@@ -888,6 +932,8 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 	}
 	//probe_data is now the first element of the document, if XML
 	//we should refine by getting the xmlns attribute value rather than searching for its value...
+
+	if (!probe_size) goto exit;
 
 	if (gf_strmemstr(probe_data, probe_size, "http://www.w3.org/1999/XSL/Transform")
 	) {

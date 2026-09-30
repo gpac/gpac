@@ -373,8 +373,11 @@ static GFINLINE GF_SceneGraph *xml_get_scenegraph(JSContext *c)
 	GF_SceneGraph *scene;
 	JSClassID _classID;
 	JSValue global = JS_GetGlobalObject(c);
-	scene = (GF_SceneGraph *) JS_GetAnyOpaque(global, &_classID);
+	JSValue sg_obj = JS_GetPropertyStr(c,global, "__scenegraph");
 	JS_FreeValue(c, global);
+	if (JS_IsUndefined(sg_obj)) return NULL;
+	scene = (GF_SceneGraph *) JS_GetAnyOpaque(sg_obj, &_classID);
+	JS_FreeValue(c, sg_obj);
 	return scene;
 }
 

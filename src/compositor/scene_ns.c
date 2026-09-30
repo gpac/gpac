@@ -429,6 +429,11 @@ void gf_scene_ns_del(GF_SceneNamespace *sns, GF_Scene *root_scene)
 Bool scene_ns_remove_object(GF_Filter *filter, void *callback, u32 *reschedule_ms)
 {
 	GF_ObjectManager *odm = (GF_ObjectManager *)callback;
+	odm->has_pending_remove_task = GF_FALSE;
+	if (odm->flags & GF_ODM_DESTROYED) {
+		gf_odm_del(odm);
+		return GF_FALSE;
+	}
 	gf_odm_disconnect(odm, 2);
 	return GF_FALSE;
 }
@@ -572,8 +577,10 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 			target_scene->root_od->skip_disconnect_state = 0;
 		}
 		if (remove_scene) {
+			target_scene->root_od->has_pending_remove_task = GF_TRUE;
 			gf_filter_post_task(scene->compositor->filter, scene_ns_remove_object, target_scene->root_od, "remove_odm");
 		} else {
+			odm->has_pending_remove_task = GF_TRUE;
 			gf_filter_post_task(scene->compositor->filter, scene_ns_remove_object, odm, "remove_odm");
 		}
 		if (remove_filter) {

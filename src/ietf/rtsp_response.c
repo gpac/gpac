@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -283,8 +283,7 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 					nPos += 1;
 					/*nPos = */gf_token_get(buf, nPos, "", param_val, 1000);
 				} else {
-					strncpy(param_name, buf, sizeof(param_name)-1);
-					param_name[sizeof(param_name)-1]=0;
+					gf_strcpy(param_name, buf);
 				}
 				if (!stricmp(param_name, "url")) info->url = gf_strdup(param_val);
 				else if (!stricmp(param_name, "seq")) sscanf(param_val, "%u", &info->seq);
@@ -437,7 +436,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	}
 
 	//reset last request
-	if (sess->RTSP_State == GF_RTSP_STATE_INIT) strcpy(sess->RTSPLastRequest, "");
+	if (sess->RTSP_State == GF_RTSP_STATE_INIT) gf_strcpy(sess->RTSPLastRequest, "");
 
 	//check the CSeq is in the right range. The server should ALWAYS reply in sequence
 	//to an aggreagated sequence of requests

@@ -424,26 +424,25 @@ void gf_utc_time_since_1970(u32 *sec, u32 *msec)
 GF_EXPORT
 void gf_get_user_name(char buf[1024])
 {
-	strcpy(buf, "gpac-user");
+	gf_strlcpy(buf, "gpac-user", 1024);
 
 #if 0
 	s32 len;
 	char *t;
-	strcpy(buf, "");
+	gf_strcpy(buf, "");
 	len = 1024;
 	GetUserName(buf, &len);
 	if (!len) {
 		t = getenv("USER");
-		if (t) strcpy(buf, t);
+		if (t) gf_strcpy(buf, t);
 	}
 #endif
 #if 0
 	struct passwd *pw;
 	pw = getpwuid(getuid());
-	strcpy(buf, "");
+	gf_strcpy(buf, "");
 	if (pw && pw->pw_name) {
-		strncpy(name, pw->pw_name, 1023);
-		name[1023] = 0;
+		gf_strcpy(name, pw->pw_name);
 	}
 #endif
 }
@@ -976,7 +975,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			if (arg_val) {
 				u32 len = (u32) (arg_val-arg);
 				if (len>1023) len = 1023;
-				strncpy(szArg, arg, len);
+				memcpy(szArg, arg, len);
 				szArg[len]=0;
 				arg_val++;
 				arg = szArg;
@@ -1373,9 +1372,9 @@ GF_Config *gf_sys_get_lang_file()
 	if (gpac_lang_file) return gpac_lang_file;
 
 	if (! gf_opts_default_shared_directory(szSharedPath)) return NULL;
-	strcat(szSharedPath, "/lang/");
-	strcat(szSharedPath, opt);
-	strcat(szSharedPath, ".txt");
+	gf_strcat(szSharedPath, "/lang/");
+	gf_strcat(szSharedPath, opt);
+	gf_strcat(szSharedPath, ".txt");
 	if (!gf_file_exists(szSharedPath)) return NULL;
 
 	gpac_lang_file = gf_cfg_new(NULL, szSharedPath);
@@ -2387,16 +2386,16 @@ const char * gf_get_default_cache_directory_ex(Bool do_create)
 	if (cache_dir) return cache_dir;
 
 #ifdef _WIN32_WCE
-	strcpy(szCacheDir, "\\windows\\temp" );
+	gf_strcpy(szCacheDir, "\\windows\\temp" );
 #elif defined(WIN32)
 	GetTempPath(GF_MAX_PATH, szCacheDir);
 #elif defined(GPAC_CONFIG_ANDROID)
-	strcpy(szCacheDir, "/data/data/io.gpac.gpac/cache");
+	gf_strcpy(szCacheDir, "/data/data/io.gpac.gpac/cache");
 #else
-	strcpy(szCacheDir, "/tmp");
+	gf_strcpy(szCacheDir, "/tmp");
 #endif
 
-	strcpy(root_tmp, szCacheDir);
+	gf_strcpy(root_tmp, szCacheDir);
 
 	len = strlen(szCacheDir);
 	if (szCacheDir[len-1] != GF_PATH_SEPARATOR) {
@@ -2404,10 +2403,10 @@ const char * gf_get_default_cache_directory_ex(Bool do_create)
 		szCacheDir[len+1] = 0;
 	}
 
-	strcat(szCacheDir, "gpac_cache");
+	gf_strcat(szCacheDir, "gpac_cache");
 
 	if (do_create && !gf_dir_exists(szCacheDir) && gf_mkdir(szCacheDir)!=GF_OK ) {
-		strcpy(szCacheDir, root_tmp);
+		gf_strcpy(szCacheDir, root_tmp);
 		return szCacheDir;
 	}
 	return szCacheDir;
@@ -2472,8 +2471,8 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
 	int flags;
 	int status;
 	pidfile = gf_malloc(strlen(dir)+strlen(prefix)+strlen(resourceName)+1);
-	strcpy(pidfile, dir);
-	strcat(pidfile, prefix);
+	gf_strcpy(pidfile, dir);
+	gf_strcat(pidfile, prefix);
 	/* Use only valid names for file */
 	{
 		const char *res;

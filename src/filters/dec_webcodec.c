@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023-2024
+ *			Copyright (c) Telecom ParisTech 2023-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / WebCodec decoder filter
@@ -231,7 +231,7 @@ static GF_Err wcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->af));
 	}
 	if (codecid==GF_CODECID_OPUS) {
-		strcpy(ctx->szCodec, "opus");
+		gf_strlcpy(ctx->szCodec, "opus", RFC6381_CODEC_NAME_SIZE_MAX);
 		dsi = NULL; //if description is set, WebCodec assumes ogg+opus
 	} else {
 		gf_filter_pid_get_rfc_6381_codec_string(pid, ctx->szCodec, GF_FALSE, GF_FALSE, NULL, NULL);

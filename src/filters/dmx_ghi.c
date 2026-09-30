@@ -839,8 +839,12 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 
 		//locate segment
 		if (ctx->sn > st->nb_segs) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIX] Invalid segment index %d - only %d segments available\n", ctx->sn, st->nb_segs));
-			return GF_BAD_PARAM;
+			if (!st->inactive) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIX] Invalid segment index %d - only %d segments available\n", ctx->sn, st->nb_segs));
+				return GF_BAD_PARAM;
+			}
+			//not active, use last entry for init below
+			st->seg_num = st->nb_segs;
 		//todo: locate by other criteria ? (time)
 		} else {
 			st->seg_num = ctx->sn;

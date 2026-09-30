@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -1837,10 +1837,8 @@ static GF_Err swf_def_sound(SWFReader *read)
 
 		snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_sound_%d.mp3", snd->ID);
 		if (read->localPath) {
-			snd->szFileName = (char*)gf_malloc(sizeof(char)*GF_MAX_PATH);
-			strncpy(snd->szFileName, read->localPath, GF_MAX_PATH-1);
-			snd->szFileName[GF_MAX_PATH-1] = 0;
-			strncat(snd->szFileName, szName, GF_MAX_PATH-1);
+			snd->szFileName = gf_strdup(read->localPath);
+			gf_dynstrcat(&snd->szFileName, szName, NULL);
 		} else {
 			snd->szFileName = gf_strdup(szName);
 		}

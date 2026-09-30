@@ -1102,17 +1102,19 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 					if (end)
 						gf_dynstrcat(&file_suf_name, end, "_");
 
-					len = (u32) strlen(file_suf_name);
-					//replace : and / characters
-					for (i=0; i<len; i++) {
-						switch (file_suf_name[i]) {
-						case ':':
-						case '/':
-							file_suf_name[i] = '.';
-							break;
+					if (file_suf_name) {
+						len = (u32) strlen(file_suf_name);
+						//replace : and / characters
+						for (i=0; i<len; i++) {
+							switch (file_suf_name[i]) {
+							case ':':
+							case '/':
+								file_suf_name[i] = '.';
+								break;
+							}
 						}
+						gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(file_suf_name) );
 					}
-					gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(file_suf_name) );
 				}
 			} else {
 				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->file_idx) );
@@ -1446,11 +1448,19 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 	}
 
 	if (before) {
-		if (!after)
+		if (!after) {
+			if (gf_filter_reporting_enabled(filter)) {
+				char szStatus[1024];
+				sprintf(szStatus, "wait info=\"packet time "LLU"/%u waiting for range start "LLU"/"LLU"\"", ts, st->timescale, ctx->cur_start.num, ctx->cur_start.den);
+				gf_filter_update_status(filter, 0, szStatus);
+			}
 			return 0;
+		}
 		//long duration samples (typically text) can both start before and end after the target range
-		else
-			return 2;
+		//fallthrough
+	}
+	if (gf_filter_reporting_enabled(filter)) {
+		gf_filter_update_status(filter, 0, NULL);
 	}
 	if (after)
 		return 2;
@@ -2777,6 +2787,10 @@ refetch_streams:
 				}
 				gf_filter_pck_get_data(pck, &size);
 				ctx->cumulated_size += size;
+			} else {
+				//if not doing range extraction, avoid dispatching too fast (in range extraction we control pid timing)
+				if (!ctx->range_type && gf_filter_pid_would_block(st->opid))
+					break;
 			}
 
 			if (ctx->refs) {

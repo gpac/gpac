@@ -122,6 +122,8 @@ typedef enum {
 	TRACK_ACTION_REFERENCE,
 	TRACK_ACTION_SET_KIND,
 	TRACK_ACTION_REM_KIND,
+	TRACK_ACTION_SET_CTLC,
+	TRACK_ACTION_REM_CTLC,
 	TRACK_ACTION_SET_ID,
 	TRACK_ACTION_SET_UDTA,
 	TRACK_ACTION_SWAP_ID,
@@ -156,6 +158,7 @@ typedef struct
 	char *string;
 	u32 udta_type;
 	char *kind_scheme, *kind_value;
+	u32 ctlc_content_type, ctlc_flags;
 	TrackIdentifier newTrackID;
 	s32 clap_wnum, clap_wden, clap_hnum, clap_hden, clap_honum, clap_hoden, clap_vonum, clap_voden;
 	s32 mx[9];
@@ -554,6 +557,8 @@ MP4BoxArg m4b_gen_args[] =
  			, GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_MX, ARG_IS_FUN),
 	MP4BOX_ARG_S("kind", "tkID=schemeURI=value", "set kind for the track or for all tracks using `all=schemeURI=value`", 0, parse_track_action, TRACK_ACTION_SET_KIND, ARG_IS_FUN),
 	MP4BOX_ARG_S("kind-rem", "tkID=schemeURI=value", "remove kind if given schemeID for the track or for all tracks with `all=schemeURI=value`", 0, parse_track_action, TRACK_ACTION_REM_KIND, ARG_IS_FUN),
+	MP4BOX_ARG_S("ctlc", "tkID=content_type[:flags]", "set Content Type for Loudness Control metadata for the track or for all tracks using `all=content_type[:flags]`. flags default to 0 and may use bits 0 (advertisement) and 1 (immersive audio)", 0, parse_track_action, TRACK_ACTION_SET_CTLC, ARG_IS_FUN),
+	MP4BOX_ARG_S("ctlc-rem", "tkID", "remove Content Type for Loudness Control metadata from the track or from all tracks using `all`", 0, parse_track_action, TRACK_ACTION_REM_CTLC, ARG_IS_FUN),
  	MP4BOX_ARG_S("name", "tkID=NAME", "set track handler name to NAME (UTF-8 string)", GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_HANDLER_NAME, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("tags", "itags", "set iTunes tags to file, see `-h tags`", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &itunes_tags, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG("group-add", "create a new grouping information in the file. Format is a colon-separated list of following options:\n"
@@ -999,6 +1004,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	"- Allowed compatibility ID are `none`, `hdr10`, `bt709`, `hlg709`, `hlg2100`, `bt2020`, `brd`, or integer value as per DV spec\n"
 	"- Profile can be prefixed with 'f' to force DV codec type signaling, e.g. `f8.2`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("dvmdc", NULL, "`S` set the Dolby Vision metadata compression (valid value: 0, 1, 3. default = 0)", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("dvflags", NULL, "`S` Set Dolby Vision feature flags for the content (valid value: 0, 0x200 (for Dolby Vision 2 experience). default = 0)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("fullrange", NULL, "`S` force the video fullrange type in VUI for the AVC|H264 content (value `yes`, `on` or `no`, `off`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("videofmt", NULL, "`S` force the video format in VUI for AVC|H264 and HEVC content, value can be `component`, `pal`, `ntsc`, `secam`, `mac`, `undef`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("colorprim", NULL, "`S` force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
@@ -2191,8 +2197,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		}
 		else if (!strnicmp(szSlot, "icc_path=", 9)) {
 			CHECK_IMGPROP
-			strncpy(meta->image_props->iccPath, szSlot+9, GF_ARRAY_LENGTH(meta->image_props->iccPath)-1);
-			meta->image_props->iccPath[GF_ARRAY_LENGTH(meta->image_props->iccPath)-1] = 0;
+			gf_strcpy(meta->image_props->iccPath, szSlot+9);
 		}
 		else if (!stricmp(szSlot, "agrid") || !strnicmp(szSlot, "agrid=", 6)) {
 			CHECK_IMGPROP
@@ -2277,7 +2282,7 @@ static Bool parse_tsel_args(char *opts, TSELActionType act)
 		char *next;
 		if (!opts || !opts[0]) return 0;
 		if (opts[0]==':') opts += 1;
-		strcpy(szSlot, opts);
+		gf_strcpy(szSlot, opts);
 		next = gf_url_colon_suffix(szSlot, '=');
 		if (next) next[0] = 0;
 
@@ -2588,12 +2593,12 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 	if (act_type==TRACK_ACTION_SET_LANGUAGE) {
 		char *ext = strchr(param, '=');
 		if (!strnicmp(param, "all=", 4)) {
-			strncpy(tka->lang, param + 4, LANG_SIZE-1);
+			gf_strcpy(tka->lang, param + 4);
 		}
 		else if (!ext) {
-			strncpy(tka->lang, param, LANG_SIZE-1);
+			gf_strcpy(tka->lang, param);
 		} else {
-			strncpy(tka->lang, ext + 1, LANG_SIZE-1);
+			gf_strcpy(tka->lang, ext + 1);
 			ext[0] = 0;
 			parse_track_id(&tka->target_track, param, GF_FALSE);
 			ext[0] = '=';
@@ -2640,6 +2645,47 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		}
 		return GF_TRUE;
 	}
+	if (act_type==TRACK_ACTION_SET_CTLC) {
+		char *ext = strchr(param, '=');
+		char *flags_sep;
+		char extra;
+
+		if (!ext) {
+			M4_LOG(GF_LOG_ERROR, ("Bad format for track ctlc - expecting tkID=content_type[:flags] got %s\n", param));
+			return GF_FALSE;
+		}
+		ext[0] = 0;
+		if (stricmp(param, "all") && !parse_track_id(&tka->target_track, param, GF_FALSE)) {
+			ext[0] = '=';
+			M4_LOG(GF_LOG_ERROR, ("Bad track identifier for ctlc: %s\n", param));
+			return GF_FALSE;
+		}
+		ext[0] = '=';
+
+		flags_sep = strchr(ext + 1, ':');
+		if (flags_sep) flags_sep[0] = 0;
+		if ((sscanf(ext + 1, "%u%c", &tka->ctlc_content_type, &extra) != 1) || (tka->ctlc_content_type > 255)) {
+			if (flags_sep) flags_sep[0] = ':';
+			M4_LOG(GF_LOG_ERROR, ("Invalid ctlc content type - expecting an integer from 0 to 255 got %s\n", ext + 1));
+			return GF_FALSE;
+		}
+		if (flags_sep) {
+			flags_sep[0] = ':';
+			if ((sscanf(flags_sep + 1, "%u%c", &tka->ctlc_flags, &extra) != 1)
+			        || (tka->ctlc_flags & ~(GF_ISOM_CTLC_FLAG_ADVERTISEMENT | GF_ISOM_CTLC_FLAG_IMMERSIVE_AUDIO))) {
+				M4_LOG(GF_LOG_ERROR, ("Invalid ctlc flags - expecting an integer from 0 to 3 got %s\n", flags_sep + 1));
+				return GF_FALSE;
+			}
+		}
+		return GF_TRUE;
+	}
+	if (act_type==TRACK_ACTION_REM_CTLC) {
+		if (stricmp(param, "all") && !parse_track_id(&tka->target_track, param, GF_FALSE)) {
+			M4_LOG(GF_LOG_ERROR, ("Bad track identifier for ctlc removal: %s\n", param));
+			return GF_FALSE;
+		}
+		return GF_TRUE;
+	}
 	if (act_type==TRACK_ACTION_SET_DELAY) {
 		char *ext = strchr(param, '=');
 		if (!ext) {
@@ -2672,7 +2718,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			return GF_FALSE;
 		}
 		ext2[0] = 0;
-		strncpy(tka->lang, ext+1, LANG_SIZE-1);
+		gf_strcpy(tka->lang, ext+1);
 		ext2[0] = ':';
 		parse_track_id(&tka->newTrackID, ext2 + 1, GF_FALSE);
 		return GF_TRUE;
@@ -4057,10 +4103,10 @@ static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 		FILE *t;
 		char szFile[GF_MAX_PATH];
 		if (outName) {
-			strcpy(szFile, outName);
+			gf_strcpy(szFile, outName);
 		} else {
-			strcpy(szFile, inName);
-			strcat(szFile, ".bin");
+			gf_strcpy(szFile, inName);
+			gf_strcat(szFile, ".bin");
 		}
 		t = gf_fopen(szFile, "wb");
 		if (!t) {
@@ -4374,7 +4420,7 @@ static u32 convert_mpd()
 		remote = GF_TRUE;
 
 		if (outName)
-			strcpy(outfile, outName);
+			gf_strcpy(outfile, outName);
 		else {
 			const char *sep = gf_file_basename(inName);
 			char *ext = gf_file_ext_start(sep);
@@ -4384,7 +4430,7 @@ static u32 convert_mpd()
 		}
 	} else {
 		if (outName)
-			strcpy(outfile, outName);
+			gf_strcpy(outfile, outName);
 		else {
 			char *dst = strdup(inName);
 			char *ext = strstr(dst, ".m3u8");
@@ -4475,7 +4521,7 @@ static u32 do_import_sub()
 		return mp4box_cleanup(1);
 	}
 	/* Prepare the export */
-	strcpy(outfile, inName);
+	gf_strcpy(outfile, inName);
 	if (strchr(outfile, '.')) {
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
@@ -4745,20 +4791,20 @@ static GF_Err do_scene_encode()
 	FILE *logs = NULL;
 	if (do_scene_log) {
 		char alogfile[GF_MAX_PATH];
-		strcpy(alogfile, inName);
+		gf_strcpy(alogfile, inName);
 		if (strchr(alogfile, '.')) {
 			while (alogfile[strlen(alogfile)-1] != '.') alogfile[strlen(alogfile)-1] = 0;
 			alogfile[strlen(alogfile)-1] = 0;
 		}
-		strcat(alogfile, "_enc.logs");
+		gf_strcat(alogfile, "_enc.logs");
 		logs = gf_fopen(alogfile, "wt");
 	}
-	strcpy(outfile, outName ? outName : inName);
+	gf_strcpy(outfile, outName ? outName : inName);
 	if (strchr(outfile, '.')) {
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 	}
-	strcat(outfile, ".mp4");
+	gf_strcat(outfile, ".mp4");
 	file = gf_isom_open(outfile, GF_ISOM_WRITE_EDIT, NULL);
 	smenc_opts.mediaSource = mediaSource ? mediaSource : outfile;
 	e = EncodeFile(inName, file, &smenc_opts, logs);
@@ -4791,16 +4837,16 @@ static GF_Err do_dash()
 		return GF_BAD_PARAM;
 	}
 
-	strcpy(outfile, outName ? outName : gf_url_get_resource_name(inName) );
+	gf_strcpy(outfile, outName ? outName : gf_url_get_resource_name(inName) );
 	sep = strrchr(outfile, '.');
 	if (sep) sep[0] = 0;
-	if (!outName) strcat(outfile, "_dash");
-	strcpy(szMPD, outfile);
+	if (!outName) gf_strcat(outfile, "_dash");
+	gf_strcpy(szMPD, outfile);
 	if (outName && sep) {
 		sep[0] = '.';
-		strcat(szMPD, sep);
+		gf_strcat(szMPD, sep);
 	} else {
-		strcat(szMPD, ".mpd");
+		gf_strcat(szMPD, ".mpd");
 	}
 
 	if ((dash_subduration>0) && (dash_duration > dash_subduration)) {
@@ -5637,6 +5683,30 @@ static GF_Err do_track_act()
 				do_save = GF_TRUE;
 			}
 			do_save = GF_TRUE;
+			break;
+		case TRACK_ACTION_SET_CTLC:
+			if ((tka->target_track.type || tka->target_track.ID_or_num) && !track) {
+				M4_LOG(GF_LOG_ERROR, ("No track found for ctlc assignment\n"));
+				return GF_BAD_PARAM;
+			}
+			for (i=0; i<gf_isom_get_track_count(file); i++) {
+				if (track && (track != i+1)) continue;
+				e = gf_isom_set_track_loudness_content_type(file, i+1, (u8)tka->ctlc_content_type, tka->ctlc_flags);
+				if (e) return e;
+				do_save = GF_TRUE;
+			}
+			break;
+		case TRACK_ACTION_REM_CTLC:
+			if ((tka->target_track.type || tka->target_track.ID_or_num) && !track) {
+				M4_LOG(GF_LOG_ERROR, ("No track found for ctlc removal\n"));
+				return GF_BAD_PARAM;
+			}
+			for (i=0; i<gf_isom_get_track_count(file); i++) {
+				if (track && (track != i+1)) continue;
+				e = gf_isom_remove_track_loudness_content_type(file, i+1);
+				if (e) return e;
+				do_save = GF_TRUE;
+			}
 			break;
 		case TRACK_ACTION_SET_DELAY:
 			if (tka->delay.num && tka->delay.den) {
@@ -6613,7 +6683,7 @@ int mp4box_main(int argc, char **argv)
 	}
 #endif
 
-	if ( gf_strlcpy(outfile, outName ? outName : inName, sizeof(outfile)) >= sizeof(outfile) ) {
+	if ( gf_strcpy(outfile, outName ? outName : inName) >= sizeof(outfile) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Filename too long (limit is %d)\n", GF_MAX_PATH));
 		return mp4box_cleanup(1);
 	}
@@ -6826,6 +6896,7 @@ int mp4box_main(int argc, char **argv)
 
 	if (set_vexu | hero_eye) {
 		gf_isom_set_vexu(file, hero_eye);
+		do_save = GF_TRUE;
 	}
 
 	if (!encode) {
@@ -6834,25 +6905,25 @@ int mp4box_main(int argc, char **argv)
 			goto exit;
 		}
 		if (outName) {
-			strcpy(outfile, outName);
+			gf_strcpy(outfile, outName);
 		} else {
 			const char *tmp_dir = gf_opts_get_key("core", "tmp");
 			char *rel_name = strrchr(inName, GF_PATH_SEPARATOR);
 			if (!rel_name) rel_name = strrchr(inName, '/');
 
-			strcpy(outfile, "");
+			gf_strcpy(outfile, "");
 			if (tmp_dir) {
-				strcpy(outfile, tmp_dir);
-				if (!strchr("\\/", tmp_dir[strlen(tmp_dir)-1])) strcat(outfile, "/");
+				gf_strcpy(outfile, tmp_dir);
+				if (!strchr("\\/", tmp_dir[strlen(tmp_dir)-1])) gf_strcat(outfile, "/");
 			}
-			if (!pack_file) strcat(outfile, "out_");
-			strcat(outfile, rel_name ? rel_name + 1 : inName);
+			if (!pack_file) gf_strcat(outfile, "out_");
+			gf_strcat(outfile, rel_name ? rel_name + 1 : inName);
 
 			if (pack_file) {
-				strcpy(outfile, rel_name ? rel_name + 1 : inName);
+				gf_strcpy(outfile, rel_name ? rel_name + 1 : inName);
 				rel_name = strrchr(outfile, '.');
 				if (rel_name) rel_name[0] = 0;
-				strcat(outfile, ".m21");
+				gf_strcat(outfile, ".m21");
 			}
 		}
 
@@ -6893,7 +6964,7 @@ int mp4box_main(int argc, char **argv)
 		}
 
 	} else if (outName) {
-		strcpy(outfile, outName);
+		gf_strcpy(outfile, outName);
 	}
 
 	e = do_track_act();
@@ -6971,7 +7042,7 @@ int mp4box_main(int argc, char **argv)
 
 		if (!do_frag && !do_hint && !full_interleave && !force_co64) {
 			char szName[GF_MAX_PATH];
-			strcpy(szName, gf_isom_get_filename(file) );
+			gf_strcpy(szName, gf_isom_get_filename(file) );
 			gf_isom_delete(file);
 			file = NULL;
 			if (!outName) {

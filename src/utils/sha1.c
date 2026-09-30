@@ -762,7 +762,7 @@ void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA])
 			char t[3];
 			t[2] = 0;
 			sprintf ( t, "%02X", tmp[i] );
-			strcat ( (char*)digest, t );
+			gf_strcat ( (char*)digest, t );
 		}
 	}
 }

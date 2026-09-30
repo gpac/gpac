@@ -1273,13 +1273,16 @@ function scene_update_visual_pids(scene)
 			create_pid_texture(pidlink.pid);
 		}
 
+		let update_tx = false;
 		if (!pidlink.texture) {
 			pidlink.texture = pidlink.pid.texture;
 			scene.mod.update_flag |= UPDATE_SIZE;
-		} else if (pidlink.pid.frame_ts != pidlink.texture.last_frame_ts) {
+			update_tx = true;
+		}
+		if (update_tx || (pidlink.pid.frame_ts != pidlink.texture.last_frame_ts)) {
 			pidlink.texture.update(pidlink.pid.pck);
-		  pidlink.texture._gl_modified = true;
-		  pidlink.texture.last_frame_ts = pidlink.pid.frame_ts;
+			pidlink.texture._gl_modified = true;
+			pidlink.texture.last_frame_ts = pidlink.pid.frame_ts;
 		}
 	});
 	return ready;
@@ -2492,7 +2495,6 @@ function process_audio()
 	if (nb_samples > filter.alen)
 		nb_samples = filter.alen;
 
-
 	let aframe = null;
 	let empty=false;
 
@@ -2860,14 +2862,13 @@ function fetch_source(s)
 	let nb_over = 0;
 	let nb_active = 0;
 	let force_seq_over = false;
-
-  let source_restart = false;
-  s.no_signal = 0;
+	let source_restart = false;
+	s.no_signal = 0;
 
 	s.pids.forEach(pid => {
 		if (pid.done) {
-				nb_over++;
-				return;
+			nb_over++;
+			return;
 		}
 		while (1) {
 
@@ -2913,6 +2914,17 @@ function fetch_source(s)
 			return;
 		}
 		if (pid.type==TYPE_UNHANDLED) {
+			pid.drop_packet();
+			return;
+		}
+		if ( (!audio_playing && (pid.type==TYPE_AUDIO))
+			|| (!video_playing && (pid.type==TYPE_VIDEO))
+		) {
+			if (!pid.done) {
+				pid.send_event( new FilterEvent(GF_FEVT_STOP) );
+				pid.done = true;
+			}
+			nb_over++;
 			pid.drop_packet();
 			return;
 		}
@@ -2984,6 +2996,7 @@ function fetch_source(s)
 				pid.done = true;
 				pid.send_event( new FilterEvent(GF_FEVT_STOP) );
 				nb_over++;
+				print(GF_LOG_DEBUG, 'End of playback reached for ' + s.logname);
 				return;
 			}
 		}
@@ -3096,6 +3109,7 @@ function fetch_source(s)
 				pid.done = true;
 				pid.send_event( new FilterEvent(GF_FEVT_STOP) );
 				nb_over++;
+				print(GF_LOG_DEBUG, 'End of playback reached for ' + s.logname);
 				return;
 			}
 		}
@@ -3105,7 +3119,6 @@ function fetch_source(s)
 	}
 	});
 	//done fetching pids
-
 	if (s.pids.length && (nb_over == s.pids.length)) {
 		nb_over = 1;
 		let relaunch=false;

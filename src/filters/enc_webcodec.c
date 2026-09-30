@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023-2024
+ *			Copyright (c) Telecom ParisTech 2023-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / WebCodec encoder filter
@@ -320,32 +320,32 @@ static GF_Err wcenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 
 	char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
-	strncpy(szCodec, ctx->c, RFC6381_CODEC_NAME_SIZE_MAX);
+	gf_strcpy(szCodec, ctx->c);
 	u32 ctype = gf_codecid_4cc_type(ctx->codecid);
 	if (ctype) {
-		strcpy(szCodec, gf_4cc_to_str(ctype));
+		gf_strcpy(szCodec, gf_4cc_to_str(ctype));
 
 		if (codec_par) {
-			strncat(szCodec, codec_par, RFC6381_CODEC_NAME_SIZE_MAX);
+			gf_strcat(szCodec, codec_par);
 		} else {
 			switch (ctx->codecid) {
 			case GF_CODECID_AVC:
-				strcpy(szCodec, "avc1.640028");
+				gf_strcpy(szCodec, "avc1.640028");
 				break;
 			case GF_CODECID_HEVC:
-				strcpy(szCodec, "hvc1.1.6.L153.0");
+				gf_strcpy(szCodec, "hvc1.1.6.L153.0");
 				break;
 			case GF_CODECID_VVC:
-				strcpy(szCodec, "vvc1.1.H102.CQA");
+				gf_strcpy(szCodec, "vvc1.1.H102.CQA");
 				break;
 			case GF_CODECID_AV1:
-				strcpy(szCodec, "av01.0.08M.08");
+				gf_strcpy(szCodec, "av01.0.08M.08");
 				break;
 			case GF_CODECID_AAC_MPEG2_MP:
 			case GF_CODECID_AAC_MPEG2_LCP:
 			case GF_CODECID_AAC_MPEG2_SSRP:
 			case GF_CODECID_AAC_MPEG4:
-				strcpy(szCodec, "mp4a.40.2");
+				gf_strcpy(szCodec, "mp4a.40.2");
 				break;
 			}
 		}

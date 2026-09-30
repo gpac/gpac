@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2004-2023
+ *			Copyright (c) Telecom ParisTech 2004-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / DOM 3 Events sub-project
@@ -513,6 +513,9 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 		can_bubble = gf_sg_fire_dom_event(parent->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, parent);
 		if(!can_bubble) return;
 	}
+	// prevent inifinte loop
+	if (!cur_par_idx && !parent->sgprivate->interact)
+		return;
 	gf_sg_dom_event_bubble(parent, event, use_stack, cur_par_idx);
 }
 
@@ -856,7 +859,6 @@ GF_DOMText *gf_dom_new_text_node(GF_SceneGraph *sg)
 GF_EXPORT
 char *gf_dom_flatten_textContent(GF_Node *n)
 {
-	u32 len = 0;
 	char *res = NULL;
 	GF_ChildNodeItem *list;
 	if (!n) return NULL;
@@ -864,7 +866,6 @@ char *gf_dom_flatten_textContent(GF_Node *n)
 	if ((n->sgprivate->tag==TAG_DOMText) && ((GF_DOMText*)n)->textContent) {
 		/*if ( ((GF_DOMText*)n)->type == GF_DOM_TEXT_REGULAR) */{
 			res = gf_strdup(((GF_DOMText*)n)->textContent);
-			len = (u32) strlen(res);
 		}
 	}
 
@@ -872,11 +873,7 @@ char *gf_dom_flatten_textContent(GF_Node *n)
 	while (list) {
 		char *t = gf_dom_flatten_textContent(list->node);
 		if (t) {
-			size_t sub_len = strlen(t);
-			res = (char *)gf_realloc(res, sizeof(char)*(len+sub_len+1));
-			if (!len) res[0] = 0;
-			len += (u32)sub_len;
-			strcat(res, t);
+			gf_dynstrcat(&res, t, NULL);
 			gf_free(t);
 		}
 		list = list->next;

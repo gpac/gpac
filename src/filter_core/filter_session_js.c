@@ -131,6 +131,7 @@ enum
 	JSFS_LAST_PROCESS_ERR,
 	JSFS_LAST_CONNECT_ERR,
 	JSFS_PATH,
+	JSFS_SESSION_METRICS
 };
 
 GF_Filter *jsff_get_filter(JSContext *c, JSValue this_val)
@@ -224,6 +225,14 @@ static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx, gf_fs_get_last_connect_error(fs) );
 	case JSFS_PATH:
 		return JS_NewString(ctx, jsf_get_script_filename(ctx) );
+	case JSFS_SESSION_METRICS:
+		{
+			char *session_metrics = gf_fs_get_defined_metrics(fs);
+			if (!session_metrics) return JS_NULL;
+			JSValue res = JS_NewString(ctx, session_metrics );
+			gf_free(session_metrics);
+			return res;
+		}
 	}
 	return JS_UNDEFINED;
 }
@@ -913,6 +922,27 @@ static JSValue jsff_get_pid_source(JSContext *ctx, JSValueConst this_val, int ar
 
 	ipid = (GF_FilterPidInst *)pid;
 	return jsfs_new_filter_obj(ctx, ipid->pid->filter);
+}
+
+static JSValue jsff_get_pid_source_opid_idx(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 idx;
+	GF_FilterPid *pid;
+	GF_FilterPidInst *ipid;
+	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
+	if (!f || (argc!=1) )
+		return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &idx, argv[0]))
+		return GF_JS_EXCEPTION(ctx);
+
+	pid = gf_filter_get_ipid(f, idx);
+	if (!pid) return JS_NewInt32(ctx, -1);
+
+	ipid = (GF_FilterPidInst *)pid;
+	GF_Filter *src = ipid->pid->filter;
+	if (!src) return JS_NewInt32(ctx, -1);
+	s32 src_idx = gf_list_find(src->output_pids, ipid->pid);
+	return JS_NewInt32(ctx, src_idx);
 }
 
 static JSValue jsff_get_pid_sinks(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1736,6 +1766,7 @@ static const JSCFunctionListEntry fs_f_funcs[] = {
 	JS_CFUNC_DEF("opid_props", 0, jsff_enum_opid_props),
 	JS_CFUNC_DEF("ipid_source", 0, jsff_get_pid_source),
 	JS_CFUNC_DEF("opid_sinks", 0, jsff_get_pid_sinks),
+	JS_CFUNC_DEF("ipid_source_opid_idx", 0, jsff_get_pid_source_opid_idx),
 	JS_CFUNC_DEF("all_args", 0, jsff_all_args),
 	JS_CFUNC_DEF("get_arg", 0, jsff_get_arg),
 	JS_CFUNC_DEF("update", 0, jsff_update),
@@ -1963,6 +1994,7 @@ static const JSCFunctionListEntry fs_funcs[] = {
 	JS_CGETSET_MAGIC_DEF("last_process_error", jsfs_prop_get, NULL, JSFS_LAST_PROCESS_ERR),
 	JS_CGETSET_MAGIC_DEF("last_connect_error", jsfs_prop_get, NULL, JSFS_LAST_CONNECT_ERR),
 	JS_CGETSET_MAGIC_DEF("jspath", jsfs_prop_get, NULL, JSFS_PATH),
+	JS_CGETSET_MAGIC_DEF("session_metrics", jsfs_prop_get, NULL, JSFS_SESSION_METRICS),
 
 	JS_CFUNC_DEF("post_task", 0, jsfs_post_task),
 	JS_CFUNC_DEF("abort", 0, jsfs_abort),
@@ -2160,7 +2192,7 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 	szFilePath[0] = 0;
 	if (!strncmp(jsfile, "$GSHARE/", 8)) {
 		if (gf_opts_default_shared_directory(szFilePath)) {
-			strcat(szFilePath, jsfile + 7);
+			gf_strcat(szFilePath, jsfile + 7);
 			e = gf_file_load_data(szFilePath, &buf, &buf_len);
 		} else {
 			e = GF_URL_ERROR;

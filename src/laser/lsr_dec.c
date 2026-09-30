@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / LASeR codec sub-project
@@ -228,8 +228,9 @@ GF_Err gf_laser_decode_command_list(GF_LASeRCodec *codec, u16 ESID, u8 *data, u3
 	for (i=0; i<gf_list_count(codec->unresolved_commands); i++) {
 		GF_Command *com = (GF_Command *)gf_list_get(codec->unresolved_commands, i);
 		gf_assert(!com->node);
-		com->node = gf_sg_find_node(codec->sg, com->RouteID);
-		if (com->node) {
+		GF_Node *n = gf_sg_find_node(codec->sg, com->RouteID);
+		if (n) {
+			gf_sg_command_set_node(com, n);
 			gf_node_register(com->node, NULL);
 			com->RouteID = 0;
 			gf_list_rem(codec->unresolved_commands, i);
@@ -666,13 +667,12 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 				if (s) { gf_free(s); }
 				return;
 			}
-
 			iri->string[0] = 0;
 			if (s) {
-				strcpy(iri->string, s);
+				memcpy(iri->string, s, len_rad);
 				gf_free(s);
 			}
-			strcat(iri->string, ",");
+			iri->string[len_rad] = ',';
 			gf_bs_read_data(lsr->bs, iri->string + len_rad + 1, len);
 			iri->string[len_rad + 1 + len] = 0;
 		}
@@ -4367,6 +4367,10 @@ static GF_Node *lsr_read_use(GF_LASeRCodec *lsr, Bool is_same)
 			lsr_restore_base(lsr, (SVG_Element *)elt, lsr->prev_use, 0, 0);
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] sameuse coded in bitstream but no use defined !\n"));
+			gf_node_register(elt, NULL);
+			gf_node_unregister(elt, NULL);
+			lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+			return NULL;
 		}
 		lsr_read_id(lsr, elt);
 		lsr_read_href(lsr, elt);
@@ -4987,14 +4991,10 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 		}
 		return da;
 	}
-	case SVG_ViewBox_datatype:
-		f_val = (Fixed*)gf_malloc(sizeof(Fixed));
-		if (!f_val) {
-			lsr->last_error = GF_OUT_OF_MEM;
-		} else {
-			*f_val = lsr_read_fixed_16_8(lsr, "floatValue");
-		}
-		return f_val;
+	case SVG_ViewBox_datatype:;
+		SVG_ViewBox *viewbox;
+		GF_SAFEALLOC(viewbox, SVG_ViewBox)
+		return viewbox;
 	case SMIL_KeyTimes_datatype/*ITYPE_keyTime*/:
 	{
 		ListOfXXX *res;
@@ -5381,7 +5381,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				com = gf_sg_command_new(lsr->sg, (com_type==3) ? GF_SG_LSR_INSERT : GF_SG_LSR_REPLACE);
 				gf_list_add(com_list, com);
 				if (n) {
-					com->node = n;
+					gf_sg_command_set_node(com, n);
 					gf_node_register(com->node, NULL);
 				} else {
 					com->RouteID = idref;
@@ -5457,7 +5457,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 			}
 			gf_list_add(com_list, com);
 			if (n) {
-				com->node = n;
+				gf_sg_command_set_node(com, n);
 				gf_node_register(com->node, NULL);
 			} else {
 				com->RouteID = idref;
@@ -5553,7 +5553,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 							gf_node_list_insert_child(&((GF_ParentNode *)n)->children, (GF_Node*)t, idx);
 						} else {
 							t = (GF_DOMText *) gf_node_list_get_child(((SVG_Element*)n)->children, idx);
-							if (t->sgprivate->tag!=TAG_DOMText) t = NULL;
+							if (t && t->sgprivate->tag!=TAG_DOMText) t = NULL;
 						}
 					} else {
 						/*this is a replace, reset ALL node content*/
@@ -5668,7 +5668,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 		if (com_list) {
 			com = gf_sg_command_new(lsr->sg, com_type ? GF_SG_LSR_REPLACE : GF_SG_LSR_ADD);
 			gf_list_add(com_list, com);
-			com->node = n;
+			gf_sg_command_set_node(com, n);
 			gf_node_register(com->node, NULL);
 			com->fromNodeID = op_idref;
 			com->fromFieldIndex = opFieldIndex;
@@ -5707,7 +5707,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 
 			com = gf_sg_command_new(lsr->sg, (com_type==LSR_UPDATE_REPLACE) ? GF_SG_LSR_REPLACE : GF_SG_LSR_INSERT);
 			gf_list_add(com_list, com);
-			com->node = n;
+			gf_sg_command_set_node(com, n);
 			gf_node_register(com->node, NULL);
 			field = gf_sg_command_field_new(com);
 			field->pos = idx;
@@ -5793,7 +5793,7 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 		GF_Command *com;
 		com = gf_sg_command_new(lsr->sg, GF_SG_LSR_DELETE);
 		gf_list_add(com_list, com);
-		com->node = gf_sg_find_node(lsr->sg, idref);
+		gf_sg_command_set_node(com, gf_sg_find_node(lsr->sg, idref));
 		if (!com->node) {
 			com->RouteID = idref;
 			gf_list_add(lsr->unresolved_commands, com);
@@ -5830,6 +5830,7 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 				gf_node_unregister(c, (GF_Node*)elt);
 			}
 		} else {
+			gf_list_del_item(lsr->deferred_anims, (void*)elt);
 			gf_node_replace((GF_Node*)elt, NULL, 0);
 		}
 	}
@@ -5891,7 +5892,7 @@ static GF_Err lsr_read_send_event(GF_LASeRCodec *lsr, GF_List *com_list)
 	} else {
 		GF_Command *com = gf_sg_command_new(lsr->sg, GF_SG_LSR_SEND_EVENT);
 		gf_list_add(com_list, com);
-		com->node = gf_sg_find_node(lsr->sg, idref);
+		gf_sg_command_set_node(com, gf_sg_find_node(lsr->sg, idref));
 		if (!com->node) {
 			com->RouteID = idref;
 			gf_list_add(lsr->unresolved_commands, com);
@@ -5935,8 +5936,7 @@ void lsr_exec_command_list(GF_Node *node, void *par, Bool is_destroy)
 	GF_DOMUpdates *up = (GF_DOMUpdates *)node;
 	GF_LASeRCodec *codec = (GF_LASeRCodec *)gf_node_get_private((GF_Node*)node);
 
-	if (is_destroy || !up || (up->sgprivate->tag!=TAG_DOMUpdates)) return;
-	gf_assert(!codec->bs);
+	if (is_destroy || !up || (up->sgprivate->tag!=TAG_DOMUpdates) || codec->bs) return;
 
 	codec->info = lsr_get_stream(codec, 0);
 	if (!codec->info) return;
@@ -6015,7 +6015,7 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 					return (lsr->last_error = GF_NON_COMPLIANT_BITSTREAM);
 				gf_node_register(n, NULL);
 				com = gf_sg_command_new(lsr->sg, (type==5) ? GF_SG_LSR_REFRESH_SCENE : GF_SG_LSR_NEW_SCENE);
-				com->node = n;
+				gf_sg_command_set_node(com, n);
 				gf_list_add(com_list, com);
 			} else {
 				while (gf_list_count(lsr->deferred_hrefs)) {
@@ -6033,6 +6033,7 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 				lsr->prev_text = NULL;
 				lsr->prev_polygon = NULL;
 				lsr->prev_line = NULL;
+				lsr->prev_use = NULL;
 				gf_sg_reset(lsr->sg);
 				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 				n = lsr_read_svg(lsr, 1);
@@ -6077,7 +6078,7 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 							if (com_list) {
 								com = gf_sg_command_new(lsr->sg, (sub_type==1) ? GF_SG_LSR_ACTIVATE : GF_SG_LSR_DEACTIVATE);
 								if (n) {
-									com->node = n;
+									gf_sg_command_set_node(com, n);
 									gf_node_register(n, NULL);
 								} else {
 									com->RouteID = idref;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -120,12 +120,12 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 
 
 	if (filePath && strlen(filePath) && ((filePath[strlen(filePath)-1] == '/') || (filePath[strlen(filePath)-1] == '\\')) ) {
-		strcpy(fileName, filePath);
-		strcat(fileName, file_name);
+		gf_strcpy(fileName, filePath);
+		gf_strcat(fileName, file_name);
 	} else if (filePath && strlen(filePath)) {
 		sprintf(fileName, "%s%c%s", filePath, GF_PATH_SEPARATOR, file_name);
 	} else {
-		strcpy(fileName, file_name);
+		gf_strcpy(fileName, file_name);
 	}
 
 	tmp->fileName = gf_strdup(fileName);
@@ -144,7 +144,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 				k->value = gf_realloc(k->value, sizeof(char)*klen);\
 				while (nb_empty_lines) {\
 					nb_empty_lines--;\
-					strcat(k->value, "\n");\
+					gf_strlcat(k->value, "\n", klen);\
 				}\
 				k=NULL;\
 			}\
@@ -245,13 +245,14 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		} else if (k) {
 			u32 l1 = (u32) strlen(k->value);
 			u32 l2 = (u32) strlen(line);
-			k->value = gf_realloc(k->value, sizeof(char) * (l1 + l2 + 1 + nb_empty_lines) );
+			u32 asize = (l1 + l2 + 1 + nb_empty_lines) ;
+			k->value = gf_realloc(k->value, sizeof(char) * asize);
 			l2 += l1 + nb_empty_lines;
 			while (nb_empty_lines) {
-				strcat(k->value, "\n");
+				gf_strlcat(k->value, "\n", asize);
 				nb_empty_lines--;
 			}
-			strcat(k->value, line);
+			gf_strlcat(k->value, line, asize);
 			l2 -= 2; //@ and \n
 			if (k->value[l2] == '@') {
 				k->value[l2] = 0;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / generic stream to file filter
@@ -202,11 +202,10 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	switch (cid) {
 	case GF_CODECID_META_XML:
 	case GF_CODECID_SUBS_XML:
-		strcpy(szCodecExt, "xml");
+		gf_strcpy(szCodecExt, "xml");
 		break;
 	default:
-		strncpy(szCodecExt, gf_codecid_file_ext(cid), 29);
-		szCodecExt[29]=0;
+		gf_strcpy(szCodecExt, gf_codecid_file_ext(cid));
 		sep = strchr(szCodecExt, '|');
 		if (sep) sep[0] = 0;
 		break;
@@ -218,7 +217,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		out_ext = p->value.string;
 		if (!strcmp(out_ext, "srt")) {
 			ctx->dump_srt = GF_TRUE;
-			strcpy(szCodecExt, "srt");
+			gf_strcpy(szCodecExt, "srt");
 		}
 	}
 
@@ -366,11 +365,10 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		ctx->dcfg = NULL;
 		ctx->dcfg_size = 0;
 		if (stype==GF_STREAM_VISUAL) {
-			strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt ? ctx->target_pfmt : pf));
+			gf_strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt ? ctx->target_pfmt : pf));
 			p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
 			if (p) {
-				strncpy(szExt, p->value.string, GF_4CC_MSIZE-1);
-				szExt[GF_4CC_MSIZE-1] = 0;
+				gf_strcpy(szExt, p->value.string);
 				if (!strcmp(szExt, "bmp")) {
 					ctx->is_bmp = GF_TRUE;
 					//request BGR
@@ -385,7 +383,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Cannot guess pixel format from extension type %s\n", szExt));
 						return GF_NOT_SUPPORTED;
 					}
-					strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt));
+					gf_strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt));
 				}
 				//forcing pixel format regardless of extension
 				if (ctx->pfmt) {
@@ -399,7 +397,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 				//use extension to derive pixel format
 				else if (pf != ctx->target_pfmt) {
 					gf_filter_pid_negotiate_property(ctx->ipid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->target_pfmt));
-					strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt));
+					gf_strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt));
 					//make sure we reconfigure
 					ctx->codecid = 0;
 				}
@@ -413,11 +411,10 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			}
 
 		} else if (stype==GF_STREAM_AUDIO) {
-			strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt ? ctx->target_afmt : sfmt));
+			gf_strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt ? ctx->target_afmt : sfmt));
 			p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
 			if (p) {
-				strncpy(szExt, p->value.string, GF_4CC_MSIZE-1);
-				szExt[GF_4CC_MSIZE-1] = 0;
+				gf_strcpy(szExt, p->value.string);
 				if (!strcmp(szExt, "wav")) {
 					ctx->is_wav = GF_TRUE;
 					//request PCMs16 ?
@@ -437,7 +434,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 					}
 				} else {
 					ctx->target_afmt = gf_audio_fmt_parse(szExt);
-					strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt));
+					gf_strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt));
 				}
 				//forcing sample format regardless of extension
 				if (ctx->afmt) {
@@ -451,7 +448,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 				//use extension to derive sample format
 				else if (sfmt != ctx->target_afmt) {
 					gf_filter_pid_negotiate_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->target_afmt));
-					strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt));
+					gf_strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt));
 					//make sure we reconfigure
 					ctx->codecid = 0;
 				}
@@ -460,14 +457,14 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			}
 
 		} else {
-			strcpy(szExt, gf_4cc_to_str(cid));
+			gf_strcpy(szExt, gf_4cc_to_str(cid));
 		}
-		if (ctx->is_bmp) strcpy(szExt, "bmp");
-		else if (ctx->is_y4m) strcpy(szExt, "y4m");
+		if (ctx->is_bmp) gf_strcpy(szExt, "bmp");
+		else if (ctx->is_y4m) gf_strcpy(szExt, "y4m");
 		else if (ctx->is_wav) {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_UINT(GF_PID_FILE_PATCH_REPLACE) );
-			strcpy(szExt, "wav");
-		} else if (!strlen(szExt)) strcpy(szExt, "raw");
+			gf_strcpy(szExt, "wav");
+		} else if (!strlen(szExt)) gf_strcpy(szExt, "raw");
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( szExt ) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/octet-string") );
@@ -476,8 +473,8 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	default:
 		if (!strcmp(szCodecExt, "raw")) {
-			strcpy(szExt, gf_4cc_to_str(cid));
-			if (!strlen(szExt)) strcpy(szExt, "raw");
+			gf_strcpy(szExt, gf_4cc_to_str(cid));
+			if (!strlen(szExt)) gf_strcpy(szExt, "raw");
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( szExt ) );
 		} else {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( szCodecExt ) );

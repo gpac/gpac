@@ -963,9 +963,9 @@ static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt
 /* decodes an Modified Julian Date (MJD) into a Co-ordinated Universal Time (UTC)
 See annex C of DVB-SI ETSI EN 300468 */
 	date = data[0]*256 + data[1];
-	yp = (u32)((date - 15078.2)/365.25);
-	mp = (u32)((date - 14956.1 - (u32)(yp * 365.25))/30.6001);
-	time_table->day = (u32)(date - 14956 - (u32)(yp * 365.25) - (u32)(mp * 30.6001));
+	yp = GF_FLOAT_TO_U32((date - 15078.2)/365.25);
+	mp = GF_FLOAT_TO_U32((date - 14956.1 - (u32)(yp * 365.25))/30.6001);
+	time_table->day = GF_FLOAT_TO_U32(date - 14956 - (u32)(yp * 365.25) - (u32)(mp * 30.6001));
 	if (mp == 14 || mp == 15) k = 1;
 	else k = 0;
 	time_table->year = yp + k + 1900;
@@ -974,7 +974,10 @@ See annex C of DVB-SI ETSI EN 300468 */
 	time_table->hour   = 10*((data[2]&0xf0)>>4) + (data[2]&0x0f);
 	time_table->minute = 10*((data[3]&0xf0)>>4) + (data[3]&0x0f);
 	time_table->second = 10*((data[4]&0xf0)>>4) + (data[4]&0x0f);
-	gf_assert(time_table->hour<24 && time_table->minute<60 && time_table->second<60);
+
+	if (!(time_table->hour<24 && time_table->minute<60 && time_table->second<60))
+		goto error_exit;
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream UTC time is %u/%02u/%02u %02u:%02u:%02u\n", time_table->year, time_table->month, time_table->day, time_table->hour, time_table->minute, time_table->second));
 
 	switch (table_id) {
@@ -2568,11 +2571,11 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 						u8 scheme_len = 0;
 						switch (scheme) {
 						case 1:
-							strcpy(URL, "http://");
+							gf_strcpy(URL, "http://");
 							scheme_len = 7;
 							break;
 						case 2:
-							strcpy(URL, "https://");
+							gf_strcpy(URL, "https://");
 							scheme_len = 8;
 							break;
 						}
@@ -2963,7 +2966,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 	/*sync input data*/
 	pos = gf_m2ts_sync(ts, data, data_size, is_align);
 	if (pos==data_size) {
-		if (is_align) {
+		if (is_align && data_size) {
 			if (ts->alloc_size<data_size) {
 				ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*data_size);
 				ts->alloc_size = data_size;
@@ -3285,7 +3288,7 @@ void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts) {
 	ts->dsmcc_controler = gf_list_new();
 	ts->process_dmscc = 1;
 
-	strcpy(temp_dir, gf_get_default_cache_directory() );
+	gf_strcpy(temp_dir, gf_get_default_cache_directory() );
 	length = (u32) strlen(temp_dir);
 	if(temp_dir[length-1] == GF_PATH_SEPARATOR) {
 		temp_dir[length-1] = 0;

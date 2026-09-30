@@ -250,7 +250,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr
 		*/
 		default:
 			//read all till end
-			gf_bs_read_data(ch->bs_r, sdes_buffer, rtcp_hdr.Length*4);
+			gf_bs_read_data(ch->bs_r, sdes_buffer, MIN(rtcp_hdr.Length*4, sizeof(sdes_buffer)));
 			rtcp_hdr.Length = 0;
 			break;
 		}
@@ -509,7 +509,7 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch)
 	GF_BitStream *bs;
 	u8 *report_buf;
 	GF_Err e = GF_OK;
-	
+
 
 	/*skip first SR when acting as a receiver*/
 	if (!ch->forced_ntp_sec && ch->first_SR) return GF_OK;

@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2025
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / downloader sub-project
@@ -28,6 +28,8 @@
 #ifndef GPAC_DISABLE_NETWORK
 
 static void gf_dm_connect(GF_DownloadSession *sess);
+
+#define GF_CHUNK_MAX_SIZE 0x40000000 // 1GB
 
 void dm_sess_sk_del(GF_DownloadSession *sess)
 {
@@ -1433,7 +1435,7 @@ resetup_socket:
 			u32 i;
 			proxy_port = 80;
 			char *sep = strstr(proxy, "://");
-			strcpy(szProxy, sep ? sep+3 : proxy);
+			gf_strcpy(szProxy, sep ? sep+3 : proxy);
 			sep = strchr(szProxy, ':');
 			if (sep) {
 				proxy_port = atoi(sep+1);
@@ -1952,8 +1954,8 @@ retry_cache:
 			opt = NULL;
 			goto retry_cache;
 		}
-		strcpy(szTemp, dm->cache_directory);
-		strcat(szTemp, "gpaccache.test");
+		gf_strcpy(szTemp, dm->cache_directory);
+		gf_strcat(szTemp, "gpaccache.test");
 		test = gf_fopen(szTemp, "wb");
 		if (!test) {
 			gf_mkdir(dm->cache_directory);
@@ -2217,12 +2219,14 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, Bool first_chunk_in_
 	sep = strchr(body_start, ';');
 	if (sep) sep[0] = 0;
 	res = sscanf(body_start, "%x", &size);
-	if (res<0) {
+	if (res<0 || size > GF_CHUNK_MAX_SIZE) {
 		te_header[0] = '\r';
 		if (sep) sep[0] = ';';
 		*header_size = 0;
 		*payload_size = 0;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[%s] Chunk encoding: fail to read chunk size from buffer %s, aborting\n", sess->log_name, body_start));
+		sess->last_error = GF_REMOTE_SERVICE_ERROR;
+		sess->status = GF_NETIO_STATE_ERROR;
 		return NULL;
 	}
 	if (sep) sep[0] = ';';
@@ -2287,6 +2291,12 @@ void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size
 		return; //nothing to do
 	if (sess->chunked) {
  		data = (u8 *) gf_dm_get_chunk_data(sess, first_chunk_in_payload, (char *) payload, &nbBytes, &hdr_size);
+
+		if (nbBytes >= GF_UINT_MAX-hdr_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[%s] invalid payload size received: %u\n", sess->log_name, nbBytes ));
+			return;
+		}
+
 		if (!hdr_size && !data && nbBytes) {
 			/* keep the data and wait for the rest */
 			sess->remaining_data_size = nbBytes;
@@ -2403,7 +2413,7 @@ void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size
 
 	if (!sess->nb_left_in_chunk && remaining) {
 		sess->nb_left_in_chunk = remaining;
-	} else if (payload_size) {
+	} else if (payload_size && (sess->status < GF_NETIO_DISCONNECTED)) {
 		gf_dm_data_received(sess, payload, payload_size, store_in_init, rewrite_size, original_payload);
 	}
 }
@@ -2874,7 +2884,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 	}
 
 	/*setup authentication*/
-	strcpy(pass_buf, "");
+	gf_strcpy(pass_buf, "");
 	sess->creds = gf_user_credentials_find_for_site( sess->dm, sess->server_name, NULL);
 	if (sess->creds && sess->creds->valid) {
 #ifdef GPAC_HAS_CURL
@@ -2902,8 +2912,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		par.name = "GET";
 	}
 
-	strncpy(req_name, par.name, 19);
-	req_name[19] = 0;
+	gf_strcpy(req_name, par.name);
 
 	if (!strcmp(req_name, "GET")) {
 		sess->http_read_type = GET;
@@ -3163,10 +3172,10 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 			continue;
 		}
 #endif
-		strcat(sHTTP, hdr->name);
-		strcat(sHTTP, ": ");
-		strcat(sHTTP, hdr->value);
-		strcat(sHTTP, "\r\n");
+		gf_strlcat(sHTTP, hdr->name, sess->http_buf_size);
+		gf_strlcat(sHTTP, ": ", sess->http_buf_size);
+		gf_strlcat(sHTTP, hdr->value, sess->http_buf_size);
+		gf_strlcat(sHTTP, "\r\n", sess->http_buf_size);
 	}
 #ifdef GPAC_HAS_CURL
 	if (sess->curl_hnd) {
@@ -3176,7 +3185,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 	}
 #endif
 
-	strcat(sHTTP, "\r\n");
+	gf_strlcat(sHTTP, "\r\n", sess->http_buf_size);
 
 #ifdef GPAC_HAS_CURL
 	if (sess->curl_hnd) {
@@ -3186,7 +3195,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 	if (send_profile || par.data) {
 		u32 len = (u32) strlen(sHTTP);
 		char *tmp_buf = (char*)gf_malloc(sizeof(char)*(len+par.size+1));
-		strcpy(tmp_buf, sHTTP);
+		memcpy(tmp_buf, sHTTP, len+1);
 		if (par.data) {
 			memcpy(tmp_buf+len, par.data, par.size);
 			tmp_buf[len+par.size] = 0;
@@ -3820,7 +3829,7 @@ process_reply:
 			else if (!stricmp(hdr->name, "Content-Range")) {
 				if (!strnicmp(hdr->value, "bytes", 5)) {
 					val = hdr->value + 5;
-					while (strchr(":= ", val[0]))
+					while (val && val[0] && strchr(":= ", val[0]))
 						val++;
 
 					if (val[0] == '*') {

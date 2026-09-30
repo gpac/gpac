@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2025
+ *			Copyright (c) Telecom Paris 2019-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg avfilter filter
@@ -1117,11 +1117,11 @@ static GF_Err ffavf_update_arg(GF_Filter *filter, const char *arg_name, const GF
 		if (target) {
 			u32 len = (u32) (target - arg_name);
 			if (len>=100) len=100;
-			strncpy(szTargetName, arg_name, len);
+			memcpy(szTargetName, arg_name, len);
 			szTargetName[100] = 0;
 			arg = target+1;
 		} else {
-			strcpy(szTargetName, "all");
+			gf_strcpy(szTargetName, "all");
 		}
 		ret = avfilter_graph_send_command(ctx->filter_graph, szTargetName, arg, arg_value, szCommandRes, 1024, 0);
 		if (ret<0) {

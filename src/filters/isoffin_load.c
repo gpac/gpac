@@ -569,10 +569,11 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 				buffer[len] = 0;
 
 				l1 = tx3g_config_sdp ? (u32) strlen(tx3g_config_sdp) : 0;
-				tx3g_config_sdp = gf_realloc(tx3g_config_sdp, len+3+l1);
+				u32 blen = len+3+l1;
+				tx3g_config_sdp = gf_realloc(tx3g_config_sdp, blen);
 				tx3g_config_sdp[l1] = 0;
-				if (i) strcat(tx3g_config_sdp, ", ");
-				strcat(tx3g_config_sdp, buffer);
+				if (i) gf_strlcat(tx3g_config_sdp, ", ", blen);
+				gf_strlcat(tx3g_config_sdp, buffer, blen);
 			}
 		}
 		if (tx3g_config_sdp) {
@@ -776,6 +777,13 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ROLE, &kinds);
 	}
 
+	u8 *pre_data = NULL;
+	u32 pre_size = 0;
+	gf_isom_get_preselection_info(read->mov, &pre_data, &pre_size);
+	if (pre_data && pre_size) {
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PRESELECTION, &PROP_DATA_NO_COPY(pre_data, pre_size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4DMX] Set preselection info to property ptr = %p size = %d\n", pre_data, pre_size));
+	}
 
 	//delcare track groups
 	idx=0;

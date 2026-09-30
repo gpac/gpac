@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -320,7 +320,7 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 {
 	u32 i;
 	if (sc_enc->err) return GF_FALSE;
-	while (strchr(" \t\r\n", sc_enc->cur_buf[0])) {
+	while (sc_enc->cur_buf && sc_enc->cur_buf[0] && strchr(" \t\r\n", sc_enc->cur_buf[0])) {
 		if (sc_enc->cur_buf[0]=='\n') sc_enc->cur_line ++;
 		sc_enc->cur_buf++;
 	}
@@ -1037,7 +1037,7 @@ void SFE_Function(ScriptEnc *sc_enc)
 
 	SFE_NextToken(sc_enc);
 	SFE_CheckToken(sc_enc, TOK_IDENTIFIER);
-	strcpy(szName, sc_enc->token);
+	gf_strcpy(szName, sc_enc->token);
 	SFE_PutIdentifier(sc_enc, sc_enc->token);
 
 	SFE_NextToken(sc_enc);

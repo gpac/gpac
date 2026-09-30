@@ -233,7 +233,7 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	Bool first=GF_TRUE;
 	s32 logl = GF_LOG_INFO;
 	Bool no_new_line = GF_FALSE;
-	JSValue v, g;
+	JSValue v, global;
 	const char *c_logname=NULL;
 	const char *log_name = "JS";
 
@@ -244,8 +244,8 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 
 	if (error_type)
 		logl = GF_LOG_ERROR;
-	g = JS_GetGlobalObject(ctx);
-	v = JS_GetPropertyStr(ctx, g, "_gpac_log_name");
+	global = JS_GetGlobalObject(ctx);
+	v = JS_GetPropertyStr(ctx, global, "_gpac_log_name");
 	if (!JS_IsUndefined(v) && !JS_IsNull(v)) {
 		c_logname = JS_ToCString(ctx, v);
 		JS_FreeValue(ctx, v);
@@ -255,7 +255,7 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 				log_name = NULL;
 		}
 	}
-	JS_FreeValue(ctx, g);
+	JS_FreeValue(ctx, global);
 
 	if (log_name) {
 #ifndef GPAC_DISABLE_LOG
@@ -1213,15 +1213,15 @@ static JSValue js_sys_rmt_client_send(JSContext *ctx, JSValueConst this_val, int
 	if (JS_IsString(argv[0])) {
 		const char *msg = JS_ToCString(ctx, argv[0]);
 		GF_Err e = gf_rmt_client_send_to_ws(client, msg, strlen(msg), GF_FALSE);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent msg <%s> to client <%p> returned <%d>\n", __FILE__, __LINE__, msg, client, e));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("[RMTWS] sent msg <%s> to client <%p> returned <%d>\n", msg, client, e));
 		JS_FreeCString(ctx, msg);
 	}
 	else if (JS_IsArrayBuffer(ctx, argv[0])) {
-		u32 bufsize=0;
-		u8* buf = JS_GetArrayBuffer(ctx, (size_t*)&bufsize, argv[0]);
+		size_t bufsize=0;
+		u8* buf = JS_GetArrayBuffer(ctx, &bufsize, argv[0]);
 		if (buf && bufsize) {
 			GF_Err e = gf_rmt_client_send_to_ws(client, buf, bufsize, GF_TRUE);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent binary msg <%.*s> to client <%p> returned <%d>\n", __FILE__, __LINE__, bufsize, buf, client, e));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("[RMTWS] sent binary msg <"LLU" bytes> to client <%p> returned <%d>\n", (u64) bufsize, client, e));
 		}
 
 	}
@@ -3259,7 +3259,7 @@ static Double amix_get_s16(u8 *data)
 static void amix_set_s16(u8 *data, Double val)
 {
 	val *= 65535;
-	u16 res = (u16) val;
+	u16 res = (u16) GF_FLOAT_TO_U32(val);
 	data[0] = res & 0xFF;
 	data[1] = (res>>8) & 0xFF;
 }
@@ -3278,7 +3278,7 @@ static Double amix_get_s32(u8 *data)
 static void amix_set_s32(u8 *data, Double val)
 {
 	val *= 0xFFFFFFFF;
-	u32 res = (u32) val;
+	u32 res = GF_FLOAT_TO_U32(val);
 	data[0] = res & 0xFF;
 	data[1] = (res>>8) & 0xFF;
 	data[2] = (res>>16) & 0xFF;
@@ -4536,10 +4536,9 @@ static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
 
 	if (!strchr(module_name, '/') || !strchr(module_name, '\\')) {
 		/* must add a '/' so that the DLL is not searched in the system library paths */
-		filename = gf_malloc(strlen(module_name) + 2 + 1);
+		filename = gf_strdup("./");
+		gf_dynstrcat(&filename, module_name, NULL);
 		if (!filename) return NULL;
-		strcpy(filename, "./");
-		strcpy(filename + 2, module_name);
 	} else {
 		filename = (char *)module_name;
 	}

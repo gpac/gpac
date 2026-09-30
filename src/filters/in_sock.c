@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / generic TCP/UDP input filter
@@ -170,7 +170,7 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		e = gf_sk_connect(ctx->sock_c.socket, url, port, NULL);
 	}
 
-	strcpy(ctx->sock_c.address, "unknown");
+	gf_strcpy(ctx->sock_c.address, "unknown");
 	gf_sk_get_remote_address(ctx->sock_c.socket, ctx->sock_c.address);
 
 	if (str) str[0] = ':';
@@ -557,7 +557,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 				sc->done = GF_FALSE;
 
 				sc->socket = new_conn;
-				strcpy(sc->address, "unknown");
+				gf_strcpy(sc->address, "unknown");
 				gf_sk_get_remote_address(new_conn, sc->address);
 				gf_sk_set_block_mode(new_conn, !ctx->block);
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2025
+ *			Copyright (c) Telecom ParisTech 2020-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE output filter
@@ -853,8 +853,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 			ctx->in_caps[1].val = PROP_NAME( ctx->mime );
 			ctx->in_caps[1].flags = GF_CAPS_INPUT;
 		} else {
-			strncpy(ctx->szExt, ext, 9);
-			ctx->szExt[9] = 0;
+			gf_strcpy(ctx->szExt, ext);
 			strlwr(ctx->szExt);
 			ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
 			ctx->in_caps[1].val = PROP_NAME( ctx->szExt );
@@ -901,6 +900,11 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 		ctx->csum = DVB_CSUM_META;
 	}
 	ctx->check_pending = GF_TRUE;
+
+	//todo refine status for route out
+	gf_filter_add_status_metric(filter, "nb_services=number of services in multiplex");
+	gf_filter_add_status_metric(filter, "active_resources=number of active ressources being broadcasted");
+
 	return GF_OK;
 }
 
@@ -1391,7 +1395,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		char szIP[GF_MAX_IP_NAME_LEN];
 		if (!src_ip) {
 			if (gf_sk_get_local_ip(serv->rlct_base->sock, szIP)!=GF_OK)
-				strcpy(szIP, "127.0.0.1");
+				gf_strcpy(szIP, "127.0.0.1");
 			src_ip = szIP;
 		}
 
@@ -1436,7 +1440,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_TEMPLATE);
 			if (p) {
 				char *sep, *sep2, *key = "$Number";
-				strcpy(temp, p->value.string);
+				gf_strcpy(temp, p->value.string);
 				sep = strstr(temp, "$Number");
 				sep2 = strstr(temp, "$Time");
 				if (sep && sep2) {
@@ -1453,9 +1457,9 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 				}
 				if (sep) {
 					sep[0] = 0;
-					strcat(temp, "$TOI");
+					gf_strcat(temp, "$TOI");
 					sep = strstr(p->value.string, key);
-					strcat(temp, sep + strlen(key));
+					gf_strcat(temp, sep + strlen(key));
 				}
 			}
 
@@ -1940,7 +1944,7 @@ retry:
 #if 0
 			if (gf_filter_reporting_enabled(filter)) {
 				char szStatus[1024];
-				snprintf(szStatus, 1024, "%s: done - wrote "LLU" bytes", gf_file_basename(ctx->szFileName), ctx->nb_write);
+				snprintf(szStatus, 1024, "done info=\"%s\" s_bytes="LLU"", gf_file_basename(ctx->szFileName), ctx->nb_write);
 				gf_filter_update_status(filter, 10000, szStatus);
 			}
 #endif
@@ -2731,7 +2735,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 			service_name = (p && p->value.string) ? p->value.string : "GPAC";
 			len = (u32) strlen(service_name);
 			if (len>7) len = 7;
-			strncpy(szIP, service_name, len);
+			memcpy(szIP, service_name, len);
 			szIP[len] = 0;
 			gf_filter_release_property(pe);
 
@@ -2765,7 +2769,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 			src_ip = ctx->ifce_ip;
 			if (!src_ip) {
 				if (gf_sk_get_local_ip(serv->rlct_base->sock, szIP)!=GF_OK)
-					strcpy(szIP, "127.0.0.1");
+					gf_strcpy(szIP, "127.0.0.1");
 				src_ip = szIP;
 			}
 
@@ -3352,9 +3356,9 @@ static GF_Err routeout_process(GF_Filter *filter)
 				progress = (u32) (10000*ctx->total_bytes / ctx->total_size);
 
 			if (ctx->sock_atsc_lls) {
-				snprintf(szStatus, 200, "Mux rate "LLU" kbps - %d services - %d active resources %.02f %% done", rate, count, ctx->nb_resources, ((Double)progress) / 100);
+				snprintf(szStatus, 200, "s_rate="LLU" kbps nb_services=%d active_resources=%d prog=%.02f %%", rate, count, ctx->nb_resources, ((Double)progress) / 100);
 			} else {
-				snprintf(szStatus, 200, "Mux rate "LLU" kbps - %d active resources %.02f %% done", rate, ctx->nb_resources, ((Double)progress) / 100);
+				snprintf(szStatus, 200, "s_rate="LLU" kbps active_resources=%d prog=%.02f %%", rate, ctx->nb_resources, ((Double)progress) / 100);
 			}
 			gf_filter_update_status(filter, 0, szStatus);
 		}

@@ -613,6 +613,11 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			} else if (!stricmp(att->name, "text") || !stricmp(att->name, "string")) {
 				szString = att->value;
 			} else if (!stricmp(att->name, "fcc")) {
+				if (!att->value || strlen(att->value) < 4) {
+					e = GF_BAD_PARAM;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Cannot parse fcc attribute\n"));
+					goto exit;
+				}
 				value = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 				nb_bits = 32;
 			} else if (!stricmp(att->name, "ID128")) {

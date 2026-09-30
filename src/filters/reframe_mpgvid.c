@@ -323,9 +323,8 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 				if (ctx->last_ref_cts == cts) {
 					cts += ctx->b_frames * ctx->cur_fps.den;
 					gf_filter_pck_set_cts(q_pck, cts);
-				} else {
+				} else if (cts >= ctx->cur_fps.den) {
 					//shift all other frames (i.e. pending Bs) by 1 frame in the past since we move the ref frame after them
-					gf_assert(cts >= ctx->cur_fps.den);
 					cts -= ctx->cur_fps.den;
 					gf_filter_pck_set_cts(q_pck, cts);
 				}
@@ -1186,9 +1185,11 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		}
 
 		if (ftype) {
-			gf_assert(pck_data[0] == 0);
-			gf_assert(pck_data[1] == 0);
-			gf_assert(pck_data[2] == 1);
+			if (size < 3 || pck_data[0] != 0 || pck_data[1] != 0 || pck_data[2] != 1) {
+				gf_filter_pid_drop_packet(ctx->ipid);
+				gf_filter_pck_discard(dst_pck);
+				return GF_BAD_PARAM;
+			}
 
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, (full_frame || ctx->input_is_au_end) ? GF_TRUE : GF_FALSE);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);

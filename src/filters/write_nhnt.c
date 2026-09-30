@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT stream to file filter
@@ -61,7 +61,7 @@ GF_Err nhntdump_config_side_streams(GF_Filter *filter, GF_NHNTDumpCtx *ctx)
 {
 	const GF_PropertyValue *p;
 	char *name, *url, *res_name;
-	char fileName[GF_MAX_PATH+1];
+	char fileName[GF_MAX_PATH];
 	GF_FileIO *gfio = NULL;
 	GF_Err e;
 
@@ -69,14 +69,13 @@ GF_Err nhntdump_config_side_streams(GF_Filter *filter, GF_NHNTDumpCtx *ctx)
 	if (url) {
 		if (!strncmp(url, "gfio://", 7)) {
 			gfio = gf_fileio_from_url(url);
-			strncpy(fileName, gf_fileio_translate_url(url), GF_MAX_PATH);
+			gf_strcpy(fileName, gf_fileio_translate_url(url));
 		} else {
-			strncpy(fileName, url, GF_MAX_PATH);
+			gf_strcpy(fileName, url);
 		}
-		fileName[GF_MAX_PATH] = 0;
 		gf_free(url);
 	} else {
-		strcpy(fileName, "dump");
+		gf_strcpy(fileName, "dump");
 	}
 
 	name = gf_file_ext_start(fileName);
@@ -106,7 +105,7 @@ GF_Err nhntdump_config_side_streams(GF_Filter *filter, GF_NHNTDumpCtx *ctx)
 	if (!ctx->exporter) {
 		name = gf_file_ext_start(fileName);
 		if (name) name[0] = 0;
-		strcat(fileName, ".media");
+		gf_strcat(fileName, ".media");
 		if (gfio) {
 			res_name = (char *) gf_fileio_factory(gfio, gf_file_basename(fileName) );
 		} else {
@@ -127,7 +126,7 @@ GF_Err nhntdump_config_side_streams(GF_Filter *filter, GF_NHNTDumpCtx *ctx)
 		if (!ctx->exporter) {
 			name = gf_file_ext_start(fileName);
 			if (name) name[0] = 0;
-			strcat(fileName, ".info");
+			gf_strcat(fileName, ".info");
 			if (gfio) {
 				res_name = (char *) gf_fileio_factory(gfio, gf_file_basename(fileName) );
 			} else {

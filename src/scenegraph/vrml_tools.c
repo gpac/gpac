@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -157,10 +157,20 @@ void gf_sg_vrml_parent_setup(GF_Node *pNode)
 
 void gf_sg_vrml_parent_destroy(GF_Node *pNode)
 {
-	GF_VRMLParent *par = (GF_VRMLParent *)pNode;
-	gf_node_unregister_children(pNode, par->children);
-	gf_node_unregister_children(pNode, par->addChildren);
-	gf_node_unregister_children(pNode, par->removeChildren);
+	GF_VRMLParent* par = (GF_VRMLParent*)pNode;
+	GF_ChildNodeItem* addChildren = par->addChildren;
+	GF_ChildNodeItem* removeChildren = par->removeChildren;
+	par->addChildren = NULL;
+	par->removeChildren = NULL;
+	while (par->children) {
+		GF_ChildNodeItem *cur = par->children;
+		par->children = cur->next;
+		if (cur->node != pNode) gf_node_unregister(cur->node, pNode);
+		gf_free(cur);
+	}
+	par->children = NULL;
+	gf_node_unregister_children(pNode, addChildren);
+	gf_node_unregister_children(pNode, removeChildren);
 }
 
 GF_EXPORT
@@ -1221,7 +1231,8 @@ GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom)
 	if (!mffield->count || RemoveFrom >= mffield->count) return GF_BAD_PARAM;
 
 	if (mffield->count == 1) {
-		gf_free(mffield->array);
+		u32 sf_type = gf_sg_vrml_get_sf_type(FieldType);
+		gf_sg_vrml_field_pointer_del(mffield->array, sf_type);
 		mffield->array = NULL;
 		mffield->count = 0;
 		return GF_OK;
@@ -1367,8 +1378,12 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 		((SFImage *)dest)->height = ((SFImage *)orig)->height;
 		((SFImage *)dest)->numComponents  = ((SFImage *)orig)->numComponents;
 		size = ((SFImage *)dest)->width * ((SFImage *)dest)->height * ((SFImage *)dest)->numComponents;
-		((SFImage *)dest)->pixels = (u8*)gf_malloc(sizeof(char)*size);
-		memcpy(((SFImage *)dest)->pixels, ((SFImage *)orig)->pixels, sizeof(char)*size);
+		if (((SFImage *)orig)->pixels && size > 0) {
+			((SFImage *)dest)->pixels = (u8*)gf_malloc(sizeof(char)*size);
+			memcpy(((SFImage *)dest)->pixels, ((SFImage *)orig)->pixels, sizeof(char)*size);
+		} else {
+			((SFImage *)dest)->pixels = NULL;
+		}
 		break;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 	{
@@ -1750,7 +1765,7 @@ char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 
 	switch (info->fieldType) {
 	case GF_SG_VRML_SFBOOL:
-		strcpy(szVal, *((SFBool*)info->far_ptr) ? "TRUE" : "FALSE");
+		gf_strcpy(szVal, *((SFBool*)info->far_ptr) ? "TRUE" : "FALSE");
 		return gf_strdup(szVal);
 	case GF_SG_VRML_SFINT32:
 		sprintf(szVal, "%d", *((SFInt32*)info->far_ptr) );
@@ -1828,7 +1843,7 @@ char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 				i+=4;
 				break;
 			}
-			strcat(buf, szVal);
+			gf_strcat(buf, szVal);
 		}
 		return buf;
 	}

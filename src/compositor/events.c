@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -337,8 +337,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 								if (!n1->textContent) n1->textContent = gf_strdup("");
 								caret_pos = (u32) strlen(n1->textContent);
 								if (n2->textContent) {
-									n1->textContent = (char*)gf_realloc(n1->textContent, sizeof(char)*(strlen(n1->textContent)+strlen(n2->textContent)+1));
-									strcat(n1->textContent, n2->textContent);
+									gf_dynstrcat(&n1->textContent, n2->textContent, NULL);
 								}
 								gf_node_list_del_child(&children, (GF_Node*)n2);
 								gf_node_unregister((GF_Node*)n2, compositor->focus_node);
@@ -573,7 +572,7 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 	case TAG_X3D_Text:
 #endif
 	{
-		M_FontStyle *fs = (M_FontStyle *) ((M_Text *)text)->fontStyle;
+		M_FontStyle *fs = compositor_get_font_style(((M_Text *)text)->fontStyle);
 		if (!fs || !fs->style.buffer) return GF_FALSE;
 		if (strstr(fs->style.buffer, "editable") || strstr(fs->style.buffer, "EDITABLE")) {
 			compositor->focus_text_type = 3;
@@ -1402,7 +1401,7 @@ test_grouping:
 			gf_node_set_cyclic_traverse_flag(elt, GF_FALSE);
 
 			if (!current_focus) {
-				M_FontStyle *fs = (M_FontStyle *) ((M_Text *)elt)->fontStyle;
+				M_FontStyle *fs = compositor_get_font_style(((M_Text *)elt)->fontStyle);
 
 				if (!fs || !fs->style.buffer) return NULL;
 

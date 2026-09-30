@@ -1396,7 +1396,8 @@ static GF_Err gf_isom_set_last_sample_duration_internal(GF_ISOFile *movie, u32 t
 	if (e) return e;
 
 	trak = gf_isom_get_track_box(movie, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
+	if (!trak || !trak->Media || !trak->Media->mediaHeader || !trak->Media->information || !trak->Media->information->sampleTable)
+		return GF_BAD_PARAM;
 
 	if (mode==0) {
 		duration = (u32) dur_num;
@@ -2056,6 +2057,114 @@ GF_Err gf_isom_set_ambient_viewing_environment(GF_ISOFile *movie, u32 trackNumbe
 }
 
 GF_EXPORT
+GF_Err gf_isom_set_preselection_info(GF_ISOFile *file, u32 track, GF_List *cfg_list)
+{
+	GF_Err e = GF_OK;
+	GF_HandlerBox *hdlr;
+	GF_GroupListBox *grpl;
+	GF_PreselectionGroupBox *prsl;
+	GF_PreselectionConfig *cfg;
+
+	if (!cfg_list) return GF_BAD_PARAM;
+
+	e = gf_isom_can_access_movie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	if (!file->meta) {
+		file->meta = (GF_MetaBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_META);
+		if (!file->meta) return GF_OUT_OF_MEM;
+		gf_list_add(file->TopBoxes, file->meta);
+	}
+
+	hdlr = (GF_HandlerBox*) gf_isom_box_find_child(file->meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
+	if (!hdlr) {
+		hdlr = (GF_HandlerBox*) gf_isom_box_new_parent(&file->meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
+		if (!hdlr) return GF_OUT_OF_MEM;
+	}
+	hdlr->handlerType = GF_4CC( 'n', 'u', 'l', 'l' );
+
+	grpl = (GF_GroupListBox*) gf_isom_box_find_child(file->meta->child_boxes, GF_ISOM_BOX_TYPE_GRPL);
+	if (!grpl) {
+		grpl = (GF_GroupListBox*) gf_isom_box_new_parent(&file->meta->child_boxes, GF_ISOM_BOX_TYPE_GRPL);
+		if (!grpl) return GF_OUT_OF_MEM;
+	}
+	file->meta->groups_list = grpl;
+
+	for (u32 i = 0; i < gf_list_count(cfg_list); i++) {
+		cfg = (GF_PreselectionConfig*)gf_list_get(cfg_list, i);
+		if (!cfg) continue;
+
+		prsl = (GF_PreselectionGroupBox*) gf_isom_box_new_parent(&grpl->child_boxes, GF_ISOM_BOX_TYPE_PRSL);
+		if (!prsl) return GF_OUT_OF_MEM;
+
+		prsl->flags = cfg->flags;
+		prsl->group_id = cfg->group_id;
+
+		// use the new track number as entity ID
+		prsl->entity_id_count = 1;
+		prsl->entity_ids = gf_malloc(prsl->entity_id_count * sizeof(u32));
+		if (!prsl->entity_ids) return GF_OUT_OF_MEM;
+		prsl->entity_ids[0] = track;
+
+		if ((cfg->flags & GF_ISOM_PRESELECTION_TAG_PRESENT) && cfg->preselection_tag) {
+			prsl->preselection_tag = gf_strdup(cfg->preselection_tag);
+		}
+		if (cfg->flags & GF_ISOM_SELECTION_PRIORITY_PRESENT) {
+			prsl->selection_priority = cfg->selection_priority;
+		}
+		if ((cfg->flags & GF_ISOM_INTERLEAVING_TAG_PRESENT) && cfg->interleaving_tag) {
+			prsl->interleaving_tag = gf_strdup(cfg->interleaving_tag);
+		}
+
+		GF_AudioRenderingIndicationBox *ardi = (GF_AudioRenderingIndicationBox *) gf_isom_box_new_parent(&prsl->child_boxes, GF_ISOM_BOX_TYPE_ARDI);
+		if (!ardi) return GF_OUT_OF_MEM;
+		ardi->audio_rendering_indication = cfg->audio_rendering_indication;
+
+		if (cfg->extended_language) {
+			GF_ExtendedLanguageBox *elng = (GF_ExtendedLanguageBox *) gf_isom_box_new_parent(&prsl->child_boxes, GF_ISOM_BOX_TYPE_ELNG);
+			if (!elng) return GF_OUT_OF_MEM;
+			elng->extended_language = gf_strdup(cfg->extended_language);
+		}
+
+		if (cfg->dialog_gain_present) {
+			GF_UserDataBox *udta = (GF_UserDataBox *) gf_isom_box_new_parent(&prsl->child_boxes, GF_ISOM_BOX_TYPE_UDTA);
+			if (!udta) return GF_OUT_OF_MEM;
+
+			GF_DialogueProcessingBox *diap = (GF_DialogueProcessingBox *) gf_isom_box_new_parent(&udta->child_boxes, GF_ISOM_BOX_TYPE_DIAP);
+			if (!diap) return GF_OUT_OF_MEM;
+			diap->dialog_gain = cfg->dialog_gain;
+		}
+
+		if (cfg->labels) {
+			for (u32 j = 0; j < gf_list_count(cfg->labels); j++) {
+				GF_Label *label = (GF_Label*)gf_list_get(cfg->labels, j);
+				if (!label) continue;
+
+				GF_LabelBox *labl = (GF_LabelBox *) gf_isom_box_new_parent(&prsl->child_boxes, GF_ISOM_BOX_TYPE_LABL);
+				if (!labl) return GF_OUT_OF_MEM;
+				if (label->is_group_label) labl->flags |= GF_ISOM_IS_GROUP_LABEL;
+				labl->label_id = label->label_id;
+				labl->language = gf_strdup(label->language);
+				labl->label = gf_strdup(label->label);
+			}
+		}
+
+		if (cfg->kinds) {
+			for (u32 j = 0; j < gf_list_count(cfg->kinds); j++) {
+				GF_Kind *kind = (GF_Kind*)gf_list_get(cfg->kinds, j);
+				if (!kind) continue;
+
+				GF_KindBox *kind_box = (GF_KindBox *) gf_isom_box_new_parent(&prsl->child_boxes, GF_ISOM_BOX_TYPE_KIND);
+				if (!kind_box) return GF_OUT_OF_MEM;
+				kind_box->value = kind->value ? gf_strdup(kind->value) : NULL;
+				kind_box->schemeURI = gf_strdup(kind->schemeURI);
+			}
+		}
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_DOVIDecoderConfigurationRecord *dvcc)
 {
 	GF_Err e;
@@ -2191,6 +2300,71 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 		if (e) return e;
 		dv_cfge->type = dve_type;
 		gf_list_add(entry->child_boxes, dv_cfge);
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_dolby_vision_brands(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_DOVIDecoderConfigurationRecord *dvcc, Bool add_cmaf_brands)
+{
+	GF_Err e;
+	GF_TrackBox* trak;
+	GF_MPEGVisualSampleEntryBox* entry;
+	GF_SampleDescriptionBox* stsd;
+	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_box(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
+	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->child_boxes)) {
+		return movie->LastError = GF_BAD_PARAM;
+	}
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(stsd->child_boxes, StreamDescriptionIndex - 1);
+
+	// Dolby Vision Streams Within the ISO Base Media File Format specification Version 2.7 section 2.6
+	gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DBY1, GF_TRUE);
+	if (dvcc->dv_bl_signal_compatibility_id == 1) {
+		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DB1P, GF_TRUE);
+	} else if (dvcc->dv_bl_signal_compatibility_id == 2) {
+		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DB2G, GF_TRUE);
+	} else if (dvcc->dv_bl_signal_compatibility_id == 4) {
+		GF_ColourInformationBox *colr = (GF_ColourInformationBox*)gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_COLR);
+		u16 ctc = colr ? colr->transfer_characteristics : GF_COLOR_TRC_RESERVED0;
+
+		if (ctc == GF_COLOR_TRC_BT2020_10) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DB4G, GF_TRUE);
+		} else if (ctc == GF_COLOR_TRC_ARIB_STD_B67) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DB4H, GF_TRUE);
+		}
+	}
+
+	// Dolby Vision Streams Within the ISO Base Media File Format specification Version 2.8 section 6
+	if (add_cmaf_brands) {
+		if (dvcc->dv_profile == 5) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DV58, GF_TRUE);
+		} else if (dvcc->dv_profile == 8) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DV58, GF_TRUE);
+			if (dvcc->dv_bl_signal_compatibility_id == 1) {
+				gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_CHD1, GF_TRUE);
+			} else if (dvcc->dv_bl_signal_compatibility_id == 4) {
+				gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_CLG1, GF_TRUE);
+			}
+		} else if (dvcc->dv_profile == 9) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DV09, GF_TRUE);
+			if (dvcc->dv_bl_signal_compatibility_id == 2) {
+				gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_CHDF, GF_TRUE);
+			}
+		} else if (dvcc->dv_profile == 10) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DV10, GF_TRUE);
+		} else if (dvcc->dv_profile == 20) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DV20, GF_TRUE);
+			if (dvcc->dv_bl_signal_compatibility_id == 4) {
+				gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_CLG1, GF_TRUE);
+			}
+		}
 	}
 	return GF_OK;
 }
@@ -3222,10 +3396,9 @@ GF_Err gf_isom_set_copyright(GF_ISOFile *movie, const char *threeCharCode, char 
 		for (i=0; i<count; i++) {
 			ptr = (GF_CopyrightBox*)gf_list_get(map->boxes, i);
 			if (!strcmp(threeCharCode, (const char *) ptr->packedLanguageCode)) {
-				gf_free(ptr->notice);
-				ptr->notice = (char*)gf_malloc(sizeof(char) * (strlen(notice) + 1));
+				if (ptr->notice) gf_free(ptr->notice);
+				ptr->notice = (char*)gf_strdup(notice);
 				if (!ptr->notice) return GF_OUT_OF_MEM;
-				strcpy(ptr->notice, notice);
 				return GF_OK;
 			}
 		}
@@ -3235,9 +3408,8 @@ GF_Err gf_isom_set_copyright(GF_ISOFile *movie, const char *threeCharCode, char 
 	if (!ptr) return GF_OUT_OF_MEM;
 
 	memcpy(ptr->packedLanguageCode, threeCharCode, 4);
-	ptr->notice = (char*)gf_malloc(sizeof(char) * (strlen(notice)+1));
+	ptr->notice = gf_strdup(notice);
 	if (!ptr->notice) return GF_OUT_OF_MEM;
-	strcpy(ptr->notice, notice);
 	return udta_on_child_box_ex((GF_Box *)movie->moov->udta, (GF_Box *) ptr, GF_FALSE, GF_FALSE);
 }
 
@@ -3338,6 +3510,87 @@ GF_Err gf_isom_remove_track_kind(GF_ISOFile *movie, u32 trackNumber, const char 
 				}
 			}
 		}
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_track_loudness_content_type(GF_ISOFile *movie, u32 trackNumber, u8 content_type, u32 flags)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_UserDataMap *map;
+	GF_ContentTypeForLoudnessControlBox *ptr = NULL;
+	u32 i;
+
+	if (flags & ~(GF_ISOM_CTLC_FLAG_ADVERTISEMENT | GF_ISOM_CTLC_FLAG_IMMERSIVE_AUDIO))
+		return GF_BAD_PARAM;
+
+	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	e = gf_isom_insert_moov(movie);
+	if (e) return e;
+
+	trak = gf_isom_get_track_box(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	if (!trak->udta) {
+		e = trak_on_child_box((GF_Box *)trak, gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_UDTA), GF_FALSE);
+		if (e) return e;
+	}
+
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_CTLC, NULL);
+	if (map) {
+		for (i=0; i<gf_list_count(map->boxes); i++) {
+			GF_Box *box = (GF_Box *)gf_list_get(map->boxes, i);
+			if (box->type != GF_ISOM_BOX_TYPE_CTLC) continue;
+			if (!ptr) {
+				ptr = (GF_ContentTypeForLoudnessControlBox *)box;
+			} else {
+				gf_isom_box_del_parent(&map->boxes, box);
+				i--;
+			}
+		}
+	}
+
+	if (!ptr) {
+		ptr = (GF_ContentTypeForLoudnessControlBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_CTLC);
+		if (!ptr) return GF_OUT_OF_MEM;
+		e = udta_on_child_box_ex((GF_Box *)trak->udta, (GF_Box *)ptr, GF_FALSE, GF_FALSE);
+		if (e) {
+			gf_isom_box_del((GF_Box *)ptr);
+			return e;
+		}
+	}
+	ptr->version = 0;
+	ptr->flags = flags;
+	ptr->content_type = content_type;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_remove_track_loudness_content_type(GF_ISOFile *movie, u32 trackNumber)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_UserDataMap *map;
+	u32 i;
+
+	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	e = gf_isom_insert_moov(movie);
+	if (e) return e;
+
+	trak = gf_isom_get_track_box(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	if (!trak->udta) return GF_OK;
+
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_CTLC, NULL);
+	if (!map) return GF_OK;
+	for (i=0; i<gf_list_count(map->boxes); i++) {
+		GF_Box *box = (GF_Box *)gf_list_get(map->boxes, i);
+		if (box->type != GF_ISOM_BOX_TYPE_CTLC) continue;
+		gf_isom_box_del_parent(&map->boxes, box);
+		i--;
 	}
 	return GF_OK;
 }
@@ -4866,7 +5119,7 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		entry->spatial_quality = udesc->spatial_quality;
 		entry->Width = udesc->width;
 		entry->Height = udesc->height;
-		strncpy(entry->compressor_name, udesc->compressor_name, GF_ARRAY_LENGTH(entry->compressor_name));
+		gf_strcpy(entry->compressor_name, udesc->compressor_name);
 		entry->compressor_name[ GF_ARRAY_LENGTH(entry->compressor_name) - 1] = 0;
 		entry->color_table_index = -1;
 		entry->frames_per_sample = 1;
@@ -4998,7 +5251,8 @@ GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNum
 		entry->spatial_quality = udesc->spatial_quality;
 		entry->Width = udesc->width;
 		entry->Height = udesc->height;
-		strcpy(entry->compressor_name, udesc->compressor_name);
+		memset(entry->compressor_name, 0, 33);
+		gf_strcpy(entry->compressor_name, udesc->compressor_name);
 		entry->color_table_index = -1;
 		entry->frames_per_sample = 1;
 		entry->horiz_res = udesc->h_res ? udesc->h_res : 0x00480000;
@@ -6214,7 +6468,7 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 	} else {
 		u32 i, j, len;
 		char szOrig[1024], szLine[1024];
-		strcpy(szOrig, nameUTF8);
+		gf_strcpy(szOrig, nameUTF8);
 		j=0;
 		len = (u32) strlen(szOrig);
 		for (i=0; i<len; i++) {
@@ -8712,8 +8966,10 @@ GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32
 	vid_ent->horiz_res = horiz_res;
 	vid_ent->vert_res = vert_res;
 	vid_ent->frames_per_sample = frames_per_sample;
-	if (compressor_name)
-		strncpy(vid_ent->compressor_name, compressor_name, 32);
+	if (compressor_name) {
+		memset(vid_ent->compressor_name, 0, 33);
+		gf_strcpy(vid_ent->compressor_name, compressor_name);
+	}
 
 	vid_ent->color_table_index = color_table_index;
 	return GF_OK;

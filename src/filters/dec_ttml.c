@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2024
+ *			Copyright (c) Telecom ParisTech 2020-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / TTML decoder filter
@@ -147,8 +147,8 @@ void ttmldec_setup_scene(GF_TTMLDec *ctx)
 		gf_svg_parse_attribute(n, &info, (char *) ctx->script, 0);
 	} else {
 		char szPath[GF_MAX_PATH];
-		strcpy(szPath, "file://");
-		strcat(szPath, ctx->script);
+		gf_strcpy(szPath, "file://");
+		gf_strcat(szPath, ctx->script);
 		gf_svg_parse_attribute(n, &info, (char *) szPath, 0);
 	}
 

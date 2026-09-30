@@ -149,7 +149,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
 		fprintf(stderr, "Duration: %g s\n", (Double) (import->probe_duration/1000.0));
 	}
 	found = 0;
-	for (i=0; i<import->nb_tracks; i++) {
+	for (i=0; i<MIN(import->nb_tracks, GF_IMPORT_MAX_TRACKS); i++) {
 		u32 stype = import->tk_info[i].stream_type;
 		switch (track_id->type) {
 		case 0: //by trackID
@@ -211,7 +211,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
 				fprintf(stderr, " Program %d", import->tk_info[i].prog_num);
 			} else {
 				u32 j;
-				for (j=0; j<import->nb_progs; j++) {
+				for (j=0; j<MIN(import->nb_progs, GF_IMPORT_MAX_TRACKS); j++) {
 					if (import->tk_info[i].prog_num != import->pg_info[j].number) continue;
 					fprintf(stderr, " Program %s", import->pg_info[j].name);
 					break;
@@ -243,6 +243,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
 
 	if (!found && track_id->ID_or_num) {
 		M4_LOG(GF_LOG_ERROR, ("Cannot find track %u in file\n", track_id->ID_or_num));
+		gf_free(import);
 		return GF_BAD_PARAM;
 	}
 	M4_LOG(GF_LOG_INFO, ("For more details, use `gpac -i %s inspect[:deep][:analyze=on|bs]`\n", gf_file_basename(inName)));
@@ -374,7 +375,7 @@ Bool scan_color(char *val, u32 *clr_prim, u32 *clr_tranf, u32 *clr_mx, Bool *clr
 
 #include <gpac/internal/media_dev.h>
 
-static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, u32 dv_md_compression)
+static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, u32 dv_md_compression, u16 dv_flags)
 {
 	GF_Err e;
 	Bool remove=GF_FALSE;
@@ -382,6 +383,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, 
 	u32 dv_profile = 0;
 	u32 dv_compat_id=0;
 	u32 dv_version_major = 1;
+	s32 flag_idx;
 	char *sep = strchr(dv_profile_str, '.');
 	if (sep) {
 		sep[0] = 0;
@@ -425,6 +427,10 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, 
 		dovi->force_dv = force_dv;
 		dovi->dv_md_compression = dv_md_compression;
 		dovi->rpu_present_flag = 1;
+		for (flag_idx = 9; flag_idx >= 0; flag_idx--) {
+			dovi->dv_feature_flags[flag_idx] = dv_flags & 0x1;
+			dv_flags = dv_flags >> 1;
+		}
 		e = gf_isom_set_dolby_vision_profile(dest, track, 1, remove ? NULL : dovi);
 		gf_odf_dovi_cfg_del(dovi);
 		return e;
@@ -444,6 +450,10 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, 
 	_dovi.dv_bl_signal_compatibility_id = dv_compat_id;
 	_dovi.force_dv = force_dv;
 	_dovi.dv_md_compression = dv_md_compression;
+	for (flag_idx = 9; flag_idx >= 0; flag_idx--) {
+		_dovi.dv_feature_flags[flag_idx] = dv_flags & 0x1;
+		dv_flags = dv_flags >> 1;
+	}
 
 	// This flag must always be set to 1 given the deprecation of certain profiles
 	// Dolby Vision Streams Within the ISO Base Media File Format specification version 2.6 section 2.2
@@ -720,6 +730,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 bitdepth=0;
 	char dv_profile[100]; /*Dolby Vision*/
 	u32 dv_md_compression;  /*Dolby Vision*/
+	u16 dv_flags=0;  /*Dolby Vision*/
 	u32 clr_type=0;
 	u32 clr_prim;
 	u32 clr_tranf;
@@ -945,9 +956,8 @@ reparse_opts:
 			if (*(ext+5) == '.')
 				import->force_ext = gf_strdup(ext+5);
 			else {
-				import->force_ext = gf_calloc(1+strlen(ext+5)+1, 1);
-				import->force_ext[0] = '.';
-				strcat(import->force_ext+1, ext+5);
+				import->force_ext = gf_strdup(".");
+				gf_dynstrcat(&import->force_ext, ext+5, NULL);
 			}
 		}
 		else if (!strnicmp(ext+1, "hdlr=", 5)) handler = GF_4CC(ext[6], ext[7], ext[8], ext[9]);
@@ -1311,8 +1321,7 @@ reparse_opts:
 			}
 		}
 		else if (!strnicmp(ext + 1, "dvp=", 4)) {
-			strncpy(dv_profile, ext + 5, 99);
-			dv_profile[99]=0;
+			gf_strcpy(dv_profile, ext + 5);
 		}
 		else if (!strnicmp(ext + 1, "dvmdc=", 6)) {
 			dv_md_compression = parse_s32(ext+7, "dvmdc=");
@@ -1325,11 +1334,17 @@ reparse_opts:
 				GOTO_EXIT("Dolby Vision metadata compression valid value: 0, 1, 3. default = 0")
 			}
 		}
+		else if (!strnicmp(ext + 1, "dvflags=", 8)) {
+			dv_flags = (u16)strtol(ext+9, NULL, 16);
+			if (dv_flags != 0 && dv_flags != 512) {
+				e = GF_BAD_PARAM;
+				GOTO_EXIT("Currently, only values 0x0 and 0x200 are defined for dvflags. default = 0")
+			}
+		}
 		//old name
 		else if (!strnicmp(ext + 1, "dv-profile=", 11)) {
 			M4_LOG(GF_LOG_WARNING, ("Deprecated option name, use `:dvp=` instead\n"));
-			strncpy(dv_profile, ext + 12, 99);
-			dv_profile[99]=0;
+			gf_strcpy(dv_profile, ext + 12);
 		}
 		else if (!strnicmp(ext+1, "fullrange=", 10)) {
 			if (!stricmp(ext+11, "off") || !stricmp(ext+11, "no")) fullrange = 0;
@@ -1442,6 +1457,9 @@ reparse_opts:
 		else if (!strnicmp(ext+1, "tkidx=", 6)) {
 			set_tk_idx = atoi(ext+7);
 		}
+		else if (!strnicmp(ext+1, "preselection=", 13)) {
+			import->preselection = ext+14;
+		}
 		/*unrecognized, assume name has colon in it*/
 		else {
 			M4_LOG(GF_LOG_ERROR, ("Unrecognized import option %s, ignoring\n", ext+1));
@@ -1525,7 +1543,7 @@ reparse_opts:
 		else if (!strnicmp(ext, "trackID=", 8)) track_id = parse_u32(&ext[8], "trackID");
 		else if (!strnicmp(ext, "PID=", 4)) track_id = parse_u32(&ext[4], "ID");
 		else if (!strnicmp(ext, "program=", 8)) {
-			for (i=0; i<import->nb_progs; i++) {
+			for (i=0; i<MIN(import->nb_progs, GF_IMPORT_MAX_TRACKS); i++) {
 				if (!stricmp(import->pg_info[i].name, ext+8)) {
 					prog_id = import->pg_info[i].number;
 					do_all = 0;
@@ -1542,7 +1560,7 @@ reparse_opts:
 		//figure out trackID
 		if (do_audio || do_video || do_auxv || do_pict || track_id) {
 			Bool found = track_id ? GF_FALSE : GF_TRUE;
-			for (i=0; i<import->nb_tracks; i++) {
+			for (i=0; i<MIN(import->nb_tracks, GF_IMPORT_MAX_TRACKS); i++) {
 				if (track_id && (import->tk_info[i].track_num==track_id)) {
 					found=GF_TRUE;
 					break;
@@ -1820,7 +1838,7 @@ reparse_opts:
 				GOTO_EXIT("setting HDR info")
 			}
 			if (dv_profile[0]) {
-				e = set_dv_profile(dest, track, dv_profile, dv_md_compression);
+				e = set_dv_profile(dest, track, dv_profile, dv_md_compression, dv_flags);
 				GOTO_EXIT("setting DV profile")
 			}
 
@@ -1856,7 +1874,7 @@ reparse_opts:
 			if (fName) fName += 1;
 			else fName = "?";
 
-			sprintf(szHName, "%s@GPAC%s", fName, gf_gpac_version());
+			snprintf(szHName, sizeof(szHName), "%s@GPAC%s", fName, gf_gpac_version());
 			e = gf_isom_set_handler_name(dest, track, szHName);
 			GOTO_EXIT("setting handler name")
 		}
@@ -2194,7 +2212,7 @@ reparse_opts:
 
 		if (!tc_frames_per_tick) {
 			tc_frames_per_tick = tc_fps_num;
-			tc_frames_per_tick /= tc_fps_den;
+			tc_frames_per_tick /= (tc_fps_den ? tc_fps_den : 1);
 			if (tc_frames_per_tick * tc_fps_den < tc_fps_num)
 				tc_frames_per_tick++;
 		}
@@ -2343,7 +2361,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		rap_split = GF_TRUE;
 
 	//split in same dir as source
-	strcpy(szName, inName);
+	gf_strcpy(szName, inName);
 	ext = strrchr(szName, '.');
 	if (ext) ext[0] = 0;
 
@@ -2364,8 +2382,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	}
 	//default output name formatting
 	if (!outName) {
-		strcpy(szFile, szName);
-		strcat(szFile, "_$num%03d$");
+		gf_strcpy(szFile, szName);
+		gf_strcat(szFile, "_$num%03d$");
 	}
 
 	gf_dynstrcat(&filter_args, "reframer", NULL);
@@ -2505,44 +2523,44 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	}
 
 	if (!outName) {
-		strcat(szFile, ".mp4");
+		gf_strcat(szFile, ".mp4");
 	} else {
-		strcpy(szFile, outName);
+		gf_strcpy(szFile, outName);
 	}
 	if (gf_dir_exists(szFile)) {
 		char c = szFile[strlen(szFile)-1];
 		if ((c!='/') && (c!='\\'))
-			strcat(szFile, "/");
+			gf_strcat(szFile, "/");
 
-		strcat(szFile, szName);
-		strcat(szFile, "_$num%03d$.mp4");
+		gf_strcat(szFile, szName);
+		gf_strcat(szFile, "_$num%03d$.mp4");
 		M4_LOG(GF_LOG_WARNING, ("Split output is a directory, will use template %s\n", szFile));
 	}
 	else if (split_size_kb || split_dur) {
 		if (!strchr(szFile, '$') && (stricmp(szFile, "null") || !strcmp(szFile, "/dev/null")) ) {
 			char *sep = gf_file_ext_start(szFile);
 			if (sep) sep[0] = 0;
-			strcat(szFile, "_$num$.mp4");
+			gf_strcat(szFile, "_$num$.mp4");
 			M4_LOG(GF_LOG_WARNING, ("Split by %s but output not a template, using %s as output\n", split_size_kb ? "size" : "duration", szFile));
 		}
 	}
 	if (do_frag) {
 		sprintf(szArgs, ":cdur=%g", interleaving_time);
-		strcat(szFile, ":store=frag");
-		strcat(szFile, szArgs);
+		gf_strcat(szFile, ":store=frag");
+		gf_strcat(szFile, szArgs);
 	}
 	else if (do_flat==1) {
-		strcat(szFile, ":store=flat");
+		gf_strcat(szFile, ":store=flat");
 	}
 	else if (do_flat || interleaving_time) {
 		if (do_flat==3) {
-			strcat(szFile, ":store=fstart");
+			gf_strcat(szFile, ":store=fstart");
 		}
 		sprintf(szArgs, ":cdur=%g", interleaving_time);
-		strcat(szFile, szArgs);
+		gf_strcat(szFile, szArgs);
 	}
 	if (use_mfra)
-		strcat(szFile, ":mfra");
+		gf_strcat(szFile, ":mfra");
 
 	dst = gf_fs_load_destination(fs, szFile, NULL, NULL, &e);
 	if (!dst) {
@@ -3382,8 +3400,8 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath, GF_FileEnumInfo *file_
 	if (strnicmp(szName, cat_enum->szRad1, len_rad1)) return 0;
 	if (strlen(cat_enum->szRad2) && !strstr(szName + len_rad1, cat_enum->szRad2) ) return 0;
 
-	strcpy(szFileName, szPath);
-	strcat(szFileName, cat_enum->szOpt);
+	gf_strcpy(szFileName, szPath);
+	gf_strcat(szFileName, cat_enum->szOpt);
 
 	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->force_cat, cat_enum->align_timelines, cat_enum->allow_add_in_command, GF_FALSE);
 	if (e) return 1;
@@ -3407,43 +3425,43 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is too long.\n", fileName));
 		return GF_NOT_SUPPORTED;
 	}
-	strcpy(cat_enum.szPath, fileName);
+	gf_strcpy(cat_enum.szPath, fileName);
 	sep = strrchr(cat_enum.szPath, GF_PATH_SEPARATOR);
 	if (!sep) sep = strrchr(cat_enum.szPath, '/');
 	if (!sep) {
-		strcpy(cat_enum.szPath, ".");
+		gf_strcpy(cat_enum.szPath, ".");
 		if (strlen(fileName) >= sizeof(cat_enum.szRad1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is too long.\n", fileName));
 			return GF_NOT_SUPPORTED;
 		}
-		strcpy(cat_enum.szRad1, fileName);
+		gf_strcpy(cat_enum.szRad1, fileName);
 	} else {
 		if (strlen(sep + 1) >= sizeof(cat_enum.szRad1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is too long.\n", (sep + 1)));
 			return GF_NOT_SUPPORTED;
 		}
-		strcpy(cat_enum.szRad1, sep+1);
+		gf_strcpy(cat_enum.szRad1, sep+1);
 		sep[0] = 0;
 	}
 	sep = strchr(cat_enum.szRad1, '*');
 	if (!sep) sep = strchr(cat_enum.szRad1, '@');
-	if (strlen(sep + 1) >= sizeof(cat_enum.szRad2)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is too long.\n", (sep + 1)));
+	if (!sep || strlen(sep + 1) >= sizeof(cat_enum.szRad2)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is invald.\n", cat_enum.szRad1));
 		return GF_NOT_SUPPORTED;
 	}
-	strcpy(cat_enum.szRad2, sep+1);
+	gf_strcpy(cat_enum.szRad2, sep+1);
 	sep[0] = 0;
 	sep = NULL;
 	if (gf_sys_old_arch_compat()) sep = strchr(cat_enum.szRad2, '%');
 	if (!sep) sep = strchr(cat_enum.szRad2, '#');
 	if (!sep) sep = gf_url_colon_suffix(cat_enum.szRad2, '=');
-	strcpy(cat_enum.szOpt, "");
+	gf_strcpy(cat_enum.szOpt, "");
 	if (sep) {
 		if (strlen(sep) >= sizeof(cat_enum.szOpt)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Invalid option: %s.\n", sep));
 			return GF_NOT_SUPPORTED;
 		}
-		strcpy(cat_enum.szOpt, sep);
+		gf_strcpy(cat_enum.szOpt, sep);
 		sep[0] = 0;
 	}
 	return gf_enum_directory(cat_enum.szPath, 0, cat_enumerate, &cat_enum, NULL);
@@ -3666,7 +3684,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	char szName[GF_MAX_PATH+100];
 	FILE *f;
 
-	strcpy(szRad, bifsOutputFile);
+	gf_strcpy(szRad, bifsOutputFile);
 	ext = strrchr(szRad, '.');
 	if (ext) ext[0] = 0;
 
@@ -3862,7 +3880,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 		if (e) goto exit;
 
 		/*check if we dump to BT, XMT or encode to MP4*/
-		strcpy(szF, outputContext);
+		gf_strcpy(szF, outputContext);
 		ext = strrchr(szF, '.');
 		d_mode = GF_SM_DUMP_BT;
 		do_enc = 0;
@@ -3874,7 +3892,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 
 		if (do_enc) {
 			GF_ISOFile *mp4;
-			strcat(szF, ".mp4");
+			gf_strcat(szF, ".mp4");
 			mp4 = gf_isom_open(szF, GF_ISOM_WRITE_EDIT, NULL);
 			e = gf_sm_encode_to_file(ctx, mp4, NULL);
 			if (e) gf_isom_delete(mp4);
@@ -3975,10 +3993,10 @@ GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
 		if (sep) {
 			char c = sep[1];
 			sep[1]=0;
-			strcpy(root_dir, file_name);
+			gf_strcpy(root_dir, file_name);
 			sep[1] = c;
 		} else {
-			strcpy(root_dir, "./");
+			gf_strcpy(root_dir, "./");
 		}
 		wgt.dir = root_dir;
 		wgt.root_file = file_name;

@@ -1051,14 +1051,14 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 #else
 
 		//set a default output name for edited file
-		mov->finalName = (char*)gf_malloc(strlen(fileName) + 5);
+		mov->finalName = gf_strdup("out_");
+		gf_dynstrcat(&mov->finalName, fileName, NULL);
+
 		if (!mov->finalName) {
 			gf_isom_set_last_error(NULL, GF_OUT_OF_MEM);
 			gf_isom_delete_movie(mov);
 			return NULL;
 		}
-		strcpy(mov->finalName, "out_");
-		strcat(mov->finalName, fileName);
 
 		//open the original file with edit tag
 		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_EDIT, &mov->movieFileMap);

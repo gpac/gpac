@@ -1604,7 +1604,11 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			inspect_printf(dump, " nal_ref_idc=\"%d\"", nal_ref_idc);
 		}
 		if (res>=0) {
-			inspect_printf(dump, " poc=\"%d\" pps_id=\"%d\" field_pic_flag=\"%d\"", avc->s_info.poc, avc->s_info.pps->id, (int)avc->s_info.field_pic_flag);
+			u32 st = avc->s_info.slice_type % 5;
+			const char *slice_name = (st==GF_AVC_TYPE_I) ? "I" : (st==GF_AVC_TYPE_P) ? "P" : (st==GF_AVC_TYPE_B) ? "B" : (st==GF_AVC_TYPE_SP) ? "SP" : (st==GF_AVC_TYPE_SI) ? "SI" : "Unknown";
+			inspect_printf(dump, " slice=\"%s\" slice_type=\"%d\" poc=\"%d\" pps_id=\"%d\" field_pic_flag=\"%d\"", slice_name, avc->s_info.slice_type, avc->s_info.poc, avc->s_info.pps->id, (int)avc->s_info.field_pic_flag);
+			if (avc->s_info.field_pic_flag)
+				inspect_printf(dump, " bottom_field_flag=\"%d\"", (int)avc->s_info.bottom_field_flag);
 		}
 	}
 

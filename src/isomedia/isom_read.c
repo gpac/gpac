@@ -233,7 +233,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 		sep = strchr(val, ' ');
 		if (sep) sep[0] = 0;
 
-		if (!strncmp(val, "4cc=", 4)) strcpy(sz4cc, val+4);
+		if (!strncmp(val, "4cc=", 4)) gf_strcpy(sz4cc, val+4);
 		else if (!strncmp(val, "init=", 5)) {
 			char szH[3], *data = val+5;
 			u32 i, len = (u32) strlen(data);
@@ -1871,7 +1871,8 @@ u32 gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber)
 	GF_CompositionOffsetBox *ctts;
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak || !trak->Media->information->sampleTable->CompositionOffset) return 0;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->CompositionOffset)
+		return 0;
 
 	//return true at the first offset found
 	ctts = trak->Media->information->sampleTable->CompositionOffset;
@@ -1886,7 +1887,8 @@ s64 gf_isom_get_cts_to_dts_shift(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak || !trak->Media->information->sampleTable->CompositionToDecode) return 0;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->CompositionToDecode)
+		return 0;
 	return trak->Media->information->sampleTable->CompositionToDecode->compositionToDTSShift;
 }
 
@@ -1894,8 +1896,8 @@ GF_EXPORT
 Bool gf_isom_has_sync_shadows(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak) return GF_FALSE;
-	if (!trak->Media->information->sampleTable->ShadowSync) return GF_FALSE;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->ShadowSync)
+		return GF_FALSE;
 	if (gf_list_count(trak->Media->information->sampleTable->ShadowSync->entries) ) return GF_TRUE;
 	return GF_FALSE;
 }
@@ -1904,7 +1906,8 @@ GF_EXPORT
 Bool gf_isom_has_sample_dependency(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak) return GF_FALSE;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable)
+		return GF_FALSE;
 	if (!trak->Media->information->sampleTable->SampleDep) return GF_FALSE;
 	return GF_TRUE;
 }
@@ -1918,8 +1921,8 @@ GF_Err gf_isom_get_sample_flags(GF_ISOFile *the_file, u32 trackNumber, u32 sampl
 	*dependedOn = 0;
 	*redundant = 0;
 	trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
-	if (!trak->Media->information->sampleTable->SampleDep) return GF_BAD_PARAM;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable->SampleDep)
+		return GF_BAD_PARAM;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (sampleNumber <= trak->sample_count_at_seg_start)
@@ -3754,7 +3757,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		udesc->height = entry->Height;
 		udesc->h_res = entry->horiz_res;
 		udesc->v_res = entry->vert_res;
-		strcpy(udesc->compressor_name, entry->compressor_name);
+		gf_strcpy(udesc->compressor_name, entry->compressor_name);
 		udesc->depth = entry->bit_depth;
 		udesc->color_table_index = entry->color_table_index;
 		if (entry->data_size) {
@@ -6752,6 +6755,33 @@ GF_Err gf_isom_get_sample_references(GF_ISOFile *the_file, u32 trackNumber, u32 
 		*nb_refs = ent->nb_refs;
 		*refs = ent->sample_refs;
 	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_get_preselection_info(GF_ISOFile *the_file, u8 **data, u32 *size)
+{
+	if (!the_file) return GF_BAD_PARAM;
+
+	GF_MetaBox *meta = (GF_MetaBox*)gf_isom_get_meta(the_file, GF_TRUE, 0);
+	if (!meta) return GF_NOT_FOUND;
+
+	GF_GroupListBox *grpl = (GF_GroupListBox*)gf_isom_box_find_child(meta->child_boxes, GF_ISOM_BOX_TYPE_GRPL);
+	if (!grpl) return GF_NOT_FOUND;
+
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	GF_List *childs = grpl->child_boxes;
+
+	for (u32 i=0; i<gf_list_count(childs); i++) {
+		GF_Box *child = gf_list_get(childs, i);
+		if (child->type == GF_ISOM_BOX_TYPE_PRSL) {
+			gf_isom_box_write(child, bs);
+		}
+	}
+
+	gf_bs_get_content(bs, data, size);
+	gf_bs_del(bs);
+
 	return GF_OK;
 }
 

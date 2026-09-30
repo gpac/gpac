@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -548,7 +548,7 @@ const char *gf_stream_type_all_names()
 	if (!szAllStreamTypes[0]) {
 		u32 i, nb_st = sizeof(GF_StreamTypes) / sizeof(GF_StreamTypeDesc);
 		u32 tot_len=0;
-		strcpy(szAllStreamTypes, "");
+		gf_strcpy(szAllStreamTypes, "");
 		for (i=0; i<nb_st; i++) {
 			u32 len = (u32) strlen(GF_StreamTypes[i].name);
 			if (len+tot_len+2>=500) {
@@ -556,10 +556,10 @@ const char *gf_stream_type_all_names()
 				break;
 			}
 			if (i) {
-				strcat((char *)szAllStreamTypes, "|");
+				gf_strcat((char *)szAllStreamTypes, "|");
 				tot_len += 1;
 			}
-			strcat((char *)szAllStreamTypes, GF_StreamTypes[i].name);
+			gf_strcat((char *)szAllStreamTypes, GF_StreamTypes[i].name);
 			tot_len += len;
 		}
 	}
@@ -702,16 +702,16 @@ const char *gf_audio_fmt_all_names()
 	if (!szAllAudioFormats[0]) {
 		u32 i=0;
 		u32 tot_len=4;
-		strcpy(szAllAudioFormats, "none");
+		gf_strcpy(szAllAudioFormats, "none");
 		while (!i || GF_AudioFormats[i].sfmt) {
 			u32 len = (u32) strlen(GF_AudioFormats[i].name);
 			if (len+tot_len+2>=500) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Not enough memory to hold all audio formats!!\n"));
 				break;
 			}
-			strcat((char *)szAllAudioFormats, "|");
+			gf_strcat(szAllAudioFormats, "|");
 			tot_len += 1;
-			strcat((char *)szAllAudioFormats, GF_AudioFormats[i].name);
+			gf_strcat(szAllAudioFormats, GF_AudioFormats[i].name);
 			tot_len += len;
 			i++;
 		}
@@ -736,11 +736,11 @@ const char *gf_audio_fmt_all_shortnames()
 				break;
 			}
 			if (i) {
-				strcat((char *)szAllShortAudioFormats, "|");
+				gf_strcat(szAllShortAudioFormats, "|");
 				tot_len += 1;
-				strcat((char *)szAllShortAudioFormats, n);
+				gf_strcat(szAllShortAudioFormats, n);
 			} else {
-				strcpy((char *)szAllShortAudioFormats, n);
+				gf_strcpy(szAllShortAudioFormats, n);
 			}
 			tot_len += len;
 			i++;
@@ -1041,8 +1041,8 @@ const char *gf_audio_fmt_cicp_all_names()
 	if (szCICPLayoutAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(GF_CICPLayouts);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPLayoutAllNames, "|");
-			strcat(szCICPLayoutAllNames, GF_CICPLayouts[i].name);
+			if (i) gf_strcat(szCICPLayoutAllNames, "|");
+			gf_strcat(szCICPLayoutAllNames, GF_CICPLayouts[i].name);
 		}
 	}
 	return szCICPLayoutAllNames;
@@ -1108,46 +1108,61 @@ u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
 		{0x000A7F, 18}, {0x040A6F, 18}, {0x00007F, 19},
 		{0x04006F, 19}, {0x01007F, 20}, {0x05006F, 2}
 	};
-	for (int i=0; i<28; i++) {
+	for (u32 i = 0; i < sizeof(mask_dict) / sizeof(mask_dict[0]); i++) {
 		if (mask == mask_dict[i][0]) {
 			return mask_dict[i][1];
 		}
 	}
-	return mask;
+	return 0;
 }
 
-// ETSI TS 103 190-2 V1.3.1 (2018-02) E10.14 presentation_channel_mask_v1
-u32 gf_ac4_dolby_channel_count_from_channel_mask_v1(u32 mask)
+// ETSI TS 103 190-2 V1.3.1 (2018-02) E10.14 presentation_v1_channel_groups
+u32 gf_ac4_dolby_channel_count_from_channel_mask_v1(u32 speaker_group_index_mask)
 {
-	const u32 channel_mask_v1_2_channel_count[19] = {
-		2,  // L,R
-		1,  // C
-		2,  // Ls,Rs
-		2,  // Lb,Rb
-		2,  //Tfl,Tfr
-		2,  //Tbl,Tbr
-		1,  //LFE
-		2,  //Tl,Tr
-		2,  //Tsl,Tsr
-		1,  //Tfc
-		1,  //Tbc
-		1,  //Tc
-		1,  //LEF2
-		2,  //Bfl,Bfr
-		1,  //Bfc
-		1,  //Cb
-		2,  //Lscr,Rscr
-		2,  //Lw,Rw
-		2   //Vhl,Vhr
-	};
-	u32 count = 0;
-    for(u32 i = 0; i < 19; i++) {
-        if(mask % 2 == 1) {
-            count += channel_mask_v1_2_channel_count[i];
-        }
-        mask /= 2;
-    }
-    return count;
+	u32 channel_count = 0;
+    if ((speaker_group_index_mask & 1) != 0) //  0: L,R
+        channel_count += 2;
+    if ((speaker_group_index_mask & 2) != 0) //  1: C
+        channel_count += 1;
+    if ((speaker_group_index_mask & 4) != 0) //  2: Ls,Rs
+        channel_count += 2;
+    if ((speaker_group_index_mask & 8) != 0) //  3: Lb,Rb
+        channel_count += 2;
+    if ((speaker_group_index_mask & 16) != 0) //  4: Tfl,Tfr
+        channel_count += 2;
+    if ((speaker_group_index_mask & 32) != 0) //  5: Tbl,Tbr
+        channel_count += 2;
+    if ((speaker_group_index_mask & 64) != 0) //  6: LFE
+        channel_count += 1;
+    if ((speaker_group_index_mask & 128) != 0) //  7: TL,TR
+        channel_count += 2;
+    if ((speaker_group_index_mask & 256) != 0) //  8: Tsl,Tsr
+        channel_count += 2;
+    if ((speaker_group_index_mask & 512) != 0) //  9: Tfc
+        channel_count += 1;
+    if ((speaker_group_index_mask & 1024) != 0) //  10: Tbc
+        channel_count += 1;
+    if ((speaker_group_index_mask & 2048) != 0) //  11: Tc
+        channel_count += 1;
+    if ((speaker_group_index_mask & 4096) != 0) //  12: LFE2
+        channel_count += 1;
+    if ((speaker_group_index_mask & 8192) != 0) //  13: Bfl,Bfr
+        channel_count += 2;
+    if ((speaker_group_index_mask & 16384) != 0) //  14: Bfc
+        channel_count += 1;
+    if ((speaker_group_index_mask & 32768) != 0) //  15: Cb
+        channel_count += 1;
+    if ((speaker_group_index_mask & 65536) != 0) //  16: Lscr,Rscr
+        channel_count += 2;
+    if ((speaker_group_index_mask & 131072) != 0) //  17: Lw,Rw
+        channel_count += 2;
+    if ((speaker_group_index_mask & 262144) != 0) //  18: Vhl,Vhr
+        channel_count += 2;
+
+    if ((speaker_group_index_mask & 1) != 0 && (speaker_group_index_mask & 2) != 0 && channel_count == 3)
+        channel_count = 2;
+
+    return channel_count;
 }
 
 GF_EXPORT
@@ -1326,7 +1341,7 @@ const char *gf_pixel_fmt_all_names()
 	if (!szAllPixelFormats[0]) {
 		u32 i=0;
 		u32 tot_len=4;
-		strcpy(szAllPixelFormats, "none");
+		gf_strcpy(szAllPixelFormats, "none");
 		while (GF_PixelFormats[i].pixfmt) {
 			u32 len;
 
@@ -1341,9 +1356,9 @@ const char *gf_pixel_fmt_all_names()
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Not enough memory to hold all pixel formats!!\n"));
 				break;
 			}
-			strcat((char *)szAllPixelFormats, "|");
+			gf_strcat(szAllPixelFormats, "|");
 			tot_len += 1;
-			strcat((char *)szAllPixelFormats, GF_PixelFormats[i].name);
+			gf_strcat(szAllPixelFormats, GF_PixelFormats[i].name);
 			tot_len += len;
 			i++;
 		}
@@ -1374,11 +1389,11 @@ const char *gf_pixel_fmt_all_shortnames()
 				break;
 			}
 			if (i) {
-				strcat((char *)szAllShortPixelFormats, "|");
+				gf_strcat(szAllShortPixelFormats, "|");
 				tot_len += 1;
-				strcat((char *)szAllShortPixelFormats, n);
+				gf_strcat(szAllShortPixelFormats, n);
 			} else {
-				strcpy((char *)szAllShortPixelFormats, n);
+				gf_strcpy(szAllShortPixelFormats, n);
 			}
 			tot_len += len;
 			i++;
@@ -2201,8 +2216,8 @@ const char *gf_cicp_color_primaries_all_names()
 	if (szCICPPrimAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(CICPColorPrimaries);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPPrimAllNames, "|");
-			strcat(szCICPPrimAllNames, CICPColorPrimaries[i].name);
+			if (i) gf_strcat(szCICPPrimAllNames, "|");
+			gf_strcat(szCICPPrimAllNames, CICPColorPrimaries[i].name);
 		}
 	}
 	return szCICPPrimAllNames;
@@ -2271,8 +2286,8 @@ const char *gf_cicp_color_transfer_all_names()
 	if (szCICPTFCAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(CICPColorTransfer);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPTFCAllNames, "|");
-			strcat(szCICPTFCAllNames, CICPColorTransfer[i].name);
+			if (i) gf_strcat(szCICPTFCAllNames, "|");
+			gf_strcat(szCICPTFCAllNames, CICPColorTransfer[i].name);
 		}
 	}
 	return szCICPTFCAllNames;
@@ -2331,8 +2346,8 @@ const char *gf_cicp_color_matrix_all_names()
 	if (szCICPMXAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(CICPColorMatrixCoefficients);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPMXAllNames, "|");
-			strcat(szCICPMXAllNames, CICPColorMatrixCoefficients[i].name);
+			if (i) gf_strcat(szCICPMXAllNames, "|");
+			gf_strcat(szCICPMXAllNames, CICPColorMatrixCoefficients[i].name);
 		}
 	}
 	return szCICPMXAllNames;
@@ -2370,7 +2385,7 @@ u64 gf_timestamp_rescale(u64 value, u64 timescale, u64 new_timescale)
 		Double res = (Double) value;
 		res *= new_timescale;
 		res /= timescale;
-		return (u64) res;
+		return (res < GF_UINT64_MAX ? (u64)res : GF_UINT64_MAX);
 	}
 	return int_part * new_timescale + frac_part;
 }

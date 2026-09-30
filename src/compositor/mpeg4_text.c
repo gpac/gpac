@@ -58,6 +58,22 @@ typedef struct
 	GF_Compositor *compositor;
 } TextStack;
 
+GF_NOT_EXPORTED M_FontStyle *compositor_get_font_style(GF_Node *font_style)
+{
+	if (!font_style) return NULL;
+
+	switch (gf_node_get_tag(font_style)) {
+	case TAG_MPEG4_FontStyle:
+		return (M_FontStyle *) font_style;
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_FontStyle:
+		return (M_FontStyle *) font_style;
+#endif
+	default:
+		return NULL;
+	}
+}
+
 void text_clean_paths(GF_Compositor *compositor, TextStack *stack)
 {
 	/*delete all path objects*/
@@ -79,7 +95,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 	GF_TextSpan *tspan;
 	GF_FontManager *ft_mgr = tr_state->visual->compositor->font_manager;
 	Fixed fontSize, start_y;
-	M_FontStyle *fs = (M_FontStyle *)txt->fontStyle;
+	M_FontStyle *fs = compositor_get_font_style(txt->fontStyle);
 
 	fontSize = FSSIZE;
 	if (fontSize <= 0) {
@@ -212,7 +228,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 	Bool horizontal, use_pass = GF_FALSE;
 	GF_TextSpan *trim_tspan = NULL;
 	GF_FontManager *ft_mgr = tr_state->visual->compositor->font_manager;
-	M_FontStyle *fs = (M_FontStyle *)txt->fontStyle;
+	M_FontStyle *fs = compositor_get_font_style(txt->fontStyle);
 
 	fontSize = FSSIZE;
 	if (fontSize <= 0) {
@@ -499,7 +515,7 @@ static void text_get_draw_opt(GF_Node *node, TextStack *st, Bool *force_texture,
 {
 	const char *fs_style;
 	char *hlight;
-	M_FontStyle *fs = (M_FontStyle *) ((M_Text *) node)->fontStyle;
+	M_FontStyle *fs = compositor_get_font_style(((M_Text *) node)->fontStyle);
 
 	*hl_color = 0;
 
@@ -757,4 +773,3 @@ void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh 
 
 
 #endif //!defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)
-

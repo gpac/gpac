@@ -10,7 +10,7 @@ Please include all information needed to reproduce the issue, including a sample
 
 Sample files can be joined directly via github (preferred way) or uploaded to the [GPAC file drop](https://www.mediafire.com/filedrop/filedrop_hosted.php?drop=eec9e058a9486fe4e99c33021481d9e1826ca9dbc242a6cfaab0fe95da5e5d95).
 
-If you require a CVE ID you can request one from [MITRE](https://cveform.mitre.org/) or other CNAs. We do not assign CVE IDs ourselves.
+If you require a CVE ID you can request one from [MITRE](https://cveform.mitre.org/) or other CNAs. We do not assign CVE IDs ourselves. We do not use Github's Security Advisories, the issue tracker provides a public reference if needed.
 
 
 ## Supported Versions

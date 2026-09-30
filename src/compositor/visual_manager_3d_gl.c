@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -413,48 +413,34 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 
 	GF_SHADERID shader = 0;
 	char *defs, szKey[100];
-	size_t str_size;
 
-	defs = (char *) gf_strdup(GLES_VERSION_STRING);
-	str_size = strlen(defs) + 1; //+1 for trailing \0
+	defs = gf_strdup(GLES_VERSION_STRING);
 
 	if (flags & GF_GL_HAS_LIGHT) {
 		sprintf(szKey, "#define GF_GL_HAS_LIGHT\n#define LIGHTS_MAX %d\n", GF_MAX_GL_LIGHTS);
-		str_size += strlen(szKey);
-		defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
-		strcat(defs, szKey);
+		gf_dynstrcat(&defs, szKey, NULL);
 	}
 
-	if(flags & GF_GL_HAS_COLOR) {
-		str_size += strlen("#define GF_GL_HAS_COLOR \n");
-		defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
-		strcat(defs,"#define GF_GL_HAS_COLOR \n");
+	if (flags & GF_GL_HAS_COLOR) {
+		gf_dynstrcat(&defs, "#define GF_GL_HAS_COLOR \n", NULL);
 	}
 
-	if(flags & GF_GL_HAS_TEXTURE) {
-		str_size += strlen("#define GF_GL_HAS_TEXTURE \n");
-		defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
-		strcat(defs,"#define GF_GL_HAS_TEXTURE \n");
+	if (flags & GF_GL_HAS_TEXTURE) {
+		gf_dynstrcat(&defs, "#define GF_GL_HAS_TEXTURE \n", NULL);
 	}
 
-	if(flags & GF_GL_HAS_CLIP) {
+	if (flags & GF_GL_HAS_CLIP) {
 		/*clipping is always enabled*/
 		sprintf(szKey, "#define CLIPS_MAX %d\n#define GF_GL_HAS_CLIP\n", GF_MAX_GL_CLIPS);
-		str_size += strlen(szKey);
-		defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
-		strcat(defs, szKey);
+		gf_dynstrcat(&defs, szKey, NULL);
 	}
 
 	if (shader_type==GL_FRAGMENT_SHADER) {
-		if(flags & GF_GL_IS_YUV) {
-			str_size += strlen("#define GF_GL_IS_YUV \n");
-			defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
-			strcat(defs,"#define GF_GL_IS_YUV \n");
+		if (flags & GF_GL_IS_YUV) {
+			gf_dynstrcat(&defs, "#define GF_GL_IS_YUV \n", NULL);
 		}
-		if(flags & GF_GL_IS_ExternalOES) {
-			str_size += strlen("#define GF_GL_IS_ExternalOES \n");
-			defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
-			strcat(defs,"#define GF_GL_IS_ExternalOES \n");
+		if (flags & GF_GL_IS_ExternalOES) {
+			gf_dynstrcat(&defs, "#define GF_GL_IS_ExternalOES \n", NULL);
 		}
 	}
 

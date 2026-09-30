@@ -105,7 +105,7 @@ GF_OPT_ENUM (GF_DashHLSLowLatencyType,
 \param forced if true, do not append extension or missing $Number$ or $Time$  when resolving template
 \return error if any
 */
-GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline, Bool forced);
+GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char segment_name[GF_MAX_PATH], const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline, Bool forced);
 
 /*! metrics, not yet supported*/
 typedef struct
@@ -126,7 +126,7 @@ typedef struct
 
 
 /*! macro for extensible MPD element
-Some elments are typically overloaded in XML, we keep the attributes / children nodes here. The attributes list is NULL if no extensions were found, otherwise it is a list of GF_XMLAttribute.
+Some elements are typically overloaded in XML, we keep the attributes / children nodes here. The attributes list is NULL if no extensions were found, otherwise it is a list of GF_XMLAttribute.
 The children list is NULL if no extensions were found, otherwise it is a list of GF_XMLNode
 */
 #define MPD_EXTENSIBLE	\
@@ -399,6 +399,8 @@ MANDATORY:
 	GF_List *supplemental_properties;	\
 	GF_List *producer_reference_time;	\
 	GF_List *isobmf_tracks;	\
+	GF_List *group_labels;	\
+	GF_List *labels;	\
 
 /*! common attributes*/
 typedef struct {
@@ -821,6 +823,64 @@ typedef struct
 	Double hls_ll_target_frag_dur;
 } GF_MPD_AdaptationSet;
 
+typedef struct
+{
+	u32 id;
+	char *lang;
+	char *content;
+} GF_MPD_GroupLabel;
+
+typedef struct
+{
+	u32 id;
+	char *lang;
+	char *content;
+} GF_MPD_Label;
+
+typedef struct
+{
+	/*! inherits common attributes*/
+	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
+	u32 id;
+	char *lang;
+	/* ids of the contained Adaptation Sets or Content Components */
+	GF_List *preselection_components;
+	/*! accessibility descriptor list if any*/
+	GF_List *accessibility;
+	/*! role descriptor list if any*/
+	GF_List *role;
+	/*! rating descriptor list if any*/
+	GF_List *rating;
+	/*! viewpoint descriptor list if any*/
+	GF_List *viewpoint;
+} GF_MPD_Preselection;
+
+/*! creates a new MPD Preselection
+\return the new GF_MPD_Preselection or NULL if error
+*/
+GF_MPD_Preselection* gf_mpd_preselection_new(u32 id);
+/*! free a Preselection
+*/
+void gf_mpd_preselection_free(void *_item);
+
+/* ! creates a new GroupLabel
+\return the new GF_MPD_GroupLabel or NULL if error
+*/
+GF_MPD_GroupLabel* gf_mpd_grouplabel_new(u32 id, const char *lang, const char *content);
+
+/*! free a GroupLabel
+*/
+void gf_mpd_grouplabel_free(void *_item);
+
+/* ! creates a new Label
+\return the new GF_MPD_Label or NULL if error
+*/
+GF_MPD_Label* gf_mpd_label_new(u32 id, const char *lang, const char *content);
+
+/*! free a Label
+*/
+void gf_mpd_label_free(void *_item);
+
 /*! structure used to signal inband events*/
 typedef struct {
 	/*! Scheme ID Uri of the inband event */
@@ -910,6 +970,9 @@ typedef struct
 	char *broken_xlink;
 	/*! type of the period - GPAC internal*/
 	GF_MPD_Type type;
+
+	/*! list of preselection element in period level for DASH*/
+	GF_List *preselections;
 
 	/*! period is preroll - test only, GPAC internal*/
 	Bool is_preroll;
@@ -1303,7 +1366,7 @@ Double gf_mpd_get_duration(GF_MPD *mpd);
 \param out_pts_offset set to the presentation time offset if any (optional, may be NULL)
 \param out_segment_timeline set to the segment timeline description if any (optional, may be NULL)
 */
-void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
+void gf_mpd_resolve_segment_duration(const GF_MPD_Representation *rep, const GF_MPD_AdaptationSet *set, const GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
 
 /*! gets the start_time from the segment index of a period/set/rep
 \param in_segment_index the index of the target segment (startNumber based)

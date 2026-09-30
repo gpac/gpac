@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -506,28 +506,25 @@ void gf_init_inline(GF_Scene *scene, GF_Node *node)
 static char *storage_get_section(M_Storage *storage)
 {
 	GF_Scene *scene;
-	char *szPath;
+	char *szPath = NULL;
 	u8 hash[20];
 	char name[50];
 	u32 i;
-	size_t len;
 
 	scene = (GF_Scene *)gf_node_get_private((GF_Node*)storage);
 
-	len = strlen(scene->root_od->scene_ns->url)+strlen(storage->name.buffer)+2;
-	szPath = (char *)gf_malloc(sizeof(char)* len);
-	strcpy(szPath, scene->root_od->scene_ns->url);
-	strcat(szPath, "@");
-	strcat(szPath, storage->name.buffer);
+	gf_dynstrcat(&szPath, scene->root_od->scene_ns->url, NULL);
+	gf_dynstrcat(&szPath, storage->name.buffer, "@");
+	if (!szPath) return NULL;
 	gf_sha1_csum((u8*)szPath, (u32) strlen(szPath), hash);
 	gf_free(szPath);
 
-	strcpy(name, "@cache=");
+	gf_strcpy(name, "@cache=");
 	for (i=0; i<20; i++) {
 		char t[3];
 		t[2] = 0;
 		sprintf(t, "%02X", hash[i]);
-		strcat(name, t);
+		gf_strcat(name, t);
 	}
 	return gf_strdup(name);
 }
@@ -700,15 +697,9 @@ void gf_storage_save(M_Storage *storage)
 				if (gf_sg_vrml_mf_get_item(info.far_ptr, info.fieldType, &slot, j) != GF_OK) break;
 				slotval = storage_serialize_sf(info.far_ptr, info.fieldType);
 				if (!slotval) break;
-				if (val) {
-					val = (char *)gf_realloc(val, strlen(val) + 3 + strlen((const char *)slot));
-				} else {
-					val = (char *)gf_malloc(3 + strlen((const char *)slot));
-					val[0] = 0;
-				}
-				strcat(val, "'");
-				strcat(val, slotval);
-				strcat(val, "'");
+				gf_dynstrcat(&val, "'", NULL);
+				gf_dynstrcat(&val, slotval, NULL);
+				gf_dynstrcat(&val, "'", NULL);
 				gf_free(slot);
 			}
 		}

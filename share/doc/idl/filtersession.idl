@@ -220,6 +220,12 @@ readonly attribute boolean last_connect_error;
 /*! File path of source script*/
 readonly attribute DOMString jspath;
 
+/*! filter metrics defined by session and loaded filters - see gf_fs_get_defined_metrics
+
+The metric string is prefixed with the `freg=FNAME;` indicating the registry name of the filter defining it, eg `freg=rfnalu;metric`. `freg=*` indicate a built-in metric.
+
+*/
+readonly attribute DOMString session_metrics;
 };
 
 /*! Configuration object for user-defined sessions*/
@@ -385,6 +391,12 @@ DOMString get_destinations(unsigned long pid_idx=-1);
 \return input filter or null
 */
 JSFSFilter ipid_source(unsigned long idx);
+
+/*! Gets index of output pid in source filter corresponding to a given input pid
+\param idx the index of the input pid to query
+\return index of output pid in source, or -1 if not found
+*/
+JSFSFilter ipid_source_opid_idx(unsigned long idx);
 
 /*! Gets destination filter(s) for an output pid
 \param idx the index of the output pid to query

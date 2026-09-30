@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -3924,13 +3924,13 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	f = gf_fs_load_filter(fsess, szArgs, &e);
 	if (!f) { gf_fs_del(fsess); return e; }
 
-	strcpy(szArgs, "reframer:FID=1");
+	gf_strcpy(szArgs, "reframer:FID=1");
 	f = gf_fs_load_filter(fsess, szArgs, &e);
 	if (!f) { gf_fs_del(fsess); return e; }
 
 	sprintf(szArgs, "%s:SID=1:frag:cdur=%g:abs_offset:fragdur", output_file, max_duration_sec);
 	if (use_mfra)
-		strcat(szArgs, ":mfra");
+		gf_strcat(szArgs, ":mfra");
 
 	f = gf_fs_load_destination(fsess, szArgs, NULL, NULL, &e);
 	if (!f) { gf_fs_del(fsess); return e; }
@@ -4010,6 +4010,7 @@ GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_siz
 
 GF_Err dolby_get_codec_ac4(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size)
 {
+	u32 i, lowest_md_compat = GF_UINT_MAX, presentation_version, bitstream_version;
 	GF_Err e = GF_NON_COMPLIANT_BITSTREAM;
 	if (!dsi || !dsi_size) return e;
 
@@ -4019,20 +4020,25 @@ GF_Err dolby_get_codec_ac4(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size)
 
 	e = gf_odf_ac4_cfg_parse_bs(bs, &cfg);
 	gf_bs_del(bs);
-	if (e == GF_OK) {
-		e = GF_NON_COMPLIANT_BITSTREAM;
-		if (cfg.stream.n_presentations > 0) {
-			GF_AC4PresentationV1 *presentations = (GF_AC4PresentationV1*)gf_list_get(cfg.stream.presentations, 0);
-			if (presentations) {
-				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "ac-4.%02d.%02d.%02d", cfg.stream.bitstream_version, presentations->presentation_version, presentations->mdcompat);
-				e = GF_OK;
+	if (e) return e;
+
+	for (i=0; i<cfg.stream.n_presentations; i++) {
+		GF_AC4PresentationV1 *presentations = (GF_AC4PresentationV1*)gf_list_get(cfg.stream.presentations, i);
+		if (presentations) {
+			if (presentations->md_compat < lowest_md_compat) {
+				bitstream_version = cfg.stream.bitstream_version;
+				presentation_version = presentations->presentation_version;
+				lowest_md_compat = presentations->md_compat;
 			}
 		}
 	}
-	gf_odf_ac4_cfg_clean_list(&cfg);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RFC6381] invalid AC4 DSI %s\n", gf_error_to_string(e) ));
+	if (lowest_md_compat == GF_UINT_MAX) {
+		gf_odf_ac4_cfg_clean_list(&cfg);
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+
+	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "ac-4.%02d.%02d.%02d", bitstream_version, presentation_version, lowest_md_compat);
+	gf_odf_ac4_cfg_clean_list(&cfg);
 	return e;
 }
 
@@ -4065,12 +4071,12 @@ GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc)
 	gf_assert(hvcc);
 
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.", gf_4cc_to_str(subtype));
-	if (hvcc->profile_space==1) strcat(szCodec, "A");
-	else if (hvcc->profile_space==2) strcat(szCodec, "B");
-	else if (hvcc->profile_space==3) strcat(szCodec, "C");
+	if (hvcc->profile_space==1) gf_strlcat(szCodec, "A", RFC6381_CODEC_NAME_SIZE_MAX);
+	else if (hvcc->profile_space==2) gf_strlcat(szCodec, "B", RFC6381_CODEC_NAME_SIZE_MAX);
+	else if (hvcc->profile_space==3) gf_strlcat(szCodec, "C", RFC6381_CODEC_NAME_SIZE_MAX);
 	//profile idc encoded as a decimal number
 	sprintf(szTemp, "%d", hvcc->profile_idc);
-	strcat(szCodec, szTemp);
+	gf_strlcat(szCodec, szTemp, RFC6381_CODEC_NAME_SIZE_MAX);
 	//general profile compatibility flags: hexa, bit-reversed
 	{
 		u32 val = hvcc->general_profile_compatibility_flags;
@@ -4082,13 +4088,13 @@ GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc)
 			val >>=1;
 		}
 		sprintf(szTemp, ".%X", res);
-		strcat(szCodec, szTemp);
+		gf_strlcat(szCodec, szTemp, RFC6381_CODEC_NAME_SIZE_MAX);
 	}
 
-	if (hvcc->tier_flag) strcat(szCodec, ".H");
-	else strcat(szCodec, ".L");
+	if (hvcc->tier_flag) gf_strlcat(szCodec, ".H", RFC6381_CODEC_NAME_SIZE_MAX);
+	else gf_strlcat(szCodec, ".L", RFC6381_CODEC_NAME_SIZE_MAX);
 	sprintf(szTemp, "%d", hvcc->level_idc);
-	strcat(szCodec, szTemp);
+	gf_strlcat(szCodec, szTemp, RFC6381_CODEC_NAME_SIZE_MAX);
 
 	c = hvcc->progressive_source_flag << 7;
 	c |= hvcc->interlaced_source_flag << 6;
@@ -4096,26 +4102,26 @@ GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc)
 	c |= hvcc->frame_only_constraint_flag << 4;
 	c |= (hvcc->constraint_indicator_flags >> 40);
 	sprintf(szTemp, ".%X", c);
-	strcat(szCodec, szTemp);
+	gf_strlcat(szCodec, szTemp, RFC6381_CODEC_NAME_SIZE_MAX);
 	if (hvcc->constraint_indicator_flags & 0xFFFFFFFF) {
 		c = (hvcc->constraint_indicator_flags >> 32) & 0xFF;
 		sprintf(szTemp, ".%X", c);
-		strcat(szCodec, szTemp);
+		gf_strlcat(szCodec, szTemp, RFC6381_CODEC_NAME_SIZE_MAX);
 		if (hvcc->constraint_indicator_flags & 0x00FFFFFF) {
 			c = (hvcc->constraint_indicator_flags >> 24) & 0xFF;
 			sprintf(szTemp, ".%X", c);
-			strcat(szCodec, szTemp);
+			gf_strlcat(szCodec, szTemp, RFC6381_CODEC_NAME_SIZE_MAX);
 			if (hvcc->constraint_indicator_flags & 0x0000FFFF) {
 				c = (hvcc->constraint_indicator_flags >> 16) & 0xFF;
 				sprintf(szTemp, ".%X", c);
-				strcat(szCodec, szTemp);
+				gf_strlcat(szCodec, szTemp, RFC6381_CODEC_NAME_SIZE_MAX);
 				if (hvcc->constraint_indicator_flags & 0x000000FF) {
 					c = (hvcc->constraint_indicator_flags >> 8) & 0xFF;
 					sprintf(szTemp, ".%X", c);
-					strcat(szCodec, szTemp);
+					gf_strlcat(szCodec, szTemp, RFC6381_CODEC_NAME_SIZE_MAX);
 					c = (hvcc->constraint_indicator_flags ) & 0xFF;
 					sprintf(szTemp, ".%X", c);
-					strcat(szCodec, szTemp);
+					gf_strlcat(szCodec, szTemp, RFC6381_CODEC_NAME_SIZE_MAX);
 				}
 			}
 		}
@@ -4163,7 +4169,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, CO
 			colr.override == GF_TRUE ? colr.transfer_characteristics : av1_state->transfer_characteristics,
 			colr.override == GF_TRUE ? colr.matrix_coefficients : av1_state->matrix_coefficients,
 			colr.override == GF_TRUE ? colr.full_range : av1_state->color_range);
-		strcat(szCodec, tmp);
+		gf_strlcat(szCodec, tmp, RFC6381_CODEC_NAME_SIZE_MAX);
 	} else {
 		if ((av1_state->color_primaries == 2) && (av1_state->transfer_characteristics == 2) && (av1_state->matrix_coefficients == 2) && av1_state->color_range == GF_FALSE) {
 
@@ -4242,10 +4248,10 @@ GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc)
 		pos--;
 	}
 	if (!pos) {
-		strcat(szCodec, ".CA");
+		gf_strlcat(szCodec, ".CA", RFC6381_CODEC_NAME_SIZE_MAX);
 		return GF_OK;
 	}
-	strcat(szCodec, ".C");
+	gf_strlcat(szCodec, ".C", RFC6381_CODEC_NAME_SIZE_MAX);
 	len = (u32) strlen(szCodec);
 	bs = gf_bs_new(buf, pos, GF_BITSTREAM_READ);
 	while (1) {

@@ -1,3 +1,28 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Authors: Aurelien David
+ *			Copyright (c) Telecom ParisTech 2025-2026
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / common tools sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
 #include <gpac/tools.h>
 #include <gpac/thread.h>
 #include <gpac/list.h>
@@ -24,7 +49,7 @@ struct RMT_WS {
 
 };
 
-
+#define RMT_MAX_PAYLOAD 256*1024*1024 // limit valid payloads to prevent absurd allocations
 
 GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, Bool async, GF_Err *e);
 void  gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value);
@@ -281,7 +306,7 @@ static void rmt_on_http_session_data(void *usr_cbk, GF_NETIO_Parameter *paramete
 
     if (parameter->msg_type != GF_NETIO_PARSE_REPLY) {
         if (parameter->size) {
-            strncat(client_ctx->buffer, parameter->data, parameter->size);
+            gf_strcat(client_ctx->buffer, parameter->data);
             GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("session data is now: %s\n", client_ctx->buffer));
         }
     }
@@ -554,11 +579,16 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
         gf_bs_read_data(bs, (u8*)&masking_key, 4);
     }
 
+    if (payload_size > RMT_MAX_PAYLOAD) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_RMTWS, ("[rmtws] websocket advertised payload size (%lu) is bigger than limit (%lu)\n", payload_size, RMT_MAX_PAYLOAD));
+        return GF_IO_ERR;
+    }
+
     u8* extra_payload = NULL;
     u32 extra_read = 0;
 
-    if (payload_size + gf_bs_get_position(bs) > gf_bs_get_size(bs)) {
-        u64 extra_size = payload_size + gf_bs_get_position(bs) - gf_bs_get_size(bs) ;
+    if (payload_size > gf_bs_available(bs)) {
+        u64 extra_size = payload_size - gf_bs_available(bs) ;
         GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("buffer too small for payload_size %llu bs_pos %u bs_size %u => extra_size %llu\n", payload_size, gf_bs_get_position(bs), gf_bs_get_size(bs), extra_size));
         extra_payload = gf_malloc( sizeof(u8) * extra_size );
 
@@ -566,11 +596,17 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
         while (!e && extra_read < extra_size) {
             u32 new_read = 0;
             e = gf_dm_read_data(client->http_sess, extra_payload + extra_read, (u32)(extra_size-extra_read), &new_read);
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("extra gf_dm_read_data => %d e=%s\n",extra_read, gf_error_to_string(e)));
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("read extra gf_dm_read_data => %d e=%s\n",new_read, gf_error_to_string(e)));
+            if (e==GF_OK && !new_read) break;
             extra_read += new_read;
         }
         GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("extra gf_dm_read_data => %d e=%s\n",extra_read, gf_error_to_string(e)));
-    }
+		if (extra_read != extra_size) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("invalid read of extra payload, expected (%u) got (%u)\n", extra_size, extra_read));
+			gf_free(extra_payload);
+			return GF_IO_ERR;
+		}
+	}
 
     u8* unmasked_payload = gf_malloc( payload_size * sizeof(u8) + 1); // add 1 to add null to get c string
     int i=0;

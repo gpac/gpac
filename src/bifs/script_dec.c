@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -70,16 +70,14 @@ void SFS_GetBoolean(ScriptParser *parser);
 
 static void SFS_AddString(ScriptParser *parser, char *str)
 {
-	char *new_str;
 	if (!str) return;
-	if (strlen(parser->string) + strlen(str) >= parser->length) {
-		parser->length = (u32) ( strlen(parser->string) + strlen(str) + PARSER_STEP_ALLOC );
-		new_str = (char *)gf_malloc(sizeof(char)*parser->length);
-		strcpy(new_str, parser->string);
-		gf_free(parser->string);
-		parser->string = new_str;
+	u32 c_str = (u32) strlen(parser->string);
+	u32 a_str = (u32) strlen(str);
+	if (c_str + a_str >= parser->length) {
+		parser->length = c_str + a_str + PARSER_STEP_ALLOC;
+		parser->string = (char *)gf_realloc(parser->string, sizeof(char)*parser->length);
 	}
-	strncat(parser->string, str, parser->length - strlen(parser->string) - 1);
+	gf_strlcat(parser->string, str, parser->length);
 }
 
 static void SFS_AddInt(ScriptParser *parser, s32 val)

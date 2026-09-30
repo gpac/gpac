@@ -5,9 +5,9 @@ vpath %.c $(SRC_PATH)/modules/dec_openhevc
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(openhevc_cflags)
 
 ifeq ($(CONFIG_DARWIN),yes)
-LINKFLAGS+=-L../../bin/gcc $(openhevc_ldflags)
+LINKFLAGS+=-L../../bin/gcc $(openhevc_ldflags) -Wl,-exported_symbol,_RegisterFilter
 else
-LINKFLAGS+=-L../../bin/gcc $(openhevc_ldflags) -Wl,-Bsymbolic
+LINKFLAGS+=-L../../bin/gcc $(openhevc_ldflags) -Wl,-Bsymbolic -Wl,--exclude-libs=libopenhevc.a
 endif
 
 include ../common.mak

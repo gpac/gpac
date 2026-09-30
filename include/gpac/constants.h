@@ -1033,13 +1033,13 @@ u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp_layout);
 */
 u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 channel_layout);
 
-/*! get dolby AudioChannelConfiguration value from ac4 presentation_channel_mask_v1
+/*! get dolby AudioChannelConfiguration value from ac4 presentation_v1_channel_groups
 \param mask presentation channel mask v1
 \return dolby AudioChannelConfiguration value
 */
 u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask);
 
-/*! get dolby channel count for HLS from ac4 presentation_channel_mask_v1
+/*! get dolby channel count for HLS from ac4 presentation_v1_channel_groups
 \param mask presentation channel mask v1
 \return dolby channel count
 */

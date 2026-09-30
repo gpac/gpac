@@ -363,7 +363,7 @@ void SDLVid_SetHack(void *os_handle, Bool set_on)
 	if (set_on && os_handle) {
 		sprintf(buf, "SDL_WINDOWID=%u", (u32) os_handle);
 	} else {
-		strcpy(buf, "SDL_WINDOWID=");
+		gf_strcpy(buf, "SDL_WINDOWID=");
 	}
 #ifdef WIN32
 	putenv(buf);
@@ -438,7 +438,7 @@ void SDLVid_SetIcon(SDLVidCtx *ctx)
 	if (!gf_opts_default_shared_directory((char *) cfg))
 		return;
 
-	strcat((char *) cfg, "/res/gpac.png");
+	gf_strcat(cfg, "/res/gpac.png");
 	if (gf_file_load_data(cfg, &buffer, &size) != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDLOut] failed to load icon file %s\n", cfg ));
 		return;

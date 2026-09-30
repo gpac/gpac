@@ -79,7 +79,7 @@ typedef struct
 	//internal
 
 	GF_Filter *filter;
-	
+
 	/*the service we're responsible for*/
 	GF_FilterPid *ipid;
 	u32 sdp_url_crc;
@@ -263,7 +263,7 @@ struct __rtpin_stream
 	u32 status;
 	s32 ts_offset;
 	u32 last_stats_time;
-	
+
 	u32 ES_ID, OD_ID;
 	char *control;
 
@@ -384,7 +384,7 @@ void rtpin_rtsp_teardown(GF_RTPInRTSP *sess, GF_RTPInStream *stream);
 
 void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size);
 
-void rtpin_satip_get_server_ip(const char *sURL, char *Server);
+void rtpin_satip_get_server_ip(const char *sURL, char Server[GF_MAX_PATH]);
 
 #ifdef GPAC_HAS_SSL
 void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic);

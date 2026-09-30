@@ -37,9 +37,10 @@ static GFINLINE GF_Err OD_ReadUTF8String(GF_BitStream *bs, char **string, Bool i
 	len = gf_bs_read_int(bs, 8) + 1;
 	if (gf_bs_available(bs) < len) return GF_BAD_PARAM;
 	if (!isUTF8) len *= 2;
-	(*string) = (char *) gf_malloc(sizeof(char)*len);
+	(*string) = (char *) gf_malloc(sizeof(char)*(len+1));
 	if (! (*string) ) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, (*string), len);
+	(*string)[len] = 0;
 	*read += len;
 	return GF_OK;
 }

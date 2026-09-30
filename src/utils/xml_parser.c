@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2024
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *			All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -64,8 +64,7 @@ GF_STATIC char *xml_translate_xml_string(char *str)
 				u16 wchar[2];
 				u32 val=0, _len;
 				const unsigned short *srcp;
-				strncpy(szChar, str+i, 10);
-				szChar[10] = 0;
+				gf_strcpy(szChar, str+i);
 				end = strchr(szChar, ';');
 				if (!end) break;
 				end[1] = 0;
@@ -232,9 +231,11 @@ static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt,
 	if (strlen(parser->err_msg)+30 < GF_ARRAY_LENGTH(parser->err_msg)) {
 		char szM[20];
 		snprintf(szM, 20, " - Line %d: ", parser->line + 1);
-		strcat(parser->err_msg, szM);
+		gf_strcat(parser->err_msg, szM);
 		len = (u32) strlen(parser->err_msg);
-		strncpy(parser->err_msg + len, parser->buffer+ (linepos ? linepos : parser->current_pos), 10);
+		u32 buffer_offset = linepos ? linepos : parser->current_pos;
+		if (parser->alloc_size >= buffer_offset+10)
+			memcpy(parser->err_msg + len, parser->buffer+buffer_offset, 10);
 		parser->err_msg[len + 10] = 0;
 	}
 	parser->sax_state = SAX_STATE_SYNTAX_ERROR;
@@ -785,7 +786,7 @@ restart:
 
 				if (parser->current_pos+i==parser->line_size) {
 					if ((parser->line_size >= XML_MAX_CONTENT_SIZE) && !parser->init_state) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Content size larger than max allowed %u, try increasing limit using `-xml-max-csize`\n", XML_MAX_CONTENT_SIZE));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[XML] Content size larger than max allowed %u, try increasing limit using `-xml-max-csize`\n", XML_MAX_CONTENT_SIZE));
 						parser->sax_state = SAX_STATE_SYNTAX_ERROR;
 					}
 
@@ -914,7 +915,7 @@ restart:
 						parser->sax_state = SAX_STATE_TEXT_CONTENT;
 						parser->ent_rec_level++;
 						if (parser->ent_rec_level>100) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Too many recursions in entity solving, max 100 allowed\n"));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[XML] Too many recursions in entity solving, max 100 allowed\n"));
 							e = GF_NOT_SUPPORTED;
 						} else {
 							e = gf_xml_sax_parse_intern(parser, orig_buf);
@@ -1061,7 +1062,7 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 				parser->in_entity = GF_FALSE;
 				continue;
 			}
-			if (!ent) {
+			if (!ent || parser->line_size < (u32) strlen(entityStart)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SAX] Entity not found\n"));
 				return GF_CORRUPTED_DATA;
 			}
@@ -1320,7 +1321,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 #ifdef NO_GZIP
 	parser->f_in = gf_fopen(fileName, "rt");
 	if (gf_fread(szLine, 4, parser->f_in) != 4) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Error loading BOM\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[XML] Error loading BOM\n"));
 	}
 #else
 	gzInput = gf_gzopen(fileName, "rb");
@@ -1447,7 +1448,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 								szLine = gf_realloc(szLine, alloc_size);	\
 							}\
 							if (__is_copy) { memmove(szLine, __str, sizeof(char)*_len); szLine[_len] = 0; }\
-							else strcat(szLine, __str); \
+							else gf_strlcat(szLine, __str, alloc_size); \
 
 	from_buffer=GF_FALSE;
 #ifdef NO_GZIP
@@ -1483,7 +1484,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 		gf_free(szLine2);
 		return NULL;
 	}
-	strcpy(szLine, parser->buffer + parser->att_name_start);
+	gf_strlcpy(szLine, parser->buffer + parser->att_name_start, alloc_size);
 	cur_line = szLine;
 	att_len = (u32) strlen(att_value);
 	state = 0;
@@ -1572,7 +1573,7 @@ retry:
 		if (!strncmp(sep, att_value, att_len)) {
 			u32 sub_pos;
 			sep = szLine + 1;
-			while (strchr(" \t\r\n", sep[0])) sep++;
+			while (sep[0] && strchr(" \t\r\n", sep[0])) sep++;
 			sub_pos = 0;
 			while (!strchr(" \t\r\n", sep[sub_pos])) sub_pos++;
 			first_c = sep[sub_pos];
@@ -1592,11 +1593,12 @@ fetch_attr:
 				continue;
 			}
 			sep += strlen(get_attr);
-			while (strchr("= \t\r\n", sep[0])) sep++;
+			while (sep[0] && strchr("= \t\r\n", sep[0])) sep++;
+			if (!sep[0]) goto exit;
 			sep++;
 			sub_pos = 0;
 			while (!strchr(" \t\r\n/>", sep[sub_pos])) sub_pos++;
-			sep[sub_pos-1] = 0;
+			sep[sub_pos ? sub_pos-1 : 0] = 0;
 			result = gf_strdup(sep);
 			if (is_substitute) *is_substitute = GF_TRUE;
 			goto exit;
@@ -2235,12 +2237,12 @@ GF_Err gf_xml_dom_node_check_namespace(const GF_XMLNode *n, const char *expected
 				return GF_OK;
 			}
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[XML] Unsupported attribute namespace \"%s\": ignoring\n", att->name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[XML] Unsupported attribute namespace \"%s\": ignoring\n", att->name));
 			continue;
 		}
 	}
 
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Unresolved namespace \"%s\" for node \"%s\"\n", n->ns, n->name));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[XML] Unresolved namespace \"%s\" for node \"%s\"\n", n->ns, n->name));
 	return GF_BAD_PARAM;
 }
 

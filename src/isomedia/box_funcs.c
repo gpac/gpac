@@ -70,7 +70,7 @@ u32 gf_isom_solve_uuid_box(u8 *UUID)
 	strUUID[32] = 0;
 	for (i=0; i<16; i++) {
 		snprintf(strChar, 3, "%02X", (unsigned char) UUID[i]);
-		strcat(strUUID, strChar);
+		gf_strcat(strUUID, strChar);
 	}
 	if (!strnicmp(strUUID, "8974dbce7be74c5184f97148f9882554", 32))
 		return GF_ISOM_BOX_UUID_TENC;
@@ -320,9 +320,14 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 		((GF_TrackGroupTypeBox*)newBox)->group_type = type;
 	} else if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_GRPL)) {
-		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_GRPT);
+		if (type == GF_ISOM_SAMPLE_GROUP_PRSL) {
+			newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_PRSL);
+		}
+		else {
+			newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_GRPT);
+			((GF_EntityToGroupTypeBox*)newBox)->grouping_type = type;
+		}
 		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
-		((GF_EntityToGroupTypeBox*)newBox)->grouping_type = type;
 	} else {
 		//OK, create the box based on the type
 		is_special = GF_FALSE;
@@ -655,6 +660,7 @@ ISOM_BOX_IMPL_DECL(url)
 ISOM_BOX_IMPL_DECL(urn)
 ISOM_BOX_IMPL_DECL(cprt)
 ISOM_BOX_IMPL_DECL(kind)
+ISOM_BOX_IMPL_DECL(ctlc)
 ISOM_BOX_IMPL_DECL(chpl)
 ISOM_BOX_IMPL_DECL(hdlr)
 ISOM_BOX_IMPL_DECL(iods)
@@ -970,6 +976,11 @@ ISOM_BOX_IMPL_DECL(a1op)
 
 ISOM_BOX_IMPL_DECL(grpl)
 
+ISOM_BOX_IMPL_DECL(prsl)
+ISOM_BOX_IMPL_DECL(ardi)
+ISOM_BOX_IMPL_DECL(labl)
+ISOM_BOX_IMPL_DECL(diap)
+
 ISOM_BOX_IMPL_DECL_CHILD(strk)
 ISOM_BOX_IMPL_DECL(stri)
 ISOM_BOX_IMPL_DECL(stsg)
@@ -1214,13 +1225,13 @@ static struct box_registry_entry {
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_URN, urn, "dref", 0, 1),
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_IMDT, url, "dref", 0, 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_CPRT, cprt, "udta", 0),
-	FBOX_DEFINE( GF_ISOM_BOX_TYPE_KIND, kind, "udta", 0),
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_KIND, kind, "udta prsl", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_HDLR, hdlr, "mdia meta minf", 0),	//minf container is OK in QT ...
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_TRAK, trak, "moov"),
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_EXTK, trak, "moov"),
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_EXTL, extl, "extk", 0, 0x000001 | 0x000002 | 0x000004 | 0x000008),
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_EDTS, edts, "trak extk"),
-	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_UDTA, udta, "moov trak moof traf"),
+	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_UDTA, udta, "moov trak moof traf prsl"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_DREF, dref, "dinf", 0),
 	FBOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_STSD, stsd, "stbl", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_STTS, stts, "stbl", 0),
@@ -1243,7 +1254,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MFRA, mfra, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MFRO, mfro, "mfra", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TFRA, tfra, "mfra", 1),
-	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia extk ipco", 0),
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia extk ipco prsl", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PDIN, pdin, "file", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SBGP, sbgp, "stbl traf", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", 2),
@@ -1355,8 +1366,9 @@ static struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TIMS, tims, "rtp srtp rrtp"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TSRO, tsro, "rtp srtp rrtp"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_SNRO, snro, "rtp srtp"),
-	BOX_DEFINE( GF_QT_BOX_TYPE_NAME, name, "udta ----"),
-	BOX_DEFINE( GF_QT_BOX_TYPE_MEAN, name, "----"),
+	FBOX_DEFINE( GF_QT_BOX_TYPE_NAME, name, "----", 0),
+	BOX_DEFINE( GF_QT_BOX_TYPE_NAME, name, "udta"),
+	FBOX_DEFINE( GF_QT_BOX_TYPE_MEAN, name, "----", 0),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TSSY, tssy, "rrtp"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_RSSR, rssr, "rrtp"),
 	FBOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_SRPP, srpp, "srtp", 0),
@@ -1522,6 +1534,11 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IENC, ienc, "ipco", 0, "cenc"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IAUX, iaux, "ipco", 0, "cenc"),
 
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_PRSL, prsl, "grpl", "iso"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_ARDI, ardi, "prsl", "iso"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LABL, labl, "prsl", "iso"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DIAP, diap, "udta", "dolby"),
+
 	//MIAF
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CLLI, clli, "video_sample_entry ipco encv resv", "p12"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_MDCV, mdcv, "video_sample_entry ipco encv resv", "p12"),
@@ -1585,6 +1602,7 @@ static struct box_registry_entry {
 	//apple boxes
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_MP3, audio_sample_entry, "stsd", "apple"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_CHPL, chpl, "udta", 0, "apple"),
+	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_CTLC, ctlc, "udta", 0, GF_ISOM_CTLC_FLAG_ADVERTISEMENT | GF_ISOM_CTLC_FLAG_IMMERSIVE_AUDIO, "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VOID, void, "", "apple"),
 	BOX_DEFINE_S(GF_QT_BOX_TYPE_WIDE, wide, "*", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_ILST, ilst, "meta", "apple"),
@@ -2539,5 +2557,10 @@ void gf_isom_box_freeze_order(GF_Box *box)
 		gf_isom_box_freeze_order(child);
 	}
 
+}
+
+Bool gf_isom_box_is_full_box(GF_Box *s)
+{
+	return (s && s->registry && s->registry->max_version_plus_one) ? GF_TRUE : GF_FALSE;
 }
 #endif /*GPAC_DISABLE_ISOM*/

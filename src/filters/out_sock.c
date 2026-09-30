@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2024
+ *			Copyright (c) Telecom ParisTech 2019-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / generic socket output filter
@@ -157,8 +157,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 		ctx->in_caps[1].val = PROP_NAME( ctx->mime );
 		ctx->in_caps[1].flags = GF_CAPS_INPUT;
 	} else {
-		strncpy(ctx->szExt, ext, 9);
-		ctx->szExt[9] = 0;
+		gf_strcpy(ctx->szExt, ext);
 		strlwr(ctx->szExt);
 		ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
 		ctx->in_caps[1].val = PROP_NAME( ctx->szExt );
@@ -343,20 +342,18 @@ static GF_Err sockout_process(GF_Filter *filter)
 	if (!ctx->socket)
 		return GF_EOS;
 
-	if (ctx->rate) {
-		if (!ctx->start_time) ctx->start_time = gf_sys_clock_high_res();
-		else {
-			u64 now = gf_sys_clock_high_res() - ctx->start_time;
-			if (ctx->nb_bytes_sent*8*1000000 > ctx->rate * now) {
-				u64 diff = ctx->nb_bytes_sent*8*1000000 / ctx->rate - now;
-				gf_filter_ask_rt_reschedule(filter, (u32) MAX(diff, 1000) );
-				return GF_OK;
-			} else if (gf_filter_reporting_enabled(filter)) {
-				char szMsg[200];
-				snprintf(szMsg, 199, "Sending at "LLU" kbps\r", ctx->nb_bytes_sent*8*1000/now);
-				szMsg[199] = 0;
-				gf_filter_update_status(filter, 0, szMsg);
-			}
+	if (!ctx->start_time) ctx->start_time = gf_sys_clock_high_res();
+	else {
+		u64 now = gf_sys_clock_high_res() - ctx->start_time;
+		if (ctx->rate && (ctx->nb_bytes_sent*8*1000000 > ctx->rate * now)) {
+			u64 diff = ctx->nb_bytes_sent*8*1000000 / ctx->rate - now;
+			gf_filter_ask_rt_reschedule(filter, (u32) MAX(diff, 1000) );
+			return GF_OK;
+		} else if (gf_filter_reporting_enabled(filter)) {
+			char szMsg[200];
+			snprintf(szMsg, 199, "s_rate="LLU" kbps", ctx->nb_bytes_sent*8*1000/now);
+			szMsg[199] = 0;
+			gf_filter_update_status(filter, 0, szMsg);
 		}
 	}
 
@@ -370,7 +367,7 @@ static GF_Err sockout_process(GF_Filter *filter)
 			if (!sc) return GF_OUT_OF_MEM;
 			
 			sc->socket = new_conn;
-			strcpy(sc->address, "unknown");
+			gf_strcpy(sc->address, "unknown");
 			gf_sk_get_remote_address(new_conn, sc->address);
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockOut] Accepting new connection from %s\n", sc->address));

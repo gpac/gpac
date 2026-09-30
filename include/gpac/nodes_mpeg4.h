@@ -277,11 +277,11 @@ typedef struct _tagAppearance
 typedef struct _tagAudioBuffer
 {
 	BASE_NODE
+	GF_ChildNodeItem *children;	/*exposedField*/
 	SFBool loop;	/*exposedField*/
 	SFFloat pitch;	/*exposedField*/
 	SFTime startTime;	/*exposedField*/
 	SFTime stopTime;	/*exposedField*/
-	GF_ChildNodeItem *children;	/*exposedField*/
 	SFInt32 numChan;	/*exposedField*/
 	MFInt32 phaseGroup;	/*exposedField*/
 	SFFloat length;	/*exposedField*/
@@ -653,11 +653,11 @@ typedef struct _tagExtrusion
 typedef struct _tagFace
 {
 	BASE_NODE
+	GF_ChildNodeItem *renderedFace;	/*exposedField*/
 	GF_Node *fap;	/*exposedField*/
 	GF_Node *fdp;	/*exposedField*/
 	GF_Node *fit;	/*exposedField*/
 	GF_Node *ttsSource;	/*exposedField*/
-	GF_ChildNodeItem *renderedFace;	/*exposedField*/
 } M_Face;
 
 
@@ -674,10 +674,10 @@ typedef struct _tagFaceDefMesh
 typedef struct _tagFaceDefTables
 {
 	BASE_NODE
-	SFInt32 fapID;	/*field*/
-	SFInt32 highLevelSelect;	/*field*/
 	GF_ChildNodeItem *faceDefMesh;	/*exposedField*/
 	GF_ChildNodeItem *faceDefTransform;	/*exposedField*/
+	SFInt32 fapID;	/*field*/
+	SFInt32 highLevelSelect;	/*field*/
 } M_FaceDefTables;
 
 
@@ -769,10 +769,10 @@ typedef struct _tagFAP
 typedef struct _tagFDP
 {
 	BASE_NODE
-	GF_Node *featurePointsCoord;	/*exposedField*/
-	GF_Node *textureCoord;	/*exposedField*/
 	GF_ChildNodeItem *faceDefTables;	/*exposedField*/
 	GF_ChildNodeItem *faceSceneGraph;	/*exposedField*/
+	GF_Node *featurePointsCoord;	/*exposedField*/
+	GF_Node *textureCoord;	/*exposedField*/
 	SFBool useOrthoTexture;	/*field*/
 } M_FDP;
 
@@ -1909,9 +1909,9 @@ typedef struct _tagBDP
 typedef struct _tagBody
 {
 	BASE_NODE
+	GF_ChildNodeItem *renderedBody;	/*exposedField*/
 	GF_Node *bdp;	/*exposedField*/
 	GF_Node *bap;	/*exposedField*/
-	GF_ChildNodeItem *renderedBody;	/*exposedField*/
 } M_Body;
 
 
@@ -2174,9 +2174,9 @@ typedef struct _tagImplicit
 typedef struct _tagXXLFM_Appearance
 {
 	BASE_NODE
-	GF_Node *blendList;	/*exposedField*/
 	GF_ChildNodeItem *lightMapList;	/*exposedField*/
 	GF_ChildNodeItem *tileList;	/*exposedField*/
+	GF_Node *blendList;	/*exposedField*/
 	GF_Node *vertexFrameList;	/*exposedField*/
 } M_XXLFM_Appearance;
 
@@ -2341,6 +2341,7 @@ typedef struct _tagOctreeImage
 typedef struct _tagXXParticles
 {
 	BASE_NODE
+	GF_ChildNodeItem *influences;	/*exposedField*/
 	SFFloat creationRate;	/*exposedField*/
 	SFFloat creationRateVariation;	/*exposedField*/
 	SFFloat emitAlpha;	/*exposedField*/
@@ -2354,7 +2355,6 @@ typedef struct _tagXXParticles
 	SFColor fadeColor;	/*exposedField*/
 	SFFloat fadeRate;	/*exposedField*/
 	SFVec3f force;	/*exposedField*/
-	GF_ChildNodeItem *influences;	/*exposedField*/
 	GF_Node *init;	/*exposedField*/
 	SFTime maxLifeTime;	/*exposedField*/
 	SFFloat maxLifeTimeVariation;	/*exposedField*/
@@ -2589,8 +2589,8 @@ typedef struct _tagSBSkinnedModel
 typedef struct _tagSBVCAnimation
 {
 	BASE_NODE
-	MFURL url;	/*exposedField*/
 	GF_ChildNodeItem *virtualCharacters;	/*exposedField*/
+	MFURL url;	/*exposedField*/
 } M_SBVCAnimation;
 
 
@@ -2632,6 +2632,7 @@ typedef struct _tagSolidRep
 typedef struct _tagSubdivisionSurface
 {
 	BASE_NODE
+	GF_ChildNodeItem *sectors;	/*exposedField*/
 	MFInt32 set_colorIndex;	/*eventIn*/
 	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
 	MFInt32 set_coordIndex;	/*eventIn*/
@@ -2649,7 +2650,6 @@ typedef struct _tagSubdivisionSurface
 	GF_Node *color;	/*exposedField*/
 	GF_Node *coord;	/*exposedField*/
 	GF_Node *texCoord;	/*exposedField*/
-	GF_ChildNodeItem *sectors;	/*exposedField*/
 	SFInt32 subdivisionLevel;	/*exposedField*/
 	SFInt32 subdivisionType;	/*exposedField*/
 	SFInt32 subdivisionSubType;	/*exposedField*/
@@ -2939,9 +2939,9 @@ typedef struct _tagDepthImageV2
 typedef struct _tagMorphShape
 {
 	BASE_NODE
+	GF_ChildNodeItem *targetShapes;	/*exposedField*/
 	GF_Node *baseShape;	/*exposedField*/
 	SFInt32 morphID;	/*exposedField*/
-	GF_ChildNodeItem *targetShapes;	/*exposedField*/
 	MFFloat weights;	/*exposedField*/
 } M_MorphShape;
 
@@ -2949,12 +2949,12 @@ typedef struct _tagMorphShape
 typedef struct _tagMultiTexture
 {
 	BASE_NODE
+	GF_ChildNodeItem *texture;	/*exposedField*/
 	SFFloat alpha;	/*exposedField*/
 	SFColor color;	/*exposedField*/
 	MFInt32 function;	/*exposedField*/
 	MFInt32 mode;	/*exposedField*/
 	MFInt32 source;	/*exposedField*/
-	GF_ChildNodeItem *texture;	/*exposedField*/
 	MFVec3f cameraVector;	/*exposedField*/
 	SFBool transparent;	/*exposedField*/
 } M_MultiTexture;
@@ -2977,6 +2977,7 @@ typedef struct _tagPointTextureV2
 typedef struct _tagSBVCAnimationV2
 {
 	BASE_NODE
+	GF_ChildNodeItem *virtualCharacters;	/*exposedField*/
 	MFInt32 activeUrlIndex;	/*exposedField*/
 	SFBool loop;	/*exposedField*/
 	SFFloat speed;	/*exposedField*/
@@ -2984,7 +2985,6 @@ typedef struct _tagSBVCAnimationV2
 	SFTime stopTime;	/*exposedField*/
 	SFFloat transitionTime;	/*exposedField*/
 	MFURL url;	/*exposedField*/
-	GF_ChildNodeItem *virtualCharacters;	/*exposedField*/
 	SFTime duration_changed;	/*eventOut*/
 	SFBool isActive;	/*eventOut*/
 } M_SBVCAnimationV2;
@@ -3334,4 +3334,3 @@ enum {
 
 
 #endif		/*_nodes_mpeg4_H*/
-

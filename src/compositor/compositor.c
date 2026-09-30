@@ -1010,6 +1010,7 @@ void gf_sc_unload(GF_Compositor *compositor)
 	if (compositor->focus_use_stack) gf_list_del(compositor->focus_use_stack);
 	if (compositor->env_tests) gf_list_del(compositor->env_tests);
 	if (compositor->systems_pids) gf_list_del(compositor->systems_pids);
+	if (compositor->nodes_pending) gf_list_del(compositor->nodes_pending);
 
 	if (compositor->traverse_state) {
 		gf_list_del(compositor->traverse_state->vrml_sensors);
@@ -4835,7 +4836,7 @@ GF_Err gf_sc_dump_scene_ex(GF_Compositor *compositor, char *rad_name, char **fil
 	ext = odm->scene_ns ? gf_file_ext_start(odm->scene_ns->url) : NULL;
 	if (ext) {
 		char szExt[20];
-		strcpy(szExt, ext);
+		gf_strcpy(szExt, ext);
 		strlwr(szExt);
 		if (!strcmp(szExt, ".wrl")) mode = xml_dump ? GF_SM_DUMP_X3D_XML : GF_SM_DUMP_VRML;
 		else if(!strncmp(szExt, ".x3d", 4) || !strncmp(szExt, ".x3dv", 5) ) mode = xml_dump ? GF_SM_DUMP_X3D_XML : GF_SM_DUMP_X3D_VRML;

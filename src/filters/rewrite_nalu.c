@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU video AnnexB write filter
@@ -668,9 +668,8 @@ GF_Err nalumx_process(GF_Filter *filter)
 
 	if (gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
-
-		snprintf(szStatus, sizeof(szStatus), "%s Annex-B %dx%d % 10d NALU", (ctx->vtype==UFNAL_HEVC) ? "HEVC" : ((ctx->vtype==UFNAL_VVC) ? "VVC" : "AVC|H264"), ctx->width, ctx->height, ctx->nb_nalu);
-		gf_filter_update_status(filter, -1, szStatus);
+		snprintf(szStatus, sizeof(szStatus), "%s %dx%d NALU=%d", (ctx->vtype==UFNAL_HEVC) ? "HEVC" : ((ctx->vtype==UFNAL_VVC) ? "VVC" : "AVC|H264"), ctx->width, ctx->height, ctx->nb_nalu);
+		gf_filter_update_status(filter, 0, szStatus);
 
 	}
 	return GF_OK;
@@ -687,6 +686,7 @@ static GF_Err nalumx_initialize(GF_Filter *filter)
 	if (ctx->delim && gf_sys_old_arch_compat())
 		ctx->delim = 2;
 
+	gf_filter_add_status_metric(filter, "NALU=NAL Units");
 	return GF_OK;
 }
 static void nalumx_finalize(GF_Filter *filter)

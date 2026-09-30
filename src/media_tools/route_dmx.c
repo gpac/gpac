@@ -972,10 +972,10 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
 			}
 			char szTOI[20];
 			sprintf(szTOI, obj->rlct->toi_template, obj->toi);
-			gf_strlcpy(obj->solved_path, obj->rlct->toi_prefix, GF_MAX_PATH);
-			gf_strlcat(obj->solved_path, szTOI, GF_MAX_PATH);
+			gf_strcpy(obj->solved_path, obj->rlct->toi_prefix);
+			gf_strcat(obj->solved_path, szTOI);
 			if (obj->rlct->toi_suffix)
-				gf_strlcat(obj->solved_path, obj->rlct->toi_suffix, GF_MAX_PATH);
+				gf_strcat(obj->solved_path, obj->rlct->toi_suffix);
 		}
 		filepath = obj->solved_path;
 	}
@@ -2955,12 +2955,12 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 
 			if (!strnicmp(payload, "Content-Type: ", 14)) {
 				u32 copy = MIN(i-14, 100);
-				strncpy(szContentType, payload+14, copy);
+				memcpy(szContentType, payload+14, copy);
 				szContentType[copy]=0;
 			}
 			else if (!strnicmp(payload, "Content-Location: ", 18)) {
 				u32 copy = MIN(i-18, 1024);
-				strncpy(szContentLocation, payload+18, copy);
+				memcpy(szContentLocation, payload+18, copy);
 				szContentLocation[copy]=0;
 			} else {
 				char tmp = payload[i];
@@ -3966,6 +3966,17 @@ GF_EXPORT
 void gf_route_dmx_debug_tsi(GF_ROUTEDmx *routedmx, u32 tsi)
 {
 	if (routedmx) routedmx->debug_tsi = tsi;
+}
+
+GF_EXPORT
+void gf_route_dmx_reset_stats(GF_ROUTEDmx *routedmx)
+{
+	if (routedmx) {
+		routedmx->first_pck_time = 0;
+		routedmx->last_pck_time = 0;
+		routedmx->nb_packets = 0;
+		routedmx->total_bytes_recv = 0;
+	}
 }
 
 GF_EXPORT

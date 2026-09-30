@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -153,7 +153,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 	builder->slMap.CodecID = codecid;
 	builder->slMap.PL_ID = PL_ID;
 	builder->max_ptime = max_ptime;
-	if (pref_mode) strcpy(builder->slMap.mode, pref_mode);
+	if (pref_mode) gf_strcpy(builder->slMap.mode, pref_mode);
 
 
 	//some cst vars
@@ -241,13 +241,13 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 
 		/*AAC LBR*/
 		if (maxSize < 63) {
-			strcpy(builder->slMap.mode, "AAC-lbr");
+			gf_strcpy(builder->slMap.mode, "AAC-lbr");
 			builder->slMap.IndexLength = builder->slMap.IndexDeltaLength = 2;
 			builder->slMap.SizeLength = 6;
 		}
 		/*AAC HBR*/
 		else {
-			strcpy(builder->slMap.mode, "AAC-hbr");
+			gf_strcpy(builder->slMap.mode, "AAC-hbr");
 			builder->slMap.IndexLength = builder->slMap.IndexDeltaLength = 3;
 			builder->slMap.SizeLength = 13;
 		}
@@ -258,13 +258,13 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		if (maxSize == avgSize) {
 			/*reset flags (interleaving forbidden)*/
 			builder->flags = GP_RTP_PCK_USE_MULTI | ismacrypt_flags;
-			strcpy(builder->slMap.mode, "CELP-cbr");
+			gf_strcpy(builder->slMap.mode, "CELP-cbr");
 			builder->slMap.ConstantSize = avgSize;
 			builder->slMap.ConstantDuration = avgTS;
 		}
 		/*CELP VBR*/
 		else {
-			strcpy(builder->slMap.mode, "CELP-vbr");
+			gf_strcpy(builder->slMap.mode, "CELP-vbr");
 			builder->slMap.IndexLength = builder->slMap.IndexDeltaLength = 2;
 			builder->slMap.SizeLength = 6;
 			/*if (builder->flags & GP_RTP_PCK_USE_INTERLEAVING) */builder->slMap.ConstantDuration = avgTS;
@@ -392,7 +392,7 @@ check_header:
 	        /*shall have SignalTS*/
 	        && (builder->flags & GP_RTP_PCK_SIGNAL_TS) && !(builder->flags & GP_RTP_PCK_USE_MULTI)
 	   ) {
-		strcpy(builder->slMap.mode, "mpeg4-video");
+		gf_strcpy(builder->slMap.mode, "mpeg4-video");
 	}
 	/*ISMACryp AVC video mode*/
 	else if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.CodecID==GF_CODECID_AVC)
@@ -401,7 +401,7 @@ check_header:
 	         /*shall have SignalTS*/
 	         && (builder->flags & GP_RTP_PCK_SIGNAL_TS) && !(builder->flags & GP_RTP_PCK_USE_MULTI)
 	        ) {
-		strcpy(builder->slMap.mode, "avc-video");
+		gf_strcpy(builder->slMap.mode, "avc-video");
 	}
 
 	/*check if we use AU header or not*/
@@ -450,128 +450,131 @@ void gf_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 	builder->is_encrypted = is_encrypted;
 }
 
+#define MAX_PAYT_LEN 20
+#define MAX_MEDIA_LEN 20
+
 GF_EXPORT
-Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char szPayloadName[20], char szMediaName[20])
+Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char szPayloadName[MAX_PAYT_LEN], char szMediaName[MAX_MEDIA_LEN])
 {
 	u32 flags = rtpb->flags;
 
 	switch (rtpb->rtp_payt) {
 	case GF_RTP_PAYT_MPEG4:
 		if ((rtpb->slMap.StreamType==GF_STREAM_VISUAL) && (rtpb->slMap.CodecID==GF_CODECID_MPEG4_PART2)) {
-			strcpy(szMediaName, "video");
+			gf_strlcpy(szMediaName, "video", MAX_MEDIA_LEN);
 			/*ISMACryp video*/
 			if ( (flags & GP_RTP_PCK_SIGNAL_RAP) && rtpb->slMap.IV_length
 			        && !(flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(flags & GP_RTP_PCK_SIGNAL_SIZE)
 			        && (flags & GP_RTP_PCK_SIGNAL_TS) && !(flags & GP_RTP_PCK_USE_MULTI)
 			   )
 			{
-				strcpy(szPayloadName, "enc-mpeg4-generic");
+				gf_strlcpy(szPayloadName, "enc-mpeg4-generic", MAX_PAYT_LEN);
 				return GF_TRUE;
 			}
 			/*mpeg4-generic*/
 			if ( (flags & GP_RTP_PCK_SIGNAL_RAP) || (flags & GP_RTP_PCK_SIGNAL_AU_IDX) || (flags & GP_RTP_PCK_SIGNAL_SIZE)
 			        || (flags & GP_RTP_PCK_SIGNAL_TS) || (flags & GP_RTP_PCK_USE_MULTI) ) {
-				strcpy(szPayloadName, "mpeg4-generic");
+				gf_strlcpy(szPayloadName, "mpeg4-generic", MAX_PAYT_LEN);
 				return GF_TRUE;
 			} else {
-				strcpy(szPayloadName, "MP4V-ES");
+				gf_strlcpy(szPayloadName, "MP4V-ES", MAX_PAYT_LEN);
 				return GF_TRUE;
 			}
 		}
 		/*for all other types*/
-		if (rtpb->slMap.StreamType==GF_STREAM_AUDIO) strcpy(szMediaName, "audio");
-		else if (rtpb->slMap.StreamType==GF_STREAM_MPEGJ) strcpy(szMediaName, "application");
-		else strcpy(szMediaName, "video");
-		strcpy(szPayloadName, rtpb->slMap.IV_length ? "enc-mpeg4-generic" : "mpeg4-generic");
+		if (rtpb->slMap.StreamType==GF_STREAM_AUDIO) gf_strlcpy(szMediaName, "audio", MAX_MEDIA_LEN);
+		else if (rtpb->slMap.StreamType==GF_STREAM_MPEGJ) gf_strlcpy(szMediaName, "application", MAX_MEDIA_LEN);
+		else gf_strlcpy(szMediaName, "video", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, rtpb->slMap.IV_length ? "enc-mpeg4-generic" : "mpeg4-generic", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_MPEG12_VIDEO:
-		strcpy(szMediaName, "video");
-		strcpy(szPayloadName, "MPV");
+		gf_strlcpy(szMediaName, "video", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "MPV", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_MPEG12_AUDIO:
-		strcpy(szMediaName, "audio");
-		strcpy(szPayloadName, "MPA");
+		gf_strlcpy(szMediaName, "audio", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "MPA", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_H263:
-		strcpy(szMediaName, "video");
-		strcpy(szPayloadName, "H263-1998");
+		gf_strlcpy(szMediaName, "video", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "H263-1998", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_AMR:
-		strcpy(szMediaName, "audio");
-		strcpy(szPayloadName, "AMR");
+		gf_strlcpy(szMediaName, "audio", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "AMR", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_AMR_WB:
-		strcpy(szMediaName, "audio");
-		strcpy(szPayloadName, "AMR-WB");
+		gf_strlcpy(szMediaName, "audio", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "AMR-WB", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_3GPP_TEXT:
-		strcpy(szMediaName, "text");
-		strcpy(szPayloadName, "3gpp-tt");
+		gf_strlcpy(szMediaName, "text", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "3gpp-tt", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_H264_AVC:
-		strcpy(szMediaName, "video");
-		strcpy(szPayloadName, "H264");
+		gf_strlcpy(szMediaName, "video", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "H264", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_QCELP:
-		strcpy(szMediaName, "audio");
-		strcpy(szPayloadName, "QCELP");
+		gf_strlcpy(szMediaName, "audio", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "QCELP", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_EVRC_SMV:
-		strcpy(szMediaName, "audio");
+		gf_strlcpy(szMediaName, "audio", MAX_MEDIA_LEN);
 		if ((rtpb->slMap.CodecID==0xA0) || (rtpb->slMap.CodecID==GF_CODECID_EVRC))
-			strcpy(szPayloadName, "EVRC");
+			gf_strlcpy(szPayloadName, "EVRC", MAX_PAYT_LEN);
 		else
-			strcpy(szPayloadName, "SMV");
+			gf_strlcpy(szPayloadName, "SMV", MAX_PAYT_LEN);
 
 		/*header-free version*/
-		if (rtpb->auh_size<=1) strcat(szPayloadName, "0");
+		if (rtpb->auh_size<=1) gf_strlcat(szPayloadName, "0", 20);
 		return GF_TRUE;
 	case GF_RTP_PAYT_LATM:
-		strcpy(szMediaName, "audio");
-		strcpy(szPayloadName, "MP4A-LATM");
+		gf_strlcpy(szMediaName, "audio", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "MP4A-LATM", MAX_PAYT_LEN);
 		return GF_TRUE;
 #if GPAC_ENABLE_3GPP_DIMS_RTP
 	case GF_RTP_PAYT_3GPP_DIMS:
-		strcpy(szMediaName, "video");
-		strcpy(szPayloadName, "richmedia+xml");
+		gf_strlcpy(szMediaName, "video", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "richmedia+xml", MAX_PAYT_LEN);
 		return GF_TRUE;
 #endif
 	case GF_RTP_PAYT_AC3:
-		strcpy(szMediaName, "audio");
-		strcpy(szPayloadName, "ac3");
+		gf_strlcpy(szMediaName, "audio", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "ac3", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_EAC3:
-		strcpy(szMediaName, "audio");
-		strcpy(szPayloadName, "eac3");
+		gf_strlcpy(szMediaName, "audio", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "eac3", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_OPUS:
-		strcpy(szMediaName, "audio");
-		strcpy(szPayloadName, "opus");
+		gf_strlcpy(szMediaName, "audio", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "opus", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_H264_SVC:
-		strcpy(szMediaName, "video");
-		strcpy(szPayloadName, "H264-SVC");
+		gf_strlcpy(szMediaName, "video", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "H264-SVC", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_HEVC:
-		strcpy(szMediaName, "video");
-		strcpy(szPayloadName, "H265");
+		gf_strlcpy(szMediaName, "video", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "H265", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_LHVC:
-		strcpy(szMediaName, "video");
-		strcpy(szPayloadName, "H265-SHVC");
+		gf_strlcpy(szMediaName, "video", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "H265-SHVC", MAX_PAYT_LEN);
 		return GF_TRUE;
 	case GF_RTP_PAYT_VVC:
-		strcpy(szMediaName, "video");
-		strcpy(szPayloadName, "H266");
+		gf_strlcpy(szMediaName, "video", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "H266", MAX_PAYT_LEN);
 		return GF_TRUE;
 
 	case GF_RTP_PAYT_MP2T:
-		strcpy(szMediaName, "video");
-		strcpy(szPayloadName, "MP2T");
+		gf_strlcpy(szMediaName, "video", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "MP2T", MAX_PAYT_LEN);
 		return GF_TRUE;
 	default:
-		strcpy(szMediaName, "");
-		strcpy(szPayloadName, "");
+		gf_strlcpy(szMediaName, "", MAX_MEDIA_LEN);
+		gf_strlcpy(szPayloadName, "", MAX_PAYT_LEN);
 		return GF_FALSE;
 	}
 	return GF_FALSE;

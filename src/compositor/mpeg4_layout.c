@@ -837,6 +837,8 @@ void compositor_init_layout(GF_Compositor *compositor, GF_Node *node)
 void compositor_layout_modified(GF_Compositor *compositor, GF_Node *node)
 {
 	LayoutStack *st = (LayoutStack *) gf_node_get_private(node);
+	if (!st || !node) return;
+
 	/*if modif other than scrollrate restart scroll*/
 	if (st->scroll_rate == ((M_Layout*)node)->scrollRate) {
 		st->start_scroll_type = 1;

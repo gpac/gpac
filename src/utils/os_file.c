@@ -796,7 +796,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 	CE_CharToWide((char *)filter, w_filter);
 #elif defined(WIN32)
 
-	strcpy(_path, dir);
+	gf_strcpy(_path, dir);
 	switch (dir[strlen(dir)] - 1) {
 	case '/':
 	case '\\':
@@ -821,7 +821,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #else
 	size_t dir_len = strlen(dir);
 	if (dir_len < GF_ARRAY_LENGTH(path)) {
-		strcpy(path, dir);
+		gf_strcpy(path, dir);
 	}
 	else {
 		memcpy(path, dir, GF_ARRAY_LENGTH(path));
@@ -831,7 +831,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 	if (path_len && path[path_len-1] != '/') {
 		if (path_len + 1 >= GF_ARRAY_LENGTH(path))
 			return GF_BAD_PARAM;
-		strcat(path, "/");
+		gf_strcat(path, "/");
 	}
 #endif
 
@@ -911,7 +911,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 			char *found_ext;
 			u32 ext_len;
 			if (!sep) goto next;
-			strcpy(ext, sep+1);
+			gf_strcpy(ext, sep+1);
 			strlwr(ext);
 			ext_len = (u32) strlen(ext);
 			found_ext = strstr(filter, ext);
@@ -932,15 +932,15 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 
 #if defined (_WIN32_WCE)
 		CE_WideToChar(FindData.cFileName, file);
-		strcpy(item_path, _path);
-		strcat(item_path, file);
+		gf_strcpy(item_path, _path);
+		gf_strcat(item_path, file);
 #elif defined(WIN32)
 		wcscpy(item_path, path);
 		wcscat(item_path, FindData.cFileName);
 		file = FindData.cFileName;
 #else
-		strcpy(item_path, path);
-		strcat(item_path, the_file->d_name);
+		gf_strcpy(item_path, path);
+		gf_strcat(item_path, the_file->d_name);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Checking file \"%s\" for enum\n", item_path));
 
 		if (stat( item_path, &st ) != 0) goto next;

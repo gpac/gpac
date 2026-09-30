@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -380,16 +380,15 @@ GF_BaseInterface *gf_modules_load(u32 whichplug, u32 InterfaceFamily)
 		i=0;
 		while (si[i]) i++;
 
-		key = (char*)gf_malloc(sizeof(char) * maxKeySize * i);
-		key[0] = 0;
+		key = NULL;
 		i=0;
 		while (si[i]) {
 			snprintf(szKey, maxKeySize, "%s:yes ", gf_4cc_to_str(si[i]));
-			strcat(key, szKey);
+			gf_dynstrcat(&key, szKey, NULL);
 			if (InterfaceFamily==si[i]) found = GF_TRUE;
 			i++;
 		}
-		strcat(key, inst->filterreg_func ? "GFR1:yes" : "GFR1:no");
+		gf_dynstrcat(&key, inst->filterreg_func ? "GFR1:yes" : "GFR1:no", NULL);
 
 		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, key);
 		gf_free(key);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2025
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -287,7 +287,7 @@ static JSValue dom_imp_has_feature(JSContext *c, JSValueConst obj, int argc, JSV
 		char sep;
 		char *fname = (char *) JS_ToCString(c, argv[0]);
 		if (!fname) return JS_TRUE;
-		while (strchr(" \t\n\r", fname[0])) fname++;
+		while (fname[0] && strchr(" \t\n\r", fname[0])) fname++;
 		len = (u32) strlen(fname);
 		while (len && strchr(" \t\n\r", fname[len-1])) len--;
 		sep = fname[len];
@@ -2216,7 +2216,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	JS_SetPropertyStr(c, global, "Window", scene->svg_js->global);
 
  	JS_SetPropertyStr(c, global, "alert", JS_NewCFunction(c, js_print, "alert", 1));
- 	
+
 	/*initialize DOM core */
 	dom_js_load(scene, scene->svg_js->js_ctx);
 
@@ -2276,8 +2276,8 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 	char *sep = strchr(utf8_script, '(');
 
 	if (!sep) {
-		strcpy(szFuncName, utf8_script);
-		strcat(szFuncName, "(evt)");
+		gf_strcpy(szFuncName, utf8_script);
+		gf_strcat(szFuncName, "(evt)");
 		utf8_script = szFuncName;
 	}
 

@@ -525,11 +525,7 @@ GF_Err rfc_6381_get_codec_uncv(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size
 			char szComp[100];
 			if (uncv->comps[i].idx>uncv->nb_comp_defs) continue;
 			sprintf(szComp, ".%xL%x", uncv->comps[i].type, uncv->comps[i].bits);
-			if (strlen(szCodec) + strlen(szComp) + 1 <= RFC6381_CODEC_NAME_SIZE_MAX) {
-				strcat(szCodec, szComp);
-			} else {
-				break;
-			}
+			gf_strlcat(szCodec, szComp, RFC6381_CODEC_NAME_SIZE_MAX);
 		}
 	} else {
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s", gf_4cc_to_str(subtype), gf_4cc_to_str(uncv->profile));

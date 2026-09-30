@@ -654,7 +654,7 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 	tkID = mtype = streamType = codecid = par_den = par_num = 0;
 	ctx->timescale = 1000;
 	i=0;
-	strcpy(szXmlHeaderEnd, "");
+	gf_strcpy(szXmlHeaderEnd, "");
 	ctx->header_end = 0;
 
 	width = height = codec_tag = sample_rate = nb_channels = version = revision = vendor_code = temporal_quality = spatial_quality = h_res = v_res = bit_depth = bits_per_sample = 0;
@@ -746,7 +746,7 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 #endif
 		/*unknown desc related*/
 		else if (!stricmp(att->name, "compressorName")) {
-			strncpy(compressor_name, att->value, 99);
+			gf_strcpy(compressor_name, att->value);
 			compressor_name[99]=0;
 		} else if (!stricmp(att->name, "codecVersion")) {
 			NHML_SCAN_INT("%u", version)
@@ -810,8 +810,7 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 		} else if (!stricmp(att->name, "xml_schema_location")) {
 			xml_schema_loc = att->value;
 		} else if (!stricmp(att->name, "xmlHeaderEnd")) {
-			strncpy(szXmlHeaderEnd, att->value, GF_ARRAY_LENGTH(szXmlHeaderEnd)-1);
-			szXmlHeaderEnd[GF_ARRAY_LENGTH(szXmlHeaderEnd)-1]=0;
+			gf_strcpy(szXmlHeaderEnd, att->value);
 		}
 	}
 	if (sample_rate && !ctx->timescale) {
@@ -856,7 +855,7 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 		ctx->header_end = specInfoSize;
 	} else if (strlen(szXmlHeaderEnd)) {
 		/* for XML based streams, the decoder specific info can be up to some element in the file */
-		strcpy(szXmlFrom, "doc.start");
+		gf_strcpy(szXmlFrom, "doc.start");
 		ctx->samp_buffer_size = 0;
 		e = nhml_sample_from_xml(ctx, ctx->media_file, szXmlFrom, szXmlHeaderEnd);
 		if (e) {
@@ -1383,9 +1382,9 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			continue;
 		}
 
-		strcpy(szMediaTemp, "");
-		strcpy(szXmlFrom, "");
-		strcpy(szXmlTo, "");
+		gf_strcpy(szMediaTemp, "");
+		gf_strcpy(szXmlFrom, "");
+		gf_strcpy(szXmlTo, "");
 
 		/*by default handle all samples as contiguous*/
 		ctx->samp_buffer_size = 0;
@@ -1443,19 +1442,16 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 					if (!url) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Failed to get full url for %s (media import only supported for local URLs)\n", att->value));
 					} else {
-						strncpy(szMediaTemp, url, GF_MAX_PATH-1);
-						szMediaTemp[GF_MAX_PATH-1] = 0;
+						gf_strcpy(szMediaTemp, url);
 						gf_free(url);
 					}
 				}
 			}
 			else if (!stricmp(att->name, "xmlFrom")) {
-				strncpy(szXmlFrom, att->value, 999);
-				szXmlFrom[999]=0;
+				gf_strcpy(szXmlFrom, att->value);
 			}
 			else if (!stricmp(att->name, "xmlTo")) {
-				strncpy(szXmlTo, att->value, 999);
-				szXmlTo[999]=0;
+				gf_strcpy(szXmlTo, att->value);
 			}
 			/*DIMS flags*/
 			else if (!stricmp(att->name, "is-Scene") && !stricmp(att->value, "yes"))

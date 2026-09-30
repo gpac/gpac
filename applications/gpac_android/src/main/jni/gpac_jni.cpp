@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Ivica Arsov
- *			Copyright (c) Telecom Paris 2010-2022
+ *			Copyright (c) Telecom Paris 2010-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / android JNI wrapper for player
@@ -268,12 +268,12 @@ JNIEXPORT jlong JNICALL gpac_jni_init(JNIEnv * env, jclass obj, jobject gpac_cla
 
 	gpac->out_std[0] = 0;
 	if (ext_storage) {
-		strcpy(gpac->out_std, ext_storage);
-		strcat(gpac->out_std, "/GPAC/");
+		gf_strlcpy(gpac->out_std, ext_storage, GF_MAX_PATH);
+		gf_strlcat(gpac->out_std, "/GPAC/", GF_MAX_PATH);
 		if (!gf_dir_exists(gpac->out_std)) {
 			gpac->out_std[0] = 0;
 		} else {
-			strcat(gpac->out_std, "/stderr_stdout.txt");
+			gf_strlcat(gpac->out_std, "/stderr_stdout.txt", GF_MAX_PATH);
 		}
 	}
 

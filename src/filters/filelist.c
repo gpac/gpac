@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / file concatenator filter
@@ -865,8 +865,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 			}
 		}
 		fentry = gf_list_get(ctx->file_list, ctx->file_list_idx);
-		strncpy(szURL, fentry->file_name, sizeof(char)*(GF_MAX_PATH-1) );
-		szURL[GF_MAX_PATH-1] = 0;
+		gf_strlcpy(szURL, fentry->file_name, GF_MAX_PATH);
 		filelist_check_implicit_cat(ctx, szURL);
 		next = gf_list_get(ctx->file_list, ctx->file_list_idx + 1);
 		if (next)
@@ -1055,8 +1054,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 					ctx->splice_props = aval ? gf_strdup(aval) : NULL;
 				} else if (!strcmp(args, "chap") && aval) {
 					if (aval) {
-						strncpy(chap_name, aval, 1023);
-						chap_name[1023]=0;
+						gf_strcpy(chap_name, aval);
 					}
 				} else if (!strcmp(args, "base_url")) {
 					if (ctx->temp_base_url) gf_free(ctx->temp_base_url);
@@ -1195,8 +1193,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 	if (ctx->temp_base_url) {
 		char *res_url = gf_url_concatenate(ctx->temp_base_url, szURL);
 		if (res_url) {
-			strncpy(szURL, res_url, GF_MAX_PATH-2);
-			szURL[GF_MAX_PATH-1]=0;
+			gf_strlcpy(szURL, res_url, GF_MAX_PATH);
 			gf_free(res_url);
 		}
 	}

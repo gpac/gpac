@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -640,7 +640,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] invalid extension %s in file name %s\n", ext, load->fileName));
 				return GF_NOT_SUPPORTED;
 			}
-			strcpy(szExt, &ext[1]);
+			gf_strcpy(szExt, &ext[1]);
 			strlwr(szExt);
 			if (strstr(szExt, "bt")) load->type = GF_SM_LOAD_BT;
 			else if (strstr(szExt, "wrl")) load->type = GF_SM_LOAD_VRML;

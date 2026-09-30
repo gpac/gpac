@@ -209,14 +209,39 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	if (memcmp(&ctx->ti, &ctx->the_ti, sizeof(theora_info))) {
 		memcpy(&ctx->the_ti, &ctx->ti, sizeof(theora_info));
 
+		u32 pix_fmt;
+		switch (ctx->ti.pixelformat) {
+			case OC_PF_420: pix_fmt = GF_PIXEL_YUV;    break;
+			case OC_PF_422: pix_fmt = GF_PIXEL_YUV422; break;
+			case OC_PF_444: pix_fmt = GF_PIXEL_YUV444; break;
+			default:
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Theora] Unsupported pixel format %d\n", ctx->ti.pixelformat));
+				return GF_NOT_SUPPORTED;
+		}
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->ti.width));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->ti.height));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->ti.width));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, &PROP_FRAC_INT(ctx->ti.fps_numerator, ctx->ti.fps_denominator) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YUV) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(pix_fmt) );
 	}
 
-	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->ti.width*ctx->ti.height * 3 / 2, &buffer);
+	u32 uv_dst_stride;
+	switch (ctx->ti.pixelformat) {
+		case OC_PF_420:
+		case OC_PF_422: uv_dst_stride = ctx->ti.width / 2; break;
+		case OC_PF_444: uv_dst_stride = ctx->ti.width;     break;
+		default:
+			return GF_NOT_SUPPORTED;
+	}
+
+
+	u64 out_size_64 = (u64)ctx->ti.width * ctx->ti.height + 2 * (u64)uv_dst_stride * yuv.uv_height;
+	if (!ctx->ti.width || !ctx->ti.height || out_size_64 > GF_UINT_MAX) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Theora] Invalid frame dimensions (%u x %u)\n", ctx->ti.width, ctx->ti.height));
+		return GF_BAD_PARAM;
+	}
+
+	dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32)out_size_64, &buffer);
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	pYO = yuv.y;
@@ -224,18 +249,18 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	pVO = yuv.v;
 	pYD = buffer;
 	pUD = buffer + ctx->ti.width * ctx->ti.height;
-	pVD = buffer + 5 * ctx->ti.width * ctx->ti.height / 4;
+	pVD = pUD + uv_dst_stride * yuv.uv_height;
 
 	for (i=0; i<(u32)yuv.y_height; i++) {
-		memcpy(pYD, pYO, sizeof(char) * yuv.y_width);
+		memcpy(pYD, pYO, yuv.y_width);
 		pYD += ctx->ti.width;
 		pYO += yuv.y_stride;
-		if (i%2) continue;
-
-		memcpy(pUD, pUO, sizeof(char) * yuv.uv_width);
-		memcpy(pVD, pVO, sizeof(char) * yuv.uv_width);
-		pUD += ctx->ti.width/2;
-		pVD += ctx->ti.width/2;
+	}
+	for (i=0; i<(u32)yuv.uv_height; i++) {
+		memcpy(pUD, pUO, yuv.uv_width);
+		memcpy(pVD, pVO, yuv.uv_width);
+		pUD += uv_dst_stride;
+		pVD += uv_dst_stride;
 		pUO += yuv.uv_stride;
 		pVO += yuv.uv_stride;
 	}
@@ -316,4 +341,3 @@ const GF_FilterRegister *theoradec_register(GF_FilterSession *session)
 	return NULL;
 #endif
 }
-

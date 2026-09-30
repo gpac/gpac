@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -1603,13 +1603,17 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 \return error if any
 */
 GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char **out_sdp_line, char *dsi, u32 dsi_size);
+
+#define MAX_PAYT_LEN 20
+#define MAX_MEDIA_LEN 20
+
 /*! formats SDP payload name and media name
 \param builder the target RTP packetizer
 \param payload_name the buffer to fill with the payload name
 \param media_name the buffer to fill with the payload name
 \return GF_TRUE if success, GF_FALSE otherwise
 */
-Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *builder, char payload_name[20], char media_name[20]);
+Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *builder, char payload_name[MAX_PAYT_LEN], char media_name[MAX_MEDIA_LEN]);
 
 
 /*! rtp payload flags*/

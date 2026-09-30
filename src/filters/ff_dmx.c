@@ -1060,6 +1060,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 #endif
 
 	ctx->pids_ctx = gf_malloc(sizeof(PidCtx)*ctx->demuxer->nb_streams);
+	if (!ctx->pids_ctx) return GF_OUT_OF_MEM;
 	memset(ctx->pids_ctx, 0, sizeof(PidCtx)*ctx->demuxer->nb_streams);
 	ctx->nb_streams = ctx->demuxer->nb_streams;
 
@@ -1889,10 +1890,13 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 	} else {
 		pb.buf =  (char *) data;
 		pb.buf_size = size - AVPROBE_PADDING_SIZE;
+		char sav = data[pb.buf_size];
+		pb.buf[pb.buf_size] = 0;
 		probe_fmt = av_probe_input_format3(&pb, GF_TRUE, &ffscore);
 		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;
 		if (!probe_fmt) probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
 		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;
+		pb.buf[pb.buf_size] = sav;
 	}
 	ff_probe_mode=GF_FALSE;
 
@@ -2153,8 +2157,8 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 
 #if defined(__DARWIN) || defined(__APPLE__)
 	if (!strncmp(dev_name, "screen", 6)) {
-		strcpy(szPatchedName, "Capture screen ");
-		strcat(szPatchedName, dev_name+6);
+		gf_strcpy(szPatchedName, "Capture screen ");
+		gf_strcat(szPatchedName, dev_name+6);
 		dev_name = (char *) szPatchedName;
 	}
 #endif
@@ -2175,8 +2179,8 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	else if (!strncmp(dev_fmt->priv_class->class_name, "AVFoundation", 12) && wants_audio && !wants_video) {
 		//for avfoundation if no video, we must use ":audio_dev_idx"
 		if (ctx->dev[0] != ':') {
-			strcpy(szPatchedName, ":");
-			strcat(szPatchedName, ctx->dev);
+			gf_strcpy(szPatchedName, ":");
+			gf_strcat(szPatchedName, ctx->dev);
 			dev_name = (char *) szPatchedName;
 		}
 	}

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA decrypt filter
@@ -224,8 +224,8 @@ static Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 	u32 i, x;
 	Bool got_it;
 	FILE *kms;
-	strcpy(szPath, getenv("HOME"));
-	strcat(szPath , "/.kms_data");
+	gf_strcpy(szPath, getenv("HOME"));
+	gf_strcat(szPath , "/.kms_data");
 	got_it = 0;
 	kms = gf_fopen(szPath, "rt");
 	while (kms && !gf_feof(kms)) {
@@ -568,7 +568,7 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 			for (j=0; j<16; j++) {
 				char szC[3];
 				sprintf(szC, "%02X", KID[j]);
-				strcat(szKID, szC);
+				gf_strcat(szKID, szC);
 			}
 			for (j=0; j<ctx->kids.nb_items; j++) {
 				char *kid_d = ctx->kids.vals[j];
@@ -639,7 +639,7 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 			for (j=0; j<16; j++) {
 				char szV[3];
 				sprintf(szV, "%02X", KID[j]);
-				strcat(szKID, szV);
+				gf_strcat(szKID, szV);
 			}
 			if (ctx->decrypt==DECRYPT_FULL) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Cannot locate key #%d for given KID 0x%s, aborting !\n\tUse '--decrypt=nokey' to force decrypting\n", i+1, szKID));
@@ -657,20 +657,32 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 
 static GF_Err rfmt_dec_b64(u8 *data, u8 *output, u32 osize)
 {
+	char *tmpd=NULL;
 	u32 len, i=0;
 	while (data[i]) {
 		if (data[i] == '-') data[i] = '+';
 		else if (data[i] == '_') data[i] = '/';
 		i++;
 	}
-	len = (u32) strlen(data);
+	len = i;
 	switch (len%4) {
-	case 0: break;
-	case 2: strcat(data, "=="); break;
-	case 3: strcat(data, "="); break;
-	default: return GF_NON_COMPLIANT_BITSTREAM;
+	case 0:
+		len = gf_base64_decode(data, (u32) strlen(data), output, osize);
+		break;
+	case 2:
+		tmpd = gf_strdup(data);
+		gf_dynstrcat(&tmpd, "==", NULL);
+		len = gf_base64_decode(tmpd, (u32) strlen(tmpd), output, osize);
+		break;
+	case 3:
+		tmpd = gf_strdup(data);
+		gf_dynstrcat(&tmpd, "=", NULL);
+		len = gf_base64_decode(tmpd, (u32) strlen(tmpd), output, osize);
+		break;
+	default:
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	len = gf_base64_decode(data, (u32) strlen(data), output, osize);
+	if (tmpd) gf_free(tmpd);
 	if (len != 16) return GF_NON_COMPLIANT_BITSTREAM;
 	return GF_OK;
 }

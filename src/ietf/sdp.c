@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -747,18 +747,18 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 	while ((media = (GF_SDPMedia*)gf_list_enum(sdp->media_desc, &i))) {
 		pos = 0;
 		LinePos = 1;
-		strcpy(LineBuf, "");
+		gf_strcpy(LineBuf, "");
 		while (1) {
 			if (!media->fmt_list) break;
 			pos = gf_token_get(media->fmt_list, pos, " ", comp, SDP_MAX_LINE);
 			if (pos <= 0) break;
 			if (!SDP_IsDynamicPayload(media, comp)) {
 				if (!LinePos) {
-					strcat(LineBuf, " ");
+					gf_strcat(LineBuf, " ");
 				} else {
 					LinePos = 0;
 				}
-				strcat(LineBuf, comp);
+				gf_strcat(LineBuf, comp);
 			}
 			gf_free(media->fmt_list);
 			media->fmt_list = NULL;
@@ -868,10 +868,10 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 		buf_size += SDP_WRITE_STEPALLOC;	\
 		buf = (char*)gf_realloc(buf, sizeof(char)*buf_size);		\
 	}	\
-	strcpy(buf+pos, str);		\
+	gf_strcpy(buf+pos, str);		\
 	pos += (u32) strlen(str);		\
 	if (space) {			\
-		strcat(buf+pos, " ");	\
+		gf_strcat(buf+pos, " ");	\
 		pos += 1;		\
 	}
 

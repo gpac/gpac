@@ -30,6 +30,8 @@
 void jsfs_on_filter_arg_update(GF_Filter *filter);
 #endif
 
+static void gf_filter_cleanup_status_metrics(GF_FilterSession *fs, const GF_FilterRegister *freg);
+
 //helper functions
 void gf_void_del(void *p)
 {
@@ -738,6 +740,7 @@ void gf_filter_del(GF_Filter *filter)
 				a_filter->dst_filter = NULL;
 			gf_mx_v(a_filter->tasks_mx);
 		}
+		gf_filter_cleanup_status_metrics(filter->session, filter->freg);
 		gf_mx_v(filter->session->filters_mx);
 	}
 	if (filter->skip_cids.vals) {
@@ -1108,8 +1111,7 @@ void filter_solve_prop_template(GF_Filter *filter, GF_FilterPid *pid, char **val
 		inc_sep[0] = 0;
 		inc_end[0] = 0;
 		inc_end+=1;
-		strncpy(szInt, inc_sep+6, GF_ARRAY_LENGTH(szInt)-1);
-		szInt[ GF_ARRAY_LENGTH(szInt) - 1 ] = 0;
+		gf_strcpy(szInt, inc_sep+6);
 		ainc_crc = (u32) gf_crc_32(szInt, (u32) strlen(szInt) );
 		step_sep = strchr(szInt, ',');
 		if (step_sep) {
@@ -1182,7 +1184,7 @@ GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Fil
 	if (value[0]=='$') {
 		if (!strnicmp(value, "$GSHARE", 7)) {
 			if (gf_opts_default_shared_directory(szPath)) {
-				strncat(szPath, value+7, sizeof(szPath)-strlen(szPath)-1);
+				gf_strcat(szPath, value+7);
 				value = szPath;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
@@ -1196,7 +1198,7 @@ GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Fil
 			}
 		}
 		else if (!strnicmp(value, "$GJS", 4)) {
-			Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file_ext);
+			Bool gf_fs_solve_js_script(char szPath[GF_MAX_PATH], const char *file_name, const char *file_ext);
 
 			Bool found = gf_fs_solve_js_script(szPath, value+4, NULL);
 
@@ -1521,7 +1523,7 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 			}
 			if (!is_ok) continue;
 
-			strncpy(szArg, o_arg, 100);
+			gf_strcpy(szArg, o_arg);
 			szArg[ MIN(flen + loc_alen, 100) ] = 0;
 			gf_fs_push_arg(session, szArg, GF_TRUE, GF_ARGTYPE_LOCAL, NULL, NULL);
 
@@ -1651,7 +1653,7 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		if (sep) {
 			u32 cplen = (u32) (sep - o_arg);
 			if (cplen>=META_MAX_ARG) cplen=META_MAX_ARG;
-			strncpy(szArg, o_arg, cplen);
+			memcpy(szArg, o_arg, cplen);
 			szArg[cplen] = 0;
 			argv.value.string = (char *) sep+1;
 		} else {
@@ -2002,7 +2004,7 @@ skip_date:
 			alloc_len = len+1;
 			szArg = gf_realloc(szArg, sizeof(char)*alloc_len);
 		}
-		strncpy(szArg, args, len);
+		memcpy(szArg, args, len);
 		szArg[len]=0;
 
 		value = strchr(szArg, filter->session->sep_name);
@@ -2354,11 +2356,13 @@ skip_arg:
 			args=sep+6;
 		} else if (sep) {
 			args=sep+1;
-			if (opaque_arg)
+			if (opaque_arg && args[0]) {
 				args += 1;
+			}
 		} else {
 			args=NULL;
 		}
+		if (args && !args[0]) break;
 	}
 	if (szArg) gf_free(szArg);
 }
@@ -3604,6 +3608,16 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 	s32 res;
 	GF_Err e;
 	GF_Filter *f = ((struct _gf_filter_setup_failure *)task->udta)->filter;
+
+	/* Defer teardown if a task for this filter is currently executing on the direct-call stack.
+	   gf_filter_process_task clears in_process_callback after freg->process() returns;
+	   gf_fs_post_task_ex clears DIRECT_SCHEDULED after any direct-call task returns.
+	   Running the teardown synchronously here would free the filter mid-stack. */
+	if (f->in_process_callback || f->scheduled_for_next_task == GF_FILTER_DIRECT_SCHEDULED) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
+
 	if (task->udta) {
 		e = ((struct _gf_filter_setup_failure *)task->udta)->e;
 		gf_free(task->udta);
@@ -3660,7 +3674,6 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 	gf_mx_v(f->tasks_mx);
 	//avoid destruction of the current task (ourselves)
 	gf_fq_pop(f->tasks);
-
 	gf_filter_del(f);
 	task->filter = NULL;
 	task->requeue_request = GF_FALSE;
@@ -4695,7 +4708,7 @@ static void filter_guess_file_ext(GF_FilterSession *sess, GF_FilterPid *pid, con
 			u32 len = (u32) strlen(ext);
 			if (sep) len = (u32) (sep - ext);
 			if (len>19) len=19;
-			strncpy(szExt, ext, len);
+			memcpy(szExt, ext, len);
 			szExt[len] = 0;
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(szExt));
 			return;
@@ -4749,8 +4762,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 		}
 
 		if (fext) {
-			strncpy(tmp_ext, fext, 20);
-			tmp_ext[20] = 0;
+			gf_strcpy(tmp_ext, fext);
 			strlwr(tmp_ext);
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
 			ext_len = (u32) strlen(tmp_ext);
@@ -4772,8 +4784,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 				if (s1) s1[0] = 0;
 				if (s2) s2[0] = 0;
 
-				strncpy(tmp_ext, ext, 20);
-				tmp_ext[20] = 0;
+				gf_strcpy(tmp_ext, ext);
 				strlwr(tmp_ext);
 				gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
 				ext_len = (u32) strlen(tmp_ext);
@@ -4851,8 +4862,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	//this is safe for now as the only reconfig we do is in HTTP streaming context
 	//we furthermore blacklist *octet-* mimes
 	if (mime_type && is_new_pid && !strstr(mime_type, "/octet-")) {
-		strncpy(tmp_ext, mime_type, 50);
-		tmp_ext[49] = 0;
+		gf_strcpy(tmp_ext, mime_type);
 		//keep case for mime type
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( tmp_ext ));
 		//we have a mime, disable extension checking
@@ -5286,21 +5296,26 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
 		if (filter->status_str) filter->status_str[0] = 0;
 		return GF_OK;
 	}
-	len = (u32) strlen(szStatus);
-	if (len>=filter->status_str_alloc) {
-		filter->status_str_alloc = len+1;
-		filter->status_str = gf_realloc(filter->status_str, filter->status_str_alloc);
-		if (!filter->status_str) {
-			filter->status_str_alloc = 0;
-			return GF_OUT_OF_MEM;
+	Bool changed = GF_FALSE;
+	if (!filter->status_str || strcmp(szStatus, filter->status_str)) {
+		changed = GF_TRUE;
+		len = (u32) strlen(szStatus);
+		if (len>=filter->status_str_alloc) {
+			filter->status_str_alloc = len+1;
+			filter->status_str = gf_realloc(filter->status_str, filter->status_str_alloc);
+			if (!filter->status_str) {
+				filter->status_str_alloc = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
+		memcpy(filter->status_str, szStatus, len+1);
 	}
-	memcpy(filter->status_str, szStatus, len+1);
-	filter->status_percent = percent;
+	if (filter->status_percent != percent) {
+		filter->status_percent = percent;
+		changed = GF_TRUE;
+	}
+	if (!changed) return GF_OK;
 	filter->report_updated = GF_TRUE;
-
-	if ((s32)percent<0)
-		return GF_OK;
 
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_PROGRESS;
@@ -6052,4 +6067,53 @@ void gf_filter_log_tag(GF_Filter *filter, Bool is_untag)
 		gf_logs_thread_untag(filter);
 	else
 		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
+}
+
+
+GF_EXPORT
+void gf_filter_add_status_metric(GF_Filter *filter, const char *metric)
+{
+	if (!filter || !metric || !strchr(metric, '=')) return;
+
+	if (!filter->session->additionnal_metrics) {
+		filter->session->additionnal_metrics = gf_list_new();
+		if (!filter->session->additionnal_metrics) return;
+	}
+	u32 i, count = gf_list_count(filter->session->additionnal_metrics);
+	for (i=0; i<count; i++) {
+		GF_FSCustomMetric *met= gf_list_get(filter->session->additionnal_metrics, i);
+		if (strcmp(met->reg_name, filter->freg->name)) continue;
+		if (!strcmp(met->metric, metric)) return;
+	}
+	GF_FSCustomMetric *met;
+	GF_SAFEALLOC(met, GF_FSCustomMetric);
+	met->reg_name = gf_strdup(filter->freg->name);
+	met->metric = gf_strdup(metric);
+	gf_list_add(filter->session->additionnal_metrics, met);
+}
+
+static void gf_filter_cleanup_status_metrics(GF_FilterSession *fs, const GF_FilterRegister *freg)
+{
+	u32 i, count = gf_list_count(fs->filters);
+	Bool found = GF_FALSE;
+	for (i=0; i<count; i++) {
+		GF_Filter *f = gf_list_get(fs->filters, i);
+		if (f->freg == freg) {
+			found=GF_TRUE;
+			break;
+		}
+	}
+	if (!found) return;
+	count = gf_list_count(fs->additionnal_metrics);
+	for (i=0; i<count; i++) {
+		GF_FSCustomMetric *met = gf_list_get(fs->additionnal_metrics, i);
+		if (strcmp(met->reg_name, freg->name)) continue;
+
+		gf_free(met->reg_name);
+		gf_free(met->metric);
+		gf_free(met);
+		gf_list_rem(fs->additionnal_metrics, i);
+		i--;
+		count--;
+	}
 }

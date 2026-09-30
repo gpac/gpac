@@ -1,6 +1,6 @@
 # QuickJS in GPAC
-Base version is quickjs-2025-10-15 :
-	https://github.com/bellard/quickjs/commit/eb2c89087def1829ed99630cb14b549d7a98408c
+Base version is quickjs-2026-06-16 :
+	https://github.com/bellard/quickjs/commit/04be246001599f5995fa2f2d8c91a0f198d3f34c
 	
 ## Modifications to QuickJS
 - define CONFIG_VERSION in QuickJS.c

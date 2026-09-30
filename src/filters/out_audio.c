@@ -226,7 +226,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->pid);
 		gf_filter_pid_send_event(ctx->pid, &evt);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Seek request to %f speed %f\n", ctx->start, ctx->speed));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Seek request to %f speed %f\n", ctx->start, ctx->speed));
 		gf_filter_pid_init_play_event(ctx->pid, &evt, ctx->start, ctx->speed, "VideoOut");
 		gf_filter_pid_send_event(ctx->pid, &evt);
 
@@ -243,12 +243,13 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 
 	if (!ctx->buffer_done) {
 		u32 size;
+		u32 max_buf = 0;
 		GF_FilterPacket *pck;
 
 		//query full buffer duration in us
-		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+		u64 dur = gf_filter_pid_query_buffer_duration_and_max(ctx->pid, &max_buf);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %u / %d ms\r", (u32)(dur/1000), ctx->buffer));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %u / %d ms\r", (u32)(dur/1000), (u32)(max_buf/1000)));
 
 		/*the compositor sends empty packets after its reconfiguration to check when the config is active
 		we therefore probe the first packet before probing the buffer fullness*/
@@ -281,8 +282,9 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		}
 	} else if (ctx->rbuffer && !ctx->rebuffer) {
 		//query full buffer duration in us
-		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", (u32)(dur/1000), ctx->buffer));
+		u32 max_buf=0;
+		u64 dur = gf_filter_pid_query_buffer_duration_and_max(ctx->pid, &max_buf);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", (u32)(dur/1000), (u32)(max_buf/1000) ));
 		if ((dur < ctx->rbuffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid)) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %u less than min threshold %u, rebuffering\n", (u32) (dur/1000), ctx->rbuffer));
 			ctx->rebuffer = gf_sys_clock_high_res();
@@ -291,8 +293,9 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		}
 #ifndef GPAC_DISABLE_LOG
 	} else if (gf_log_tool_level_on(GF_LOG_MMIO, GF_LOG_DEBUG)) {
-		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", (u32)(dur/1000), ctx->buffer));
+		u32 max_buf=0;
+		u64 dur = gf_filter_pid_query_buffer_duration_and_max(ctx->pid, &max_buf);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", (u32)(dur/1000), (u32)(max_buf/1000)));
 #endif
 	}
 
@@ -394,18 +397,19 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			gf_filter_hint_single_clock(ctx->filter, gf_sys_clock_high_res(), timestamp);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] At %d ms audio frame CTS "LLU" (compensated time %g s, HW delay "LLU" us)\n", gf_sys_clock(), cts, ((Double)timestamp.num)/timestamp.den, ctx->hwdelay_us ));
 		}
-		
+
 		if (data && !ctx->wait_recfg && (size >= ctx->pck_offset)) {
 			u32 nb_copy;
-			
+
 			nb_copy = (size - ctx->pck_offset);
 			if (nb_copy + done > buffer_size) nb_copy = buffer_size - done;
 			memcpy(buffer+done, data+ctx->pck_offset, nb_copy);
 
 			if (!done && gf_filter_reporting_enabled(ctx->filter)) {
 				char szStatus[1024];
-				u64 bdur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
-				sprintf(szStatus, "%d Hz %d ch %s buffer %d / %d ms", ctx->sr, ctx->nb_ch, gf_audio_fmt_name(ctx->afmt), (u32) (bdur/1000), ctx->buffer);
+				u32 max_buf=0;
+				u64 bdur = gf_filter_pid_query_buffer_duration_and_max(ctx->pid, &max_buf);
+				sprintf(szStatus, "info=\"%d Hz %d ch %s\" time="LLU"/%u buffer=%d/%d ms", ctx->sr, ctx->nb_ch, gf_audio_fmt_name(ctx->afmt), ctx->last_cts, ctx->timescale, (u32) (bdur/1000), (u32)(max_buf/1000));
 				gf_filter_update_status(ctx->filter, -1, szStatus);
 			}
 
@@ -494,7 +498,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (p) ctx->audio_out->SetPan(ctx->audio_out, p->value.uint);
 	}
 	gf_filter_release_property(pe);
-	
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_PRIORITY);
 	if (p) aout_set_priority(ctx, p->value.uint);
 
@@ -589,7 +593,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->pid_delay = p ? p->value.longsint : 0;
 
 	ctx->needs_recfg = GF_TRUE;
-	
+
 	//not threaded, request a task to restart audio (cannot do it during the audio callback)
 #ifndef GPAC_DISABLE_THREADS
 	if (!ctx->th)
@@ -792,7 +796,7 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(start), "set playback start offset. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vol), "set default audio volume, as a percentage between 0 and 100", GF_PROP_UINT, "100", "0-100", GF_FS_ARG_UPDATE},
 	{ OFFS(pan), "set stereo pan, as a percentage between 0 and 100, 50 being centered", GF_PROP_UINT, "50", "0-100", GF_FS_ARG_UPDATE},
-	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "200", NULL, 0},
+	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "100", NULL, 0},
 	{ OFFS(mbuffer), "set max buffer occupancy in ms. If less than buffer, use buffer", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(rbuffer), "rebuffer trigger in ms. If 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(adelay), "set audio delay in sec", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
@@ -846,4 +850,3 @@ const GF_FilterRegister *aout_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_AOUT
-

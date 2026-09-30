@@ -450,6 +450,17 @@ GF_Err kind_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err ctlc_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ContentTypeForLoudnessControlBox *p;
+
+	p = (GF_ContentTypeForLoudnessControlBox *)a;
+	gf_isom_box_dump_start(a, "ContentTypeForLoudnessControlBox", trace);
+	gf_fprintf(trace, "content_type=\"%u\">\n", p->content_type);
+	gf_isom_box_dump_done("ContentTypeForLoudnessControlBox", a, trace);
+	return GF_OK;
+}
+
 
 static void dump_escape_string(FILE * trace, char *name)
 {
@@ -4359,8 +4370,8 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		return GF_BAD_PARAM;
 	}
 
-	strcpy(nhmlFileName, the_file->fileName);
-	strcat(nhmlFileName, ".nhml");
+	gf_strcpy(nhmlFileName, the_file->fileName);
+	gf_strcat(nhmlFileName, ".nhml");
 	nhmlFile = gf_fopen(nhmlFileName, "wt");
 	gf_fprintf(nhmlFile, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	gf_fprintf(nhmlFile, "<NHNTStream streamType=\"3\" objectTypeIndication=\"10\" timeScale=\"%d\" baseMediaFile=\"file.svg\" inRootOD=\"yes\">\n", trak->Media->mediaHeader->timeScale);
@@ -5239,9 +5250,13 @@ GF_Err dvcC_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_DOVIConfigurationBox *p = (GF_DOVIConfigurationBox *)a;
 	gf_isom_box_dump_start(a, "DOVIConfigurationBox", trace);
-	gf_fprintf(trace, "dv_version_major=\"%u\" dv_version_minor=\"%u\" dv_profile=\"%u\" dv_level=\"%u\" rpu_present_flag=\"%u\" el_present_flag=\"%u\" bl_present_flag=\"%u\" compatibility_id=\"%u\" md_compression=\"%u\">\n",
+	gf_fprintf(trace, "dv_version_major=\"%u\" dv_version_minor=\"%u\" dv_profile=\"%u\" dv_level=\"%u\" rpu_present_flag=\"%u\" el_present_flag=\"%u\" bl_present_flag=\"%u\" compatibility_id=\"%u\" md_compression=\"%u\" dv_feature_flags=\"",
 		p->DOVIConfig.dv_version_major, p->DOVIConfig.dv_version_minor, p->DOVIConfig.dv_profile, p->DOVIConfig.dv_level,
 		p->DOVIConfig.rpu_present_flag, p->DOVIConfig.el_present_flag, p->DOVIConfig.bl_present_flag, p->DOVIConfig.dv_bl_signal_compatibility_id, p->DOVIConfig.dv_md_compression);
+	for (u32 i = 0; i < 10; i++) {
+		gf_fprintf(trace, "%u", p->DOVIConfig.dv_feature_flags[i]);
+	}
+	gf_fprintf(trace, "\">\n");
 	gf_isom_box_dump_done("DOVIConfigurationBox", a, trace);
 	return GF_OK;
 }
@@ -6666,6 +6681,62 @@ GF_Err grptype_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err prsl_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_PreselectionGroupBox *ptr = (GF_PreselectionGroupBox *) a;
+	gf_isom_box_dump_start(a, "PreselectionGroupBox", trace);
+	gf_fprintf(trace, "group_id=\"%d\" ", ptr->group_id);
+	gf_fprintf(trace, "entity_id_count=\"%d\" ", ptr->entity_id_count);
+	for(u32 i=0; i<ptr->entity_id_count; i++) {
+		gf_fprintf(trace, "entity_id_%d=\"%d\" ", i, ptr->entity_ids[i]);
+	}
+	if ((ptr->flags & GF_ISOM_PRESELECTION_TAG_PRESENT) && ptr->preselection_tag) {
+		gf_fprintf(trace, "preselection_tag=\"%s\" ", ptr->preselection_tag);
+	}
+	if (ptr->flags & GF_ISOM_SELECTION_PRIORITY_PRESENT) {
+		gf_fprintf(trace, "selection_priority=\"%d\" ", ptr->selection_priority);
+	}
+	if ((ptr->flags & GF_ISOM_INTERLEAVING_TAG_PRESENT) && ptr->interleaving_tag) {
+		gf_fprintf(trace, "interleaving_tag=\"%d\" ", ptr->interleaving_tag);
+	}
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("PreselectionGroupBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err ardi_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_AudioRenderingIndicationBox *ptr = (GF_AudioRenderingIndicationBox *) a;
+	gf_isom_box_dump_start(a, "AudioRenderingIndicationBox", trace);
+	gf_fprintf(trace, "audio_rendering_indication=\"%d\" ", ptr->audio_rendering_indication);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("AudioRenderingIndicationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err labl_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_LabelBox *ptr = (GF_LabelBox *) a;
+	gf_isom_box_dump_start(a, "LabelBox", trace);
+	gf_fprintf(trace, "is_group_label=\"%s\" ", ptr->flags & GF_ISOM_IS_GROUP_LABEL ? "yes" : "no");
+	gf_fprintf(trace, "label_id=\"%s\" ", ptr->label_id);
+	gf_fprintf(trace, "language=\"%s\" ", ptr->language);
+	gf_fprintf(trace, "label=\"%s\" ", ptr->label);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("LabelBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err diap_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_DialogueProcessingBox *ptr = (GF_DialogueProcessingBox *) a;
+	gf_isom_box_dump_start(a, "DialogueProcessingBox", trace);
+	gf_fprintf(trace, "dialog_gain=\"%d\" ", ptr->dialog_gain);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("DialogueProcessingBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err stvi_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_StereoVideoBox *ptr = (GF_StereoVideoBox *) a;
@@ -7812,10 +7883,10 @@ GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, GF_Box *box, FIL
 		if (box) {
 			JS_SetPropertyStr(ctx, obj, "type", JS_NewString(ctx, szName));
 			JS_SetPropertyStr(ctx, obj, "Size", JS_NewInt32(ctx, (u32) box->size));
-			strcat(szName, "Box");
+			gf_strcat(szName, "Box");
 		} else {
 			//sample group description
-			strcat(szName, "Entry");
+			gf_strcat(szName, "Entry");
 			par_type=0;
 		}
 		JS_SetPropertyStr(ctx, obj, "Name", JS_NewString(ctx, szName));

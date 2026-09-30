@@ -39,11 +39,11 @@ static void ccdec_test_template(int agg, Bool text_with_overlaps, GF_Err (*pck_s
 	for (u32 i=0; i<strlen(txt); ++i) {
 		//we write to ctx.txtdata+ctx.txtlen like dec_cc.c does
 		if (text_with_overlaps) {
-			strncpy(ctx.txtdata+ctx.txtlen, txt, i+1);
+			gf_strlcpy(ctx.txtdata+ctx.txtlen, txt, i+2);
 			text_aggregate_and_post(&ctx, i+1, i);
 		} else {
 			assert_equal(ctx.txtlen, i, "%u");
-			strncpy(ctx.txtdata+ctx.txtlen, txt+i, 1);
+			gf_strlcpy(ctx.txtdata+ctx.txtlen, txt+i, 2);
 			text_aggregate_and_post(&ctx, 1, i);
 		}
 	}
@@ -153,10 +153,10 @@ unittest(ccdec_several_entries)
 	ctx.pck_truncate = pck_truncate;
 	ctx.pck_new_alloc = pck_new_alloc;
 
-	strcpy(ctx.txtdata+ctx.txtlen, "GPAC");
+	gf_strlcpy(ctx.txtdata+ctx.txtlen, "GPAC", 2*CAPTION_FRAME_TEXT_BYTES-ctx.txtlen);
 	text_aggregate_and_post(&ctx, strlen("GPAC"), ts++);
 
-	strcpy(ctx.txtdata+ctx.txtlen, "ROCKS");
+	gf_strlcpy(ctx.txtdata+ctx.txtlen, "ROCKS", 2*CAPTION_FRAME_TEXT_BYTES-ctx.txtlen);
 	text_aggregate_and_post(&ctx, strlen("ROCKS"), ts++);
 
 	//termination calls
