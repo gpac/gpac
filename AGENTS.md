@@ -98,6 +98,4 @@ and security findings through
 [the GitHub issue tracker](https://github.com/gpac/gpac/issues/new?template=bug_report.md), following
 [SECURITY.md](SECURITY.md) and the
 [issue template](.github/ISSUE_TEMPLATE/bug_report.md) for executable steps,
-sample input, and AI-assistance disclosure. If public disclosure is unreasonable
-or confidential material must be shared, use the policy's `security@gpac.io`
-contact for private disclosure. Use that address for other security inquiries.
+sample input, and AI-assistance disclosure.
