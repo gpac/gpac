@@ -9333,9 +9333,11 @@ GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 
 		saiz->default_sample_info_size = size;
 	} else {
 		if (sampleNumber > saiz->sample_alloc) {
-			const u8 num_bytes = 1 << saiz->version;
-			saiz->sample_alloc = sampleNumber+10;
-			saiz->sample_info_size = gf_realloc(saiz->sample_info_size, num_bytes*saiz->sample_alloc);
+			u32 new_alloc = sampleNumber+10;
+			u32 *new_sizes = gf_realloc(saiz->sample_info_size, sizeof(u32)*new_alloc);
+			if (!new_sizes) return GF_OUT_OF_MEM;
+			saiz->sample_info_size = new_sizes;
+			saiz->sample_alloc = new_alloc;
 		}
 
 		if (saiz->default_sample_info_size) {
@@ -9349,6 +9351,7 @@ GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 
 		saiz_set_sample_info_size(saiz, sampleNumber-1, size);
 		saiz->sample_count = sampleNumber;
 	}
+	saiz_check_version(saiz, size);
 
 
 	count = gf_list_count(*child_box_saio);

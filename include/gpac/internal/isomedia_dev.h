@@ -2175,9 +2175,9 @@ typedef struct
 	u32 aux_info_type;
 	u32 aux_info_type_parameter;
 
-	u32 default_sample_info_size;   // u8/u16/u32 for version 0/1/2 respectively
+	u32 default_sample_info_size;   // serialized as u8/u16/u32 for version 0/1/2 respectively
 	u32 sample_count, sample_alloc;
-	void *sample_info_size;         // u8/u16/u32 array for version 0/1/2 respectively: use getter/setter functions below
+	u32 *sample_info_size;
 
 	u32 cached_sample_num;
 	u32 cached_prev_size;
@@ -2185,34 +2185,19 @@ typedef struct
 
 static GFINLINE u32 saiz_get_sample_info_size(GF_SampleAuxiliaryInfoSizeBox *saiz, u32 idx)
 {
-	if (saiz->version == 0)
-		return ((u8*)saiz->sample_info_size)[idx];
-	else if (saiz->version == 1)
-		return ((u16 *)saiz->sample_info_size)[idx];
-	else if (saiz->version == 2)
-		return ((u32 *)saiz->sample_info_size)[idx];
-	else
-		return 0;
-}
-
-__attribute__((unused))
-static int gf_igetenv(const char *name)
-{
-	const char *val = getenv(name);
-	if (!val) return 0;
-	return atoi(val);
+	return saiz->sample_info_size ? saiz->sample_info_size[idx] : 0;
 }
 
 static GFINLINE void saiz_set_sample_info_size(GF_SampleAuxiliaryInfoSizeBox *saiz, u32 idx, u32 value)
 {
-	int version = gf_igetenv("GPAC_CENC_SAIZ_VER");
+	saiz->sample_info_size[idx] = value;
+}
 
-	if (saiz->version == 1 || version == 1)
-		((u16 *)saiz->sample_info_size)[idx] = value;
-	else if (saiz->version == 2 || version == 2)
-		((u32 *)saiz->sample_info_size)[idx] = value;
-	else // version=0
-		((u8*)saiz->sample_info_size)[idx] = value;
+static GFINLINE void saiz_check_version(GF_SampleAuxiliaryInfoSizeBox *saiz, u32 value)
+{
+	u8 required_version = (value > 0xFFFF) ? 2 : ((value > 0xFF) ? 1 : 0);
+	if (saiz->version < required_version)
+		saiz->version = required_version;
 }
 
 typedef struct _gf_saio_box
@@ -3861,14 +3846,7 @@ typedef struct __cenc_tenc_box
 {
 	GF_ISOM_FULL_BOX
 
-	Bool use_subsample_encryption;
-	Bool use_multi_key;
-	Bool use_senc;
-	Bool use_sai;
-	Bool use_seig;
-	Bool use_encrypted_slice_header;
-
-	Bool isAES256;
+	Bool use_aes_256;
 
 	u32 crypt_byte_block, skip_byte_block;
 	u8 isProtected;
@@ -4761,7 +4739,7 @@ Bool gf_isom_cenc_has_saiz_saio_track(GF_SampleTableBox *stbl, u32 scheme_type);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 Bool gf_isom_cenc_has_saiz_saio_traf(GF_TrackFragmentBox *traf, u32 scheme_type);
-void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len, Bool saio_32bits, Bool use_mkey);
+GF_Err gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len, Bool saio_32bits, Bool use_mkey);
 #endif
 GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u32 sample_number, u64 offset, u32 len);
 

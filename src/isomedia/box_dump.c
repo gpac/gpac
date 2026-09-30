@@ -6046,7 +6046,9 @@ GF_Err tenc_box_dump(GF_Box *a, FILE * trace)
 
 	gf_isom_box_dump_start(a, "TrackEncryptionBox", trace);
 
-	gf_fprintf(trace, "isEncrypted=\"%d\"", ptr->isProtected);
+	gf_fprintf(trace, "isEncrypted=\"%d\" flags=\"0x%06X\"", ptr->isProtected, ptr->flags);
+	if (ptr->version>=2)
+		gf_fprintf(trace, " use_AES_256=\"%s\"", ptr->use_aes_256 ? "yes" : "no");
 
 	if (ptr->key_info[3])
 		gf_fprintf(trace, " IV_size=\"%d\" KID=\"", ptr->key_info[3]);

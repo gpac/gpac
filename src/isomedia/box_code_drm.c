@@ -859,29 +859,19 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 	u8 iv_size;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 
-	ptr->use_subsample_encryption = (ptr->flags & 0x3);
-	ptr->use_multi_key = (ptr->flags & 0xc) >> 2;
-	ptr->use_senc = (ptr->flags & 0x30) >> 4;
-	ptr->use_sai = (ptr->flags & 0xc0) >> 6;
-	ptr->use_seig = (ptr->flags & 0x300) >> 8;
-	ptr->use_encrypted_slice_header = (ptr->flags & 0xc00) >> 10;
-
-	ISOM_DECREASE_SIZE(ptr, 3);
+	ISOM_DECREASE_SIZE(ptr, (ptr->version>=2) ? 4 : 3);
 
 	gf_bs_read_u8(bs); //reserved
 
 	if (ptr->version==0) {
 		gf_bs_read_u8(bs); //reserved
-	} else if (ptr->version>=1) {
+	} else {
 		ptr->crypt_byte_block = gf_bs_read_int(bs, 4);
 		ptr->skip_byte_block = gf_bs_read_int(bs, 4);
-		if (ptr->version==2) {
-			ptr->isAES256 = GF_TRUE;
+		if (ptr->version>=2) {
+			ptr->use_aes_256 = gf_bs_read_int(bs, 1);
+			gf_bs_read_int(bs, 7); // reserved
 		}
-	} else {
-		ptr->crypt_byte_block = gf_bs_read_u32(bs);
-		ptr->skip_byte_block = gf_bs_read_u32(bs);
-		ISOM_DECREASE_SIZE(ptr, 7);
 	}
 	ptr->isProtected = gf_bs_read_u8(bs);
 
@@ -918,19 +908,6 @@ GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox *) s;
 	if (!s) return GF_BAD_PARAM;
-
-	// TEMP
-	if (gf_igetenv("GPAC_CENC_TENC_FLAGS")) {
-		ptr->use_subsample_encryption = gf_igetenv("GPAC_CENC_USE_SUBS");
-		ptr->use_multi_key = gf_igetenv("GPAC_CENC_USE_MKEY");
-		ptr->use_senc = GF_TRUE; //atoi(getenv(""));
-		ptr->use_sai = GF_TRUE; //atoi(getenv(""));
-		ptr->use_seig = gf_igetenv("GPAC_CENC_USE_SEIG");
-		ptr->use_encrypted_slice_header = gf_igetenv("GPAC_CENC_SH");
-	}
-
-	ptr->flags = ptr->use_subsample_encryption + (ptr->use_multi_key << 2) + (ptr->use_senc << 4)
-	           + (ptr->use_sai << 6) + (ptr->use_seig << 8) + (ptr->use_encrypted_slice_header << 10);
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
@@ -942,9 +919,9 @@ GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_int(bs, ptr->crypt_byte_block, 4);
 		gf_bs_write_int(bs, ptr->skip_byte_block, 4);
 		if (ptr->version>=2) {
-			ptr->isAES256 = GF_TRUE;
+			gf_bs_write_int(bs, ptr->use_aes_256, 1);
+			gf_bs_write_int(bs, 0, 7); // reserved
 		}
-		gf_bs_write_int(bs, ptr->isAES256, 1);
 	}
 	gf_bs_write_u8(bs, ptr->isProtected);
 
@@ -960,11 +937,12 @@ GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err tenc_box_size(GF_Box *s)
 {
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
-	ptr->size += 3;
-	if ((ptr->crypt_byte_block>15) || (ptr->skip_byte_block>15)) {
+	if ((ptr->crypt_byte_block>15) || (ptr->skip_byte_block>15))
+		return GF_BAD_PARAM;
+	if (ptr->use_aes_256 && (ptr->version<2))
 		ptr->version=2;
-		ptr->size += 7;
-	}
+	ptr->size += 3;
+	if (ptr->version>=2) ptr->size++;
 
 	ptr->size += 17;
 	if ((ptr->isProtected == 1) && ! ptr->key_info[3]) {
@@ -1290,12 +1268,13 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 {
 	GF_Err e;
 	Bool parse_failed = GF_FALSE;
-	u32 i, count, sample_number;
+	u32 i, count, sample_number, saiz_sample_number;
 	u32 senc_size = (u32) senc->size;
 	u32 subs_size = 0, def_IV_size;
 	u64 pos = gf_bs_get_position(bs);
 	Bool do_warn = GF_TRUE;
 	Bool use_multikey = GF_FALSE;
+	Bool use_subsamples = GF_FALSE;
 	Bool patch_subsamples_present = GF_FALSE;
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -1312,10 +1291,14 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 		if (senc_size<16) return GF_BAD_PARAM;
 		senc_size -= 16;
 	} else if (!senc->piff_type) {
-		if (senc->version==1)
+		if (senc->version==1) {
 			use_multikey = GF_TRUE;
+			use_subsamples = GF_TRUE;
+		} else if (!senc->version && (senc->flags & 2)) {
+			use_subsamples = GF_TRUE;
+		}
 	}
-	if (senc->flags & 2) subs_size = 8;
+	if (use_subsamples) subs_size = 8;
 
 	if (senc_size<4) return GF_BAD_PARAM;
 	if (!max_nb_samples) {
@@ -1333,6 +1316,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	}
 
 	sample_number = 1;
+	saiz_sample_number = 1;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (trak) sample_number += trak->sample_count_at_seg_start;
 #endif
@@ -1420,8 +1404,18 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			gf_isom_cenc_samp_aux_info_del(sai);
 			break;
 		}
+		if (senc->version==2) {
+			use_subsamples = GF_FALSE;
+			if (senc->cenc_saiz && (saiz_sample_number<=senc->cenc_saiz->sample_count)) {
+				u32 sai_size = senc->cenc_saiz->default_sample_info_size;
+				if (!sai_size && senc->cenc_saiz->sample_info_size)
+					sai_size = saiz_get_sample_info_size(senc->cenc_saiz, saiz_sample_number-1);
+				use_subsamples = (sai_size > IV_size) ? GF_TRUE : GF_FALSE;
+			}
+		}
 
 		sample_number++;
+		saiz_sample_number++;
 
 		//subsample info is only signaled for encrypted samples
 		if (is_encrypted) {
@@ -1454,7 +1448,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 					gf_bs_skip_bytes(bs, IV_size);
 				}
 			}
-			if (senc->flags & 0x00000002) {
+			if (use_subsamples) {
 				nb_subs = gf_bs_read_int(bs, nb_subs_bits);
 			}
 
@@ -1528,9 +1522,6 @@ GF_Err senc_box_write(GF_Box *s, GF_BitStream *bs)
 	u32 sample_count, nb_crypt_samples;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *) s;
 
-	// TEMP: for test purpose only
-	ptr->version = gf_igetenv("GPAC_CENC_SENC_VER");
-
 	sample_count = gf_list_count(ptr->samp_aux_info);
 	//temp patch until we cleanup the spec...
 	nb_crypt_samples = 0;
@@ -1560,43 +1551,6 @@ GF_Err senc_box_write(GF_Box *s, GF_BitStream *bs)
 			continue;
 		gf_bs_write_data(bs, sai->cenc_data, sai->cenc_data_size);
 	}
-	//TODO: add v2:
-/*
-unsigned int(32) sample_count;
-{
-if (version==0) {
-	unsigned int(Per_Sample_IV_Size*8) InitializationVector;
-	if (UseSubSampleEncryption) {
-		unsigned int(16) subsample_count;
-		{
-			unsigned int(16) BytesOfClearData;
-			unsigned int(32) BytesOfProtectedData;
-		} [subsample_count ]
-	}
-} else if ((version==1) && isProtected){
-	unsigned int(16) multi_IV_count;
-	for (i=1; i <= multi _IV_count; i++) {
-		unsigned int(16) multi_subindex_IV;
-		unsigned int(Per_Sample_IV_Size*8) IV;
-	}
-	unsigned int(32) subsample_count;
-	{
-		unsigned int(16) multi_subindex;
-		unsigned int(16) BytesOfClearData;
-		unsigned int(32) BytesOfProtectedData;
-	} [subsample_count]
-} else if ((version==2) && isProtected) {
-	unsigned int(Per_Sample_IV_Size*8) InitializationVector;
-	if (UseSubSampleEncryption) {
-		unsigned int(16) subsample_count;
-		{
-			unsigned int(16) BytesOfClearData;
-			unsigned int(32) BytesOfProtectedData;
-		} [subsample_count ]
-	}
-}
-}[ sample_count ]
-*/
 
 	return GF_OK;
 }

@@ -3233,9 +3233,8 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_sampl
 			saiz->sample_count = 0;
 		} else {
 			if (!saiz->default_sample_info_size) {
-				const u8 num_bytes = 1 << saiz->version;
-				const void *ptr = ((u8*)saiz->sample_info_size) + nb_samples * num_bytes;
-				memmove(saiz->sample_info_size, ptr, num_bytes * (saiz->sample_count - nb_samples));
+				const u32 *ptr = saiz->sample_info_size + nb_samples;
+				memmove(saiz->sample_info_size, ptr, sizeof(u32) * (saiz->sample_count - nb_samples));
 			}
 			saiz->sample_count-=nb_samples;
 		}

@@ -948,9 +948,6 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		}
 	}
 
-	// TEMP
-	setenv("GPAC_CENC_SH", cstr->slice_header_clear ? "0" : "1", 1);
-
 	if (((cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) || (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && (cstr->cenc_codec>CENC_FULL_SAMPLE) && (cstr->cenc_codec<=CENC_AV1)
 	)  {
 		if (!cstr->crypt_byte_block || !cstr->skip_byte_block) {
@@ -971,7 +968,6 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	cstr->use_subsamples = GF_FALSE;
 	if (cstr->cenc_codec != CENC_FULL_SAMPLE) {
 		cstr->use_subsamples = GF_TRUE;
-		setenv("GPAC_CENC_USE_SUBS", "1", 1); // TEMP
 	}
 	//CBCS mode with skip byte block may be used for any track, in which case we need subsamples
 	else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) {
@@ -984,7 +980,6 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		}
 		if (cstr->skip_byte_block) {
 			cstr->use_subsamples = GF_TRUE;
-			setenv("GPAC_CENC_USE_SUBS", "1", 1); // TEMP
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("\n[CENC] Using cbcs pattern mode on non NAL video track, this may not be supported by most devices; consider setting skip_byte_block to 0\n\n"));
 			//cbcs allows bytes of clear data
 			cstr->bytes_in_nal_hdr = cstr->tci->clear_bytes;
@@ -1157,6 +1152,14 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	if (cstr->tci->roll_type && (cstr->tci->roll_type!=GF_KEYROLL_PERIODS)) {
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_HAS_ROLL, &PROP_BOOL(GF_TRUE) );
 	}
+
+	u32 tenc_flags = cstr->use_subsamples ? GF_ISOM_CENC_TENC_FEATURE_USED : GF_ISOM_CENC_TENC_FEATURE_NOT_USED;
+	tenc_flags |= (cstr->multi_key ? GF_ISOM_CENC_TENC_FEATURE_USED : GF_ISOM_CENC_TENC_FEATURE_NOT_USED) << 2;
+	if ((cstr->cenc_codec==CENC_AVC) && cstr->ctr_mode) {
+		u32 sh_state = cstr->slice_header_clear ? GF_ISOM_CENC_TENC_FEATURE_NOT_USED : GF_ISOM_CENC_TENC_FEATURE_USED;
+		tenc_flags |= sh_state << 10;
+	}
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_TENC_FLAGS, &PROP_UINT(tenc_flags));
 
 	//parse pssh even if reinit since we need to reassign pssh property
 	return cenc_parse_pssh(ctx, cstr, cfile_name);
@@ -1823,7 +1826,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 	if (cstr->multi_key) {
 		nb_keys = cstr->tci->nb_keys;
 		multi_key = GF_TRUE;
-		setenv("GPAC_CENC_USE_MKEY", "1", 1); // TEMP
 		nb_subsamples_bits = 32;
 		sai_size_sub = 8;
 	} else {

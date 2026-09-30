@@ -143,6 +143,8 @@ typedef struct
 	u32 cenc_key_info_crc;
 	u32 constant_IV_size;
 	Bool cenc_multikey;
+	Bool cenc_aes_256;
+	u32 cenc_tenc_flags;
 	Bool cenc_frag_protected;
 	u32 skip_byte_block, crypt_byte_block;
 
@@ -302,6 +304,7 @@ typedef struct
 	GF_AudioSampleEntryImportMode ase;
 	char *styp;
 	Bool force_seig;
+	Bool tenc_flags;
 	Bool lmsg;
 	Bool sseg;
 	Bool noroll, norap;
@@ -4497,6 +4500,31 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 
 		tkw->cenc_state = CENC_SETUP_DONE;
 		tkw->def_cenc_key_info_crc = tkw->cenc_key_info_crc;
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_AES_256);
+		tkw->cenc_aes_256 = p ? p->value.boolean : GF_FALSE;
+		tkw->cenc_tenc_flags = 0;
+		if (ctx->tenc_flags && (scheme_type != GF_ISOM_PIFF_SCHEME)) {
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_TENC_FLAGS);
+			if (p) tkw->cenc_tenc_flags = p->value.uint & GF_ISOM_CENC_TENC_FLAGS_MASK;
+			if (!(tkw->cenc_tenc_flags & GF_ISOM_CENC_TENC_SUBSAMPLE_MASK))
+				tkw->cenc_tenc_flags |= tkw->cenc_subsamples ? GF_ISOM_CENC_TENC_FEATURE_USED : GF_ISOM_CENC_TENC_FEATURE_NOT_USED;
+			if (!(tkw->cenc_tenc_flags & GF_ISOM_CENC_TENC_MULTI_KEY_MASK))
+				tkw->cenc_tenc_flags |= (tkw->cenc_multikey ? GF_ISOM_CENC_TENC_FEATURE_USED : GF_ISOM_CENC_TENC_FEATURE_NOT_USED) << 2;
+			tkw->cenc_tenc_flags &= ~(GF_ISOM_CENC_TENC_SENC_MASK | GF_ISOM_CENC_TENC_SAI_MASK);
+			if (container_type==GF_ISOM_BOX_TYPE_SENC) {
+				tkw->cenc_tenc_flags |= GF_ISOM_CENC_TENC_FEATURE_USED << 4;
+				tkw->cenc_tenc_flags |= GF_ISOM_CENC_TENC_FEATURE_USED << 6;
+			} else {
+				tkw->cenc_tenc_flags |= GF_ISOM_CENC_TENC_FEATURE_NOT_USED << 4;
+				tkw->cenc_tenc_flags |= GF_ISOM_CENC_TENC_FEATURE_NOT_USED << 6;
+			}
+			if (tkw->cenc_multikey || ctx->force_seig) {
+				tkw->cenc_tenc_flags &= ~GF_ISOM_CENC_TENC_SEIG_MASK;
+				tkw->cenc_tenc_flags |= GF_ISOM_CENC_TENC_FEATURE_USED << 8;
+			} else if (!(tkw->cenc_tenc_flags & GF_ISOM_CENC_TENC_SEIG_MASK)) {
+				tkw->cenc_tenc_flags |= GF_ISOM_CENC_TENC_FEATURE_NOT_USED << 8;
+			}
+		}
 		if (tkw->cenc_ki) {
 			e = gf_isom_set_cenc_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, pck_is_encrypted, tkw->def_crypt_byte_block, tkw->def_skip_byte_block, tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size);
 		} else {
@@ -4508,6 +4536,10 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to setup CENC information: %s\n", gf_error_to_string(e) ));
 			tkw->cenc_state = CENC_SETUP_ERROR;
 			return e;
+		}
+		if ((ctx->tenc_flags || tkw->cenc_aes_256) && (scheme_type != GF_ISOM_PIFF_SCHEME)) {
+			e = gf_isom_set_cenc_protection_flags(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->cenc_tenc_flags, tkw->cenc_aes_256);
+			if (e) return e;
 		}
 
 		//purge duplicates
@@ -4583,6 +4615,11 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, sample_num, GF_FALSE, 0, 0, dumb_key, 20);
 			IV_size = 0;
 			tkw->has_seig = GF_TRUE;
+			if (ctx->tenc_flags && ((tkw->cenc_tenc_flags & GF_ISOM_CENC_TENC_SEIG_MASK) != (GF_ISOM_CENC_TENC_FEATURE_USED << 8))) {
+				tkw->cenc_tenc_flags &= ~GF_ISOM_CENC_TENC_SEIG_MASK;
+				tkw->cenc_tenc_flags |= GF_ISOM_CENC_TENC_FEATURE_USED << 8;
+				e = gf_isom_set_cenc_protection_flags(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->cenc_tenc_flags, tkw->cenc_aes_256);
+			}
 		}
 	} else {
 
@@ -4602,6 +4639,11 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		if (needs_seig) {
 			e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, sample_num, 1, tkw->crypt_byte_block, tkw->skip_byte_block, tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size);
 			tkw->has_seig = GF_TRUE;
+			if (ctx->tenc_flags && ((tkw->cenc_tenc_flags & GF_ISOM_CENC_TENC_SEIG_MASK) != (GF_ISOM_CENC_TENC_FEATURE_USED << 8))) {
+				tkw->cenc_tenc_flags &= ~GF_ISOM_CENC_TENC_SEIG_MASK;
+				tkw->cenc_tenc_flags |= GF_ISOM_CENC_TENC_FEATURE_USED << 8;
+				e = gf_isom_set_cenc_protection_flags(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->cenc_tenc_flags, tkw->cenc_aes_256);
+			}
 		} else if (tkw->has_seig) {
 			e = gf_isom_set_sample_cenc_default_group(ctx->file, tkw->track_num, sample_num);
 		}
@@ -4761,15 +4803,6 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		}
 	}
 
-	if (pck_is_encrypted && (sai_size>255)) {
-		if (gf_igetenv("GPAC_CENC_SAIZ_VER") == 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] CENC SAI size %u larger than 255 - forcing 'saiz' version 1\n", sai_size ));
-
-			// TEMP
-			setenv("GPAC_CENC_SAIZ_VER", "1", 1);
-		}
-	}
-
 	if (act_type==CENC_ADD_FRAG) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (pck_is_encrypted) {
@@ -4782,7 +4815,6 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 #endif
 	} else {
 		if (sai) {
-			//printf("Romain: adding sample info for track %d, sample %d, size %d\n", tkw->track_num, tkw->nb_samples+1, sai_size);
 			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
 		} else if (!pck_is_encrypted) {
 			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, NULL, 0, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
@@ -8781,6 +8813,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- both: in movie box and in first moof of each segment\n"
 	"- none: pssh is discarded", GF_PROP_UINT, "moov", "moov|moof|both|none", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(force_seig), "force writing `seig` sample group for encrypted samples, even when all samples use the default single-key CENC configuration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tenc_flags), "write CENC TrackEncryptionBox feature flags inferred from the input and mux setup; disable only for backward compatibility", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sgpd_traf), "store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(vodcache), "enable temp storage for VoD dash modes\n"
 		"- on: use temp storage of complete file for sidx and ssix injection\n"
