@@ -1,10 +1,11 @@
 # GPAC threat model
 
 This document helps contributors reason about security impact in GPAC's media
-processing and streaming workflows. [SECURITY.md](SECURITY.md) defines reporting
-requirements and the supported version. The model describes potential trust
-boundaries; each report still needs to establish its actual entry point,
-deployment conditions, and consequence.
+processing and streaming workflows. Report bugs and security findings through
+[the GitHub issue tracker](https://github.com/gpac/gpac/issues/new?template=bug_report.md)
+as directed by [SECURITY.md](SECURITY.md), which defines reporting requirements,
+private disclosure exceptions, and the supported version. Each report needs to
+establish its actual entry point, deployment conditions, and consequence.
 
 ## Deployments and authority
 
@@ -28,12 +29,15 @@ by the process, output integrity, and availability.
 
 GPAC is not a process sandbox. Its [security discussion](https://gpac.io/2024/10/28/the-security-landscape-of-the-gpac-open-source-project-a-balanced-perspective/)
 recommends sandboxing processing of untrusted media and keeping deployments
-updated. Assess impact using the process's actual file permissions, isolation,
-network reachability, and access to other users' data. A CVE label does not
-establish deployment impact. An attacker-triggered crash establishes
-process-level availability impact; assess whether it interrupts one invocation,
-an automated job, or a shared service, and account for isolation and restart
-behavior. A crash does not by itself establish code execution.
+updated. Restrict the process's access to files, credentials, and networks, and
+bound resource use and retries. A separate process limits access only when its
+permissions or sandbox enforce restrictions; assess the controls actually used.
+
+A CVE label does not establish deployment impact. A crash demonstrates a
+process failure. Assess its security impact by establishing who can trigger it,
+whether it affects one invocation, other jobs, a shared service, or protected
+data, and how isolation and restart behavior limit the effect. A crash does not
+by itself establish code execution.
 
 ## Trust boundaries
 
@@ -62,6 +66,8 @@ mode changes what untrusted parties can reach.
 - Start proactive review with common MP4/ISOBMFF and DASH workflows. For an
   optional or older feature, show its enabled configuration and consequence;
   location or age alone does not make a feature unsupported.
+- Malformed input remains relevant when an untrusted party can supply it
+  through a real workflow. Establish that delivery path and its consequence.
 - [SECURITY.md](SECURITY.md) says GPAC patches only reports confirmed on the
   current `master` HEAD. Provide the commit, input, and executable steps. For a
   library harness, explain production preconditions and any bypassed checks.
