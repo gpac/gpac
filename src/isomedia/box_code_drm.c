@@ -1328,6 +1328,9 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 		//UUID
 		if (senc_size<16) return GF_BAD_PARAM;
 		senc_size -= 16;
+		//keep the legacy subsample presence flag semantics
+		if (senc->flags & 2)
+			use_subsamples = GF_TRUE;
 	} else if (!senc->piff_type) {
 		if (senc->version==1) {
 			use_multikey = GF_TRUE;
