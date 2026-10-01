@@ -523,6 +523,13 @@ typedef struct _dash_stream
 	s32 cues_ts_offset;
 	Bool inband_cues;
 
+	/* SCTE-35 splice boundaries are expressed on the MPEG 90 kHz clock.
+	 * Keep the start and optional return boundary while normal duration-based
+	 * segmentation continues. */
+	u64 scte35_splice_start;
+	u64 scte35_splice_end;
+	u8 scte35_boundary_state; /* 0: none, 1: break start, 2: break end */
+
 	Bool clamp_done;
 	u32 dcd_not_ready;
 
@@ -10076,6 +10083,12 @@ static void dasher_set_pto(GF_DashStream *ds, u64 pto_adj)
 	}
 }
 
+GF_STATIC Bool dasher_scte35_boundary_due(u64 packet_cts, u32 packet_timescale, u32 sap_type, u64 boundary_time)
+{
+	if (!sap_type || !packet_timescale) return GF_FALSE;
+	return gf_timestamp_greater_or_equal(packet_cts, packet_timescale, boundary_time, 90000);
+}
+
 static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_DashStream *ds)
 {
 	GF_Err ret = GF_OK;
@@ -10160,6 +10173,18 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 			}
 
 			if (!found) {
+				/* A splice that requires a random-access point should also create
+				 * a media segment boundary. Do not switch the representation into
+				 * cue-only segmentation: keep the normal cadence and add the splice
+				 * boundary when the first suitable SAP arrives. */
+				if (needs_idr && (ds->stream_type == GF_STREAM_VISUAL) && !ds->scte35_boundary_state) {
+					ds->scte35_splice_start = evt->presentation_time;
+					ds->scte35_splice_end = 0;
+					if (dur && (dur != (u64)-1) && (evt->presentation_time <= ((u64)-1) - dur))
+						ds->scte35_splice_end = evt->presentation_time + dur;
+					ds->scte35_boundary_state = 1;
+				}
+
 				evt->duration = (u32)dur;
 				es->timescale = gf_filter_pck_get_timescale(pck);
 				evt->message = gf_malloc(size);
@@ -10597,6 +10622,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 			GF_Err e = dasher_handle_scte35(ctx, pck, ds);
 			if (e) return e;
 
+			Bool scte35_splice_boundary = GF_FALSE;
+			if (ds->scte35_boundary_state) {
+				u64 boundary_time = (ds->scte35_boundary_state == 1) ? ds->scte35_splice_start : ds->scte35_splice_end;
+				if (boundary_time)
+					scte35_splice_boundary = dasher_scte35_boundary_due(cts, ds->timescale, sap_type, boundary_time);
+			}
+
 			if (!ds->rep_init) {
 				u32 set_start_with_sap;
 				//for video, resync on sap 1 or 2 if not full profile
@@ -10897,6 +10929,25 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//flush for entire input, segment is done upon eos
 			else if (ctx->sflush==SFLUSH_SINGLE) {
+			}
+			/* SCTE-35 adds a boundary without replacing normal duration-based
+			 * segmentation. The cue timestamp may fall slightly before an IDR,
+			 * so cut at the first SAP at or after the requested splice time. */
+			else if (scte35_splice_boundary && !ctx->sigfrag && !ds->inband_cues && !ds->cues) {
+				if (ds->scte35_boundary_state == 1 && ds->scte35_splice_end)
+					ds->scte35_boundary_state = 2;
+				else
+					ds->scte35_boundary_state = 0;
+
+				if (ds->segment_started) {
+					seg_over = GF_TRUE;
+					if (ds == base_ds) {
+						/* Re-anchor the regular cadence at the splice boundary. The
+						 * regular segment-duration update will advance from here. */
+						base_ds->next_seg_start = cts;
+						base_ds->adjusted_next_seg_start = cts;
+					}
+				}
 			}
 			//source-driven fragmentation check for segment start
 			else if (ctx->sigfrag) {
