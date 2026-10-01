@@ -1260,6 +1260,44 @@ void senc_box_del(GF_Box *s)
 	gf_free(s);
 }
 
+static GF_SampleAuxiliaryInfoSizeBox *senc_get_saiz(GF_TrackBox *trak, void *_traf)
+{
+	u32 i, count;
+	GF_List *sai_sizes = NULL;
+	GF_SampleAuxiliaryInfoSizeBox *untyped_saiz = NULL;
+
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	GF_TrackFragmentBox *traf = (GF_TrackFragmentBox *) _traf;
+	if (traf)
+		sai_sizes = traf->sai_sizes;
+	else
+#else
+	GF_UNUSED(_traf);
+#endif
+	if (trak && trak->Media && trak->Media->information && trak->Media->information->sampleTable)
+		sai_sizes = trak->Media->information->sampleTable->sai_sizes;
+
+	count = gf_list_count(sai_sizes);
+	for (i=0; i<count; i++) {
+		GF_SampleAuxiliaryInfoSizeBox *saiz = gf_list_get(sai_sizes, i);
+		if (saiz->aux_info_type_parameter)
+			continue;
+		switch (saiz->aux_info_type) {
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
+		case GF_ISOM_PIFF_SCHEME:
+			return saiz;
+		case 0:
+			if (!untyped_saiz)
+				untyped_saiz = saiz;
+			break;
+		}
+	}
+	return untyped_saiz;
+}
+
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc, u32 max_nb_samples)
 #else
@@ -1296,6 +1334,13 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			use_subsamples = GF_TRUE;
 		} else if (!senc->version && (senc->flags & 2)) {
 			use_subsamples = GF_TRUE;
+		}
+	}
+	if ((senc->version==2) && !senc->cenc_saiz) {
+		senc->cenc_saiz = senc_get_saiz(trak, traf);
+		if (!senc->cenc_saiz) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] cannot parse senc version 2 without associated CENC saiz\n"));
+			return GF_ISOM_INVALID_FILE;
 		}
 	}
 	if (use_subsamples) subs_size = 8;
@@ -1479,7 +1524,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			sai->isNotProtected = 1;
 		}
 
-		if (senc->internal_4cc == GF_ISOM_BOX_UUID_PSEC) {
+		if ((senc->internal_4cc == GF_ISOM_BOX_UUID_PSEC) || !key_info) {
 			sai->key_info_size = IV_size;
 		} else {
 			sai->key_info = key_info;

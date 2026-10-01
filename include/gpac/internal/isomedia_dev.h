@@ -4788,9 +4788,16 @@ void AV1_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *av1);
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, GF_ISOTrackID trackID, u16 *outRefIndex);
 Bool gf_isom_cenc_has_saiz_saio_track(GF_SampleTableBox *stbl, u32 scheme_type);
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err gf_isom_track_cenc_add_sample_info_ex(GF_ISOFile *isom_file, u32 trackNumber, u32 container_type, u8 *buf, u32 len, Bool use_subsamples, Bool use_saio_32bit, Bool is_multi_key, Bool use_senc_v2);
+#endif
+
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 Bool gf_isom_cenc_has_saiz_saio_traf(GF_TrackFragmentBox *traf, u32 scheme_type);
 GF_Err gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len, Bool saio_32bits, Bool use_mkey);
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err gf_isom_fragment_set_cenc_sai_ex(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u8 *sai_b, u32 sai_b_size, Bool use_subsample, Bool use_saio_32bit, Bool use_multikey, Bool use_senc_v2);
+#endif
 #endif
 GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u32 sample_number, u64 offset, u32 len);
 

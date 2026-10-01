@@ -1372,6 +1372,11 @@ GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTable
 GF_EXPORT
 GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 *buf, u32 len, Bool use_subsamples, Bool use_saio_32bit, Bool use_multikey)
 {
+	return gf_isom_track_cenc_add_sample_info_ex(the_file, trackNumber, container_type, buf, len, use_subsamples, use_saio_32bit, use_multikey, GF_FALSE);
+}
+
+GF_Err gf_isom_track_cenc_add_sample_info_ex(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 *buf, u32 len, Bool use_subsamples, Bool use_saio_32bit, Bool use_multikey, Bool use_senc_v2)
+{
 	GF_SampleEncryptionBox *senc;
 	GF_CENCSampleAuxInfo *sai;
 	GF_SampleTableBox *stbl;
@@ -1409,7 +1414,12 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 		gf_list_add(senc->samp_aux_info, sai);
 		sai->isNotProtected = 1;
 	}
-	if (use_multikey) {
+	if (senc->piff_type || !use_senc_v2) {
+		if (use_subsamples)
+			senc->flags |= 0x00000002;
+		if (use_multikey)
+			senc->version = 1;
+	} else if (use_multikey) {
 		senc->version = 1;
 		senc->flags &= ~0x00000002;
 	} else if (sai->isNotProtected) {

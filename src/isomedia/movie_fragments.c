@@ -3007,6 +3007,11 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 GF_EXPORT
 GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, u8 *sai_b, u32 sai_b_size, Bool use_subsamples, Bool use_saio_32bit, Bool use_multikey)
 {
+	return gf_isom_fragment_set_cenc_sai_ex(output, TrackID, sai_b, sai_b_size, use_subsamples, use_saio_32bit, use_multikey, GF_FALSE);
+}
+
+GF_Err gf_isom_fragment_set_cenc_sai_ex(GF_ISOFile *output, GF_ISOTrackID TrackID, u8 *sai_b, u32 sai_b_size, Bool use_subsamples, Bool use_saio_32bit, Bool use_multikey, Bool use_senc_v2)
+{
 	GF_CENCSampleAuxInfo *sai;
 	GF_TrackFragmentBox  *traf = gf_isom_get_traf(output, TrackID);
 	GF_SampleEncryptionBox *senc;
@@ -3034,7 +3039,7 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 	senc = (GF_SampleEncryptionBox *) traf->sample_encryption;
 
 	if (!sai_b_size && !sai_b) {
-		if (!use_multikey) {
+		if (use_senc_v2 && !senc->piff_type && !use_multikey) {
 			senc->version = 2;
 			senc->flags &= ~0x00000002;
 		}
@@ -3057,7 +3062,12 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 	}
 
 	gf_list_add(senc->samp_aux_info, sai);
-	if (use_multikey) {
+	if (senc->piff_type || !use_senc_v2) {
+		if (use_subsamples)
+			senc->flags |= 0x00000002;
+		if (use_multikey)
+			senc->version = 1;
+	} else if (use_multikey) {
 		senc->version = 1;
 		senc->flags &= ~0x00000002;
 	} else if (sai->isNotProtected) {

@@ -305,6 +305,7 @@ typedef struct
 	char *styp;
 	Bool force_seig;
 	Bool tenc_flags;
+	Bool senc_v2;
 	Bool lmsg;
 	Bool sseg;
 	Bool noroll, norap;
@@ -4845,12 +4846,12 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		if (tkw->clear_stsd_idx) {
 			if (act_type==CENC_ADD_FRAG) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-				return gf_isom_fragment_set_cenc_sai(ctx->file, tkw->track_id, NULL, 0, GF_FALSE, ctx->saio32, tkw->cenc_multikey);
+				return gf_isom_fragment_set_cenc_sai_ex(ctx->file, tkw->track_id, NULL, 0, GF_FALSE, ctx->saio32, tkw->cenc_multikey, ctx->senc_v2);
 #else
 				return GF_NOT_SUPPORTED;
 #endif
 			} else {
-				return gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, NULL, 0, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
+				return gf_isom_track_cenc_add_sample_info_ex(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, NULL, 0, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey, ctx->senc_v2);
 			}
 		} else {
 			char dumb_key[20];
@@ -5049,18 +5050,18 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	if (act_type==CENC_ADD_FRAG) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (pck_is_encrypted) {
-			e = gf_isom_fragment_set_cenc_sai(ctx->file, tkw->track_id, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
+			e = gf_isom_fragment_set_cenc_sai_ex(ctx->file, tkw->track_id, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey, ctx->senc_v2);
 		} else {
-			e = gf_isom_fragment_set_cenc_sai(ctx->file, tkw->track_id, NULL, 0, GF_FALSE, ctx->saio32, tkw->cenc_multikey);
+			e = gf_isom_fragment_set_cenc_sai_ex(ctx->file, tkw->track_id, NULL, 0, GF_FALSE, ctx->saio32, tkw->cenc_multikey, ctx->senc_v2);
 		}
 #else
 		e = GF_NOT_SUPPORTED;
 #endif
 	} else {
 		if (sai) {
-			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
+			e = gf_isom_track_cenc_add_sample_info_ex(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey, ctx->senc_v2);
 		} else if (!pck_is_encrypted) {
-			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, NULL, 0, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
+			e = gf_isom_track_cenc_add_sample_info_ex(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, NULL, 0, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey, ctx->senc_v2);
 		}
 	}
 	if (fake_sai) gf_free(fake_sai);
@@ -9063,7 +9064,8 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- both: in movie box and in first moof of each segment\n"
 	"- none: pssh is discarded", GF_PROP_UINT, "moov", "moov|moof|both|none", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(force_seig), "force writing `seig` sample group for encrypted samples, even when all samples use the default single-key CENC configuration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tenc_flags), "write CENC TrackEncryptionBox feature flags inferred from the input and mux setup; disable only for backward compatibility", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tenc_flags), "write CENC TrackEncryptionBox feature flags inferred from the input and mux setup; disable only for backward compatibility", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(senc_v2), "use CENC v4 `senc` signaling: version 2 for selective encryption and version 1 without the legacy subsample flag for multi-key; disabled by default for backward compatibility", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sgpd_traf), "store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(vodcache), "enable temp storage for VoD dash modes\n"
 		"- on: use temp storage of complete file for sidx and ssix injection\n"

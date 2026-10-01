@@ -6221,7 +6221,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 				gf_fprintf(trace, "]\"");
 			}
 		}
-		if (use_multikey || ((ptr->flags & 0x2) && (sai->cenc_data_size>iv_size)) ) {
+		if (use_multikey || (((ptr->flags & 0x2) || (ptr->version==2)) && (sai->cenc_data_size>iv_size)) ) {
 			u32 j, nb_subs, total_bytes=0;
 
 			nb_subs = gf_bs_read_int(bs, subs_bits);

@@ -733,7 +733,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 		}
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_KEY_INFO, &PROP_DATA((u8 *)key_info, key_info_size) );
 		ch->key_info_crc = gf_crc_32(key_info, key_info_size);
-		if (!gf_isom_get_cenc_protection_flags(ch->owner->mov, ch->track, stsd_idx, &tenc_flags, &use_aes_256))
+		if (!gf_isom_get_cenc_protection_flags(ch->owner->mov, ch->track, stsd_idx, &tenc_flags, &use_aes_256) && tenc_flags)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_TENC_FLAGS, &PROP_UINT(tenc_flags) );
 		if (use_aes_256)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_AES_256, &PROP_BOOL(GF_TRUE) );
