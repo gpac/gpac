@@ -56,12 +56,15 @@ When concrete merge blockers are established, report them promptly and identify 
 
 ## Write a report that supports the fix
 
-Use a title that names the consequence and entry point. Keep the PR body short and self-contained. The body should let a maintainer reproduce and judge the issue without reading private notes:
+Use a title that names the consequence and entry point. Keep the PR body short and self-contained. Use these Markdown section headings in this order so a maintainer can find the impact, reproduction, and fix quickly:
 
-- **Summary and impact:** attacker-controlled field, entry point, required user or service action, writable target or other relevant permissions, and observed security consequence. Rate severity from that evidence and mention an existing safe CLI option when it changes exposure. Do not imply code execution or broader control without proof.
-- **Reproduction:** the shortest runnable end-to-end commands, current upstream SHA, expected result, actual result, and a valid control. State platform/compiler details when they affect reproduction or limit the result. Include sanitizer and feature settings when they affect reproduction or the security assessment. Keep incidental host-specific build workarounds in local evidence rather than the PR body.
-- **Cause and fix:** function and source location, why the trust boundary fails, and the precise behavior change. State important residual behavior and compatibility effects. For example, rejecting path syntax in implicit names is not a guarantee that accepted names cannot overwrite an existing basename or follow a symlink. State platform limits rather than calling an untested rule universally safe.
-- **Verification and disclosure:** report tests and counts actually run on the current commit, distinguishing runtime observations from static review. GPAC's issue template asks for AI assistance to be disclosed; do not claim human review before it happens. Preserve contributor attribution when extending a PR.
+- **`## Summary and Impact`:** attacker-controlled field, entry point, required user or service action, writable target or other relevant permissions, and observed security consequence. Briefly identify the root cause and affected function. Rate severity from that evidence and mention an existing safe CLI option when it changes exposure. Do not imply code execution or broader control without proof.
+- **`## Reproduction`:** the shortest runnable end-to-end commands, reproducer ZIP link, current upstream SHA, expected result, actual result, and a valid control. State platform/compiler details when they affect reproduction or limit the result. Include sanitizer and feature settings when they affect reproduction or the security assessment. Put the collapsible sanitizer excerpt here. Keep incidental host-specific build workarounds in local evidence rather than the PR body.
+- **`## Fix and Verification`:** function and source location, why the trust boundary fails, and the precise behavior change. State important residual behavior and compatibility effects. For example, rejecting path syntax in implicit names is not a guarantee that accepted names cannot overwrite an existing basename or follow a symlink. Report tests and counts actually run on the current commit, distinguishing runtime observations from static review and stating platform limits.
+
+End with this disclosure when applicable; adjust it to reflect the assistance and validation actually performed. Do not claim human review before it happens. Preserve contributor attribution when extending a PR.
+
+> AI assistance was used to investigate the issue, prepare the patch and tests, and draft this report. The commands and results above were run locally.
 
 Keep the main report focused on executable evidence a maintainer can act on. Mention relevant prior issues or maintainer scope decisions briefly and identify the specific difference between the cases. The PR title already identifies the finding; start the body with the report, without repeating the title.
 
