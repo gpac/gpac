@@ -105,3 +105,98 @@ unittest(mpd_hls_scte35_nonzero_presentation_time_offset)
 	gf_list_del(event_stream.entries);
 	gf_list_del(period.event_streams);
 }
+
+/*************************************/
+
+unittest(mpd_hls_scte35_cues_follow_segment_boundaries)
+{
+	GF_MPD_Period period = {0};
+	GF_MPD_AdaptationSet adaptation_set = {0};
+	GF_MPD_Representation representation = {0};
+	GF_DASH_SegmentContext segment = {0};
+	GF_MPD_EventStream event_stream = {0};
+	GF_MPD_EventStreamEntry event = {0};
+	char text[1024];
+	size_t bytes_read;
+	FILE *output;
+
+	period.event_streams = gf_list_new();
+	event_stream.entries = gf_list_new();
+	assert_true(period.event_streams != NULL);
+	assert_true(event_stream.entries != NULL);
+
+	representation.timescale = 1000;
+	event_stream.timescale = 1000;
+	event.presentation_time = 10300;
+	event.duration = 5000;
+	event.id = 7;
+	gf_list_add(event_stream.entries, &event);
+	gf_list_add(period.event_streams, &event_stream);
+
+	/* The splice occurs inside this segment. A cue before this segment would
+	 * start replacement 300 ms too early, so no marker belongs here. */
+	segment.time = 10000;
+	segment.dur = 4000;
+	output = tmpfile();
+	assert_true(output != NULL);
+	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment);
+	fflush(output);
+	rewind(output);
+	memset(text, 0, sizeof(text));
+	bytes_read = fread(text, 1, sizeof(text)-1, output);
+	text[bytes_read] = 0;
+	assert_true(strstr(text, "#EXT-X-CUE-OUT") == NULL);
+	assert_equal(event.state, 0, "%u");
+	fclose(output);
+
+	/* CUE-OUT is emitted immediately before the first segment whose start is
+	 * at or after the splice point. */
+	segment.time = 14000;
+	segment.dur = 4000;
+	output = tmpfile();
+	assert_true(output != NULL);
+	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment);
+	fflush(output);
+	rewind(output);
+	memset(text, 0, sizeof(text));
+	bytes_read = fread(text, 1, sizeof(text)-1, output);
+	text[bytes_read] = 0;
+	assert_true(strstr(text, "#EXT-X-DATERANGE:ID=\"7-0000\"") != NULL);
+	assert_true(strstr(text, "#EXT-X-CUE-OUT:5") != NULL);
+	assert_true(strstr(text, "#EXT-X-CUE-IN") == NULL);
+	assert_equal(event.state, 1, "%u");
+	fclose(output);
+
+	/* The break ends at 15.3 s, inside the same 14-18 s segment. Do not put
+	 * CUE-IN before media that still belongs to the break. */
+	output = tmpfile();
+	assert_true(output != NULL);
+	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment);
+	fflush(output);
+	rewind(output);
+	memset(text, 0, sizeof(text));
+	bytes_read = fread(text, 1, sizeof(text)-1, output);
+	text[bytes_read] = 0;
+	assert_true(strstr(text, "#EXT-X-CUE-IN") == NULL);
+	assert_equal(event.state, 1, "%u");
+	fclose(output);
+
+	/* CUE-IN is emitted before the first segment starting at or after the
+	 * return point. */
+	segment.time = 18000;
+	segment.dur = 4000;
+	output = tmpfile();
+	assert_true(output != NULL);
+	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment);
+	fflush(output);
+	rewind(output);
+	memset(text, 0, sizeof(text));
+	bytes_read = fread(text, 1, sizeof(text)-1, output);
+	text[bytes_read] = 0;
+	assert_true(strstr(text, "#EXT-X-CUE-IN") != NULL);
+	assert_equal(event.state, 0, "%u");
+	fclose(output);
+
+	gf_list_del(event_stream.entries);
+	gf_list_del(period.event_streams);
+}
