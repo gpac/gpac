@@ -1786,7 +1786,7 @@ void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescrip
 	} else if (sinf && sinf->info && sinf->info->piff_tenc) {
 		if (default_IsEncrypted) *default_IsEncrypted = GF_TRUE;
 		if (key_info) *key_info = sinf->info->piff_tenc->key_info;
-		if (key_info_size) *key_info_size = 19;
+		if (key_info_size) *key_info_size = sizeof(sinf->info->piff_tenc->key_info);
 		//set default value, overwritten below
 		if (container_type) *container_type = GF_ISOM_BOX_UUID_PSEC;
 	} else {
