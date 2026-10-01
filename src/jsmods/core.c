@@ -4494,7 +4494,14 @@ void qjs_init_all_modules(JSContext *ctx, Bool no_webgl, Bool for_vrml)
 	qjs_module_init_gpaccore(ctx);
 
 #ifndef GPAC_DISABLE_QJS_LIBC
-	qjs_module_init_qjs_libc(ctx);
+	/* never expose QuickJS libc modules (os, std) to scripts embedded in media
+	   content (VRML/X3D/BIFS scene scripts): these are untrusted inputs, and the
+	   os module provides process execution (os.exec) while std provides file
+	   and process APIs, all with the privileges of the GPAC process. Other JS
+	   hosts (jsf filters, DASH algo scripts, HTTP out scripting, workers) only
+	   run user-provided scripts where these modules are a feature. */
+	if (!for_vrml)
+		qjs_module_init_qjs_libc(ctx);
 #endif
 
 	//vrml, init scene JS but do not init xhr (defined in DOM JS)
