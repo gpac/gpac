@@ -1701,8 +1701,8 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			u8 IV_size;
 			u32 kidx = gf_bs_read_u16(ctx->bs_r);
 
-			if (!kidx || (kidx>cstr->nb_crypts)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Corrupted CENC sai, kidx %d but valid range is [1,%d]\n", kidx, cstr->nb_crypts));
+			if (!kidx || (kidx>cstr->multikey)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Corrupted CENC sai, kidx %d but valid range is [1,%d]\n", kidx, cstr->multikey));
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				goto exit;
 			}
@@ -1814,8 +1814,8 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			if (cstr->multikey) {
 				kidx = gf_bs_read_u16(ctx->bs_r);
 				//check index is valid
-				if (kidx>cstr->nb_crypts) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Corrupted CENC sai key idx %d, should be in range [1, %d]\n", kidx, cstr->nb_crypts));
+				if (kidx>cstr->multikey) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Corrupted CENC sai key idx %d, should be in range [1, %d]\n", kidx, cstr->multikey));
 					e = GF_NON_COMPLIANT_BITSTREAM;
 					goto exit;
 				}
@@ -2269,10 +2269,20 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	nb_keys = 1;
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_KEY_INFO);
+	/* Validate before reading the key count or loading key records. */
+	if (prop && ((prop->type != GF_PROP_DATA)
+		|| !gf_cenc_validate_key_info(prop->value.data.ptr, prop->value.data.size))) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Invalid key info\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	if (prop && prop->value.data.ptr && prop->value.data.ptr[0]) {
 		nb_keys = prop->value.data.ptr[1];
 		nb_keys<<=8;
 		nb_keys |= prop->value.data.ptr[2];
+	}
+	if (!nb_keys) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Key info has no keys\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (nb_keys > cstr->nb_crypts) {
 		cstr->crypts = gf_realloc(cstr->crypts, sizeof(CENCDecKey) * nb_keys);
