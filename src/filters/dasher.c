@@ -8600,6 +8600,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, B
 
 	//live edge, always inject an entry and remember we just did
 	if (is_ll_anouncement) {
+		GF_MPD_SegmentTimelineEntry *prev;
 		//is timeline is at set level, only inject entry for LL edge on the rep owning the set
 		if (stl_in_as && !ds->owns_set)
 			return;
@@ -8608,6 +8609,19 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, B
 
 		s->start_time = ds->seg_start_time + pto;
 		s->duration = (u32) duration;
+
+		//SSR part count is only known once segment is complete. So we use the last
+		//segment as a guess so that live edge remains addressable through $SubNumber$
+		//See https://github.com/gpac/gpac/issues/3959
+		prev = gf_list_last(tl->entries);
+		if (ds->set->ssr_mode && prev && !prev->is_ll_edge && (prev->duration == s->duration))
+			s->nb_parts = prev->nb_parts;
+		if (ds->set->ssr_mode && !s->nb_parts && ctx->cdur.num>0 && ctx->cdur.den>0) {
+			u64 part_dur = gf_timestamp_rescale(ctx->cdur.num, ctx->cdur.den, ds->mpd_timescale);
+			if (duration && part_dur)
+				s->nb_parts = 1 + (u32) ((duration - 1) / part_dur);
+		}
+
 		s->is_ll_edge = GF_TRUE;
 		gf_list_add(tl->entries, s);
 		ds->last_stl_is_ll = GF_TRUE;
@@ -8768,6 +8782,18 @@ static void dasher_set_timeline_parts(GF_DasherCtx *ctx, GF_DashStream *ds, GF_D
 	}
 	if (!ent)
 		return;
+
+	//live edge is inserted before the fragment size events are received
+	//so keep estimated SSR part count in sync with the last seg so clients
+	//can resolve $SubNumber$ at the edge (https://github.com/gpac/gpac/issues/3959)
+	for (i=nb_entries; i>0; i--) {
+		GF_MPD_SegmentTimelineEntry *ll_edge = gf_list_get(stl->entries, i-1);
+		if (!ll_edge->is_ll_edge)
+			continue;
+		if (ll_edge->duration == ent->duration)
+			ll_edge->nb_parts = nb_parts;
+		break;
+	}
 
 	//first seg in timeline entry
 	if (!ent->nb_parts) {
