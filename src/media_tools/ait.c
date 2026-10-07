@@ -94,11 +94,13 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 	ait->common_descriptors = gf_list_new();
 	if(ait->common_descriptors == NULL) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Error during common_descriptors list initialization, abording processing \n"));
+		gf_bs_del(bs);
 		return GF_CORRUPTED_DATA;
 	}
 	ait->application_decoded = gf_list_new();
 	if(ait->application_decoded == NULL) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Error during application list initialization, abording processing \n"));
+		gf_bs_del(bs);
 		return GF_CORRUPTED_DATA;
 	}
 
@@ -114,11 +116,13 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 	ait->test_application_flag = gf_bs_read_int(bs,1);
 	if(ait->test_application_flag == 1) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] test application flag is at 1. API transmitted for testing, abording processing \n"));
+		gf_bs_del(bs);
 		return GF_CORRUPTED_DATA;
 	}
 	ait->application_type = gf_bs_read_int(bs,15);
 	if(ait->application_type != APPLICATION_TYPE_HTTP_APPLICATION) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] application type should 0x10. Wrong section, abording processing \n"));
+		gf_bs_del(bs);
 		return GF_CORRUPTED_DATA;
 	}
 	gf_bs_read_int(bs,2);
@@ -127,6 +131,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 	ait->current_next_indicator = gf_bs_read_int(bs,1);
 	if(!ait->current_next_indicator) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] current next indicator should be at 1 \n"));
+		gf_bs_del(bs);
 		return GF_CORRUPTED_DATA;
 	}
 	ait->section_number = gf_bs_read_int(bs,8);
@@ -200,6 +205,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				if (pre_processing_pos+application_descriptor->descriptor_length != gf_bs_get_position(bs) || application_descriptor->application_profile == 2 /* PVR feature */) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor data processed length error. Difference between byte shifting %d and descriptor length %d \n",(gf_bs_get_position(bs) -  pre_processing_pos),application_descriptor->descriptor_length));
 					gf_free(application_descriptor);
+					gf_bs_del(bs);
 					return GF_CORRUPTED_DATA;
 				}
 				gf_list_add(application->application_descriptors,application_descriptor);
@@ -227,6 +233,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor data processed length error. Difference between byte shifting %d and descriptor length %d \n",(gf_bs_get_position(bs) -  pre_processing_pos),name_descriptor->descriptor_length));
 					gf_free(name_descriptor->application_name_char);
 					gf_free(name_descriptor);
+					gf_bs_del(bs);
 					return GF_CORRUPTED_DATA;
 				}
 				gf_list_add(application->application_descriptors,name_descriptor);
@@ -311,6 +318,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 						gf_free(Transport_http_selector_byte);
 					}
 					gf_free(protocol_descriptor);
+					gf_bs_del(bs);
 					return GF_CORRUPTED_DATA;
 				}
 				gf_list_add(application->application_descriptors,protocol_descriptor);
@@ -336,6 +344,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor data processed length error. Difference between byte shifting %d and descriptor length %d \n",(gf_bs_get_position(bs) -  pre_processing_pos),Simple_application_location->descriptor_length));
 					gf_free(Simple_application_location->initial_path_bytes);
 					gf_free(Simple_application_location);
+					gf_bs_del(bs);
 					return GF_CORRUPTED_DATA;
 				}
 				gf_list_add(application->application_descriptors,Simple_application_location);
@@ -358,6 +367,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				if (pre_processing_pos+Application_usage->descriptor_length != gf_bs_get_position(bs)) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor data processed length error. Difference between byte shifting %d and descriptor length %d \n",(gf_bs_get_position(bs) -  pre_processing_pos),Application_usage->descriptor_length));
 					gf_free(Application_usage);
+					gf_bs_del(bs);
 					return GF_CORRUPTED_DATA;
 				}
 				gf_list_add(application->application_descriptors,Application_usage);
@@ -400,6 +410,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 						gf_free(boundary_descriptor->boundary_extension_info);
 					}
 					gf_free(boundary_descriptor);
+					gf_bs_del(bs);
 					return GF_CORRUPTED_DATA;
 				}
 				gf_list_add(application->application_descriptors,boundary_descriptor);
@@ -427,6 +438,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 	ait->CRC_32 = gf_bs_read_int(bs,32);
 	data_shift += 4;
 
+	gf_bs_del(bs);
 
 	if (data_shift != data_size) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] AIT processed length error. Difference between byte shifting %d and data size %d \n",data_shift,data_size));
@@ -468,7 +480,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 		GF_M2TS_AIT_APPLICATION_DECODE* application_decoded;
 		GF_SAFEALLOC(Application,GF_M2TS_AIT_APPLICATION);
 		if (!Application) break;
-		
+
 		gf_list_add(ChanAppInfo->Application,Application);
 		Application->http_url = NULL;
 		Application->carousel_url = NULL;
@@ -811,5 +823,3 @@ void  gf_m2ts_delete_channel_application_info(GF_M2TS_CHANNEL_APPLICATION_INFO* 
 }
 
 #endif //GPAC_ENABLE_DSMCC
-
-
