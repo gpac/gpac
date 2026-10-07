@@ -2000,6 +2000,8 @@ GF_Err gf_odf_ac4_cfg_substream_dsi(GF_AC4SubStream *s, GF_BitStream *bs, u8 b_c
 {
 	u32 zero_val = 0;
 
+	if (!s) return GF_BAD_PARAM;
+
 	GF_AC4_SSS(bs, s->dsi_sf_multiplier, 2, size, desc_mode);
 	GF_AC4_SSS(bs, s->b_substream_bitrate_indicator, 1, size, desc_mode);
 	if (s->b_substream_bitrate_indicator == 1) {
