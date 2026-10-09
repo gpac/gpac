@@ -5,6 +5,86 @@
 #include "../m3u8.c"
 void gf_xml_dump_string(FILE* file, const char *before, const char *str, const char *after) {}
 
+/*************************************/
+
+static Bool hls_output_contains(FILE *output, const char *marker)
+{
+	char text[4096];
+	size_t bytes_read;
+
+	fflush(output);
+	rewind(output);
+	memset(text, 0, sizeof(text));
+	bytes_read = fread(text, 1, sizeof(text) - 1, output);
+	text[bytes_read] = 0;
+	return strstr(text, marker) ? GF_TRUE : GF_FALSE;
+}
+
+unittest(mpd_hls_scte35_dynamic_rewrite_preserves_cues)
+{
+	GF_MPD mpd = {0};
+	GF_MPD_Period period = {0};
+	GF_MPD_AdaptationSet adaptation_set = {0};
+	GF_MPD_Representation representation = {0};
+	GF_DASH_SegmentContext segment = {0};
+	GF_MPD_EventStream event_stream = {0};
+	GF_MPD_EventStreamEntry event_entry = {0};
+	FILE *first_playlist;
+	FILE *second_playlist;
+	GF_Err error;
+
+	period.event_streams = gf_list_new();
+	event_stream.entries = gf_list_new();
+	representation.state_seg_list = gf_list_new();
+	assert_true(period.event_streams != NULL);
+	assert_true(event_stream.entries != NULL);
+	assert_true(representation.state_seg_list != NULL);
+
+	mpd.type = GF_MPD_TYPE_DYNAMIC;
+	representation.timescale = 1000;
+	representation.hls_max_seg_dur.num = 6;
+	representation.hls_max_seg_dur.den = 1;
+
+	segment.time = 0;
+	segment.dur = 6000;
+	segment.seg_num = 1;
+	segment.filename = "segment1.m4s";
+	gf_list_add(representation.state_seg_list, &segment);
+
+	event_stream.timescale = 1000;
+	event_entry.presentation_time = 0;
+	event_entry.duration = 20000;
+	event_entry.id = 662;
+	gf_list_add(event_stream.entries, &event_entry);
+	gf_list_add(period.event_streams, &event_stream);
+
+	first_playlist = tmpfile();
+	assert_true(first_playlist != NULL);
+	error = gf_mpd_write_m3u8_playlist(&mpd, &period, &adaptation_set, &representation,
+		"first.m3u8", 7, 0, NULL, GF_FALSE, GF_FALSE, first_playlist);
+	assert_true(error == GF_OK);
+	assert_true(hls_output_contains(first_playlist, "#EXT-X-CUE-OUT:20"));
+	assert_equal(event_entry.state, 1, "%u");
+	fclose(first_playlist);
+
+	/* A dynamic playlist is rebuilt from retained segments. The same cue must be
+	 * serialized again; state left by the previous write must not hide it. */
+	second_playlist = tmpfile();
+	assert_true(second_playlist != NULL);
+	error = gf_mpd_write_m3u8_playlist(&mpd, &period, &adaptation_set, &representation,
+		"second.m3u8", 7, 0, NULL, GF_FALSE, GF_FALSE, second_playlist);
+	assert_true(error == GF_OK);
+	assert_true(hls_output_contains(second_playlist, "#EXT-X-CUE-OUT:20"));
+	assert_equal(event_entry.state, 1, "%u");
+	fclose(second_playlist);
+
+	gf_list_del(representation.state_seg_list);
+	gf_list_del(event_stream.entries);
+	gf_list_del(period.event_streams);
+}
+
+/*************************************/
+
 unittest(mpd_event_streams)
 {
 	GF_DOMParser *dom = gf_xml_dom_new();
