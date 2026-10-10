@@ -1082,9 +1082,9 @@ u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 layout)
 	if (layout & GF_AUDIO_CH_SIDE_SURROUND_LEFT) res |= (1<<6); //9
 	//Lw/Rw
 	if (layout & GF_AUDIO_CH_WIDE_FRONT_LEFT) res |= (1<<5); //10
-	//Vhl/Vhr
+	//Lvh/Rvh
 	if (layout & GF_AUDIO_CH_FRONT_TOP_LEFT) res |= (1<<4); //11
-	//Vhc
+	//Cvh
 	if (layout & GF_AUDIO_CH_FRONT_TOP_CENTER) res |= (1<<3); //12
 	//Lts/Rts
 	if (layout & GF_AUDIO_CH_SURROUND_TOP_LEFT) res |= (1<<2); //13
