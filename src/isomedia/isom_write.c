@@ -9235,6 +9235,9 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 			} else {
 				u32 size;
 
+				//target box may not have any child yet
+				if ((insert_pos<0) && !box->child_boxes) box->child_boxes = gf_list_new();
+
 				bs = gf_bs_new(box_data, box_data_size, GF_BITSTREAM_READ);
 				size = gf_bs_read_u32(bs);
 				if (size != box_data_size) {
