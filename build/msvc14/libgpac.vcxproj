@@ -297,7 +297,7 @@
     <ClCompile Include="..\..\src\filters\ff_mx.c" />
     <ClCompile Include="..\..\src\filters\ff_rescale.c" />
     <ClCompile Include="..\..\src\filters\filelist.c" />
-    <ClCompile Include="..\..\src\filters\hevcmerge.c" />
+    <ClCompile Include="..\..\src\filters\av1merge.c" />
     <ClCompile Include="..\..\src\filters\hevcsplit.c" />
     <ClCompile Include="..\..\src\filters\inspect.c" />
     <ClCompile Include="..\..\src\filters\in_route.c" />

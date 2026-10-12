@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		3F04FCBC2C9CB179002BC889 /* xml_bin_custom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F04FCBB2C9CB179002BC889 /* xml_bin_custom.c */; };
 		3F5F3F1F2C7EAC5D00C58257 /* id3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F5F3F1E2C7EAC5D00C58257 /* id3.c */; };
+		3FCB22563074195C004E3903 /* av1merge.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FCB22553074195C004E3903 /* av1merge.c */; };
 		3FDEA5B92D402C0B006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5B82D402C0B006F0673 /* enc_cc.c */; };
 		920100B018D5A444003D1ACA /* arith_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8A18D5A444003D1ACA /* arith_decoder.c */; };
 		920100B118D5A444003D1ACA /* bifs_codec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8B18D5A444003D1ACA /* bifs_codec.c */; };
@@ -659,6 +660,7 @@
 		28C5AA7C1A15FF5700372C59 /* libiconv.2.4.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.4.0.dylib; path = usr/lib/libiconv.2.4.0.dylib; sourceTree = SDKROOT; };
 		3F04FCBB2C9CB179002BC889 /* xml_bin_custom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = xml_bin_custom.c; sourceTree = "<group>"; };
 		3F5F3F1E2C7EAC5D00C58257 /* id3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id3.c; sourceTree = "<group>"; };
+		3FCB22553074195C004E3903 /* av1merge.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = av1merge.c; path = filters/av1merge.c; sourceTree = "<group>"; };
 		3FDEA5B82D402C0B006F0673 /* enc_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = filters/enc_cc.c; sourceTree = "<group>"; };
 		9201000018D5A444003D1ACA /* isom_intern.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_intern.c; sourceTree = "<group>"; };
 		9201000118D5A444003D1ACA /* isom_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_read.c; sourceTree = "<group>"; };
@@ -2045,6 +2047,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				3FCB22553074195C004E3903 /* av1merge.c */,
 				920F4C9E299FB3CC00EC9D21 /* avin_web.c */,
 				925E564B2798B87300BBD530 /* bs_agg.c */,
 				926D48FC27957D8400E3C68C /* bs_split.c */,
@@ -2604,6 +2607,7 @@
 				9203644B20ECF67C0087883E /* dmx_gsf.c in Sources */,
 				922E29832051940C00C8DCBB /* mux_avi.c in Sources */,
 				92BB85761F7BFB63009BC9C8 /* ff_dmx.c in Sources */,
+				3FCB22563074195C004E3903 /* av1merge.c in Sources */,
 				92B9A5B91F866E0500A24FE4 /* mpeg4_inputsensor.c in Sources */,
 				925607752E1EC6880022BA42 /* rewrite_ac4.c in Sources */,
 				92B9A5781F8660D700A24FE4 /* audio_mixer.c in Sources */,

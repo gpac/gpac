@@ -201,6 +201,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/ff_mx.c \
 	../../../../src/filters/ff_rescale.c \
 	../../../../src/filters/filelist.c \
+	../../../../src/filters/av1merge.c \
 	../../../../src/filters/hevcmerge.c \
 	../../../../src/filters/hevcsplit.c \
 	../../../../src/filters/in_route.c \

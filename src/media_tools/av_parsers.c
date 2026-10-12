@@ -1689,7 +1689,7 @@ static void operating_parameters_info(GF_BitStream *bs, const u8 idx, const u8 b
 	gf_bs_read_int_log(bs, 1, "low_delay_mode_flag");
 }
 
-static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
+void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 {
 	u8 buffer_delay_length_minus_1 = 0;
 	state->frame_state.seen_seq_header = GF_TRUE;
@@ -2931,7 +2931,7 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 #define MAX_TILE_WIDTH 4096
 #define MAX_TILE_AREA (4096 * 2304)
 
-static u32 aom_av1_tile_log2(u32 blkSize, u32 target)
+u32 aom_av1_tile_log2(u32 blkSize, u32 target)
 {
 	u32 k;
 	for (k = 0; (blkSize << k) < target; k++) {
@@ -4244,7 +4244,7 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 	}
 }
 
-static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
+GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
 {
 	u32 TileNum, tg_start = 0, tg_end = 0;
 	u32 numTiles = state->tileCols * state->tileRows;
@@ -4289,7 +4289,6 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 			tile_size = (u32)(tile_size_minus_1 + 1/* + state->tile_size_bytes*/);
 		}
 
-
 		if (tile_start_offset + tile_size > obu_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Error parsing tile group, tile %d start %d + size %d exceeds OBU length %d\n", TileNum, tile_start_offset, tile_size, obu_size));
 			e = GF_NON_COMPLIANT_BITSTREAM;
@@ -4307,7 +4306,7 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 	return e;
 }
 
-static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
+void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 {
 	AV1StateFrame *frame_state = &state->frame_state;
 	if (frame_state->seen_frame_header == GF_FALSE) {
@@ -4494,7 +4493,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		state->layer_size[i] = (u32) (pos + *obu_size);
 	}
 	if (state->parse_metadata_filter) {
-		//for now no dependency on metadat to state
+		//for now no dependency on metadata to state
 		if (*obu_type != OBU_METADATA) {
 			gf_bs_seek(bs, pos + *obu_size);
 			return e;
@@ -4534,7 +4533,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	case OBU_FRAME:
 		e = av1_parse_frame(bs, state, pos, *obu_size);
 		if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) != pos + *obu_size)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Frame parsing did not consume the right number of bytes !\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Frame parsing did consume %llu bytes instead of %llu !\n", gf_bs_get_position(bs) - pos, *obu_size));
 			e = GF_NON_COMPLIANT_BITSTREAM;
 		}
 		gf_bs_seek(bs, pos + *obu_size);
