@@ -39,3 +39,13 @@ unittest(dasher_scte35_duplicate_event_schedules_each_video_representation)
 	assert_false(dasher_scte35_schedule_boundary(GF_TRUE, GF_STREAM_VISUAL, 6330602, 21780000, &a, &b, &sa));
 	assert_false(dasher_scte35_schedule_boundary(GF_TRUE, GF_STREAM_AUDIO, 6330602, 21780000, &x, &y, &sc));
 }
+
+Bool dasher_ssai_boundary_reached(u64 source_cts, u32 timescale, u64 cut90k);
+unittest(dasher_ssai_common_cut_clock_and_audio_sample_tolerance)
+{
+	const u64 cut = 6332400;
+	assert_false(dasher_ssai_boundary_reached(6332399, 90000, cut));
+	assert_true(dasher_ssai_boundary_reached(6332400, 90000, cut));
+	assert_true(dasher_ssai_boundary_reached(3377280, 48000, cut));
+	assert_false(dasher_ssai_boundary_reached(3377279, 48000, cut));
+}

@@ -252,6 +252,7 @@ typedef struct
 	GF_Fraction cdur;
 	Bool ll_preload_hint, ll_rend_rep;
 	Bool gencues, force_init, gxns;
+	Bool ssai_align; /* opt-in common A/V segment schedule for SSAI */
 	Double ll_part_hb;
 	GF_DashAbsoluteURLMode hls_absu;
 	DasherWaitLastPktCtrl seg_sync;
@@ -273,6 +274,8 @@ typedef struct
 
 	GF_DasherPeriod *current_period, *next_period;
 	GF_List *pids;
+	struct _dash_stream *ssai_ref;
+	GF_List *ssai_cut_times; /* u64 timestamps on the 90 kHz source clock */
 	Bool template_use_source;
 	s32 period_idx;
 
@@ -529,6 +532,7 @@ typedef struct _dash_stream
 	u64 scte35_splice_start;
 	u64 scte35_splice_end;
 	u8 scte35_boundary_state; /* 0: none, 1: break start, 2: break end */
+	u32 ssai_cut_index; /* next reference cut to apply */
 
 	Bool clamp_done;
 	u32 dcd_not_ready;
@@ -9946,6 +9950,54 @@ GF_STATIC Bool dasher_scte35_schedule_boundary(Bool needs_idr, u32 stream_type,
 	return GF_TRUE;
 }
 
+/* SSAI is opt-in: ordinary DASH/HLS keeps its original independent
+ * representation segmenter. Only un-muxed A/V streams take part. */
+static void dasher_ssai_select_reference(GF_DasherCtx *ctx)
+{
+    u32 i, n;
+    if (!ctx->ssai_align || !ctx->ssai_cut_times) return;
+    if (ctx->ssai_ref && gf_list_find(ctx->current_period->streams, ctx->ssai_ref) >= 0)
+        return;
+    ctx->ssai_ref = NULL;
+    while (gf_list_count(ctx->ssai_cut_times))
+        gf_free(gf_list_pop_back(ctx->ssai_cut_times));
+    n = gf_list_count(ctx->current_period->streams);
+    for (i=0; i<n; i++) {
+        GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+        ds->ssai_cut_index = 0;
+        if (!ctx->ssai_ref && !ds->muxed_base && ds->stream_type == GF_STREAM_VISUAL)
+            ctx->ssai_ref = ds;
+    }
+}
+
+/* Bound the retained common-cut history after all active followers have
+ * passed its oldest entry; no leak during long-running live channels. */
+static void dasher_ssai_trim(GF_DasherCtx *ctx)
+{
+    u32 i, n;
+    Bool all_seen = GF_TRUE;
+    if (!ctx->ssai_ref || !gf_list_count(ctx->ssai_cut_times)) return;
+    n = gf_list_count(ctx->current_period->streams);
+    for (i=0; i<n; i++) {
+        GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+        if (ds == ctx->ssai_ref || ds->done || ds->muxed_base) continue;
+        if (ds->stream_type != GF_STREAM_VISUAL && ds->stream_type != GF_STREAM_AUDIO) continue;
+        if (!ds->ssai_cut_index) { all_seen = GF_FALSE; break; }
+    }
+    if (!all_seen) return;
+    gf_free(gf_list_pop_front(ctx->ssai_cut_times));
+    for (i=0; i<n; i++) {
+        GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+        if (ds->ssai_cut_index) ds->ssai_cut_index--;
+    }
+}
+
+/* A cut belongs to the presentation clock, not a segment number. */
+GF_STATIC Bool dasher_ssai_boundary_reached(u64 source_cts, u32 timescale, u64 cut90k)
+{
+    return gf_timestamp_greater_or_equal(source_cts, timescale, cut90k, 90000);
+}
+
 static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_DashStream *ds)
 {
 	GF_Err ret = GF_OK;
@@ -10018,11 +10070,11 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 		Bool needs_idr = GF_FALSE;
 		u64 dur = 0;
 		if (scte35dec_get_timing(data, size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
-			/* The metadata event is deduplicated once per Period, but each visual
-			 * representation must independently arm the requested splice boundary. */
-			dasher_scte35_schedule_boundary(needs_idr, ds->stream_type,
-				evt->presentation_time, dur, &ds->scte35_splice_start,
-				&ds->scte35_splice_end, &ds->scte35_boundary_state);
+            /* SCTE may reach multiple video PIDs with the same event ID. */
+            GF_DashStream *splice_ds = (ctx->ssai_align && ctx->ssai_ref) ? ctx->ssai_ref : ds;
+            dasher_scte35_schedule_boundary(needs_idr, splice_ds->stream_type,
+                evt->presentation_time, dur, &splice_ds->scte35_splice_start,
+                &splice_ds->scte35_splice_end, &splice_ds->scte35_boundary_state);
 			Bool found = GF_FALSE;
 			GF_MPD_EventStreamEntry *ese = NULL;
 			u32 i = 0;
@@ -10125,6 +10177,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 	if (ctx->setup_failure)
 		return ctx->setup_failure;
 
+	dasher_ssai_select_reference(ctx);
 	count = gf_list_count(ctx->current_period->streams);
 	if (!ctx->min_cts_period.den) {
 		u64 min_ts=0, min_timescale = 0;
@@ -10620,8 +10673,31 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (e) return e;
 			}
 
+			u64 ssai_source_cts = cts;
 			cts = dasher_translate_cts(ds, cts);
 			dts -= ds->first_dts;
+			/* Never advance a follower past the next uncommitted video cut.
+			 * Leave this packet queued on its input PID until the reference
+			 * stream supplies a decodable boundary. */
+			if (ctx->ssai_align && ctx->ssai_ref && (ds != ctx->ssai_ref)
+				&& ds->segment_started && ctx->ssai_ref->segment_started
+				&& !ctx->ssai_ref->done && !gf_filter_pid_is_eos(ctx->ssai_ref->ipid)
+				&& !ds->muxed_base && (ds->stream_type == GF_STREAM_VISUAL || ds->stream_type == GF_STREAM_AUDIO)
+				&& ds->ssai_cut_index >= gf_list_count(ctx->ssai_cut_times)) {
+				u64 next_ref_cut = gf_timestamp_rescale(
+					ctx->ssai_ref->first_cts + ctx->ssai_ref->adjusted_next_seg_start,
+					ctx->ssai_ref->timescale, 90000);
+				/* An SCTE splice may insert a cut earlier than the regular
+				 * cadence. Hold followers at the earlier boundary even if
+				 * the reference video has not yet reached its RAP. */
+				if (ctx->ssai_ref->scte35_boundary_state) {
+					u64 splice_cut = (ctx->ssai_ref->scte35_boundary_state == 1)
+						? ctx->ssai_ref->scte35_splice_start : ctx->ssai_ref->scte35_splice_end;
+					if (splice_cut && splice_cut < next_ref_cut) next_ref_cut = splice_cut;
+				}
+				if (dasher_ssai_boundary_reached(ssai_source_cts, ds->timescale, next_ref_cut))
+					break;
+			}
 			//check time discontinuities not explicitely signaled
 			if (ds->last_dts && ctx->td_detect) {
 				Bool is_disc = GF_FALSE;
@@ -10726,7 +10802,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 				is_packet_split = GF_TRUE;
 			}
 
-			if (ds->splitable && !ds->split_dur_next && !ds->cues && !ds->inband_cues) {
+			if (ds->splitable && !ds->split_dur_next && !ds->cues && !ds->inband_cues
+				&& !(ctx->ssai_align && ctx->ssai_ref && (ds != ctx->ssai_ref))) {
 				Bool do_split = GF_FALSE;
 				//adding this sample would exceed the segment duration
 				if (gf_sys_old_arch_compat()) {
@@ -10780,6 +10857,26 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//flush for entire input, segment is done upon eos
 			else if (ctx->sflush==SFLUSH_SINGLE) {
 			}
+            /* A follower closes only at an actual reference-video cut. */
+            else if (ctx->ssai_align && ctx->ssai_ref && (ds != ctx->ssai_ref)
+                && !ds->muxed_base && !ctx->sigfrag && !ds->inband_cues && !ds->cues
+                && ds->segment_started && (ds->stream_type == GF_STREAM_VISUAL || ds->stream_type == GF_STREAM_AUDIO)) {
+                u64 *cut = gf_list_get(ctx->ssai_cut_times, ds->ssai_cut_index);
+                if (cut && dasher_ssai_boundary_reached(ssai_source_cts, ds->timescale, *cut)) {
+                    u64 cut_here = gf_timestamp_rescale(ssai_source_cts, ds->timescale, 90000);
+                    u64 delta90 = cut_here >= *cut ? cut_here - *cut : *cut - cut_here;
+                    u64 tolerance90 = (ds->stream_type == GF_STREAM_AUDIO) ? 3600 : 4500;
+                    if ((ds->stream_type == GF_STREAM_VISUAL && !sap_type) || delta90 > tolerance90) {
+                        GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] SSAI boundary could not align PID %s: cut "LLU" cts "LLU" /90k, SAP %u\n", gf_filter_pid_get_name(ds->ipid), *cut, cut_here, sap_type));
+                        ctx->in_error = GF_TRUE;
+                        return GF_NON_COMPLIANT_BITSTREAM;
+                    }
+                    seg_over = GF_TRUE;
+                    ds->adjusted_next_seg_start = cts;
+                    ds->ssai_cut_index++;
+                    dasher_ssai_trim(ctx);
+                }
+            }
 			/* SCTE-35 adds a boundary without replacing normal duration-based
 			 * segmentation. The cue timestamp may fall slightly before an IDR,
 			 * so cut at the first SAP at or after the requested splice time. */
@@ -11123,6 +11220,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//if dur=0 (some text streams), don't flush segment
 			if (seg_over && dur) {
+				if (ctx->ssai_align && (ds == ctx->ssai_ref) && ds->segment_started) {
+					u64 *cut = gf_malloc(sizeof(u64));
+					if (!cut) return GF_OUT_OF_MEM;
+					*cut = gf_timestamp_rescale(ssai_source_cts, ds->timescale, 90000);
+					if (gf_list_add(ctx->ssai_cut_times, cut) != GF_OK) { gf_free(cut); return GF_OUT_OF_MEM; }
+				}
+
 				gf_assert(!ds->seg_done);
 
 				if (ds->request_period_switch && !gf_list_count(ds->packet_queue)) {
@@ -12082,6 +12186,7 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 
 	ctx->explicit_mode = !gf_filter_is_dynamic(filter);
 	ctx->pids = gf_list_new();
+	if (ctx->ssai_align) ctx->ssai_cut_times = gf_list_new();
 	ctx->postponed_pids = gf_list_new();
 	ctx->tpl_records = gf_list_new();
 	if (!ctx->initext && (ctx->muxtype==DASHER_MUX_AUTO))
@@ -12177,6 +12282,10 @@ static void dasher_finalize(GF_Filter *filter)
 		gf_free(ds);
 	}
 	gf_list_del(ctx->pids);
+	if (ctx->ssai_cut_times) {
+		while (gf_list_count(ctx->ssai_cut_times)) gf_free(gf_list_pop_back(ctx->ssai_cut_times));
+		gf_list_del(ctx->ssai_cut_times);
+	}
 	if (ctx->mpd) gf_mpd_del(ctx->mpd);
 
 	while (gf_list_count(ctx->tpl_records)) {
@@ -12260,6 +12369,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(sseg), "single segment is used", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sfile), "use a single file for all segments (default in on_demand)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(align), "enable segment time alignment between representations", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ssai_align), "opt-in strict A/V segment-cut coordination for HLS SSAI (video RAP is reference; incompatible video RAPs abort rather than drift)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sap), "enable splitting segments at SAP boundaries", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(mix_codecs), "enable mixing different codecs in an adaptation set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ntp), "insert/override NTP clock at the beginning of each segment\n"
