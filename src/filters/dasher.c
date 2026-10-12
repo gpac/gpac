@@ -29,6 +29,7 @@
 #include <gpac/mpd.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/internal/scte35.h>
+#include <gpac/internal/dash_segment_events.h>
 #include <gpac/base_coding.h>
 #include <gpac/network.h>
 #include <gpac/crypt_tools.h>
@@ -5211,6 +5212,7 @@ static void dasher_purge_rep(GF_DasherCtx *ctx, GF_MPD_Representation *rep, GF_M
 		if (sctx->hls_key_uri) gf_free(sctx->hls_key_uri);
 		if (sctx->frags) gf_free(sctx->frags);
 		if (sctx->llhas_template) gf_free(sctx->llhas_template);
+		gf_dash_segment_event_associations_del(sctx);
 		gf_free(sctx);
 		gf_list_rem(rep->state_seg_list, 0);
 	}
@@ -9107,6 +9109,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				}
 			} else {
 				gf_list_del_item(ds->rep->state_seg_list, seg_state);
+				gf_dash_segment_event_associations_del(seg_state);
 				gf_free(seg_state);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Manifest generation only but not fragment information in packet, source demux not properly configured\n"));
 				ctx->in_error = GF_TRUE;
