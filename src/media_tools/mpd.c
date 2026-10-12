@@ -904,6 +904,9 @@ static GF_List *gf_mpd_parse_segments_context(GF_MPD *mpd, GF_XMLNode *root)
 			else if (!strcmp(att->name, "idx_size")) sctx->index_size = gf_mpd_parse_int(att->value);
 			else if (!strcmp(att->name, "idx_offset")) sctx->index_offset = gf_mpd_parse_long_int(att->value);
 			else if (!strcmp(att->name, "seg_num")) sctx->seg_num = gf_mpd_parse_int(att->value);
+			else if (!strcmp(att->name, "events_explicit") && gf_mpd_parse_int(att->value)) {
+				if (!sctx->event_associations) sctx->event_associations = gf_list_new();
+			}
 
 		}
 		/* The GPAC state format is private; ignore unknown child elements
@@ -3508,6 +3511,10 @@ static void gf_mpd_print_dasher_segments(FILE *out, GF_List *segments, s32 inden
 		gf_fprintf(out, "time=\""LLU"\" ", sctx->time);
 		gf_fprintf(out, "dur=\""LLU"\" ", sctx->dur);
 		gf_fprintf(out, "seg_num=\"%d\" ", sctx->seg_num);
+		/* Persist the choice of explicit boundary placement even for segments
+		 * which contain no event transition. */
+		if (sctx->event_associations)
+			gf_fprintf(out, "events_explicit=\"1\" ");
 		if (sctx->filename) gf_fprintf(out, "file=\"%s\" ", sctx->filename);
 		if (sctx->filepath) gf_fprintf(out, "path=\"%s\" ", sctx->filepath);
 		if (sctx->file_size) {
@@ -4212,6 +4219,67 @@ static void hls_insert_crypt_info(FILE *out, GF_MPD_Representation *rep, GF_DASH
 	}
 }
 
+/* Explicit event associations are an alternative to reconstructing a splice
+ * boundary from a shared EventStream PTS and a representation's segment CTS.
+ * A non-NULL list, including an empty one, opts a segment into this scheme.
+ * This matters before the first splice as well as after state restoration. */
+static Bool hls_has_explicit_segment_events(const GF_MPD_Representation *rep)
+{
+	u32 i, count = gf_list_count(rep->state_seg_list);
+	for (i=0; i<count; i++) {
+		GF_DASH_SegmentContext *sctx = gf_list_get(rep->state_seg_list, i);
+		if (sctx->event_associations) return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+static void hls_insert_scte35_associations(FILE *out, u64 ast, const GF_MPD_Period *period,
+	const GF_MPD_Representation *rep, const GF_DASH_SegmentContext *sctx)
+{
+	u32 i, j, k;
+	GF_DASH_SegmentEventAssociation *assoc;
+	if (!sctx->event_associations) return;
+
+	for (i=0; (assoc = gf_list_enum(sctx->event_associations, &i)); ) {
+		GF_MPD_EventStream *es;
+		GF_MPD_EventStreamEntry *ese = NULL;
+		if (assoc->boundary_type != GF_DASH_SEGMENT_EVENT_START
+			&& assoc->boundary_type != GF_DASH_SEGMENT_EVENT_END)
+			continue;
+		for (j=0; (es = gf_list_enum(period->event_streams, &j)); ) {
+			GF_MPD_EventStreamEntry *candidate;
+			if (!es->scheme_id_uri || strcmp(assoc->scheme_id_uri, es->scheme_id_uri)) continue;
+			for (k=0; (candidate = gf_list_enum(es->entries, &k)); ) {
+				if (candidate->id == assoc->id && candidate->presentation_time == assoc->presentation_time) {
+					ese = candidate;
+					break;
+				}
+			}
+			if (!ese) continue;
+			if (assoc->boundary_type == GF_DASH_SEGMENT_EVENT_START) {
+				/* The selected physical boundary, not the SCTE source-clock PTS,
+				 * determines the HLS presentation date for this representation. */
+				u64 start_date = ast;
+				if (rep->timescale_mpd)
+					start_date += gf_timestamp_rescale(sctx->time, rep->timescale_mpd, 1000);
+				gf_fprintf(out, "#EXT-X-DATERANGE:ID=\"%d-%04d\",", ese->id, 0);
+				gf_mpd_print_date(out, "START-DATE", start_date);
+				gf_fprintf(out, ",PLANNED-DURATION=%g", es->timescale ? ese->duration/(Double)es->timescale : 0);
+				if (ese->message) {
+					gf_fprintf(out, ",SCTE35-OUT=0x");
+					for (u32 b=0; b<ese->message_size; ++b)
+						gf_fprintf(out, "%02X", ese->message[b]);
+				}
+				gf_fprintf(out, "\n");
+				gf_fprintf(out, "#EXT-X-CUE-OUT:%g\n", es->timescale ? ese->duration/(Double)es->timescale : 0);
+			} else {
+				gf_fprintf(out, "#EXT-X-CUE-IN\n");
+			}
+			break;
+		}
+	}
+}
+
 static void hls_insert_scte35_info(FILE *out, u64 ast, const GF_MPD_Period *period, GF_DASH_SegmentContext *sctx)
 {
 	GF_MPD_EventStream *es = NULL;
@@ -4247,6 +4315,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 {
 	u32 i, count;
 	GF_DASH_SegmentContext *sctx;
+	Bool explicit_segment_events = hls_has_explicit_segment_events(rep);
 	FILE *out = out_file;
 	char *force_url=NULL;
 	const char *last_kms = NULL;
@@ -4462,7 +4531,10 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			// 0-duration may be encountered in non-LL modes when the duration is not known yet, but players may not like (cf issue 3462)
 			if (!sctx->dur) continue;
 
-			hls_insert_scte35_info(out, mpd->availabilityStartTime, period, sctx);
+			if (explicit_segment_events)
+				hls_insert_scte35_associations(out, mpd->availabilityStartTime, period, rep, sctx);
+			else
+				hls_insert_scte35_info(out, mpd->availabilityStartTime, period, sctx);
 
 			//signal discontinuity if needed
 			if (sctx && sctx->is_discontinuity)
