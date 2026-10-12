@@ -9933,6 +9933,19 @@ GF_STATIC Bool dasher_scte35_boundary_due(u64 packet_cts, u32 packet_timescale, 
 	return gf_timestamp_greater_or_equal(packet_cts, packet_timescale, boundary_time, 90000);
 }
 
+/* Period-global event de-dup must not suppress the cut for other video PIDs. */
+GF_STATIC Bool dasher_scte35_schedule_boundary(Bool needs_idr, u32 stream_type,
+	u64 splice_time, u64 duration, u64 *start, u64 *end, u8 *state)
+{
+	if (!needs_idr || stream_type != GF_STREAM_VISUAL || *state) return GF_FALSE;
+	*start = splice_time;
+	*end = 0;
+	if (duration && duration != (u64)-1 && splice_time <= ((u64)-1) - duration)
+		*end = splice_time + duration;
+	*state = 1;
+	return GF_TRUE;
+}
+
 static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_DashStream *ds)
 {
 	GF_Err ret = GF_OK;
@@ -10005,6 +10018,11 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 		Bool needs_idr = GF_FALSE;
 		u64 dur = 0;
 		if (scte35dec_get_timing(data, size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
+			/* The metadata event is deduplicated once per Period, but each visual
+			 * representation must independently arm the requested splice boundary. */
+			dasher_scte35_schedule_boundary(needs_idr, ds->stream_type,
+				evt->presentation_time, dur, &ds->scte35_splice_start,
+				&ds->scte35_splice_end, &ds->scte35_boundary_state);
 			Bool found = GF_FALSE;
 			GF_MPD_EventStreamEntry *ese = NULL;
 			u32 i = 0;
@@ -10017,18 +10035,6 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 			}
 
 			if (!found) {
-				/* A splice that requires a random-access point should also create
-				 * a media segment boundary. Do not switch the representation into
-				 * cue-only segmentation: keep the normal cadence and add the splice
-				 * boundary when the first suitable SAP arrives. */
-				if (needs_idr && (ds->stream_type == GF_STREAM_VISUAL) && !ds->scte35_boundary_state) {
-					ds->scte35_splice_start = evt->presentation_time;
-					ds->scte35_splice_end = 0;
-					if (dur && (dur != (u64)-1) && (evt->presentation_time <= ((u64)-1) - dur))
-						ds->scte35_splice_end = evt->presentation_time + dur;
-					ds->scte35_boundary_state = 1;
-				}
-
 				evt->duration = (u32)dur;
 				es->timescale = gf_filter_pck_get_timescale(pck);
 				evt->message = gf_malloc(size);
