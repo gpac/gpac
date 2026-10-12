@@ -84,8 +84,9 @@ unittest(mpd_hls_scte35_nonzero_presentation_time_offset)
 	gf_list_add(event_stream.entries, &event);
 	gf_list_add(period.event_streams, &event_stream);
 
-	/* PTO-normalized event time is 6330602 and falls inside this segment. */
-	segment.time = 6105600ULL;
+	/* PTO-normalized event time is 6330602; CUE-OUT belongs on the first
+	 * segment starting at or after that splice point. */
+	segment.time = 6523200ULL;
 	segment.dur = 417600U;
 
 	FILE *output = tmpfile();
