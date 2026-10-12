@@ -216,6 +216,7 @@ typedef struct
 	DasherCMAFMode cmaf;
 	DasherDefaultKIDInjection dkid;
 	GF_Fraction segdur;
+	GF_Fraction hls_tdur; /* optional, fixed playlist target duration */
 	GF_DashDynamicMode dmode;
 	char *template;
 	char *segext;
@@ -8529,7 +8530,12 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 
 		if (ctx->do_m3u8 && !(ds->stream_type == GF_STREAM_TEXT && ctx->rawsub)) {
 			u64 segdur = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
-			if (gf_timestamp_less(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, segdur, base_ds->timescale)) {
+			if (ctx->hls_tdur.num > 0 && ctx->hls_tdur.den) {
+				if (gf_timestamp_greater(segdur, base_ds->timescale, ctx->hls_tdur.num, ctx->hls_tdur.den)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] HLS fixed target duration exceeded: %g seconds\n", ((Double)segdur)/base_ds->timescale));
+					ctx->in_error = GF_TRUE;
+				}
+			} else if (gf_timestamp_less(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, segdur, base_ds->timescale)) {
 				s64 diff = gf_timestamp_rescale(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, 1000);
 				diff -= gf_timestamp_rescale(segdur, base_ds->timescale, 1000);
 				//allow 50ms variation
@@ -8928,7 +8934,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				ds->rep->hls_forced = p->value.string;
 
 			ds->rep->dash_dur = ds->dash_dur;
-			ds->rep->hls_max_seg_dur = ds->dash_dur;
+			ds->rep->hls_max_seg_dur = (ctx->hls_tdur.num > 0 && ctx->hls_tdur.den) ? ctx->hls_tdur : ds->dash_dur;
 
 			if (!ds->rep->hls_single_file_name) {
 				switch (ctx->muxtype) {
@@ -11981,6 +11987,7 @@ static const GF_FilterCapability DasherCaps[] =
 static const GF_FilterArgs DasherArgs[] =
 {
 	{ OFFS(segdur), "target segment duration in seconds. A value less than or equal to 0 defaults to 1.0 second", GF_PROP_FRACTION, "0/0", NULL, 0},
+	{ OFFS(hls_tdur), "optional fixed HLS target duration in seconds; signal error if a segment exceeds it (0: legacy behavior)", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tpl), "use template mode (multiple segment, template URLs)", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(stl), "use segment timeline (ignored in on_demand mode)", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(dmode), "dash content mode\n"
