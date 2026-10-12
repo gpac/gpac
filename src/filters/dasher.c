@@ -8790,6 +8790,131 @@ u64 dasher_translate_cts(GF_DashStream *ds, u64 cts)
 	return cts;
 }
 
+/* An SCTE section carries 33-bit source PTS in 90 kHz ticks. Unlike an MPD
+ * segment timestamp, this is not yet relative to a representation's CTS
+ * origin. Translate using the SAME function as the media packets. */
+GF_STATIC u64 dasher_scte35_translate_event(u64 scte_pts90k, u32 source_timescale,
+        u64 first_cts, u64 first_dts, s64 pts_minus_cts, u64 ts_offset,
+        Bool cues, u32 mpd_timescale)
+{
+    u64 cts;
+    if (!source_timescale || !mpd_timescale) return 0;
+    cts = gf_timestamp_rescale(scte_pts90k, 90000, source_timescale);
+    cts += ts_offset;
+    if (cues) {
+        cts = cts < first_cts ? 0 : cts - first_cts;
+    } else if (cts < first_dts) {
+        cts = 0;
+    } else if (pts_minus_cts < 0) {
+        if ((s64)(cts - first_dts) >= -pts_minus_cts)
+            cts = cts - first_dts + pts_minus_cts;
+        else
+            cts = 0;
+    } else if (cts < first_cts) {
+        cts = 0;
+    } else {
+        cts -= first_cts;
+    }
+    return gf_timestamp_rescale(cts, source_timescale, mpd_timescale);
+}
+
+/* A transition is placed on the first ACTUAL segment start at/after the
+ * event. In particular it never belongs to the segment being closed. */
+GF_STATIC Bool dasher_scte35_transition_at_segment(u64 event_in_mpd,
+        u64 segment_start, Bool has_predecessor, u64 previous_start)
+{
+    return (segment_start >= event_in_mpd)
+        && (!has_predecessor || previous_start < event_in_mpd);
+}
+
+static GF_Err dasher_scte35_map_one_event(GF_DashStream *ds,
+    GF_MPD_EventStream *es, GF_MPD_EventStreamEntry *evt,
+    GF_DASH_SegmentContext *sctx, GF_DASH_SegmentContext *prev)
+{
+    u32 j;
+    u64 event_start, end90k;
+    GF_DASH_SegmentEventAssociation *assoc;
+    if (!ds->rep_init || !ds->timescale || !ds->mpd_timescale
+        || evt->presentation_time < 0 || !es->timescale || !sctx->event_associations)
+        return GF_OK;
+    /* The SCTE parser returns 90k timestamps, regardless of packet scale. */
+    event_start = dasher_scte35_translate_event((u64)evt->presentation_time,
+        ds->timescale, ds->first_cts, ds->first_dts,
+        ds->pts_minus_cts, ds->ts_offset, ds->cues ? GF_TRUE : GF_FALSE,
+        ds->mpd_timescale);
+
+    for (j=0; j<2; j++) {
+        u64 stamp = event_start;
+        u32 boundary = GF_DASH_SEGMENT_EVENT_START;
+        u32 k=0;
+        if (j) {
+            /* A missing/unknown break duration has no synthesized return. */
+            if (!evt->duration || evt->duration == (u32)-1) break;
+            end90k = (u64)evt->presentation_time + evt->duration;
+            stamp = dasher_scte35_translate_event(end90k, ds->timescale,
+                ds->first_cts, ds->first_dts, ds->pts_minus_cts,
+                ds->ts_offset, ds->cues ? GF_TRUE : GF_FALSE, ds->mpd_timescale);
+            boundary = GF_DASH_SEGMENT_EVENT_END;
+        }
+        if (!dasher_scte35_transition_at_segment(stamp, sctx->time,
+                prev ? GF_TRUE : GF_FALSE, prev ? prev->time : 0))
+            continue;
+        while ((assoc = gf_list_enum(sctx->event_associations, &k))) {
+            if (assoc->boundary_type == boundary && assoc->id == evt->id
+                && assoc->presentation_time == evt->presentation_time
+                && !strcmp(assoc->scheme_id_uri, es->scheme_id_uri))
+                break;
+        }
+        if (!assoc) {
+            GF_Err e = gf_dash_segment_event_association_add(sctx,
+                es->scheme_id_uri, evt->presentation_time, evt->id, boundary);
+            if (e) return e;
+        }
+    }
+    return GF_OK;
+}
+
+static GF_Err dasher_scte35_reconcile_segment(GF_DashStream *ds,
+    GF_DASH_SegmentContext *seg, GF_DASH_SegmentContext *prev)
+{
+    GF_MPD_EventStream *es;
+    u32 i=0;
+    if (!ds->period || !ds->period->period || !ds->period->period->event_streams)
+        return GF_OK;
+    while ((es = gf_list_enum(ds->period->period->event_streams, &i))) {
+        GF_MPD_EventStreamEntry *evt;
+        u32 j=0;
+        if (!es->scheme_id_uri || strcmp(es->scheme_id_uri, GF_SCTE35_SCHEME_URI_OUTBAND))
+            continue;
+        while ((evt=gf_list_enum(es->entries, &j))) {
+            GF_Err e=dasher_scte35_map_one_event(ds, es, evt, seg, prev);
+            if (e) return e;
+        }
+    }
+    return GF_OK;
+}
+
+/* A section may arrive after another PID has created its segment context.
+ * Reconcile retained boundaries when the Period first sees that event.
+ * The association is idempotent and survives later manifest rewrites. */
+static GF_Err dasher_scte35_reconcile_period(GF_DasherCtx *ctx)
+{
+    u32 i=0;
+    GF_DashStream *ds;
+    if (!ctx->current_period) return GF_OK;
+    while ((ds = gf_list_enum(ctx->current_period->streams, &i))) {
+        u32 j=0;
+        GF_DASH_SegmentContext *seg, *prev=NULL;
+        if (!ds->rep || !ds->rep->state_seg_list || ds->muxed_base) continue;
+        while ((seg=gf_list_enum(ds->rep->state_seg_list, &j))) {
+            GF_Err e=dasher_scte35_reconcile_segment(ds, seg, prev);
+            if (e) return e;
+            prev=seg;
+        }
+    }
+    return GF_OK;
+}
+
 static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_FilterPacket *pck, GF_FilterPacket *in_pck)
 {
 	Bool no_concat;
@@ -8993,6 +9118,22 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		if (!seg_state) return;
 		seg_state->time = ds->seg_start_time;
 		seg_state->seg_num = ds->seg_number;
+		if (ctx->do_m3u8 && (ctx->scte35 == SCTE35_ALL
+		    || ctx->scte35 == SCTE35_DASH_AUTO || ctx->scte35 == SCTE35_DASH_XML_BIN)) {
+			GF_DASH_SegmentContext *prev = gf_list_last(ds->rep->state_seg_list);
+			seg_state->event_associations = gf_list_new();
+			if (!seg_state->event_associations) {
+				gf_free(seg_state);
+				ctx->in_error = GF_TRUE;
+				return;
+			}
+			if (dasher_scte35_reconcile_segment(ds, seg_state, prev)) {
+				gf_dash_segment_event_associations_del(seg_state);
+				gf_free(seg_state);
+				ctx->in_error = GF_TRUE;
+				return;
+			}
+		}
 		if (ctx->llhls) seg_state->llhls_mode = ctx->llhls;
 		else if (ds->set->ssr_mode) seg_state->llhls_mode = GF_DASH_LL_HLS_BRSF;
 		ds->current_seg_state = seg_state;
@@ -9799,13 +9940,16 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 
 			if (!found) {
 				evt->duration = (u32)dur;
-				es->timescale = gf_filter_pck_get_timescale(pck);
+				/* Raw SCTE-35 splice_time and break_duration use 90 kHz. */
+				es->timescale = 90000;
 				evt->message = gf_malloc(size);
 				if (!evt->message) goto fail;
 				memcpy(evt->message, data, size);
 				evt->message_size = size;
 				gf_list_add(es->entries, evt);
-				return GF_OK;
+				/* Audio or another rendition may already have reached this
+				 * boundary before the section arrived on the video PID. */
+				return dasher_scte35_reconcile_period(ctx);
 			}
 		}
 
