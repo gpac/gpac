@@ -145,6 +145,7 @@ REG_DEC(routein)
 REG_DEC(rtpout)
 REG_DEC(rtspout)
 REG_DEC(av1merge)
+REG_DEC(av1split)
 REG_DEC(hevcsplit)
 REG_DEC(hevcmerge)
 
@@ -320,6 +321,7 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(rtspout),
 	REG_IT(httpout),
 	REG_IT(av1merge),
+	REG_IT(av1split),
 	REG_IT(hevcsplit),
 	REG_IT(hevcmerge),
 	REG_IT(rfflac),

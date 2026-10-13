@@ -228,16 +228,11 @@ static void av1merge_rewrite_seq_hdr(GF_AV1MergeCtx *ctx, GF_BitStream *bs_ori, 
 	}
 }
 
-//copy syntax up to an exact bit offset, excluding the input byte alignment
-static u64 av1merge_bit_offset(GF_BitStream *bs)
-{
-	return gf_bs_get_position(bs) * 8 - (8 - gf_bs_get_bit_position(bs));
-}
-
+u64 av1_bit_position(GF_BitStream *bs);
 static void av1merge_copy_bits(GF_BitStream *src, GF_BitStream *dst, u64 end)
 {
-	while (av1merge_bit_offset(src) < end) {
-		u32 bits = (u32) MIN(end - av1merge_bit_offset(src), 32);
+	while (av1_bit_position(src) < end) {
+		u32 bits = (u32) MIN(end - av1_bit_position(src), 32);
 		bs_rewrite(src, dst, bits);
 	}
 }
@@ -838,7 +833,7 @@ static GF_Err av1merge_next_obu(GF_AV1MergeCtx *ctx, AV1TilePidCtx *tile)
 	tile->last_size = 0;
 	if (tile->obu_type == OBU_FRAME || tile->obu_type == OBU_FRAME_HEADER) {
 		av1_parse_frame_header(ctx->bs_in, state);
-		tile->header_end_bits = av1merge_bit_offset(ctx->bs_in);
+		tile->header_end_bits = av1_bit_position(ctx->bs_in);
 		if (tile->header_end_bits > end * 8 || gf_bs_is_overflow(ctx->bs_in))
 			return GF_NON_COMPLIANT_BITSTREAM;
 		if (!state->frame_state.show_existing_frame && (state->tileCols != 1 || state->tileRows != 1)) {

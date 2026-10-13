@@ -957,6 +957,15 @@ typedef struct
 
 #define AV1_NUM_REF_FRAMES	8
 
+//optional syntax positions needed for tile header rewriting:
+//bit positions are absolute, tile boundaries are in superblocks
+typedef struct
+{
+	u64 sequence_size, frame_size, render_size, tile_info, tile_info_end, header_end;
+	u32 col_start[AV1_MAX_TILE_COLS+1], row_start[AV1_MAX_TILE_ROWS+1];
+	u32 tile_group_start;
+} AV1ParseOffsets;
+
 typedef struct
 {
 	s32 coefs[AV1_NUM_REF_FRAMES][6];
@@ -1044,6 +1053,7 @@ typedef struct
 
 	/*frame parsing state*/
 	AV1StateFrame frame_state;
+	AV1ParseOffsets *parse_offsets;
 
 	/*layer sizes for AVIF a1lx*/
 	u32 layer_size[4];

@@ -23,6 +23,7 @@
 		3F04FCBA2C9CB139002BC889 /* xml_bin_custom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F04FCB92C9CB139002BC889 /* xml_bin_custom.c */; };
 		3F5F3F212C7EAD0C00C58257 /* id3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F5F3F202C7EAD0C00C58257 /* id3.c */; };
 		3FCB225A30741B9F004E3903 /* av1merge.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FCB225930741B9F004E3903 /* av1merge.c */; };
+		A11A51173000000000000003 /* av1split.c in Sources */ = {isa = PBXBuildFile; fileRef = A11A51173000000000000004 /* av1split.c */; };
 		3FDEA5BB2D402C3D006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5BA2D402C3D006F0673 /* enc_cc.c */; };
 		7141FF301292CB9200FCB27D /* alloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7141FF2F1292CB9200FCB27D /* alloc.c */; };
 		71A19BB212797D1B00ACFF58 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BB112797D1B00ACFF58 /* OpenGLES.framework */; };
@@ -631,7 +632,8 @@
 		2897039B1A13C4050063E9C0 /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = ../../extra_lib/lib/iOS/libswresample.a; sourceTree = "<group>"; };
 		3F04FCB92C9CB139002BC889 /* xml_bin_custom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = xml_bin_custom.c; sourceTree = "<group>"; };
 		3F5F3F202C7EAD0C00C58257 /* id3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id3.c; sourceTree = "<group>"; };
-		3FCB225930741B9F004E3903 /* av1merge.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = av1merge.c; path = /Users/rbouqueau/works/gpac/gpac_public/src/filters/av1merge.c; sourceTree = "<absolute>"; };
+		3FCB225930741B9F004E3903 /* av1merge.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = av1merge.c; path = ../../src/filters//av1merge.c; sourceTree = SOURCE_ROOT; };
+		A11A51173000000000000004 /* av1split.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = av1split.c; path = ../../src/filters/av1split.c; sourceTree = SOURCE_ROOT; };
 		3FDEA5BA2D402C3D006F0673 /* enc_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = ../../src/filters/enc_cc.c; sourceTree = "<group>"; };
 		7141FF2F1292CB9200FCB27D /* alloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = alloc.c; sourceTree = "<group>"; };
 		71847811127860F000917298 /* libc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libc.dylib; path = usr/lib/libc.dylib; sourceTree = SDKROOT; };
@@ -1985,6 +1987,7 @@
 			isa = PBXGroup;
 			children = (
 				3FCB225930741B9F004E3903 /* av1merge.c */,
+				A11A51173000000000000004 /* av1split.c */,
 				9227B8562799F8E600BF3D1B /* bs_agg.c */,
 				9227B8572799F8E600BF3D1B /* bs_split.c */,
 				9274295924647B98009ADD8D /* bsrw.c */,
@@ -2699,6 +2702,7 @@
 				92EB6E3520E4E58E00A97A49 /* scene.c in Sources */,
 				71CCF3091277045100339E12 /* smil_timing.c in Sources */,
 				3FCB225A30741B9F004E3903 /* av1merge.c in Sources */,
+				A11A51173000000000000003 /* av1split.c in Sources */,
 				71CCF30A1277045100339E12 /* svg_attributes.c in Sources */,
 				71CCF30B1277045100339E12 /* svg_properties.c in Sources */,
 				71CCF30D1277045100339E12 /* svg_types.c in Sources */,
