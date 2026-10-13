@@ -816,8 +816,11 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 		/*regular field, duplicate from default value or instantiated one if specified (since
 		a proto may be partially instantiated when used in another proto)*/
 		if (gf_sg_vrml_get_sf_type(inst->FieldType) != GF_SG_VRML_SFNODE) {
-			if (from_inst) {
-				from_field = (GF_ProtoField *)gf_list_get(from_inst->fields, i-1);
+			from_field = from_inst ? (GF_ProtoField *)gf_list_get(from_inst->fields, i-1) : NULL;
+			/*a partially-instantiated PROTO (from_inst supplies fewer fields than this PROTO
+			interface declares) yields a NULL entry here - fall back to the declared default,
+			matching the from_inst==NULL path*/
+			if (from_field) {
 				gf_sg_vrml_field_copy(inst->field_pointer, from_field->field_pointer, inst->FieldType);
 				inst->has_been_accessed = from_field->has_been_accessed;
 			} else {

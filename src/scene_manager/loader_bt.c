@@ -2375,7 +2375,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 
 		/*peek the next word*/
 		j = 0;
-		while (strchr(" \n\t\0", parser->line_buffer[parser->line_pos + j])) j++;
+		while (parser->line_buffer[parser->line_pos + j] && strchr(" \n\t\0", parser->line_buffer[parser->line_pos + j])) j++;
 		str = parser->line_buffer + parser->line_pos + j;
 		j = 0;
 		while (!strchr(" .\0", str[j])) j++;

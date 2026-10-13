@@ -2789,16 +2789,24 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	if ((att->type==GF_PROP_DATA) && (ctx->analyze || ctx->xml)) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (p4cc==GF_PROP_PID_CONTENT_LIGHT_LEVEL) {
-			GF_BitStream *bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
-			dump_clli(dump, bs);
-			gf_bs_del(bs);
+			if (att->value.data.size==4) {
+				GF_BitStream *bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
+				dump_clli(dump, bs);
+				gf_bs_del(bs);
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Invalid CLLI data size: expecting 4, got %u - check the formatting\n", att->value.data.size));
+			}
 			return;
 		}
 		else if (p4cc==GF_PROP_PID_MASTER_DISPLAY_COLOUR) {
-			GF_BitStream *bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
-			//mdcv property is always in MPEG units
-			dump_mdcv(dump, bs, GF_TRUE);
-			gf_bs_del(bs);
+			if (att->value.data.size==24) {
+				GF_BitStream *bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
+				//mdcv property is always in MPEG units
+				dump_mdcv(dump, bs, GF_TRUE);
+				gf_bs_del(bs);
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Invalid MDCV data size: expecting 24, got %u - check the formatting\n", att->value.data.size));
+			}
 			return;
 		}
 #endif /*GPAC_DISABLE_AV_PARSERS*/
