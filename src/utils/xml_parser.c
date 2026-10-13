@@ -786,7 +786,7 @@ restart:
 
 				if (parser->current_pos+i==parser->line_size) {
 					if ((parser->line_size >= XML_MAX_CONTENT_SIZE) && !parser->init_state) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Content size larger than max allowed %u, try increasing limit using `-xml-max-csize`\n", XML_MAX_CONTENT_SIZE));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[XML] Content size larger than max allowed %u, try increasing limit using `-xml-max-csize`\n", XML_MAX_CONTENT_SIZE));
 						parser->sax_state = SAX_STATE_SYNTAX_ERROR;
 					}
 
@@ -915,7 +915,7 @@ restart:
 						parser->sax_state = SAX_STATE_TEXT_CONTENT;
 						parser->ent_rec_level++;
 						if (parser->ent_rec_level>100) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Too many recursions in entity solving, max 100 allowed\n"));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[XML] Too many recursions in entity solving, max 100 allowed\n"));
 							e = GF_NOT_SUPPORTED;
 						} else {
 							e = gf_xml_sax_parse_intern(parser, orig_buf);
@@ -1321,7 +1321,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 #ifdef NO_GZIP
 	parser->f_in = gf_fopen(fileName, "rt");
 	if (gf_fread(szLine, 4, parser->f_in) != 4) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Error loading BOM\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[XML] Error loading BOM\n"));
 	}
 #else
 	gzInput = gf_gzopen(fileName, "rb");
@@ -2237,12 +2237,12 @@ GF_Err gf_xml_dom_node_check_namespace(const GF_XMLNode *n, const char *expected
 				return GF_OK;
 			}
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[XML] Unsupported attribute namespace \"%s\": ignoring\n", att->name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[XML] Unsupported attribute namespace \"%s\": ignoring\n", att->name));
 			continue;
 		}
 	}
 
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Unresolved namespace \"%s\" for node \"%s\"\n", n->ns, n->name));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[XML] Unresolved namespace \"%s\" for node \"%s\"\n", n->ns, n->name));
 	return GF_BAD_PARAM;
 }
 

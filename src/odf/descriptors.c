@@ -2000,6 +2000,8 @@ GF_Err gf_odf_ac4_cfg_substream_dsi(GF_AC4SubStream *s, GF_BitStream *bs, u8 b_c
 {
 	u32 zero_val = 0;
 
+	if (!s) return GF_BAD_PARAM;
+
 	GF_AC4_SSS(bs, s->dsi_sf_multiplier, 2, size, desc_mode);
 	GF_AC4_SSS(bs, s->b_substream_bitrate_indicator, 1, size, desc_mode);
 	if (s->b_substream_bitrate_indicator == 1) {
@@ -2404,6 +2406,7 @@ GF_Err gf_odf_ac4_cfg_parse_bs(GF_BitStream *bs, GF_AC4Config *cfg)
 	dsi->ac4_dsi_version = gf_bs_read_int(bs, 3);
 	if (dsi->ac4_dsi_version == 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support ac4_dsi_version 0.\n"));
+		gf_bs_seek(bs, pos);
 		return GF_OK;
 	}
 	gf_bs_seek(bs, pos);
@@ -2830,7 +2833,7 @@ char* gf_odf_preselection_obtain_str(GF_BitStream *bs, u32 size)
 	char *data, *ptr;
     u32 i = 0;
     GF_SAFE_ALLOC_N(data, (size) + 1, char);
-    
+
 	while (gf_bs_available(bs) && i < (size)) {
     	data[i] = (char) gf_bs_read_u8(bs);
         if (data[i] == '\0') break;

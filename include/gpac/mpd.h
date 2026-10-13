@@ -126,7 +126,7 @@ typedef struct
 
 
 /*! macro for extensible MPD element
-Some elments are typically overloaded in XML, we keep the attributes / children nodes here. The attributes list is NULL if no extensions were found, otherwise it is a list of GF_XMLAttribute.
+Some elements are typically overloaded in XML, we keep the attributes / children nodes here. The attributes list is NULL if no extensions were found, otherwise it is a list of GF_XMLAttribute.
 The children list is NULL if no extensions were found, otherwise it is a list of GF_XMLNode
 */
 #define MPD_EXTENSIBLE	\
@@ -1366,7 +1366,7 @@ Double gf_mpd_get_duration(GF_MPD *mpd);
 \param out_pts_offset set to the presentation time offset if any (optional, may be NULL)
 \param out_segment_timeline set to the segment timeline description if any (optional, may be NULL)
 */
-void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
+void gf_mpd_resolve_segment_duration(const GF_MPD_Representation *rep, const GF_MPD_AdaptationSet *set, const GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
 
 /*! gets the start_time from the segment index of a period/set/rep
 \param in_segment_index the index of the target segment (startNumber based)

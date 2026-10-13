@@ -385,6 +385,51 @@ GF_Err kind_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void ctlc_box_del(GF_Box *s)
+{
+	GF_ContentTypeForLoudnessControlBox *ptr = (GF_ContentTypeForLoudnessControlBox *)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+GF_Err ctlc_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_ContentTypeForLoudnessControlBox *ptr = (GF_ContentTypeForLoudnessControlBox *)s;
+
+	ISOM_DECREASE_SIZE(ptr, 1)
+	ptr->content_type = gf_bs_read_u8(bs);
+	return GF_OK;
+}
+
+GF_Box *ctlc_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ContentTypeForLoudnessControlBox, GF_ISOM_BOX_TYPE_CTLC);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err ctlc_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ContentTypeForLoudnessControlBox *ptr = (GF_ContentTypeForLoudnessControlBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, ptr->content_type);
+	return GF_OK;
+}
+
+GF_Err ctlc_box_size(GF_Box *s)
+{
+	GF_ContentTypeForLoudnessControlBox *ptr = (GF_ContentTypeForLoudnessControlBox *)s;
+
+	ptr->size += 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 void prsl_box_del(GF_Box *s)
 {
 	GF_PreselectionGroupBox *ptr = (GF_PreselectionGroupBox *) s;
