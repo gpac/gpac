@@ -2823,6 +2823,7 @@ Bool gf_media_aom_probe_annexb(GF_BitStream *bs)
 	return res;
 }
 
+GF_NOT_EXPORTED
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state)
 {
 	GF_Err e;
@@ -2833,10 +2834,13 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 	gf_bs_mark_overflow(bs, GF_TRUE);
 	tusize = sz = gf_av1_leb128_read(bs, NULL);
 	tupos = gf_bs_get_position(bs);
+	if (gf_bs_is_overflow(bs)) return GF_BUFFER_TOO_SMALL;
 	if (!sz) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[AV1] temporal unit size is 0, likely not annex B\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+	//for incomplete TUs, don't update ref frames nor accumulate OBUs until the entire TU is available
+	if (sz > gf_bs_available(bs)) return GF_BUFFER_TOO_SMALL;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", sz));
 	while (sz > 0) {
