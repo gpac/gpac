@@ -47,10 +47,15 @@
 typedef struct
 {
 	GF_FilterPid *pid;
-	Bool in_error;
 
 	AV1State state;
 	u32 last_size;
+	u32 packet_start, packet_end, obu_pos;
+	u32 tile_start;
+	u32 tile_id;
+	u32 obu_start, payload_start, header_size;
+	u64 header_end_bits;
+	ObuType obu_type;
 
 	//used both to check if dsi changed
 	//and if dsi is different between tiles
@@ -67,12 +72,19 @@ typedef struct
 
 typedef struct
 {
-	GF_List *ipids; //GF_FilterPid
+	GF_List *ipids; //AV1TilePidCtx
 	GF_FilterPid *opid;
 	Bool in_error;
 
 	u32 cols;
 	u32 rows;
+	Bool cols_forced, rows_forced, grid_changed;
+	AV1TilePidCtx *incomplete_tile;
+	Bool drain;
+	u8 tile_size_bytes;
+	u8 *buffer;
+	u32 buffer_alloc;
+	AV1State rewrite_state;
 
 	GF_List *ordered_ipids /*AV1TilePidCtx, ordered by #TileID*/;
 
@@ -81,6 +93,7 @@ typedef struct
 
 	GF_BitStream *bs_in;
 	GF_BitStream *bs_out;
+	GF_BitStream *bs_pck;
 } GF_AV1MergeCtx;
 
 static void release_buffer(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
@@ -96,37 +109,7 @@ static GFINLINE int bs_rewrite(GF_BitStream *bs_ori, GF_BitStream *bs_new, s32 b
 	return val;
 }
 
-static void bs_copy_all(GF_BitStream *bs_ori, GF_BitStream *bs_new, u32 max_ori_pos)
-{
-		u32 bits;
-		while ((bits = gf_bs_bits_available(bs_ori)) && gf_bs_get_position(bs_ori) < max_ori_pos) {
-			bs_rewrite(bs_ori, bs_new, bits);
-		}
-		gf_bs_align(bs_new);
-}
-
-//return the position of the obu_size location in the input bitstream
-//so that it gets replaced once value is known, or -1 if not present
-static int rewrite_obu_header(GF_BitStream *bs_ori, GF_BitStream *bs_new, ObuType *obu_type)
-{
-	Bool obu_extension_flag;
-	bs_rewrite(bs_ori, bs_new, 1); // forbidden bit
-	*obu_type = bs_rewrite(bs_ori, bs_new, 4); // obu_type
-	obu_extension_flag = bs_rewrite(bs_ori, bs_new, 1); // obu_extension_flag
-	if (!bs_rewrite(bs_ori, bs_new, 1)) { // obu_has_size_field
-		return -1;
-	}
-	bs_rewrite(bs_ori, bs_new, 1); // obu_reserved_1bit
-	if (obu_extension_flag) {
-		bs_rewrite(bs_ori, bs_new, 3); // temporal_id
-		bs_rewrite(bs_ori, bs_new, 2); // spatial_id
-		bs_rewrite(bs_ori, bs_new, 3); // extension_header_reserved_3bits
-	}
-
-	return gf_bs_get_position(bs_ori);
-}
-
-static u32 count_bits(int val)
+static u32 count_bits(u32 val)
 {
 	u32 count = 0;
 	while (val) {
@@ -145,23 +128,6 @@ static GFINLINE int bs_rewriten(GF_BitStream *bs_ori, GF_BitStream *bs_new, s32 
 	return val;
 }
 
-static void on_bs_log(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3)
-{
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, (" %s", field_name));
-	if (idx1>=0) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("_%d", idx1));
-		if (idx2>=0) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("_%d", idx2));
-			if (idx3>=0) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("_%d", idx3));
-			}
-		}
-	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("=\""LLD, field_val));
-	//GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("(%u)", nb_bits));
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("\""));
-}
-
 #define REWRITE(bits, name) bs_rewriten(ctx->bs_in, ctx->bs_out, bits, name)
 #define REWRITEi(bits, name) bs_rewriten(bs_ori, bs_new, bits, name)
 #else
@@ -172,7 +138,7 @@ static void on_bs_log(void *udta, const char *field_name, u32 nb_bits, u64 field
 static void av1merge_rewrite_seq_hdr(GF_AV1MergeCtx *ctx, GF_BitStream *bs_ori, GF_BitStream *bs_new)
 {
 	u32 i;
-	Bool decoder_model_info_present_flag, initial_display_delay_present_flag;
+	Bool decoder_model_info_present_flag = GF_FALSE, initial_display_delay_present_flag;
 	u8 buffer_delay_length_minus_1 = 0;
 
 	REWRITEi(3, "seq_profile");
@@ -209,7 +175,7 @@ static void av1merge_rewrite_seq_hdr(GF_AV1MergeCtx *ctx, GF_BitStream *bs_ori, 
 			decoder_model_info_present_flag = REWRITEi(1, "decoder_model_info_present_flag");
 			if (decoder_model_info_present_flag) {
 				//decoder_model_info
-				REWRITEi(5, "buffer_delay_length_minus_1");
+				buffer_delay_length_minus_1 = REWRITEi(5, "buffer_delay_length_minus_1");
 				REWRITEi(32, "num_units_in_decoding_tick");
 				REWRITEi(5, "buffer_removal_time_length");
 				REWRITEi(5, "frame_presentation_time_length_minus1");
@@ -252,8 +218,8 @@ static void av1merge_rewrite_seq_hdr(GF_AV1MergeCtx *ctx, GF_BitStream *bs_ori, 
 
 		width *= ctx->cols;
 		height *= ctx->rows;
-		frame_width_bits = count_bits(width-1);
-		frame_height_bits = count_bits(height-1);
+		frame_width_bits = MAX(1, count_bits(width-1));
+		frame_height_bits = MAX(1, count_bits(height-1));
 
 		gf_bs_write_int(bs_new, frame_width_bits - 1, 4);
 		gf_bs_write_int(bs_new, frame_height_bits - 1, 4);
@@ -262,80 +228,79 @@ static void av1merge_rewrite_seq_hdr(GF_AV1MergeCtx *ctx, GF_BitStream *bs_ori, 
 	}
 }
 
-static GF_Err av1merge_rewrite_config(GF_AV1MergeCtx *ctx, AV1TilePidCtx *tile_pid, GF_FilterPid *opid)
+//copy syntax up to an exact bit offset, excluding the input byte alignment
+static u64 av1merge_bit_offset(GF_BitStream *bs)
 {
-	u32 i;
+	return gf_bs_get_position(bs) * 8 - (8 - gf_bs_get_bit_position(bs));
+}
+
+static void av1merge_copy_bits(GF_BitStream *src, GF_BitStream *dst, u64 end)
+{
+	while (av1merge_bit_offset(src) < end) {
+		u32 bits = (u32) MIN(end - av1merge_bit_offset(src), 32);
+		bs_rewrite(src, dst, bits);
+	}
+}
+
+static void av1merge_copy_trailing_bits(GF_BitStream *src, GF_BitStream *dst, const u8 *data, u32 end)
+{
+	u64 end_bits = (u64) end * 8;
+	u8 last = data[end-1];
+	//trailing_one_bit followed by zero padding
+	while (last && !(last & 1)) {
+		end_bits--;
+		last >>= 1;
+	}
+	av1merge_copy_bits(src, dst, end_bits);
+	gf_bs_align(dst);
+}
+
+//write the size after producing the payload, including when its LEB128 grows
+static void av1merge_flush_obu(GF_BitStream *payload, GF_BitStream *dst, const u8 *header, u32 header_size)
+{
+	u8 *data = NULL;
+	u32 size = 0;
+	gf_bs_get_content(payload, &data, &size);
+	gf_bs_reassign_buffer(payload, NULL, 0);
+	gf_bs_write_data(dst, header, header_size);
+	gf_av1_leb128_write(dst, size);
+	gf_bs_write_data(dst, data, size);
+	gf_free(data);
+}
+
+static GF_Err av1merge_rewrite_config(GF_AV1MergeCtx *ctx, GF_FilterPid *opid)
+{
+	u32 i, new_size;
 	u8 *new_dsi;
-	u32 new_size;
 	GF_AV1Config *av1c = gf_odf_av1_cfg_read_bs(ctx->bs_in);
 	if (!av1c) return GF_NON_COMPLIANT_BITSTREAM;
 
-	// for all the list objects in param_array
 	for (i = 0; i < gf_list_count(av1c->obu_array); ++i) {
 		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1c->obu_array, i);
 		if (obu->obu_type == OBU_SEQUENCE_HEADER) {
-			ObuType obu_type;
-			int obu_size_pos;
-			u8 obu_size_lebsize = 0;
-			u64 val;
-			GF_BitStream *bs_ori = gf_bs_new(obu->obu, obu->obu_length, GF_BITSTREAM_READ);
-			GF_BitStream *bs_new = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			if (!bs_ori || !bs_new) {
-				gf_bs_del(bs_ori);
-				gf_bs_del(bs_new);
+			u32 header_size = 1 + ((obu->obu[0] >> 2) & 1);
+			GF_BitStream *src = gf_bs_new(obu->obu, obu->obu_length, GF_BITSTREAM_READ);
+			GF_BitStream *dst = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			if (!src || !dst) {
+				gf_bs_del(src);
+				gf_bs_del(dst);
+				gf_odf_av1_cfg_del(av1c);
 				return GF_OUT_OF_MEM;
 			}
-
-			//OBU header and size
-			obu_size_pos = rewrite_obu_header(bs_ori, bs_new, &obu_type);
-			if (obu_size_pos > 0) {
-				val = gf_av1_leb128_read(bs_ori, &obu_size_lebsize);
-				gf_av1_leb128_write(bs_new, val);
-			}
-
-			//populate AV1State for later steps (tile_info(), ...)
-			if (!tile_pid->state.config) {
-				GF_BitStream *bs = gf_bs_new(obu->obu+obu_size_pos+obu_size_lebsize, obu->obu_length-(obu_size_pos+obu_size_lebsize), GF_BITSTREAM_READ);
-				void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state);
-				tile_pid->state.config = gf_odf_av1_cfg_new();
-				gf_list_del(tile_pid->state.config->obu_array);
-				*tile_pid->state.config = *av1c;
-				tile_pid->state.config->obu_array = NULL;
-				av1_parse_sequence_header_obu(bs, &tile_pid->state);
-				gf_bs_del(bs);
-			}
-
-			av1merge_rewrite_seq_hdr(ctx, bs_ori, bs_new);
-
-			//copy the rest of the bitstream
-			bs_copy_all(bs_ori, bs_new, UINT32_MAX);
-
-			//update OBU size field
-			if (obu_size_pos > 0) {
-				u64 pos = gf_bs_get_position(bs_new);
-				gf_fatal_assert(gf_bs_get_bit_position(bs_new) % 8 == 0);
-				val = pos - (obu_size_pos + gf_av1_leb128_size(val));
-				gf_bs_seek(bs_new, obu_size_pos);
-				int written = gf_av1_leb128_write(bs_new, val);
-
-				//safety check: in-place modification assumes same leb128 encoding size
-				gf_fatal_assert(written == obu_size_lebsize);
-
-				gf_bs_seek(bs_new, pos);
-			}
-
+			gf_bs_seek(src, header_size);
+			gf_av1_leb128_read(src, NULL);
+			av1merge_rewrite_seq_hdr(ctx, src, ctx->bs_out);
+			av1merge_copy_trailing_bits(src, ctx->bs_out, obu->obu, obu->obu_length);
+			av1merge_flush_obu(ctx->bs_out, dst, obu->obu, header_size);
 			gf_free(obu->obu);
-			u32 obu_length = 0;
-			gf_bs_get_content(bs_new, &obu->obu, &obu_length);
-			gf_bs_reassign_buffer(bs_new, NULL, 0);
-			obu->obu_length = obu_length;
-			gf_bs_del(bs_ori);
-			gf_bs_del(bs_new);
+			gf_bs_get_content(dst, &obu->obu, &new_size);
+			obu->obu_length = new_size;
+			gf_bs_del(src);
+			gf_bs_del(dst);
 		}
 	}
 	gf_odf_av1_cfg_write(av1c, &new_dsi, &new_size);
 	gf_odf_av1_cfg_del(av1c);
-
 	gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(new_dsi, new_size));
 	return GF_OK;
 }
@@ -371,7 +336,21 @@ static u32 av1_read_ns(GF_BitStream *bs, u32 n, const char *fname)
 	return res;
 }
 
-static void av1merge_rewrite_tile_info(GF_AV1MergeCtx *ctx, AV1State *state)
+//ns(n) as per AV1 section 4.10.7
+static void av1merge_write_ns(GF_BitStream *bs, u32 n, u32 value)
+{
+	u32 w = count_bits(n);
+	u32 m = (1U << w) - n;
+	if (value < m) {
+		gf_bs_write_int(bs, value, w-1);
+	} else {
+		value += m;
+		gf_bs_write_int(bs, value >> 1, w-1);
+		gf_bs_write_int(bs, value & 1, 1);
+	}
+}
+
+static GF_Err av1merge_rewrite_tile_info(GF_AV1MergeCtx *ctx, AV1State *state)
 {
 #define MAX_TILE_WIDTH 4096
 #define MAX_TILE_AREA (4096 * 2304)
@@ -393,7 +372,7 @@ static void av1merge_rewrite_tile_info(GF_AV1MergeCtx *ctx, AV1State *state)
 	u32 minLog2Tiles = MAX(minLog2tileCols, aom_av1_tile_log2(maxTileAreaSb, sbRows * sbCols));
 
 	//read
-	Bool uniform_tile_spacing_flag = gf_bs_read_int(ctx->bs_in, 1);// "uniform_tile_spacing_flag"
+	Bool uniform_tile_spacing_flag = gf_bs_read_int(ctx->bs_in, 1);
 	if (uniform_tile_spacing_flag) {
 		u32 startSb, tileWidthSb, tileHeightSb, minLog2tileRows;
 		state->tileColsLog2 = minLog2tileCols;
@@ -441,7 +420,7 @@ static void av1merge_rewrite_tile_info(GF_AV1MergeCtx *ctx, AV1State *state)
 		}
 		if (!widestTileSb) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] widest tile is 0, broken bitstream\n"));
-			return;
+			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		state->tileCols = i;
 		state->tileColsLog2 = aom_av1_tile_log2(1, state->tileCols);
@@ -468,41 +447,30 @@ static void av1merge_rewrite_tile_info(GF_AV1MergeCtx *ctx, AV1State *state)
 		state->tile_size_bytes = gf_bs_read_int_log(ctx->bs_in, 2, "tile_size_bytes_minus1") + 1;
 	}
 
-	//write
-	gf_bs_write_int(ctx->bs_out, 1/*uniform_tile_spacing_flag*/, 1);
+	//explicit spacing preserves the input superblock boundaries for any grid,
+	//including counts that cannot be represented with uniform spacing
+	u32 tileWidthSb = sbCols, tileHeightSb = sbRows;
+	sbCols *= ctx->cols;
+	sbRows *= ctx->rows;
+	minLog2tileCols = aom_av1_tile_log2(maxTileWidthSb, sbCols);
+	minLog2Tiles = MAX(minLog2tileCols, aom_av1_tile_log2(MAX_TILE_AREA >> (2 * sbSize), sbRows * sbCols));
+	maxTileAreaSb = sbRows * sbCols;
+	if (minLog2Tiles)
+		maxTileAreaSb >>= minLog2Tiles + 1;
+	u32 maxTileHeightSb = MAX(maxTileAreaSb / tileWidthSb, 1);
+	if (tileWidthSb > maxTileWidthSb || tileHeightSb > maxTileHeightSb)
+		return GF_NOT_SUPPORTED;
 
-	//u32 startSb, tileWidthSb, tileHeightSb;
-	u32 minLog2tileRows = count_bits(ctx->rows);
-	state->tileColsLog2 = minLog2tileCols;
-	while (state->tileColsLog2 < ctx->cols) {
-		Bool increment_tile_cols_log2 = GF_FALSE;
-		gf_bs_write_int(ctx->bs_out, increment_tile_cols_log2, 1);
-		state->tileColsLog2++;
+	gf_bs_write_int(ctx->bs_out, 0, 1); //uniform_tile_spacing_flag
+	for (i = 0; i < ctx->cols; i++)
+		av1merge_write_ns(ctx->bs_out, MIN(sbCols - i * tileWidthSb, maxTileWidthSb), tileWidthSb-1);
+	for (i = 0; i < ctx->rows; i++)
+		av1merge_write_ns(ctx->bs_out, MIN(sbRows - i * tileHeightSb, maxTileHeightSb), tileHeightSb-1);
+	if (ctx->cols > 1 || ctx->rows > 1) {
+		gf_bs_write_int(ctx->bs_out, 0, count_bits(ctx->cols-1) + count_bits(ctx->rows-1)); //context_update_tile_id
+		gf_bs_write_int(ctx->bs_out, ctx->tile_size_bytes-1, 2);
 	}
-	gf_bs_write_int(ctx->bs_out, 0/*increment_tile_cols_log2*/, 1);
-
-	state->tileCols = ctx->cols;
-	minLog2tileRows = MAX((int)(minLog2Tiles - state->tileColsLog2), 0);
-	state->tileRowsLog2 = minLog2tileRows;
-	while (state->tileRowsLog2 < ctx->rows) {
-		Bool increment_tile_rows_log2 = GF_FALSE;
-		gf_bs_write_int(ctx->bs_out, increment_tile_rows_log2, 1);
-		state->tileRowsLog2++;
-	}
-	gf_bs_write_int(ctx->bs_out, 0/*increment_tile_rows_log2*/, 1);
-
-	state->tileRows = ctx->rows;
-
-	if (state->tileColsLog2 > 0 || state->tileRowsLog2 > 0) {
-		gf_bs_write_int(ctx->bs_out, 0/*context_update_tile_id*/, state->tileRowsLog2 + state->tileColsLog2);
-		state->tile_size_bytes = ctx->rows * ctx->cols;
-		
-		for (i = 0; i < gf_list_count(ctx->ordered_ipids); i++) {
-			AV1TilePidCtx *tile_pid = gf_list_get(ctx->ordered_ipids, i);
-			state->tile_size_bytes = MAX(state->tile_size_bytes, 1+count_bits(tile_pid->last_size-1)/8);
-		}
-		gf_bs_write_int(ctx->bs_out, 2, state->tile_size_bytes - 1);
-	}
+	return GF_OK;
 }
 
 static void superres_params(GF_BitStream *bs_ori, GF_BitStream *bs_new, AV1State *state)
@@ -527,14 +495,16 @@ static void superres_params(GF_BitStream *bs_ori, GF_BitStream *bs_new, AV1State
 	state->width = (state->UpscaledWidth * AV1_SUPERRES_NUM + (SuperresDenom / 2)) / SuperresDenom;
 }
 
-static void av1_frame_size(GF_BitStream *bs_ori, GF_BitStream *bs_new, AV1State *state, Bool frame_size_override_flag)
+static void av1_frame_size(GF_AV1MergeCtx *ctx, GF_BitStream *bs_ori, GF_BitStream *bs_new, AV1State *state, Bool frame_size_override_flag)
 {
 	if (frame_size_override_flag) {
 		u32 frame_width_minus_1, frame_height_minus_1;
 		u8 n = state->frame_width_bits_minus_1 + 1;
-		frame_width_minus_1 = REWRITEi(n, "frame_width_minus_1");
+		frame_width_minus_1 = gf_bs_read_int(bs_ori, n);
+		gf_bs_write_int(bs_new, (frame_width_minus_1 + 1) * ctx->cols - 1, MAX(1, count_bits(state->sequence_width * ctx->cols - 1)));
 		n = state->frame_height_bits_minus_1 + 1;
-		frame_height_minus_1 = REWRITEi(n, "frame_height_minus_1");
+		frame_height_minus_1 = gf_bs_read_int(bs_ori, n);
+		gf_bs_write_int(bs_new, (frame_height_minus_1 + 1) * ctx->rows - 1, MAX(1, count_bits(state->sequence_height * ctx->rows - 1)));
 		state->width = frame_width_minus_1 + 1;
 		state->height = frame_height_minus_1 + 1;
 	} else {
@@ -545,16 +515,16 @@ static void av1_frame_size(GF_BitStream *bs_ori, GF_BitStream *bs_new, AV1State 
 	//compute_image_size(); //no bits
 }
 
-static void av1_render_size(GF_BitStream *bs_ori, GF_BitStream *bs_new, AV1State *state)
+static void av1_render_size(GF_AV1MergeCtx *ctx, GF_BitStream *bs_ori, GF_BitStream *bs_new, AV1State *state)
 {
 	Bool render_and_frame_size_different = REWRITEi(1, "render_and_frame_size_different_flag");
 	if (render_and_frame_size_different == GF_TRUE) {
-		REWRITEi(16, "render_width_minus_1");
-		REWRITEi(16, "render_height_minus_1");
+		gf_bs_write_int(bs_new, (gf_bs_read_int(bs_ori, 16) + 1) * ctx->cols - 1, 16);
+		gf_bs_write_int(bs_new, (gf_bs_read_int(bs_ori, 16) + 1) * ctx->rows - 1, 16);
 	}
 }
 
-static void frame_size_with_refs(GF_BitStream *bs_ori, GF_BitStream *bs_new, AV1State *state, Bool frame_size_override_flag, s8 *ref_frame_idx)
+static void frame_size_with_refs(GF_AV1MergeCtx *ctx, GF_BitStream *bs_ori, GF_BitStream *bs_new, AV1State *state, Bool frame_size_override_flag, s8 *ref_frame_idx)
 {
 	Bool found_ref = GF_FALSE;
 	u32 i = 0;
@@ -568,8 +538,8 @@ static void frame_size_with_refs(GF_BitStream *bs_ori, GF_BitStream *bs_new, AV1
 		}
 	}
 	if (found_ref == 0) {
-		av1_frame_size(bs_ori, bs_new, state, frame_size_override_flag);
-		av1_render_size(bs_ori, bs_new, state);
+		av1_frame_size(ctx, bs_ori, bs_new, state, frame_size_override_flag);
+		av1_render_size(ctx, bs_ori, bs_new, state);
 	}
 	else {
 		superres_params(bs_ori, bs_new, state);
@@ -577,33 +547,22 @@ static void frame_size_with_refs(GF_BitStream *bs_ori, GF_BitStream *bs_new, AV1
 	}
 }
 
-static void av1merge_rewrite_uncompressed_header(GF_AV1MergeCtx *ctx, AV1State *state)
+static GF_Err av1merge_rewrite_uncompressed_header(GF_AV1MergeCtx *ctx, AV1State *state)
 {
 	Bool error_resilient_mode = GF_FALSE, allow_screen_content_tools = GF_FALSE, force_integer_mv = GF_FALSE;
 	Bool /*use_ref_frame_mvs = GF_FALSE,*/ FrameIsIntra = GF_FALSE, frame_size_override_flag = GF_FALSE;
 	Bool disable_cdf_update = GF_FALSE;
-	u8 showable_frame;
 	u8 primary_ref_frame;
-	u16 idLen = 0;
-	u32 idx;
-	s8 ref_frame_idx[AV1_REFS_PER_FRAME];
+	u16 idLen = state->additional_frame_id_length_minus_1 + state->delta_frame_id_length_minus_2 + 3;
+	s8 ref_frame_idx[AV1_REFS_PER_FRAME] = {0};
 	AV1StateFrame *frame_state = &state->frame_state;
 
-	/*if (state->frame_id_numbers_present_flag) {
-		idLen = (state->additional_frame_id_length_minus_1 + state->delta_frame_id_length_minus_2 + 3);
-	}
-	frame_state->refresh_frame_flags = 0;
-
-	showable_frame = 0;
 	if (state->reduced_still_picture_header) {
-		frame_state->key_frame = GF_TRUE;
 		FrameIsIntra = GF_TRUE;
 		frame_state->frame_type = AV1_KEY_FRAME;
 		frame_state->show_frame = GF_TRUE;
-		frame_state->show_existing_frame = 0;
-	}
-	else*/
-	if (!state->reduced_still_picture_header) {
+		frame_state->show_existing_frame = GF_FALSE;
+	} else {
 		frame_state->show_existing_frame = REWRITE(1, "show_existing_frame");
 		if (frame_state->show_existing_frame == GF_TRUE) {
 			REWRITE(3, "frame_to_show_map_idx");
@@ -624,7 +583,7 @@ static void av1merge_rewrite_uncompressed_header(GF_AV1MergeCtx *ctx, AV1State *
 			if (film_grain_params_present) {
 				load_grain_params(frame_to_show_map_idx)
 			}*/
-			return;
+			return GF_OK;
 		}
 		frame_state->frame_type = REWRITE(2, "frame_type");
 		FrameIsIntra = (frame_state->frame_type == AV1_INTRA_ONLY_FRAME || frame_state->frame_type == AV1_KEY_FRAME);
@@ -638,13 +597,8 @@ static void av1merge_rewrite_uncompressed_header(GF_AV1MergeCtx *ctx, AV1State *
 		if (frame_state->show_frame && state->decoder_model_info_present_flag && !state->equal_picture_interval) {
 			REWRITE(state->frame_presentation_time_length, "frame_presentation_time");
 		}
-		if (frame_state->show_frame) {
-			showable_frame = frame_state->frame_type != AV1_KEY_FRAME;
-
-		}
-		else {
-			showable_frame = REWRITE(1, "showable_frame");
-		}
+		if (!frame_state->show_frame)
+			REWRITE(1, "showable_frame");
 		if (frame_state->frame_type == AV1_SWITCH_FRAME || (frame_state->frame_type == AV1_KEY_FRAME && frame_state->show_frame))
 			error_resilient_mode = GF_TRUE;
 		else
@@ -737,20 +691,19 @@ static void av1merge_rewrite_uncompressed_header(GF_AV1MergeCtx *ctx, AV1State *
 		}
 	}
 
-	u8 allow_intrabc = 0;
 	if (frame_state->frame_type == AV1_KEY_FRAME) {
-		av1_frame_size(ctx->bs_in, ctx->bs_out, state, frame_size_override_flag);
-		av1_render_size(ctx->bs_in, ctx->bs_out, state);
+		av1_frame_size(ctx, ctx->bs_in, ctx->bs_out, state, frame_size_override_flag);
+		av1_render_size(ctx, ctx->bs_in, ctx->bs_out, state);
 		if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
-			allow_intrabc = REWRITE(1, "allow_intrabc");
+			REWRITE(1, "allow_intrabc");
 		}
 	}
 	else {
 		if (frame_state->frame_type == AV1_INTRA_ONLY_FRAME) {
-			av1_frame_size(ctx->bs_in, ctx->bs_out, state, frame_size_override_flag);
-			av1_render_size(ctx->bs_in, ctx->bs_out, state);
+			av1_frame_size(ctx, ctx->bs_in, ctx->bs_out, state, frame_size_override_flag);
+			av1_render_size(ctx, ctx->bs_in, ctx->bs_out, state);
 			if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
-				allow_intrabc = REWRITE(1, "allow_intrabc");
+				REWRITE(1, "allow_intrabc");
 			}
 		}
 		else {
@@ -776,11 +729,11 @@ static void av1merge_rewrite_uncompressed_header(GF_AV1MergeCtx *ctx, AV1State *
 				}
 			}
 			if (frame_size_override_flag && !error_resilient_mode) {
-				frame_size_with_refs(ctx->bs_in, ctx->bs_out, state, frame_size_override_flag, ref_frame_idx);
+				frame_size_with_refs(ctx, ctx->bs_in, ctx->bs_out, state, frame_size_override_flag, ref_frame_idx);
 			}
 			else {
-				av1_frame_size(ctx->bs_in, ctx->bs_out, state, frame_size_override_flag);
-				av1_render_size(ctx->bs_in, ctx->bs_out, state);
+				av1_frame_size(ctx, ctx->bs_in, ctx->bs_out, state, frame_size_override_flag);
+				av1_render_size(ctx, ctx->bs_in, ctx->bs_out, state);
 			}
 			frame_state->allow_high_precision_mv = 0;
 			if (!force_integer_mv) {
@@ -830,98 +783,151 @@ static void av1merge_rewrite_uncompressed_header(GF_AV1MergeCtx *ctx, AV1State *
 		//unused: av1_load_previous(state, primary_ref_frame, ref_frame_idx);
 	}
 
-	av1merge_rewrite_tile_info(ctx, state);
+	return av1merge_rewrite_tile_info(ctx, state);
 }
 
-static void av1merge_write_tile_group(GF_AV1MergeCtx *ctx, AV1State *state)
+static void av1merge_write_tile_group(GF_AV1MergeCtx *ctx)
 {
-	int num_tiles = ctx->cols * ctx->rows;
-	Bool tile_start_and_end_present_flag = GF_FALSE;
+	u32 tile_num, num_tiles = ctx->cols * ctx->rows;
 	if (num_tiles > 1)
-		gf_bs_write_int(ctx->bs_out, tile_start_and_end_present_flag, 1);
-	int tg_start = 0;
-	int tg_end = num_tiles - 1;
+		gf_bs_write_int(ctx->bs_out, 0, 1); //tile_start_and_end_present_flag
 	gf_bs_align(ctx->bs_out);
-	for (int tile_num = tg_start; tile_num <= tg_end; tile_num++) {
-		Bool lastTile = (tile_num == tg_end);
-		AV1TilePidCtx *tile_pid = gf_list_get(ctx->ordered_ipids, tile_num);
-		if (!lastTile) {
-			for (int i=state->tile_size_bytes-1; i>=0; i--) {
-				gf_bs_write_u8(ctx->bs_out, ((tile_pid->last_size-1) >> (8 * i)) & 0xFF);
-			}
+	for (tile_num = 0; tile_num < num_tiles; tile_num++) {
+		AV1TilePidCtx *tile = gf_list_get(ctx->ordered_ipids, tile_num);
+		if (tile_num + 1 < num_tiles) {
+			u32 i;
+			//tile_size_minus_1 is little endian
+			for (i = 0; i < ctx->tile_size_bytes; i++)
+				gf_bs_write_u8(ctx->bs_out, (tile->last_size-1) >> (8*i));
 		}
-
-		bs_copy_all(ctx->bs_in, ctx->bs_out, gf_bs_get_position(ctx->bs_in) + state->frame_state.tiles[tile_num].size);
+		gf_bs_write_data(ctx->bs_out, ctx->buffer + tile->tile_start, tile->last_size);
 	}
 }
 
 #undef REWRITE
 
-static void av1merge_rewrite_pck(GF_AV1MergeCtx *ctx, AV1State *state)
+static Bool av1merge_frame_obu(ObuType type)
 {
-	while (gf_bs_available(ctx->bs_in) > 0) {
-		//OBU header and size
-		u8 obu_size_lebsize = 0;
-		ObuType obu_type;
-		u64 obu_size, end_pos, obu_pos = gf_bs_get_position(ctx->bs_in);
-		int obu_size_pos = rewrite_obu_header(ctx->bs_in, ctx->bs_out, &obu_type);
-		gf_fatal_assert(obu_size_pos > 0);
-		obu_size = gf_av1_leb128_read(ctx->bs_in, &obu_size_lebsize);
-		gf_av1_leb128_write(ctx->bs_out, obu_size);
-		end_pos = gf_bs_get_position(ctx->bs_in) + obu_size;
+	return (type == OBU_FRAME) || (type == OBU_FRAME_HEADER) || (type == OBU_TILE_GROUP);
+}
 
-		if (obu_type == OBU_SEQUENCE_HEADER) {
-			av1merge_rewrite_seq_hdr(ctx, ctx->bs_in, ctx->bs_out);
+//parse one input OBU using that input's dimensions and reference state
+static GF_Err av1merge_next_obu(GF_AV1MergeCtx *ctx, AV1TilePidCtx *tile)
+{
+	GF_Err e;
+	u64 size, end;
+	AV1State *state = &tile->state;
+	void av1_parse_frame_header(GF_BitStream *bs, AV1State *state);
+	GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size);
+	if (tile->obu_pos == tile->packet_end) return GF_EOS;
+	tile->obu_start = tile->obu_pos;
+	gf_bs_seek(ctx->bs_in, tile->obu_start);
+	e = gf_av1_parse_obu_header(ctx->bs_in, &tile->obu_type, &state->obu_extension_flag,
+		&state->obu_has_size_field, &state->temporal_id, &state->spatial_id);
+	if (e) return e;
+	if (!state->obu_has_size_field) return GF_NOT_SUPPORTED;
+	if (tile->obu_type == OBU_REDUNDANT_FRAME_HEADER || tile->obu_type == OBU_TILE_LIST)
+		return GF_NOT_SUPPORTED;
+	tile->header_size = (u32) gf_bs_get_position(ctx->bs_in) - tile->obu_start;
+	size = gf_av1_leb128_read(ctx->bs_in, NULL);
+	tile->payload_start = (u32) gf_bs_get_position(ctx->bs_in);
+	if (tile->payload_start > tile->packet_end || size > tile->packet_end - tile->payload_start)
+		return GF_NON_COMPLIANT_BITSTREAM;
+	end = tile->payload_start + size;
+	tile->obu_pos = (u32) end;
+	tile->last_size = 0;
+	if (tile->obu_type == OBU_FRAME || tile->obu_type == OBU_FRAME_HEADER) {
+		av1_parse_frame_header(ctx->bs_in, state);
+		tile->header_end_bits = av1merge_bit_offset(ctx->bs_in);
+		if (tile->header_end_bits > end * 8 || gf_bs_is_overflow(ctx->bs_in))
+			return GF_NON_COMPLIANT_BITSTREAM;
+		if (!state->frame_state.show_existing_frame && (state->tileCols != 1 || state->tileRows != 1)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Each input frame must contain one tile\n"));
+			return GF_NOT_SUPPORTED;
 		}
-		else if (obu_type == OBU_FRAME) {
-			//locate end of uncompressed_header()
-			u64 start_pos = gf_bs_get_position(ctx->bs_in);
-			void av1_parse_frame_header(GF_BitStream *bs, AV1State *state);
-#ifdef AV1MERGE_VERBOSE
-			GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3), void *udta);
-			gf_bs_set_logger(ctx->bs_in, on_bs_log, ctx);
-#endif
-			av1_parse_frame_header(ctx->bs_in, state);
-#ifdef AV1MERGE_VERBOSE
-			gf_bs_set_logger(ctx->bs_in, NULL, ctx);
-#endif
-			gf_bs_align(ctx->bs_in);
-			u64 tile_group_start_pos = gf_bs_get_position(ctx->bs_in);
-
-			//parse to fill state with positions of frame data
-			//do it before as we will modify the state while rewriting the tile group
-			GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size);
-			av1_parse_tile_group(ctx->bs_in, state, obu_pos, end_pos-obu_pos);
-
-			//then rewrite and modify state as needed:
-			//rewrite until tile_info(), then copy rest of uncompressed_header()
-			gf_bs_seek(ctx->bs_in, start_pos);
-			av1merge_rewrite_uncompressed_header(ctx, state);
-			bs_copy_all(ctx->bs_in, ctx->bs_out, tile_group_start_pos);
-			gf_bs_seek(ctx->bs_in, tile_group_start_pos);
-
-			//use general parser to locate tile_info and rewrite it
-			av1merge_write_tile_group(ctx, state);
-			gf_bs_align(ctx->bs_out);
-		}
-		
-		//copy the rest of the bitstream
-		bs_copy_all(ctx->bs_in, ctx->bs_out, end_pos);
+		if (state->width != tile->width || state->height != tile->height || state->UpscaledWidth != state->width)
+			return GF_NOT_SUPPORTED;
 		gf_bs_align(ctx->bs_in);
-
-		//update OBU size field
-		if (obu_size_pos > 0) {
-			gf_fatal_assert(gf_bs_get_bit_position(ctx->bs_out) % 8 == 0);
-			obu_size = end_pos - (obu_size_pos + gf_av1_leb128_size(obu_size));
-			gf_bs_seek(ctx->bs_out, obu_size_pos);
-			int written = gf_av1_leb128_write(ctx->bs_out, obu_size);
-
-			//safety check: in-place modification assumes same leb128 encoding size
-			gf_fatal_assert(written == obu_size_lebsize);
-
-			gf_bs_seek(ctx->bs_out, end_pos);
-		}
 	}
+	if ((tile->obu_type == OBU_FRAME && !state->frame_state.show_existing_frame) || tile->obu_type == OBU_TILE_GROUP) {
+		if (!state->frame_state.seen_frame_header || state->tileCols != 1 || state->tileRows != 1)
+			return GF_NON_COMPLIANT_BITSTREAM;
+		e = av1_parse_tile_group(ctx->bs_in, state, tile->obu_start, end - tile->obu_start);
+		if (e) return e;
+		if (state->frame_state.nb_tiles_in_obu != 1 || !state->frame_state.tiles[0].size)
+			return GF_NON_COMPLIANT_BITSTREAM;
+		tile->tile_start = tile->obu_start + state->frame_state.tiles[0].obu_start_offset;
+		tile->last_size = state->frame_state.tiles[0].size;
+	}
+	return GF_OK;
+}
+
+static GF_Err av1merge_rewrite_pck(GF_AV1MergeCtx *ctx)
+{
+	GF_Err e;
+	u32 i, count = gf_list_count(ctx->ordered_ipids);
+	AV1TilePidCtx *base = gf_list_get(ctx->ordered_ipids, 0);
+	while ((e = av1merge_next_obu(ctx, base)) == GF_OK) {
+		if (av1merge_frame_obu(base->obu_type)) {
+			//ther inputs may carry different metadata, but must have the same
+			//frame/OBU structure within synchronized TUs
+			ctx->tile_size_bytes = (base->obu_type == OBU_FRAME) ? 1 : 4;
+			for (i = 0; i < count; i++) {
+				AV1TilePidCtx *tile = gf_list_get(ctx->ordered_ipids, i);
+				if (i) {
+					do {
+						e = av1merge_next_obu(ctx, tile);
+						if (e == GF_EOS) {
+							ctx->incomplete_tile = tile;
+							return GF_EOS;
+						}
+						if (e) return e;
+					} while (!av1merge_frame_obu(tile->obu_type));
+				}
+				if (tile->obu_type != base->obu_type
+					|| tile->state.frame_state.show_existing_frame != base->state.frame_state.show_existing_frame
+					|| tile->state.frame_state.frame_type != base->state.frame_state.frame_type
+					|| tile->state.frame_state.order_hint != base->state.frame_state.order_hint
+					|| tile->state.temporal_id != base->state.temporal_id || tile->state.spatial_id != base->state.spatial_id)
+					return GF_NON_COMPLIANT_BITSTREAM;
+				if (tile->last_size)
+					ctx->tile_size_bytes = MAX(ctx->tile_size_bytes, (count_bits(tile->last_size-1) + 7) / 8);
+			}
+		}
+
+		gf_bs_seek(ctx->bs_in, base->payload_start);
+		if (base->obu_type == OBU_SEQUENCE_HEADER) {
+			av1merge_rewrite_seq_hdr(ctx, ctx->bs_in, ctx->bs_out);
+			av1merge_copy_trailing_bits(ctx->bs_in, ctx->bs_out, ctx->buffer, base->obu_pos);
+		} else if (base->obu_type == OBU_FRAME || base->obu_type == OBU_FRAME_HEADER) {
+			ctx->rewrite_state = base->state;
+			e = av1merge_rewrite_uncompressed_header(ctx, &ctx->rewrite_state);
+			if (e) return e;
+			av1merge_copy_bits(ctx->bs_in, ctx->bs_out, base->header_end_bits);
+			if (base->obu_type == OBU_FRAME_HEADER)
+				gf_bs_write_int(ctx->bs_out, 1, 1); //trailing_one_bit
+			gf_bs_align(ctx->bs_out);
+			if (base->obu_type == OBU_FRAME && base->last_size)
+				av1merge_write_tile_group(ctx);
+		} else if (base->obu_type == OBU_TILE_GROUP) {
+			av1merge_write_tile_group(ctx);
+		} else {
+			gf_bs_write_data(ctx->bs_out, ctx->buffer + base->payload_start, base->obu_pos - base->payload_start);
+		}
+		av1merge_flush_obu(ctx->bs_out, ctx->bs_pck, ctx->buffer + base->obu_start, base->header_size);
+	}
+	if (e != GF_EOS) return e;
+	for (i = 1; i < count; i++) {
+		AV1TilePidCtx *tile = gf_list_get(ctx->ordered_ipids, i);
+		while ((e = av1merge_next_obu(ctx, tile)) == GF_OK) {
+			if (av1merge_frame_obu(tile->obu_type)) {
+				ctx->incomplete_tile = base;
+				return GF_EOS;
+			}
+		}
+		if (e != GF_EOS) return e;
+	}
+	return GF_OK;
 }
 
 static GF_Err av1merge_check_seq_hdr(GF_AV1MergeCtx *ctx, AV1TilePidCtx *pid_base, AV1TilePidCtx *pid_o)
@@ -940,317 +946,320 @@ static GF_Err av1merge_check_seq_hdr(GF_AV1MergeCtx *ctx, AV1TilePidCtx *pid_bas
 	return e;
 }
 
-static GF_Err av1merge_rebuild_grid(GF_AV1MergeCtx *ctx, GF_FilterPid *pid)
+static GF_Err av1merge_grid_size(GF_AV1MergeCtx *ctx, u32 count)
 {
-	u32 i, count;
-	u32 nb_pids = gf_list_count(ctx->ipids);
-
-	//grid layout
-#if 0 //see commented options for this filter
-	if (ctx->cols && !ctx->rows) {
-		if (nb_pids % ctx->cols) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Number of PIDs is not a multiple of the number of columns\n"));
-			return GF_BAD_PARAM;
-		}
-		ctx->rows = nb_pids / ctx->cols;
-	}
-	if (ctx->rows && !ctx->cols) {
-		if (nb_pids % ctx->rows) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Number of PIDs is not a multiple of the number of rows\n"));
-			return GF_BAD_PARAM;
-		}
-		ctx->cols = nb_pids / ctx->rows;
-	}
-	if (!ctx->cols || !ctx->rows)
-#endif
-	{
-		ctx->cols = nb_pids;
-		if (nb_pids == 1)
-			ctx->rows = 1;
-		else while (--ctx->cols) {
-			if (nb_pids % ctx->cols == 0) {
-				ctx->rows = nb_pids / ctx->cols;
-				break;
+	if (!count) return GF_BAD_PARAM;
+	if (ctx->cols_forced && ctx->rows_forced) {
+		if ((u64) ctx->cols * ctx->rows != count) return GF_BAD_PARAM;
+	} else if (ctx->cols_forced) {
+		if (count % ctx->cols) return GF_BAD_PARAM;
+		ctx->rows = count / ctx->cols;
+	} else if (ctx->rows_forced) {
+		if (count % ctx->rows) return GF_BAD_PARAM;
+		ctx->cols = count / ctx->rows;
+	} else {
+		ctx->cols = count;
+		if (count > 1) {
+			while (--ctx->cols) {
+				if (!(count % ctx->cols)) break;
 			}
 		}
-		if (!ctx->rows) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Cannot determine grid configuration\n"));
-			return GF_BAD_PARAM;
-		}
+		ctx->rows = count / ctx->cols;
 	}
-
-	//re-order PIDs based on their #ID property to match the grid layout:
-	// - first reset the ordered list
-	gf_list_reset(ctx->ordered_ipids);
-	count = gf_list_count(ctx->ipids);
-	for (i = 0; i < gf_list_count(ctx->ipids); i++)
-		gf_list_add(ctx->ordered_ipids, NULL);
-	// - then add based on #TileID
-	for (i = 0; i < count; i++) {
-		AV1TilePidCtx *apidctx = gf_list_get(ctx->ipids, i);
-		const GF_PropertyValue *p = gf_filter_pid_get_property(apidctx->pid, GF_PROP_PID_TILE_ID);
-		if (!p) {
-			char * src = gf_filter_pid_get_source(apidctx->pid);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Missing #TileID property for PID \"%s\"\n", src));
-			if (src) gf_free(src);
-			return GF_BAD_PARAM;
-		}
-		u32 id = p->value.uint;
-		if (id > count) {
-			char * src = gf_filter_pid_get_source(apidctx->pid);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Invalid #TileID %u for PID \"%s\"\n", id, src));
-			if (src) gf_free(src);
-			return GF_BAD_PARAM;
-		}
-		if (gf_list_get(ctx->ordered_ipids, id-1)) {
-			char * src = gf_filter_pid_get_source(apidctx->pid);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Duplicate #TileID %u for PID \"%s\"\n", id, src));
-			if (src) gf_free(src);
-			return GF_BAD_PARAM;
-		}
-		gf_list_insert(ctx->ordered_ipids, apidctx, id-1);
-	}
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[AV1Merge] Grid configuration: %ux%u\n", ctx->cols, ctx->rows));
+	if (ctx->cols > AV1_MAX_TILE_COLS || ctx->rows > AV1_MAX_TILE_ROWS)
+		return GF_BAD_PARAM;
 	return GF_OK;
+}
+
+static GF_Err av1merge_rebuild_grid(GF_AV1MergeCtx *ctx)
+{
+	u32 i, count = gf_list_count(ctx->ipids);
+	GF_Err e = av1merge_grid_size(ctx, count);
+	AV1TilePidCtx *base;
+	const GF_PropertyValue *dsi;
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Cannot fit %u inputs in the requested grid (%u columns, %u rows)\n", count, ctx->cols, ctx->rows));
+		return e;
+	}
+
+	gf_list_reset(ctx->ordered_ipids);
+	for (i = 0; i < count; i++) {
+		AV1TilePidCtx *tile = gf_list_get(ctx->ipids, i);
+		u32 j, id = tile->tile_id;
+		for (j = 0; j < gf_list_count(ctx->ordered_ipids); j++) {
+			AV1TilePidCtx *other = gf_list_get(ctx->ordered_ipids, j);
+			if (other->tile_id == id) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Duplicate #TileID %u\n", id));
+				return GF_BAD_PARAM;
+			}
+			if (other->tile_id > id) break;
+		}
+		if (!id || id > count) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Missing or invalid #TileID %u (expected 1 to %u)\n", id, count));
+			return GF_BAD_PARAM;
+		}
+		e = gf_list_insert(ctx->ordered_ipids, tile, j);
+		if (e) return e;
+	}
+	base = gf_list_get(ctx->ordered_ipids, 0);
+	for (i = 0; i < count; i++) {
+		AV1TilePidCtx *tile = gf_list_get(ctx->ordered_ipids, i);
+		e = av1merge_check_seq_hdr(ctx, base, tile);
+		if (e) return e;
+		if (tile->width != base->width || tile->height != base->height)
+			return GF_BAD_PARAM;
+	}
+	u32 sb_size = base->state.use_128x128_superblock ? 128 : 64;
+	if ((ctx->cols > 1 && base->width % sb_size) || (ctx->rows > 1 && base->height % sb_size)
+		|| (u64) base->width * ctx->cols > 65536 || (u64) base->height * ctx->rows > 65536) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Grid dimensions must fit AV1 frame size fields and internal tile boundaries must align to superblocks\n"));
+		return GF_NOT_SUPPORTED;
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[AV1Merge] Grid configuration: %ux%u (columns %s, rows %s)\n", ctx->cols, ctx->rows,
+		ctx->cols_forced ? "user-forced" : "automatic", ctx->rows_forced ? "user-forced" : "automatic"));
+	gf_filter_pid_copy_properties(ctx->opid, base->pid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->cols * base->width));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->rows * base->height));
+	dsi = gf_filter_pid_get_property(base->pid, GF_PROP_PID_DECODER_CONFIG);
+	gf_bs_reassign_buffer(ctx->bs_in, dsi->value.data.ptr, dsi->value.data.size);
+	e = av1merge_rewrite_config(ctx, ctx->opid);
+	if (!e) ctx->grid_changed = GF_FALSE;
+	return e;
 }
 
 static GF_Err av1merge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	Bool grid_config_changed = GF_FALSE;
-	u32 cfg_crc = 0, pid_width, pid_height;
+	u32 cfg_crc, i;
 	const GF_PropertyValue *p, *dsi;
-	GF_Err e;
-	u8 i;
-	GF_AV1MergeCtx *ctx = (GF_AV1MergeCtx*)gf_filter_get_udta(filter);
-	AV1TilePidCtx *tile_pid;
-
-	if (ctx->in_error)
-		return GF_BAD_PARAM;
-
+	GF_AV1MergeCtx *ctx = (GF_AV1MergeCtx*) gf_filter_get_udta(filter);
+	AV1TilePidCtx *tile = gf_filter_pid_get_udta(pid);
 	if (is_remove) {
-		tile_pid = gf_filter_pid_get_udta(pid);
-		gf_list_del_item(ctx->ipids, tile_pid);
-		gf_free(tile_pid);
-		if (!gf_list_count(ctx->ipids)) {
-			if (ctx->opid) {
-				gf_filter_pid_remove(ctx->opid);
-				ctx->opid = NULL;
+		if (tile) {
+			if (ctx->incomplete_tile == tile) {
+				ctx->incomplete_tile = NULL;
+				ctx->drain = GF_TRUE;
 			}
-			return GF_OK;
+			gf_list_del_item(ctx->ipids, tile);
+			gf_list_del_item(ctx->ordered_ipids, tile);
+			gf_odf_av1_cfg_del(tile->state.config);
+			gf_free(tile);
+			gf_filter_pid_set_udta(pid, NULL);
 		}
-		grid_config_changed = GF_TRUE;
-		goto reconfig_grid;
-	}
-
-	if (!gf_filter_pid_check_caps(pid))
-		return GF_NOT_SUPPORTED;
-
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
-	if (!p) return GF_OK;
-	pid_width = p->value.uint;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
-	if (!p) return GF_OK;
-	pid_height = p->value.uint;
-
-	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (!dsi) return GF_OK;
-
-	tile_pid = gf_filter_pid_get_udta(pid);
-	//not set, first time we see this pid
-	if (!tile_pid) {
-		GF_SAFEALLOC(tile_pid, AV1TilePidCtx);
-		if (!tile_pid) return GF_OUT_OF_MEM;
-
-		gf_filter_pid_set_udta(pid, tile_pid);
-		tile_pid->pid = pid;
-		tile_pid->width = pid_width;
-		tile_pid->height = pid_height;
-		gf_list_add(ctx->ipids, tile_pid);
-		grid_config_changed = GF_TRUE;
-
-		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
-
-		//it may happen that we are already running when we get this pid connection, typically with very large number of tiles
-		//post a play event on pid in this case
-		if (ctx->is_playing) {
-			GF_FilterEvent fevt;
-			fevt.play = ctx->play_evt;
-			fevt.base.on_pid = pid;
-			gf_filter_pid_send_event(pid, &fevt);
+		ctx->grid_changed = GF_TRUE;
+		if (!gf_list_count(ctx->ipids) && ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
 		}
-	}
-
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
-	if (p) tile_pid->timescale = p->value.uint;
-
-	//check if config has changed - if not, we ignore the reconfig
-	//note that we don't copy all properties of input pids to the output in this case
-	cfg_crc = 0;
-	if (dsi->value.data.ptr && dsi->value.data.size) {
-		cfg_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
-	}
-	if (cfg_crc == tile_pid->dsi_crc)
 		return GF_OK;
-	tile_pid->dsi_crc = cfg_crc;
+	}
+	if (ctx->in_error) return GF_BAD_PARAM;
+	if (!gf_filter_pid_check_caps(pid)) return GF_NOT_SUPPORTED;
+	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	if (!dsi || !dsi->value.data.size) return GF_OK;
+	if (!gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH) || !gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT))
+		return GF_OK;
+	if (!tile) {
+		GF_SAFEALLOC(tile, AV1TilePidCtx);
+		if (!tile) return GF_OUT_OF_MEM;
+		tile->pid = pid;
+		gf_filter_pid_set_udta(pid, tile);
+		gf_list_add(ctx->ipids, tile);
+		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+		ctx->grid_changed = GF_TRUE;
+		if (ctx->is_playing) {
+			GF_FilterEvent evt;
+			evt.play = ctx->play_evt;
+			evt.base.on_pid = pid;
+			gf_filter_pid_send_event(pid, &evt);
+		}
+	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+	if (tile->width != p->value.uint) ctx->grid_changed = GF_TRUE;
+	tile->width = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+	if (tile->height != p->value.uint) ctx->grid_changed = GF_TRUE;
+	tile->height = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TILE_ID);
+	if (tile->tile_id != (p ? p->value.uint : 0)) ctx->grid_changed = GF_TRUE;
+	tile->tile_id = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+	tile->timescale = p ? p->value.uint : 0;
 
+	cfg_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
+	if (!tile->state.config || cfg_crc != tile->dsi_crc) {
+		gf_odf_av1_cfg_del(tile->state.config);
+		memset(&tile->state, 0, sizeof(tile->state));
+		tile->state.config = gf_odf_av1_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+		if (!tile->state.config) return GF_NON_COMPLIANT_BITSTREAM;
+		for (i = 0; i < gf_list_count(tile->state.config->obu_array); i++) {
+			GF_AV1_OBUArrayEntry *obu = gf_list_get(tile->state.config->obu_array, i);
+			if (obu->obu_type == OBU_SEQUENCE_HEADER) {
+				ObuType type;
+				u64 size = obu->obu_length;
+				GF_Err e;
+				gf_bs_reassign_buffer(ctx->bs_in, obu->obu, obu->obu_length);
+				e = gf_av1_parse_obu(ctx->bs_in, &type, &size, NULL, &tile->state);
+				if (e) return e;
+			}
+		}
+		tile->dsi_crc = cfg_crc;
+		ctx->grid_changed = GF_TRUE;
+	}
+	//publish a PID to connect the downstream graph; finalize its grid only
+	//after all input connections and their first packets are available
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
+		if (!ctx->opid) return GF_OUT_OF_MEM;
 		gf_filter_pid_copy_properties(ctx->opid, pid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AV1));
 	}
-
-	if ((pid_width != tile_pid->width) || (pid_height != tile_pid->height)) {
-		tile_pid->width = pid_width;
-		tile_pid->height = pid_height;
-		grid_config_changed = GF_TRUE;
-	}
-
-reconfig_grid:
-	//update grid
-	if (grid_config_changed) {
-		e = av1merge_rebuild_grid(ctx, pid);
-		if (e) {
-			ctx->in_error = GF_TRUE;
-			return e;
-		}
-	}
-
-	//check configs are compatible - for now we only warn but still process
-	tile_pid = gf_list_get(ctx->ipids, 0);
-	for (i=0; i<gf_list_count(ctx->ipids); i++) {
-		AV1TilePidCtx *apidctx = gf_list_get(ctx->ipids, i);
-		e = av1merge_check_seq_hdr(ctx, tile_pid, apidctx);
-		if (e) {
-			apidctx->in_error = GF_TRUE;
-			return e;
-		}
-
-		if (apidctx->width != tile_pid->width || apidctx->height != tile_pid->height) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AV1Merge] Tile size mismatch: expected %dx%d, got %dx%d\n", tile_pid->width, tile_pid->height, apidctx->width, apidctx->height));
-			apidctx->in_error = GF_TRUE;
-			return e;
-		}
-	}
-
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->cols * tile_pid->width));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->rows * tile_pid->height));
-
-	dsi = gf_filter_pid_get_property(tile_pid->pid, GF_PROP_PID_DECODER_CONFIG);
-	gf_assert(dsi);
-	gf_bs_reassign_buffer(ctx->bs_in, dsi->value.data.ptr, dsi->value.data.size);
-	return av1merge_rewrite_config(ctx, tile_pid, ctx->opid);
+	return GF_OK;
 }
 
 static GF_Err av1merge_process(GF_Filter *filter)
 {
-	GF_Err e = GF_OK;
-	char *data;
-	u32 data_size, i;
-	u32 nb_eos, nb_ipid;
-	u64 min_dts = GF_FILTER_NO_TS;
-	u32 min_dts_timescale = 0;
-	GF_FilterPacket *pck_src, *output_pck = NULL;;
 	GF_AV1MergeCtx *ctx = (GF_AV1MergeCtx*) gf_filter_get_udta(filter);
+	GF_Err e;
+	u32 i, count = gf_list_count(ctx->ipids), nb_eos = 0, total_size = 0;
+	u64 min_dts = GF_FILTER_NO_TS;
+	u32 min_timescale = 0;
+	Bool missing = GF_FALSE, discard = GF_FALSE;
+	GF_FilterPacket *base_pck, *output;
+	u8 *out;
+	u32 out_size;
+	if (ctx->in_error) return GF_BAD_PARAM;
+	if (!count || !ctx->opid || gf_filter_connections_pending(filter)) return GF_OK;
+	if (ctx->incomplete_tile) {
+		AV1TilePidCtx *tile = ctx->incomplete_tile;
+		//the short packet has been consumed. Wait for its successor or EOS,
+		//which may arrive in a later process call, before classifying it
+		if (gf_filter_pid_get_packet(tile->pid)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Frame count mismatch on tile %u before end of stream\n", tile->tile_id));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			goto error;
+		}
+		if (!gf_filter_pid_is_eos(tile->pid)) return GF_OK;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[AV1Merge] Discarding incomplete final temporal unit: tile %u reached end of stream\n", tile->tile_id));
+		ctx->incomplete_tile = NULL;
+		ctx->drain = GF_TRUE;
+	}
 
-	if (ctx->in_error)
-		return GF_BAD_PARAM;
-	nb_eos = 0;
-	nb_ipid = gf_list_count(ctx->ipids);
-
-	//probe input for at least one packet on each pid
-	for (i = 0; i < nb_ipid; i++) {
+	//keep queued packets owned by the input PIDs until every tile is ready;
+	//get_packet may reconfigure a PID, so rebuild the grid after this pass
+	for (i = 0; i < count; i++) {
+		AV1TilePidCtx *tile = gf_list_get(ctx->ipids, i);
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(tile->pid);
 		u64 dts;
-		GF_FilterPacket *pck_src;
-		AV1TilePidCtx *tile_pid = gf_list_get(ctx->ipids, i);
-		if (tile_pid->in_error) {
-			nb_eos++;
+		if (!pck) {
+			if (gf_filter_pid_is_eos(tile->pid)) nb_eos++;
+			else missing = GF_TRUE;
 			continue;
 		}
-
-		pck_src = gf_filter_pid_get_packet(tile_pid->pid);
-		if (!pck_src) {
-			if (gf_filter_pid_is_eos(tile_pid->pid)) {
-				nb_eos++;
-				continue;
-			}
-			return GF_OK;
+		u32 size;
+		if (!gf_filter_pck_get_data(pck, &size) || !size) {
+			gf_filter_pid_drop_packet(tile->pid);
+			missing = GF_TRUE;
+			continue;
 		}
-		dts = gf_filter_pck_get_dts(pck_src);
-
-		if (!min_dts_timescale || gf_timestamp_less(dts, tile_pid->timescale, min_dts, min_dts_timescale)) {
+		dts = gf_filter_pck_get_dts(pck);
+		if (!tile->timescale || dts == GF_FILTER_NO_TS) { e = GF_BAD_PARAM; goto error; }
+		if (!min_timescale || gf_timestamp_less(dts, tile->timescale, min_dts, min_timescale)) {
 			min_dts = dts;
-			min_dts_timescale = tile_pid->timescale;
+			min_timescale = tile->timescale;
 		}
 	}
-	if (nb_eos == nb_ipid) {
+	if (nb_eos == count) {
 		gf_filter_pid_set_eos(ctx->opid);
 		return GF_EOS;
 	}
-
-	//reassemble based on the ordered list of pids
-	for (i = 0; i < nb_ipid; i++) {
-		u64 dts;
-		AV1TilePidCtx *tile_pid = gf_list_get(ctx->ordered_ipids, i);
-		gf_assert(tile_pid);
-		if (tile_pid->in_error)
-			continue;
-		pck_src = gf_filter_pid_get_packet(tile_pid->pid);
-		if (nb_eos) {
-			if (pck_src) {
-				tile_pid->nb_pck++;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[AV1Merge] pids of unequal duration, skipping packet %d on pid %d (nb_eos=%u)\n", tile_pid->nb_pck, i+1, nb_eos));
-				gf_filter_pid_drop_packet(tile_pid->pid);
-			}
-			continue;
+	//a finished input cannot contribute any more complete grids; drain each
+	//remaining input once per call; never drop a packet twice
+	if (nb_eos || ctx->drain) {
+		for (i = 0; i < count; i++) {
+			AV1TilePidCtx *tile = gf_list_get(ctx->ipids, i);
+			if (gf_filter_pid_get_packet(tile->pid)) gf_filter_pid_drop_packet(tile->pid);
 		}
-		if (!pck_src) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AV1Merge] no data on pid %d while merging, eos detected %d\n", i+1, gf_filter_pid_is_eos(tile_pid->pid)));
-			continue;
-		}
-
-		dts = gf_filter_pck_get_dts(pck_src);
-		if (dts * min_dts_timescale != min_dts * tile_pid->timescale) continue;
-		data = (char *)gf_filter_pck_get_data(pck_src, &data_size); // data contains only a packet
-		// TODO: this is a clock signaling, for now just trash ..
-		if (!data) {
-			gf_filter_pid_drop_packet(tile_pid->pid);
-			continue;
-		}
-		tile_pid->nb_pck++;
-		tile_pid->last_size = data_size;
-		tile_pid->state.sequence_width  = tile_pid->state.width  = ctx->cols * tile_pid->width;
-		tile_pid->state.sequence_height = tile_pid->state.height = ctx->rows * tile_pid->height;
-
-		gf_bs_reassign_buffer(ctx->bs_in, data, data_size);
-		av1merge_rewrite_pck(ctx, &tile_pid->state);
+		return GF_OK;
 	}
-	// end of loop on inputs
-
-	//data lifetime and send
-	{
-		u8 *out = NULL;
-		u32 out_len = 0;
-		gf_bs_get_content(ctx->bs_out, &out, &out_len);
-		gf_bs_reassign_buffer(ctx->bs_out, NULL, 0);
-		if (out && out_len) {
-			output_pck = gf_filter_pck_new_shared(ctx->opid, out, out_len, release_buffer);
-			if (!output_pck) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] failed to allocate output packet\n"));
-				gf_free(out);
-				return GF_OUT_OF_MEM;
-			}
-			gf_filter_pck_merge_properties(pck_src, output_pck);
+	if (missing) return GF_OK;
+	if (ctx->grid_changed) {
+		e = av1merge_rebuild_grid(ctx);
+		if (e) goto error;
+	}
+	for (i = 0; i < count; i++) {
+		AV1TilePidCtx *tile = gf_list_get(ctx->ordered_ipids, i);
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(tile->pid);
+		u64 dts = gf_filter_pck_get_dts(pck);
+		if (!gf_timestamp_equal(dts, tile->timescale, min_dts, min_timescale)) discard = GF_TRUE;
+	}
+	if (discard) {
+		//drop only the earliest timestamp, retaining later packets for a
+		//complete grid at their own decode time.
+		for (i = 0; i < count; i++) {
+			AV1TilePidCtx *tile = gf_list_get(ctx->ordered_ipids, i);
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(tile->pid);
+			if (gf_timestamp_equal(gf_filter_pck_get_dts(pck), tile->timescale, min_dts, min_timescale))
+				gf_filter_pid_drop_packet(tile->pid);
 		}
-		for (i = 0; i < nb_ipid; i++) {
-			AV1TilePidCtx *tile_pid = gf_list_get(ctx->ordered_ipids, i);
-
-			// todo: might need to rewrite crypto info
-			gf_filter_pid_drop_packet(tile_pid->pid);
-		}
-		if (output_pck) gf_filter_pck_send(output_pck);
+		return GF_OK;
 	}
 
+	//concatenate all inputs before rewriting; offsets remain valid until the
+	//output has been assembled, independent of the input packet lifetimes
+	for (i = 0; i < count; i++) {
+		AV1TilePidCtx *tile = gf_list_get(ctx->ordered_ipids, i);
+		u32 size;
+		gf_filter_pck_get_data(gf_filter_pid_get_packet(tile->pid), &size);
+		if (size > GF_UINT_MAX - total_size) { e = GF_OUT_OF_MEM; goto error; }
+		tile->packet_start = tile->obu_pos = total_size;
+		total_size += size;
+		tile->packet_end = total_size;
+	}
+	if (total_size > ctx->buffer_alloc) {
+		u8 *buffer = gf_realloc(ctx->buffer, total_size);
+		if (!buffer) { e = GF_OUT_OF_MEM; goto error; }
+		ctx->buffer = buffer;
+		ctx->buffer_alloc = total_size;
+	}
+	for (i = 0; i < count; i++) {
+		AV1TilePidCtx *tile = gf_list_get(ctx->ordered_ipids, i);
+		u32 size;
+		const u8 *data = gf_filter_pck_get_data(gf_filter_pid_get_packet(tile->pid), &size);
+		memcpy(ctx->buffer + tile->packet_start, data, size);
+		tile->nb_pck++;
+	}
+	gf_bs_reassign_buffer(ctx->bs_in, ctx->buffer, total_size);
+	e = av1merge_rewrite_pck(ctx);
+	if (e == GF_EOS && ctx->incomplete_tile) {
+		//never emit a partial TU. Its parser state cannot be used to resume merging:
+		//either this is the final unit, or it is an error.
+		gf_bs_get_content(ctx->bs_pck, &out, &out_size);
+		gf_bs_reassign_buffer(ctx->bs_pck, NULL, 0);
+		gf_free(out);
+		for (i = 0; i < count; i++) {
+			AV1TilePidCtx *tile = gf_list_get(ctx->ordered_ipids, i);
+			gf_filter_pid_drop_packet(tile->pid);
+		}
+		return GF_OK;
+	}
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Merge] Cannot merge input frames: %s\n", gf_error_to_string(e)));
+		goto error;
+	}
+	gf_bs_get_content(ctx->bs_pck, &out, &out_size);
+	gf_bs_reassign_buffer(ctx->bs_pck, NULL, 0);
+	output = gf_filter_pck_new_shared(ctx->opid, out, out_size, release_buffer);
+	if (!output) { gf_free(out); e = GF_OUT_OF_MEM; goto error; }
+	base_pck = gf_filter_pid_get_packet(((AV1TilePidCtx *) gf_list_get(ctx->ordered_ipids, 0))->pid);
+	gf_filter_pck_merge_properties(base_pck, output);
+	for (i = 0; i < count; i++) {
+		AV1TilePidCtx *tile = gf_list_get(ctx->ordered_ipids, i);
+		gf_filter_pid_drop_packet(tile->pid);
+	}
+	return gf_filter_pck_send(output);
+
+error:
+	ctx->in_error = GF_TRUE;
+	gf_filter_abort(filter);
 	return e;
 }
 
@@ -1276,10 +1285,15 @@ static GF_Err av1merge_initialize(GF_Filter *filter)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[AV1Merge] av1merge_initialize started.\n"));
 	GF_AV1MergeCtx *ctx = (GF_AV1MergeCtx *)gf_filter_get_udta(filter);
+	ctx->cols_forced = ctx->cols ? GF_TRUE : GF_FALSE;
+	ctx->rows_forced = ctx->rows ? GF_TRUE : GF_FALSE;
+	if (ctx->cols > AV1_MAX_TILE_COLS || ctx->rows > AV1_MAX_TILE_ROWS) return GF_BAD_PARAM;
 	ctx->bs_in = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
 	ctx->bs_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	ctx->bs_pck = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	ctx->ipids = gf_list_new();
 	ctx->ordered_ipids = gf_list_new();
+	if (!ctx->bs_in || !ctx->bs_out || !ctx->bs_pck || !ctx->ipids || !ctx->ordered_ipids) return GF_OUT_OF_MEM;
 	return GF_OK;
 }
 
@@ -1289,6 +1303,8 @@ static void av1merge_finalize(GF_Filter *filter)
 	GF_AV1MergeCtx *ctx = (GF_AV1MergeCtx *)gf_filter_get_udta(filter);
 	gf_bs_del(ctx->bs_in);
 	gf_bs_del(ctx->bs_out);
+	gf_bs_del(ctx->bs_pck);
+	gf_free(ctx->buffer);
 	while (gf_list_count(ctx->ipids)) {
 		AV1TilePidCtx *pctx = gf_list_pop_back(ctx->ipids);
 		gf_odf_av1_cfg_del(pctx->state.config);
@@ -1311,10 +1327,8 @@ static const GF_FilterCapability AV1MergeCaps[] =
 
 static const GF_FilterArgs AV1MergeArgs[] =
 {
-#if 0 //Todo
-	{ OFFS(rows), "signal number of expected rows in tile grid", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_NORMAL},
-	{ OFFS(cols), "signal number of expected columns in tile grid", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_NORMAL},
-#endif
+	{ OFFS(rows), "number of rows in tile grid (0: automatic)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_NORMAL},
+	{ OFFS(cols), "number of columns in tile grid (0: automatic)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_NORMAL},
 	{0}
 };
 
@@ -1324,9 +1338,12 @@ GF_FilterRegister AV1MergeRegister = {
 	GF_FS_SET_HELP("This filter merges a set of AV1 PIDs into a single AV1 PID.\n"
 		"The filter creates a tiling grid.\n"
 		"If neither [-rows]() nor [-cols]() are set then an automatic layout will be created.\n"
-		"The order is based on the #TileID property, expected to be in left-right, top-down order.\n"
+		"If only one dimension is set, the other is derived from the input count. The grid must contain exactly one input per cell.\n"
+		"Each input must contain one tile per frame, with matching frame headers and coding parameters suitable for tile composition. Internal tile boundaries must align to superblocks.\n"
+		"The order is based on the #TileID property, numbered from 1 in left-right, top-down order.\n"
 		"The filter will check the configurations of input PIDs and refuse processing if they are not consistent.\n"
 		"The filter assumes that all input PIDs are synchronized (frames share the same timestamp) and will reassemble frames with the same decode time. If PIDs are of unequal duration, the filter will drop frames as soon as one PID is over.\n"
+		"An incomplete final temporal unit is discarded when one input ends. Frame count mismatches before end of stream are errors.\n"
 	)
 	.private_size = sizeof(GF_AV1MergeCtx),
 	.flags = GF_FS_REG_DYNAMIC_REUSE,
