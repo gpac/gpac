@@ -1082,9 +1082,9 @@ u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 layout)
 	if (layout & GF_AUDIO_CH_SIDE_SURROUND_LEFT) res |= (1<<6); //9
 	//Lw/Rw
 	if (layout & GF_AUDIO_CH_WIDE_FRONT_LEFT) res |= (1<<5); //10
-	//Vhl/Vhr
+	//Lvh/Rvh
 	if (layout & GF_AUDIO_CH_FRONT_TOP_LEFT) res |= (1<<4); //11
-	//Vhc
+	//Cvh
 	if (layout & GF_AUDIO_CH_FRONT_TOP_CENTER) res |= (1<<3); //12
 	//Lts/Rts
 	if (layout & GF_AUDIO_CH_SURROUND_TOP_LEFT) res |= (1<<2); //13
@@ -1108,46 +1108,61 @@ u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
 		{0x000A7F, 18}, {0x040A6F, 18}, {0x00007F, 19},
 		{0x04006F, 19}, {0x01007F, 20}, {0x05006F, 2}
 	};
-	for (int i=0; i<28; i++) {
+	for (u32 i = 0; i < sizeof(mask_dict) / sizeof(mask_dict[0]); i++) {
 		if (mask == mask_dict[i][0]) {
 			return mask_dict[i][1];
 		}
 	}
-	return mask;
+	return 0;
 }
 
-// ETSI TS 103 190-2 V1.3.1 (2018-02) E10.14 presentation_channel_mask_v1
-u32 gf_ac4_dolby_channel_count_from_channel_mask_v1(u32 mask)
+// ETSI TS 103 190-2 V1.3.1 (2018-02) E10.14 presentation_v1_channel_groups
+u32 gf_ac4_dolby_channel_count_from_channel_mask_v1(u32 speaker_group_index_mask)
 {
-	const u32 channel_mask_v1_2_channel_count[19] = {
-		2,  // L,R
-		1,  // C
-		2,  // Ls,Rs
-		2,  // Lb,Rb
-		2,  //Tfl,Tfr
-		2,  //Tbl,Tbr
-		1,  //LFE
-		2,  //Tl,Tr
-		2,  //Tsl,Tsr
-		1,  //Tfc
-		1,  //Tbc
-		1,  //Tc
-		1,  //LEF2
-		2,  //Bfl,Bfr
-		1,  //Bfc
-		1,  //Cb
-		2,  //Lscr,Rscr
-		2,  //Lw,Rw
-		2   //Vhl,Vhr
-	};
-	u32 count = 0;
-    for(u32 i = 0; i < 19; i++) {
-        if(mask % 2 == 1) {
-            count += channel_mask_v1_2_channel_count[i];
-        }
-        mask /= 2;
-    }
-    return count;
+	u32 channel_count = 0;
+    if ((speaker_group_index_mask & 1) != 0) //  0: L,R
+        channel_count += 2;
+    if ((speaker_group_index_mask & 2) != 0) //  1: C
+        channel_count += 1;
+    if ((speaker_group_index_mask & 4) != 0) //  2: Ls,Rs
+        channel_count += 2;
+    if ((speaker_group_index_mask & 8) != 0) //  3: Lb,Rb
+        channel_count += 2;
+    if ((speaker_group_index_mask & 16) != 0) //  4: Tfl,Tfr
+        channel_count += 2;
+    if ((speaker_group_index_mask & 32) != 0) //  5: Tbl,Tbr
+        channel_count += 2;
+    if ((speaker_group_index_mask & 64) != 0) //  6: LFE
+        channel_count += 1;
+    if ((speaker_group_index_mask & 128) != 0) //  7: TL,TR
+        channel_count += 2;
+    if ((speaker_group_index_mask & 256) != 0) //  8: Tsl,Tsr
+        channel_count += 2;
+    if ((speaker_group_index_mask & 512) != 0) //  9: Tfc
+        channel_count += 1;
+    if ((speaker_group_index_mask & 1024) != 0) //  10: Tbc
+        channel_count += 1;
+    if ((speaker_group_index_mask & 2048) != 0) //  11: Tc
+        channel_count += 1;
+    if ((speaker_group_index_mask & 4096) != 0) //  12: LFE2
+        channel_count += 1;
+    if ((speaker_group_index_mask & 8192) != 0) //  13: Bfl,Bfr
+        channel_count += 2;
+    if ((speaker_group_index_mask & 16384) != 0) //  14: Bfc
+        channel_count += 1;
+    if ((speaker_group_index_mask & 32768) != 0) //  15: Cb
+        channel_count += 1;
+    if ((speaker_group_index_mask & 65536) != 0) //  16: Lscr,Rscr
+        channel_count += 2;
+    if ((speaker_group_index_mask & 131072) != 0) //  17: Lw,Rw
+        channel_count += 2;
+    if ((speaker_group_index_mask & 262144) != 0) //  18: Vhl,Vhr
+        channel_count += 2;
+
+    if ((speaker_group_index_mask & 1) != 0 && (speaker_group_index_mask & 2) != 0 && channel_count == 3)
+        channel_count = 2;
+
+    return channel_count;
 }
 
 GF_EXPORT
@@ -2956,6 +2971,56 @@ GF_EXPORT
 Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2)
 {
 	TIMECODE_COMPARE(==)
+}
+
+GF_EXPORT
+Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size)
+{
+	u32 i, n_keys, kpos, nb_missing = 19;
+	if (!key_info|| (key_info_size<19))
+		goto exit;
+
+	n_keys = 1;
+	if (key_info[0]) {
+		n_keys = key_info[1];
+		n_keys <<= 8;
+		n_keys |= key_info[2];
+	}
+	kpos=3;
+	for (i=0;i<n_keys; i++) {
+		u8 iv_size;
+		if (kpos + 17 > key_info_size) {
+			nb_missing = kpos + 17 - key_info_size;
+			goto exit;
+		}
+		iv_size = key_info[kpos];
+		if (iv_size && (iv_size != 8) && (iv_size != 16)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid CENC IV size %u, must be 8 or 16\n", (u32) iv_size));
+			return GF_FALSE;
+		}
+		kpos += 17;
+		if (!iv_size) {
+			if (kpos + 1 > key_info_size) {
+				nb_missing = kpos + 1  - key_info_size;
+				goto exit;
+			}
+			iv_size = key_info[kpos];
+			if (iv_size && (iv_size != 8) && (iv_size != 16)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid CENC constant IV size %u, must be 8 or 16\n", (u32) iv_size));
+				return GF_FALSE;
+			}
+			if (kpos + 1 + iv_size > key_info_size) {
+				nb_missing = kpos + 1 + iv_size - key_info_size;
+				goto exit;
+			}
+			kpos += 1 + iv_size;
+		}
+	}
+	return GF_TRUE;
+
+exit:
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid key info format, missing %d bytes\n", nb_missing));
+	return GF_FALSE;
 }
 
 GF_EXPORT

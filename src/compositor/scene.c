@@ -448,9 +448,11 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	if (for_shutdown && scene->root_od->mo) {
 		/*reset private stack of all inline nodes still registered*/
 		while (gf_mo_event_target_count(scene->root_od->mo)) {
-			gf_mo_event_target_remove_by_index(scene->root_od->mo, 0);
 #ifndef GPAC_DISABLE_VRML
 			GF_Node *n = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(scene->root_od->mo, 0));
+#endif
+			gf_mo_event_target_remove_by_index(scene->root_od->mo, 0);
+#ifndef GPAC_DISABLE_VRML
 			if (n) {
 				switch (gf_node_get_tag(n)) {
 				case TAG_MPEG4_Inline:
@@ -686,9 +688,11 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 			/*reset private stack of all inline nodes still registered*/
 			if (discard_obj) {
 				while (gf_mo_event_target_count(obj)) {
-					gf_mo_event_target_remove_by_index(obj, 0);
 #ifndef GPAC_DISABLE_VRML
 					GF_Node *n = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(obj, 0));
+#endif
+					gf_mo_event_target_remove_by_index(obj, 0);
+#ifndef GPAC_DISABLE_VRML
 					if (n) {
 						switch (gf_node_get_tag(n)) {
 						case TAG_MPEG4_Inline:
@@ -697,6 +701,9 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 #endif
 							if (obj->num_open) gf_mo_stop(&obj);
 							gf_node_set_private(n, NULL);
+							break;
+						case TAG_MPEG4_InputSensor:
+							gf_input_sensor_mo_destroyed(n);
 							break;
 						default:
 							gf_sc_mo_destroyed(n);
