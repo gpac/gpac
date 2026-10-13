@@ -851,6 +851,13 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 		if (parentNode->sgprivate->scenegraph != node->sgprivate->scenegraph) {
 			gf_list_add(node->sgprivate->scenegraph->exported_nodes, node);
 		}
+	} else if (node->sgprivate->scenegraph) {
+		/*no parent: the holder can outlive the graph, so let gf_sg_del detach us*/
+		GF_SceneGraph* sg = node->sgprivate->scenegraph;
+		if (!sg->referencing_commands)
+			sg->referencing_commands = gf_list_new();
+		if (gf_list_find(sg->referencing_commands, &node->sgprivate->scenegraph) < 0)
+			gf_list_add(sg->referencing_commands, &node->sgprivate->scenegraph);
 	}
 	return GF_OK;
 }
@@ -1715,6 +1722,8 @@ void gf_node_free(GF_Node *node)
 		}
 	}
 	gf_assert(! node->sgprivate->parents);
+	if (node->sgprivate->scenegraph)
+		gf_list_del_item(node->sgprivate->scenegraph->referencing_commands, &node->sgprivate->scenegraph);
 	if (node->sgprivate->referencing_commands) {
 		u32 i, cnt = gf_list_count(node->sgprivate->referencing_commands);
 		for (i = 0; i < cnt; i++) {

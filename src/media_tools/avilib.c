@@ -2388,7 +2388,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 	{
 		int tk=0;
-		for(j=0; j<AVI->anum+1; ++j) {
+		for(j=0; j<AVI->anum+1 && tk<AVI_MAX_TRACKS; ++j) {
 			if (j == AVI->video_strn) continue;
 			AVI->track[tk].audio_tag[0] = j/10 + '0';
 			AVI->track[tk].audio_tag[1] = j%10 + '0';
