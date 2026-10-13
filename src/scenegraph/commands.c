@@ -509,25 +509,39 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		break;
 	}
 	case GF_SG_PROTO_INSERT:
-		/*destroy all proto*/
+		/*promote newly-declared protos from this command into the target graph,
+		  but only those we can still verify are live: xmt_parse_proto/gf_sg_proto_new
+		  file every fresh proto in graph->unregistered_protos alongside the command's
+		  new_proto_list, so a pointer that is NOT in unregistered_protos was either
+		  (a) already promoted by a peer PROTO_INSERT, or (b) freed by an earlier
+		  PROTO_DELETE. Either way, handing it to graph->protos would leave a stale
+		  pointer that a later PROTO_DELETE_ALL walk would deref at
+		  scenegraph/vrml_proto.c:108 (heap-use-after-free). gf_list_del_item only
+		  compares pointer identity, so this check is safe on a dangling p.*/
 		while (gf_list_count(com->new_proto_list)) {
 			GF_Proto *p = (GF_Proto*)gf_list_get(com->new_proto_list, 0);
 			gf_list_rem(com->new_proto_list, 0);
-			gf_list_del_item(graph->unregistered_protos, p);
+			if (gf_list_del_item(graph->unregistered_protos, p) < 0)
+				continue;
 			gf_list_add(graph->protos, p);
 		}
 		return GF_OK;
-	case GF_SG_PROTO_DELETE:
-	{
-		u32 i;
-		for (i=0; i<com->del_proto_list_size; i++) {
-			/*note this will check for unregistered protos, but since IDs are unique we are sure we will
-			not destroy an unregistered one*/
-			GF_Proto *proto = gf_sg_find_proto(graph, com->del_proto_list[i], NULL);
-			if (proto) gf_sg_proto_del(proto);
+	case GF_SG_PROTO_DELETE: {
+		u32 i, j;
+		for (i = 0; i < com->del_proto_list_size; i++) {
+			GF_Proto* p;
+			/*only delete protos registered in the graph: unregistered ones are still owned by the
+			command that declared them*/
+			j = 0;
+			while ((p = (GF_Proto*)gf_list_enum(graph->protos, &j))) {
+				if (p->ID == com->del_proto_list[i]) {
+					gf_sg_proto_del(p);
+					break;
+				}
+			}
 		}
+		return GF_OK;
 	}
-	return GF_OK;
 	case GF_SG_PROTO_DELETE_ALL:
 		/*destroy all proto*/
 		while (gf_list_count(graph->protos)) {
@@ -598,6 +612,10 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		}
 		/*indexed replacement*/
 		if (pos>=-1) {
+			/*a well-formed indexed replacement always carries a field payload;
+			  a missing payload (inf->field_ptr NULL) reaches value.far_ptr as
+			  NULL and would fault on the deref below*/
+			if (!value.far_ptr) return GF_NON_COMPLIANT_BITSTREAM;
 			/*if MFNode remove the child and set new node*/
 			if (field.fieldType == GF_SG_VRML_MFNODE) {
 				GF_Node *nn = *(GF_Node**)value.far_ptr;
