@@ -91,14 +91,14 @@ unittest(mpd_hls_scte35_nonzero_presentation_time_offset)
 
 	FILE *output = tmpfile();
 	assert_true(output != NULL);
-	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment);
+	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment, GF_FALSE);
 	fflush(output);
 	rewind(output);
 
 	char text[1024] = {0};
 	size_t bytes_read = fread(text, 1, sizeof(text)-1, output);
 	text[bytes_read] = 0;
-	assert_true(strstr(text, "#EXT-X-DATERANGE:ID=\"662-0000\"") != NULL);
+	assert_true(strstr(text, "#EXT-X-DATERANGE:ID=\"662-0000\"") == NULL);
 	assert_true(strstr(text, "#EXT-X-CUE-OUT:242") != NULL);
 	assert_equal(event.state, 1, "%u");
 
@@ -140,12 +140,13 @@ unittest(mpd_hls_scte35_cues_follow_segment_boundaries)
 	segment.dur = 4000;
 	output = tmpfile();
 	assert_true(output != NULL);
-	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment);
+	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment, GF_FALSE);
 	fflush(output);
 	rewind(output);
 	memset(text, 0, sizeof(text));
 	bytes_read = fread(text, 1, sizeof(text)-1, output);
 	text[bytes_read] = 0;
+	assert_true(strstr(text, "#EXT-X-DATERANGE:ID=\"7-0000\"") != NULL);
 	assert_true(strstr(text, "#EXT-X-CUE-OUT") == NULL);
 	assert_equal(event.state, 0, "%u");
 	fclose(output);
@@ -156,13 +157,13 @@ unittest(mpd_hls_scte35_cues_follow_segment_boundaries)
 	segment.dur = 4000;
 	output = tmpfile();
 	assert_true(output != NULL);
-	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment);
+	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment, GF_FALSE);
 	fflush(output);
 	rewind(output);
 	memset(text, 0, sizeof(text));
 	bytes_read = fread(text, 1, sizeof(text)-1, output);
 	text[bytes_read] = 0;
-	assert_true(strstr(text, "#EXT-X-DATERANGE:ID=\"7-0000\"") != NULL);
+	assert_true(strstr(text, "#EXT-X-DATERANGE:ID=\"7-0000\"") == NULL);
 	assert_true(strstr(text, "#EXT-X-CUE-OUT:5") != NULL);
 	assert_true(strstr(text, "#EXT-X-CUE-IN") == NULL);
 	assert_equal(event.state, 1, "%u");
@@ -172,7 +173,7 @@ unittest(mpd_hls_scte35_cues_follow_segment_boundaries)
 	 * CUE-IN before media that still belongs to the break. */
 	output = tmpfile();
 	assert_true(output != NULL);
-	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment);
+	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment, GF_FALSE);
 	fflush(output);
 	rewind(output);
 	memset(text, 0, sizeof(text));
@@ -188,7 +189,7 @@ unittest(mpd_hls_scte35_cues_follow_segment_boundaries)
 	segment.dur = 4000;
 	output = tmpfile();
 	assert_true(output != NULL);
-	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment);
+	hls_insert_scte35_info(output, 0, &period, &adaptation_set, &representation, &segment, GF_FALSE);
 	fflush(output);
 	rewind(output);
 	memset(text, 0, sizeof(text));
@@ -199,5 +200,84 @@ unittest(mpd_hls_scte35_cues_follow_segment_boundaries)
 	fclose(output);
 
 	gf_list_del(event_stream.entries);
+	gf_list_del(period.event_streams);
+}
+
+
+/*************************************/
+
+unittest(mpd_hls_scte35_metadata_and_finite_return_policy)
+{
+	GF_MPD_Period period = {0};
+	GF_MPD_AdaptationSet as = {0};
+	GF_MPD_Representation rep = {0};
+	GF_MPD_EventStream es = {0};
+	GF_MPD_EventStreamEntry event = {0};
+	GF_DASH_SegmentContext segments[3] = {{0}};
+	FILE *out;
+	char text[4096] = {0};
+	size_t n;
+
+	period.event_streams = gf_list_new();
+	es.entries = gf_list_new();
+	rep.state_seg_list = gf_list_new();
+	assert_true(period.event_streams && es.entries && rep.state_seg_list);
+	rep.timescale = es.timescale = 1000;
+	event.id = 100;
+	event.presentation_time = 1920;
+	event.duration = 1000;
+	gf_list_add(es.entries, &event);
+	gf_list_add(period.event_streams, &es);
+	segments[0].time = 0; segments[0].dur = 6000; segments[0].filename = "seg1.m4s";
+	segments[1].time = 6000; segments[1].dur = 960; segments[1].filename = "seg2.m4s";
+	gf_list_add(rep.state_seg_list, &segments[0]);
+	gf_list_add(rep.state_seg_list, &segments[1]);
+
+	/* Short event entirely within one long segment: keep SCTE metadata but
+	 * never fabricate an ad opportunity or leave a dangling OUT at ENDLIST. */
+	out = tmpfile(); assert_true(out != NULL);
+	hls_insert_scte35_info(out, 0, &period, &as, &rep, &segments[0], GF_TRUE);
+	fflush(out); rewind(out);
+	n = fread(text, 1, sizeof(text)-1, out); text[n] = 0;
+	assert_true(strstr(text, "#EXT-X-DATERANGE:ID=\"100-0000\"") != NULL);
+	assert_true(strstr(text, "#EXT-X-CUE-OUT") == NULL);
+	assert_true(strstr(text, "#EXT-X-CUE-IN") == NULL);
+	assert_equal(event.state, 0, "%u");
+	fclose(out);
+
+	/* A short event with an actual start AND return segment boundary is a
+	 * valid replacement opportunity on a finalized playlist. */
+	segments[0].dur = 2000;
+	segments[1].time = 2000; segments[1].dur = 1000;
+	segments[2].time = 3000; segments[2].dur = 1000; segments[2].filename = "seg3.m4s";
+	gf_list_add(rep.state_seg_list, &segments[2]);
+	out = tmpfile(); assert_true(out != NULL);
+	hls_insert_scte35_info(out, 0, &period, &as, &rep, &segments[1], GF_TRUE);
+	assert_true(hls_scte35_has_return_boundary(&rep, 2920));
+	fflush(out); rewind(out); memset(text, 0, sizeof(text));
+	n = fread(text, 1, sizeof(text)-1, out); text[n] = 0;
+	assert_true(strstr(text, "#EXT-X-CUE-OUT:1") != NULL);
+	assert_equal(event.state, 1, "%u");
+	fclose(out);
+	out = tmpfile(); assert_true(out != NULL);
+	hls_insert_scte35_info(out, 0, &period, &as, &rep, &segments[2], GF_TRUE);
+	fflush(out); rewind(out); memset(text, 0, sizeof(text));
+	n = fread(text, 1, sizeof(text)-1, out); text[n] = 0;
+	assert_true(strstr(text, "#EXT-X-CUE-IN") != NULL);
+	fclose(out);
+
+	/* A rolling live playlist beginning mid-break retains DATERANGE. */
+	rep.tsb_first_entry = 1;
+	event.state = 0;
+	out = tmpfile(); assert_true(out != NULL);
+	hls_insert_scte35_info(out, 0, &period, &as, &rep, &segments[1], GF_FALSE);
+	fflush(out); rewind(out); memset(text, 0, sizeof(text));
+	n = fread(text, 1, sizeof(text)-1, out); text[n] = 0;
+	assert_true(strstr(text, "#EXT-X-DATERANGE:ID=\"100-0000\"") != NULL);
+	assert_true(strstr(text, "#EXT-X-CUE-OUT:1") != NULL);
+	fclose(out);
+
+	gf_list_del(rep.state_seg_list);
+	gf_list_del(es.entries);
 	gf_list_del(period.event_streams);
 }
