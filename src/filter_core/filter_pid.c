@@ -1496,11 +1496,22 @@ static void gf_filter_pid_disconnect_task(GF_FSTask *task)
 		gf_filter_pid_configure(task->filter, task->pid->pid, GF_PID_CONF_REMOVE);
 
 	gf_mx_p(task->filter->tasks_mx);
+	//recompute active pids - we must do this because gf_filter_pid_remove will skip unlinking of a PID/filter marked as remove
+	//so we may still have PIDs in input or output lists
+	u32 i, num_active_pids = 0;
+	for (i=0; i<task->filter->num_output_pids && !num_active_pids; i++) {
+		GF_FilterPid *opid = gf_list_get(task->filter->output_pids, i);
+		if (!opid->removed) num_active_pids++;
+	}
+	for (i=0; i<task->filter->num_input_pids && !num_active_pids; i++) {
+		GF_FilterPidInst *ipid = gf_list_get(task->filter->input_pids, i);
+		if (!ipid->pid->removed) num_active_pids++;
+	}
+
 	//if the filter has no more connected ins and outs, remove it
 	if (task->filter->removed
 		&& !task->filter->finalized
-		&& !gf_list_count(task->filter->output_pids)
-		&& !gf_list_count(task->filter->input_pids)
+		&& !num_active_pids
 		//make sure we don't have any remove pid packets pending
 		&& !task->filter->pid_rem_packet_pending
 	) {

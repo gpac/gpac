@@ -526,7 +526,8 @@ u8 gf_cenc_key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 key_i
 /*!
 \brief validate a CENC key info chunk
 
-Checks whether a CENC key info chunk is valid or not
+Checks key record bounds and IV lengths. Nonzero per-sample and constant IV
+sizes must be 8 or 16 bytes; zero is allowed for a clear default.
 \param key_info CENC key info buffer
 \param key_info_size CENC key info buffer size
 \return GF_TRUE if this chunk looks like a CENC key info buffer, GF_FALSE otherwise

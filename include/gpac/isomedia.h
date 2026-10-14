@@ -2396,6 +2396,31 @@ GF_Err gf_isom_add_track_kind(GF_ISOFile *isom_file, u32 trackNumber, const char
 */
 GF_Err gf_isom_remove_track_kind(GF_ISOFile *isom_file, u32 trackNumber, const char *schemeURI, const char *value);
 
+/*! Content Type for Loudness Control flags */
+enum
+{
+	/*! content is an advertisement */
+	GF_ISOM_CTLC_FLAG_ADVERTISEMENT = 1 << 0,
+	/*! content uses non-LFE components above or below the horizontal plane */
+	GF_ISOM_CTLC_FLAG_IMMERSIVE_AUDIO = 1 << 1
+};
+
+/*! sets Content Type for Loudness Control metadata on a track
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param content_type the content type value
+\param flags a combination of GF_ISOM_CTLC_FLAG_ADVERTISEMENT and GF_ISOM_CTLC_FLAG_IMMERSIVE_AUDIO
+\return error if any
+*/
+GF_Err gf_isom_set_track_loudness_content_type(GF_ISOFile *isom_file, u32 trackNumber, u8 content_type, u32 flags);
+
+/*! removes Content Type for Loudness Control metadata from a track
+\param isom_file the target ISO file
+\param trackNumber the target track
+\return error if any
+*/
+GF_Err gf_isom_remove_track_loudness_content_type(GF_ISOFile *isom_file, u32 trackNumber);
+
 /*! changes the handler type of the media
 \warning This may completely breaks the parsing of the media track
 \param isom_file the target ISO file

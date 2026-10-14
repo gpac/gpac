@@ -122,6 +122,8 @@ typedef enum {
 	TRACK_ACTION_REFERENCE,
 	TRACK_ACTION_SET_KIND,
 	TRACK_ACTION_REM_KIND,
+	TRACK_ACTION_SET_CTLC,
+	TRACK_ACTION_REM_CTLC,
 	TRACK_ACTION_SET_ID,
 	TRACK_ACTION_SET_UDTA,
 	TRACK_ACTION_SWAP_ID,
@@ -156,6 +158,7 @@ typedef struct
 	char *string;
 	u32 udta_type;
 	char *kind_scheme, *kind_value;
+	u32 ctlc_content_type, ctlc_flags;
 	TrackIdentifier newTrackID;
 	s32 clap_wnum, clap_wden, clap_hnum, clap_hden, clap_honum, clap_hoden, clap_vonum, clap_voden;
 	s32 mx[9];
@@ -554,6 +557,8 @@ MP4BoxArg m4b_gen_args[] =
  			, GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_MX, ARG_IS_FUN),
 	MP4BOX_ARG_S("kind", "tkID=schemeURI=value", "set kind for the track or for all tracks using `all=schemeURI=value`", 0, parse_track_action, TRACK_ACTION_SET_KIND, ARG_IS_FUN),
 	MP4BOX_ARG_S("kind-rem", "tkID=schemeURI=value", "remove kind if given schemeID for the track or for all tracks with `all=schemeURI=value`", 0, parse_track_action, TRACK_ACTION_REM_KIND, ARG_IS_FUN),
+	MP4BOX_ARG_S("ctlc", "tkID=content_type[:flags]", "set Content Type for Loudness Control metadata for the track or for all tracks using `all=content_type[:flags]`. flags default to 0 and may use bits 0 (advertisement) and 1 (immersive audio)", 0, parse_track_action, TRACK_ACTION_SET_CTLC, ARG_IS_FUN),
+	MP4BOX_ARG_S("ctlc-rem", "tkID", "remove Content Type for Loudness Control metadata from the track or from all tracks using `all`", 0, parse_track_action, TRACK_ACTION_REM_CTLC, ARG_IS_FUN),
  	MP4BOX_ARG_S("name", "tkID=NAME", "set track handler name to NAME (UTF-8 string)", GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_HANDLER_NAME, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("tags", "itags", "set iTunes tags to file, see `-h tags`", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &itunes_tags, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG("group-add", "create a new grouping information in the file. Format is a colon-separated list of following options:\n"
@@ -2637,6 +2642,47 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 				ext[0] = '=';
 				tka->kind_value = gf_strdup(ext + 1);
 			}
+		}
+		return GF_TRUE;
+	}
+	if (act_type==TRACK_ACTION_SET_CTLC) {
+		char *ext = strchr(param, '=');
+		char *flags_sep;
+		char extra;
+
+		if (!ext) {
+			M4_LOG(GF_LOG_ERROR, ("Bad format for track ctlc - expecting tkID=content_type[:flags] got %s\n", param));
+			return GF_FALSE;
+		}
+		ext[0] = 0;
+		if (stricmp(param, "all") && !parse_track_id(&tka->target_track, param, GF_FALSE)) {
+			ext[0] = '=';
+			M4_LOG(GF_LOG_ERROR, ("Bad track identifier for ctlc: %s\n", param));
+			return GF_FALSE;
+		}
+		ext[0] = '=';
+
+		flags_sep = strchr(ext + 1, ':');
+		if (flags_sep) flags_sep[0] = 0;
+		if ((sscanf(ext + 1, "%u%c", &tka->ctlc_content_type, &extra) != 1) || (tka->ctlc_content_type > 255)) {
+			if (flags_sep) flags_sep[0] = ':';
+			M4_LOG(GF_LOG_ERROR, ("Invalid ctlc content type - expecting an integer from 0 to 255 got %s\n", ext + 1));
+			return GF_FALSE;
+		}
+		if (flags_sep) {
+			flags_sep[0] = ':';
+			if ((sscanf(flags_sep + 1, "%u%c", &tka->ctlc_flags, &extra) != 1)
+			        || (tka->ctlc_flags & ~(GF_ISOM_CTLC_FLAG_ADVERTISEMENT | GF_ISOM_CTLC_FLAG_IMMERSIVE_AUDIO))) {
+				M4_LOG(GF_LOG_ERROR, ("Invalid ctlc flags - expecting an integer from 0 to 3 got %s\n", flags_sep + 1));
+				return GF_FALSE;
+			}
+		}
+		return GF_TRUE;
+	}
+	if (act_type==TRACK_ACTION_REM_CTLC) {
+		if (stricmp(param, "all") && !parse_track_id(&tka->target_track, param, GF_FALSE)) {
+			M4_LOG(GF_LOG_ERROR, ("Bad track identifier for ctlc removal: %s\n", param));
+			return GF_FALSE;
 		}
 		return GF_TRUE;
 	}
@@ -5637,6 +5683,30 @@ static GF_Err do_track_act()
 				do_save = GF_TRUE;
 			}
 			do_save = GF_TRUE;
+			break;
+		case TRACK_ACTION_SET_CTLC:
+			if ((tka->target_track.type || tka->target_track.ID_or_num) && !track) {
+				M4_LOG(GF_LOG_ERROR, ("No track found for ctlc assignment\n"));
+				return GF_BAD_PARAM;
+			}
+			for (i=0; i<gf_isom_get_track_count(file); i++) {
+				if (track && (track != i+1)) continue;
+				e = gf_isom_set_track_loudness_content_type(file, i+1, (u8)tka->ctlc_content_type, tka->ctlc_flags);
+				if (e) return e;
+				do_save = GF_TRUE;
+			}
+			break;
+		case TRACK_ACTION_REM_CTLC:
+			if ((tka->target_track.type || tka->target_track.ID_or_num) && !track) {
+				M4_LOG(GF_LOG_ERROR, ("No track found for ctlc removal\n"));
+				return GF_BAD_PARAM;
+			}
+			for (i=0; i<gf_isom_get_track_count(file); i++) {
+				if (track && (track != i+1)) continue;
+				e = gf_isom_remove_track_loudness_content_type(file, i+1);
+				if (e) return e;
+				do_save = GF_TRUE;
+			}
 			break;
 		case TRACK_ACTION_SET_DELAY:
 			if (tka->delay.num && tka->delay.den) {
