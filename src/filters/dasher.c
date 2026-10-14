@@ -526,12 +526,11 @@ typedef struct _dash_stream
 	s32 cues_ts_offset;
 	Bool inband_cues;
 
-	/* SCTE-35 splice boundaries are expressed on the MPEG 90 kHz clock.
-	 * Keep the start and optional return boundary while normal duration-based
-	 * segmentation continues. */
-	u64 scte35_splice_start;
-	u64 scte35_splice_end;
-	u8 scte35_boundary_state; /* 0: none, 1: break start, 2: break end */
+	/* SCTE-35 splice cuts (90 kHz): pending ordered cuts and per-stream
+	 * event identities retained so duplicate delivery cannot re-arm a cut. */
+	GF_List *scte35_pending_cuts;
+	GF_List *scte35_seen_events;
+	u64 scte35_completed_cut; /* highest physically serviced SCTE cut (90 kHz) */
 	u32 ssai_cut_index; /* next reference cut to apply */
 
 	Bool clamp_done;
@@ -590,6 +589,7 @@ typedef struct _dash_stream
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_last_in_period);
 static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds);
 static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_destroy);
+static void dasher_scte35_clear_schedule(GF_DashStream *ds);
 static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_switch);
 static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *for_ds);
 static GF_Err dasher_setup_profile(GF_DasherCtx *ctx);
@@ -6659,6 +6659,7 @@ resend:
 
 static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_destroy)
 {
+	dasher_scte35_clear_schedule(ds);
 	//we do not remove the destination filter, it will be removed automatically once all remove_pids are called
 	//removing it explicitly will discard the upper chain and any packets not yet processed
 	ds->dst_filter = NULL;
@@ -10093,17 +10094,138 @@ GF_STATIC Bool dasher_scte35_boundary_due(u64 packet_cts, u32 packet_timescale, 
 	return gf_timestamp_greater_or_equal(packet_cts, packet_timescale, boundary_time, 90000);
 }
 
-/* Period-global event de-dup must not suppress the cut for other video PIDs. */
-GF_STATIC Bool dasher_scte35_schedule_boundary(Bool needs_idr, u32 stream_type,
-	u64 splice_time, u64 duration, u64 *start, u64 *end, u8 *state)
+/* Each visual representation schedules its own cuts before the period-global
+ * MPD EventStream de-duplicates event IDs. Multiple future splice events may
+ * arrive before the first RAP; one mutable pending slot loses later events. */
+typedef struct {
+	u32 event_id;
+	u64 event_time;
+	u64 event_end; /* retire only after the last planned cut is serviced */
+} DasherScteSeenEvent;
+
+typedef struct {
+	u64 time; /* 90 kHz SCTE source clock */
+} DasherSctePendingCut;
+
+static void dasher_scte35_clear_schedule(GF_DashStream *ds)
 {
-	if (!needs_idr || stream_type != GF_STREAM_VISUAL || *state) return GF_FALSE;
-	*start = splice_time;
-	*end = 0;
-	if (duration && duration != (u64)-1 && splice_time <= ((u64)-1) - duration)
-		*end = splice_time + duration;
-	*state = 1;
+	if (ds->scte35_pending_cuts) {
+		while (gf_list_count(ds->scte35_pending_cuts)) gf_free(gf_list_pop_back(ds->scte35_pending_cuts));
+		gf_list_del(ds->scte35_pending_cuts);
+		ds->scte35_pending_cuts = NULL;
+	}
+	if (ds->scte35_seen_events) {
+		while (gf_list_count(ds->scte35_seen_events)) gf_free(gf_list_pop_back(ds->scte35_seen_events));
+		gf_list_del(ds->scte35_seen_events);
+		ds->scte35_seen_events = NULL;
+	}
+	ds->scte35_completed_cut = 0;
+}
+
+static GF_Err dasher_scte35_insert_cut(GF_List *cuts, DasherSctePendingCut *cut)
+{
+	u32 i, count = gf_list_count(cuts);
+	for (i=0; i<count; i++) {
+		DasherSctePendingCut *existing = gf_list_get(cuts, i);
+		if (existing->time == cut->time) {
+			gf_free(cut);
+			return GF_OK;
+		}
+		if (existing->time > cut->time) return gf_list_insert(cuts, cut, i);
+	}
+	return gf_list_add(cuts, cut);
+}
+
+/* Do not treat a second transmission of an already-consumed event as a new
+ * splice. Identity is (event ID, source presentation time), per rendition. */
+GF_STATIC GF_Err dasher_scte35_schedule_boundary(Bool needs_idr, u32 stream_type,
+	u32 event_id, u64 splice_time, u64 duration, u64 completed_cut,
+	GF_List **pending, GF_List **seen)
+{
+	DasherScteSeenEvent *record;
+	DasherSctePendingCut *start, *end = NULL;
+	u32 i;
+	GF_Err e;
+	if (!needs_idr || stream_type != GF_STREAM_VISUAL) return GF_OK;
+	/* A replay whose nominal start precedes an already serviced RAP cannot
+	 * request a second cut. Out-of-order FUTURE events are still accepted. */
+	if (completed_cut && splice_time <= completed_cut) return GF_OK;
+	if (!*seen) {
+		*seen = gf_list_new();
+		if (!*seen) return GF_OUT_OF_MEM;
+	}
+	if (!*pending) {
+		*pending = gf_list_new();
+		if (!*pending) return GF_OUT_OF_MEM;
+	}
+	for (i=0; i<gf_list_count(*seen); i++) {
+		DasherScteSeenEvent *existing = gf_list_get(*seen, i);
+		if ((existing->event_id == event_id) && (existing->event_time == splice_time))
+			return GF_OK;
+	}
+	GF_SAFEALLOC(record, DasherScteSeenEvent);
+	GF_SAFEALLOC(start, DasherSctePendingCut);
+	if (!record || !start) {
+		gf_free(record);
+		gf_free(start);
+		return GF_OUT_OF_MEM;
+	}
+	start->time = splice_time;
+	if (duration && (duration != (u64)-1) && (splice_time <= ((u64)-1) - duration)) {
+		GF_SAFEALLOC(end, DasherSctePendingCut);
+		if (!end) { gf_free(record); gf_free(start); return GF_OUT_OF_MEM; }
+		end->time = splice_time + duration;
+	}
+	record->event_id = event_id;
+	record->event_time = splice_time;
+	record->event_end = end ? end->time : splice_time;
+	e = gf_list_add(*seen, record);
+	if (e) { gf_free(record); gf_free(start); gf_free(end); return e; }
+	e = dasher_scte35_insert_cut(*pending, start);
+	if (e) { gf_list_del_item(*seen, record); gf_free(record); gf_free(start); gf_free(end); return e; }
+	if (end) {
+		e = dasher_scte35_insert_cut(*pending, end);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
+/* Completed live events must not accumulate for the channel lifetime. Once
+ * all planned cuts are past, remember only the monotonic serviced watermark:
+ * it also rejects stale retransmissions after their per-event key is freed. */
+GF_STATIC void dasher_scte35_prune_seen(GF_List *seen, u64 completed_cut)
+{
+	u32 i=0;
+	if (!seen) return;
+	while (i<gf_list_count(seen)) {
+		DasherScteSeenEvent *record = gf_list_get(seen, i);
+		if (record->event_end > completed_cut) { i++; continue; }
+		gf_list_rem(seen, i);
+		gf_free(record);
+	}
+}
+
+GF_STATIC Bool dasher_scte35_next_cut(GF_List *pending, u64 *time)
+{
+	DasherSctePendingCut *cut = pending ? gf_list_get(pending, 0) : NULL;
+	if (!cut) return GF_FALSE;
+	*time = cut->time;
 	return GF_TRUE;
+}
+
+/* A single RAP may satisfy several pending transitions: consume all due
+ * times but create at most one segment cut at that physical boundary. */
+GF_STATIC Bool dasher_scte35_consume_due(GF_List *pending, u64 cts, u32 timescale, u32 sap_type)
+{
+	Bool had_due = GF_FALSE;
+	u64 when;
+	if (!sap_type || !timescale) return GF_FALSE;
+	while (dasher_scte35_next_cut(pending, &when)
+		&& dasher_scte35_boundary_due(cts, timescale, sap_type, when)) {
+		gf_free(gf_list_pop_front(pending));
+		had_due = GF_TRUE;
+	}
+	return had_due;
 }
 
 /* SSAI is opt-in: ordinary DASH/HLS keeps its original independent
@@ -10228,9 +10350,10 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 		if (scte35dec_get_timing(data, size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
             /* SCTE may reach multiple video PIDs with the same event ID. */
             GF_DashStream *splice_ds = (ctx->ssai_align && ctx->ssai_ref) ? ctx->ssai_ref : ds;
-            dasher_scte35_schedule_boundary(needs_idr, splice_ds->stream_type,
-                evt->presentation_time, dur, &splice_ds->scte35_splice_start,
-                &splice_ds->scte35_splice_end, &splice_ds->scte35_boundary_state);
+            ret = dasher_scte35_schedule_boundary(needs_idr, splice_ds->stream_type,
+                evt->id, evt->presentation_time, dur, splice_ds->scte35_completed_cut,
+                &splice_ds->scte35_pending_cuts, &splice_ds->scte35_seen_events);
+            if (ret) goto exit;
 			Bool found = GF_FALSE;
 			GF_MPD_EventStreamEntry *ese = NULL;
 			u32 i = 0;
@@ -10682,11 +10805,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (e) return e;
 
 			Bool scte35_splice_boundary = GF_FALSE;
-			if (ds->scte35_boundary_state) {
-				u64 boundary_time = (ds->scte35_boundary_state == 1) ? ds->scte35_splice_start : ds->scte35_splice_end;
-				if (boundary_time)
-					scte35_splice_boundary = dasher_scte35_boundary_due(cts, ds->timescale, sap_type, boundary_time);
-			}
+			u64 scte35_next_cut = 0;
+			if (dasher_scte35_next_cut(ds->scte35_pending_cuts, &scte35_next_cut))
+				scte35_splice_boundary = dasher_scte35_boundary_due(cts, ds->timescale, sap_type, scte35_next_cut);
 
 			if (!ds->rep_init) {
 				u32 set_start_with_sap;
@@ -10846,10 +10967,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 				/* An SCTE splice may insert a cut earlier than the regular
 				 * cadence. Hold followers at the earlier boundary even if
 				 * the reference video has not yet reached its RAP. */
-				if (ctx->ssai_ref->scte35_boundary_state) {
-					u64 splice_cut = (ctx->ssai_ref->scte35_boundary_state == 1)
-						? ctx->ssai_ref->scte35_splice_start : ctx->ssai_ref->scte35_splice_end;
-					if (splice_cut && splice_cut < next_ref_cut) next_ref_cut = splice_cut;
+				{
+					u64 splice_cut = 0;
+					if (dasher_scte35_next_cut(ctx->ssai_ref->scte35_pending_cuts, &splice_cut)
+						&& (splice_cut < next_ref_cut)) next_ref_cut = splice_cut;
 				}
 				if (dasher_ssai_boundary_reached(ssai_source_cts, ds->timescale, next_ref_cut))
 					break;
@@ -11037,10 +11158,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 			 * segmentation. The cue timestamp may fall slightly before an IDR,
 			 * so cut at the first SAP at or after the requested splice time. */
 			else if (scte35_splice_boundary && !ctx->sigfrag && !ds->inband_cues && !ds->cues) {
-				if (ds->scte35_boundary_state == 1 && ds->scte35_splice_end)
-					ds->scte35_boundary_state = 2;
-				else
-					ds->scte35_boundary_state = 0;
+				if (dasher_scte35_consume_due(ds->scte35_pending_cuts, ssai_source_cts, ds->timescale, sap_type)) {
+					u64 cut90k = gf_timestamp_rescale(ssai_source_cts, ds->timescale, 90000);
+					if (cut90k > ds->scte35_completed_cut) ds->scte35_completed_cut = cut90k;
+					dasher_scte35_prune_seen(ds->scte35_seen_events, ds->scte35_completed_cut);
+				}
 
 				if (ds->segment_started) {
 					seg_over = GF_TRUE;
