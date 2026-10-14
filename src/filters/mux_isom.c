@@ -3955,23 +3955,33 @@ sample_entry_done:
 				GF_ContentLightLevelInfo clli;
 				GF_BitStream *bs;
 				if (p) {
-					bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
-					clli.max_content_light_level = gf_bs_read_int(bs, 16);
-					clli.max_pic_average_light_level = gf_bs_read_int(bs, 16);
-					gf_bs_del(bs);
+					if (p->value.data.size == 4) {
+						bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+						clli.max_content_light_level = gf_bs_read_int(bs, 16);
+						clli.max_pic_average_light_level = gf_bs_read_int(bs, 16);
+						gf_bs_del(bs);
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Invalid CLLI data size: expecting 4, got %u\n", p->value.data.size));
+						p = NULL;
+					}
 				}
 				if (p2) {
-					bs = gf_bs_new(p2->value.data.ptr, p2->value.data.size, GF_BITSTREAM_READ);
+					if (p2->value.data.size == 24) {
+						bs = gf_bs_new(p2->value.data.ptr, p2->value.data.size, GF_BITSTREAM_READ);
 
-					for(u32 c=0;c<3;c++) {
-						mdcv.display_primaries[c].x = gf_bs_read_int(bs, 16);
-						mdcv.display_primaries[c].y = gf_bs_read_int(bs, 16);
+						for(u32 c=0;c<3;c++) {
+							mdcv.display_primaries[c].x = gf_bs_read_int(bs, 16);
+							mdcv.display_primaries[c].y = gf_bs_read_int(bs, 16);
+						}
+						mdcv.white_point_x = gf_bs_read_int(bs, 16);
+						mdcv.white_point_y = gf_bs_read_int(bs, 16);
+						mdcv.max_display_mastering_luminance = gf_bs_read_int(bs, 32);
+						mdcv.min_display_mastering_luminance = gf_bs_read_int(bs, 32);
+						gf_bs_del(bs);
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Invalid MDCV data size: expecting 24, got %u\n", p2->value.data.size));
+						p2 = NULL;
 					}
-					mdcv.white_point_x = gf_bs_read_int(bs, 16);
-					mdcv.white_point_y = gf_bs_read_int(bs, 16);
-					mdcv.max_display_mastering_luminance = gf_bs_read_int(bs, 32);
-					mdcv.min_display_mastering_luminance = gf_bs_read_int(bs, 32);
-					gf_bs_del(bs);
 				}
 				gf_isom_set_high_dynamic_range_info(ctx->file, tkw->track_num, tkw->stsd_idx, p2 ? &mdcv : NULL, p ? &clli : NULL);
 			}

@@ -450,6 +450,17 @@ GF_Err kind_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err ctlc_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ContentTypeForLoudnessControlBox *p;
+
+	p = (GF_ContentTypeForLoudnessControlBox *)a;
+	gf_isom_box_dump_start(a, "ContentTypeForLoudnessControlBox", trace);
+	gf_fprintf(trace, "content_type=\"%u\">\n", p->content_type);
+	gf_isom_box_dump_done("ContentTypeForLoudnessControlBox", a, trace);
+	return GF_OK;
+}
+
 
 static void dump_escape_string(FILE * trace, char *name)
 {

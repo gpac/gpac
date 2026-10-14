@@ -445,7 +445,6 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 	u32 i, j;
 	XMT_ESDLink *esdl, *esdl2;
 	XMT_ODLink *l;
-	char szURL[5000];
 
 	/*fix ESD IDs*/
 	i=0;
@@ -599,9 +598,14 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 					seg = NULL;
 					if (url->url) seg = strstr(url->url, "#");
 					if (seg) {
-						sprintf(szURL, "od:%d#%s", l->od->objectDescriptorID, seg+1);
-						gf_free(url->url);
-						url->url = gf_strdup(szURL);
+						// the fragment comes from the scene and has no length limit: size the new URL from it
+						u32 len = (u32) strlen(seg+1) + 20;
+						char *new_url = (char *) gf_malloc(len);
+						if (new_url) {
+							snprintf(new_url, len, "od:%d#%s", l->od->objectDescriptorID, seg+1);
+							gf_free(url->url);
+							url->url = new_url;
+						}
 					} else {
 						if (url->url) gf_free(url->url);
 						url->url = NULL;
@@ -1780,7 +1784,9 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 				else if (strstr(att->name, "value") || strstr(att->name, "Value")) value = att->value;
 			}
 			parser->proto_field = gf_sg_proto_field_new(parser->parsing_proto, fType, eType, fieldName);
-			if (value && strlen(value)) {
+			if (!parser->proto_field) {
+				xmt_report(parser, GF_BAD_PARAM, "Cannot create proto field %s (duplicate name or invalid type) - skipping", fieldName ? fieldName : "");
+			} else if (value && strlen(value)) {
 				gf_sg_proto_field_get_field(parser->proto_field, &info);
 				if (gf_sg_vrml_is_sf_field(fType)) {
 					xmt_parse_sf_field(parser, &info, NULL, value);
@@ -2156,7 +2162,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			if (old_node) {
 				gf_list_del_item(parser->peeked_nodes, old_node);
 				if (old_node->sgprivate->num_instances == 1)
-					xmt_remove_od_links_for_node(parser, old_node);
+					xmt_remove_od_links_recursive(parser, old_node, 0);
 				gf_node_unregister(old_node, parent->node);
 			}
 			*((GF_Node**)container.far_ptr) = node;
@@ -3233,6 +3239,8 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 		node = top->node;
 		gf_list_rem_last(parser->nodes);
 		xmt_node_stack_del(top);
+		// the element is closed: a stray closing tag of the same name must not match the parent entry below
+		parser->current_node_tag = 0;
 
 attach_node:
 		top = (XMTNodeStack*)gf_list_last(parser->nodes);
@@ -3328,10 +3336,14 @@ attach_node:
 					if (parser->command->in_scene && node->sgprivate->scenegraph
 					    && node->sgprivate->scenegraph != parser->command->in_scene) {
 						Bool is_subscene = GF_FALSE;
-						GF_SceneGraph *par = node->sgprivate->scenegraph->parent_scene;
-						while (par) {
-							if (par == parser->command->in_scene) { is_subscene = GF_TRUE; break; }
+						GF_SceneGraph *par = node->sgprivate->scenegraph;
+						/*only proto instance namespaces (pOwningProto set) live as long as their node; a PROTO declaration
+						  sub-graph (e.g. from an unclosed ProtoDeclare) is destroyed with its proto by a later SceneReplace,
+						  leaving the command node with a dangling scenegraph*/
+						while (par->pOwningProto) {
 							par = par->parent_scene;
+							if (!par) break;
+							if (par == parser->command->in_scene) { is_subscene = GF_TRUE; break; }
 						}
 						if (!is_subscene) {
 							xmt_report(parser, GF_OK, "Warning: node %s is from an unrelated scene - skipping in command", name);
@@ -3532,8 +3544,10 @@ attach_node:
 			node_processed = GF_TRUE;
 		}
 	} else if (parser->current_node_tag==tag) {
+		/*closing the element just created, whose node type differs from its name (e.g. USE of another node type)*/
 		gf_list_rem_last(parser->nodes);
 		xmt_node_stack_del(top);
+		parser->current_node_tag = 0;
 	} else {
 		xmt_report(parser, GF_NON_COMPLIANT_BITSTREAM, "Warning: closing element %s doesn't match created node %s", name, gf_node_get_class_name(top->node) );
 	}
