@@ -222,10 +222,15 @@ static u64 gf_mpd_parse_duration(const char * const duration)
 		char *sep_dec = strchr(sep2, '.');
 		*sep1 = 0;
 		if (sep_dec) {
+			u32 k, scale = 100;
 			sep_dec[0] = 0;
 			s = atoi(sep2);
-			ms = atoi(sep_dec+1);
 			sep_dec[0] = '.';
+			//decimal fraction of a second, kept to the millisecond: ".5" is 500 ms
+			for (k=1; (k<=3) && (sep_dec[k]>='0') && (sep_dec[k]<='9'); k++) {
+				ms += (sep_dec[k] - '0') * scale;
+				scale /= 10;
+			}
 		} else {
 			s = atoi(sep2);
 		}
