@@ -11434,32 +11434,38 @@ void saiz_box_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-
 GF_Err saiz_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_SampleAuxiliaryInfoSizeBox*ptr = (GF_SampleAuxiliaryInfoSizeBox*)s;
+	GF_SampleAuxiliaryInfoSizeBox *ptr = (GF_SampleAuxiliaryInfoSizeBox*)s;
+	if (ptr->version > 2) return GF_NOT_SUPPORTED;
+	const u8 num_bytes = 1 << ptr->version;
 
 	if (ptr->flags & 1) {
 		ISOM_DECREASE_SIZE(ptr, 8);
 		ptr->aux_info_type = gf_bs_read_u32(bs);
 		ptr->aux_info_type_parameter = gf_bs_read_u32(bs);
 	}
-	ISOM_DECREASE_SIZE(ptr, 5);
-	ptr->default_sample_info_size = gf_bs_read_u8(bs);
+	ISOM_DECREASE_SIZE(ptr, 4+num_bytes);
+	ptr->default_sample_info_size = gf_bs_read_int(bs, 8*num_bytes);
 	ptr->sample_count = gf_bs_read_u32(bs);
 
 	if (ptr->default_sample_info_size == 0) {
-		if (ptr->size < ptr->sample_count)
+		u64 sizes_len = ((u64) ptr->sample_count) * num_bytes;
+		if (ptr->size < sizes_len)
 			return GF_ISOM_INVALID_FILE;
 
-		ptr->sample_info_size = gf_malloc(sizeof(u8)*ptr->sample_count);
+		ptr->sample_info_size = gf_malloc(sizeof(u32) * ptr->sample_count);
 		ptr->sample_alloc = ptr->sample_count;
 		if (!ptr->sample_info_size)
 			return GF_OUT_OF_MEM;
 
-		ISOM_DECREASE_SIZE(ptr, ptr->sample_count);
-		gf_bs_read_data(bs, (char *) ptr->sample_info_size, ptr->sample_count);
+		ISOM_DECREASE_SIZE(ptr, sizes_len);
+		for (u32 i=0; i<ptr->sample_count; ++i) {
+			u32 val = gf_bs_read_int(bs, 8*num_bytes);
+			saiz_set_sample_info_size(ptr, i, val);
+		}
 	}
+
 	return GF_OK;
 }
 
@@ -11474,8 +11480,10 @@ GF_Box *saiz_box_new()
 GF_Err saiz_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_SampleAuxiliaryInfoSizeBox*ptr = (GF_SampleAuxiliaryInfoSizeBox*) s;
+	GF_SampleAuxiliaryInfoSizeBox *ptr = (GF_SampleAuxiliaryInfoSizeBox*) s;
 	if (!s) return GF_BAD_PARAM;
+	if (ptr->version > 2) return GF_NOT_SUPPORTED;
+
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
@@ -11483,13 +11491,13 @@ GF_Err saiz_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u32(bs, ptr->aux_info_type);
 		gf_bs_write_u32(bs, ptr->aux_info_type_parameter);
 	}
-	gf_bs_write_u8(bs, ptr->default_sample_info_size);
+	const u8 num_bytes = 1 << ptr->version;
+	gf_bs_write_int(bs, ptr->default_sample_info_size, num_bytes*8);
 	gf_bs_write_u32(bs, ptr->sample_count);
 	if (!ptr->default_sample_info_size) {
-		if (!ptr->sample_info_size)
-			gf_bs_write_u8(bs, 0);
-		else
-			gf_bs_write_data(bs, (char *) ptr->sample_info_size, ptr->sample_count);
+		for (u32 i=0; i<ptr->sample_count; ++i) {
+			gf_bs_write_int(bs, saiz_get_sample_info_size(ptr, i), num_bytes*8);
+		}
 	}
 	return GF_OK;
 }
@@ -11497,13 +11505,21 @@ GF_Err saiz_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err saiz_box_size(GF_Box *s)
 {
 	GF_SampleAuxiliaryInfoSizeBox *ptr = (GF_SampleAuxiliaryInfoSizeBox*)s;
+	if (ptr->version > 2) return GF_NOT_SUPPORTED;
+	saiz_check_version(ptr, ptr->default_sample_info_size);
+	if (!ptr->default_sample_info_size) {
+		for (u32 i=0; i<ptr->sample_count; i++)
+			saiz_check_version(ptr, saiz_get_sample_info_size(ptr, i));
+	}
 
+	const u8 num_bytes = 1 << ptr->version;
 	if (ptr->aux_info_type || ptr->aux_info_type_parameter) {
 		ptr->flags |= 1;
 	}
 	if (ptr->flags & 1) ptr->size += 8;
-	ptr->size += 5;
-	if (ptr->default_sample_info_size==0)  ptr->size += ptr->sample_count;
+	ptr->size += 4;
+	ptr->size += num_bytes;
+	if (ptr->default_sample_info_size==0)  ptr->size += ptr->sample_count*num_bytes;
 	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
@@ -11564,6 +11580,7 @@ GF_Err saio_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_SampleAuxiliaryInfoOffsetBox *ptr = (GF_SampleAuxiliaryInfoOffsetBox *) s;
 	if (!s) return GF_BAD_PARAM;
+
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
@@ -11571,7 +11588,6 @@ GF_Err saio_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u32(bs, ptr->aux_info_type);
 		gf_bs_write_u32(bs, ptr->aux_info_type_parameter);
 	}
-
 
 	gf_bs_write_u32(bs, ptr->entry_count);
 	if (ptr->entry_count) {
