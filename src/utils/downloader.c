@@ -3307,6 +3307,16 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess)
 			memcpy(sess->http_buf, sess->remaining_data, sess->remaining_data_size);
 		}
 		e = gf_dm_read_data(sess, sess->http_buf + sess->remaining_data_size, sess->http_buf_size - sess->remaining_data_size, &size);
+#ifdef GPAC_HTTPMUX
+		//flush even if this read got nothing: another session's read may have received (and closed) our stream
+		if (sess->hmux_sess) {
+			hmux_flush_internal_data(sess, GF_FALSE);
+			if (sess->hmux_stream_id<0) {
+				sess->status = GF_NETIO_DATA_TRANSFERED;
+				SET_LAST_ERR(GF_OK)
+			}
+		}
+#endif
 		if ((e != GF_IP_CONNECTION_CLOSED) && (!size || e == GF_IP_NETWORK_EMPTY)) {
 			if (!sess->total_size && !sess->chunked && (gf_sys_clock_high_res() - sess->start_time > 5000000)) {
 				sess->total_size = sess->bytes_done;
@@ -3323,9 +3333,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess)
 				u32 len = gf_cache_get_content_length(sess->cache_entry);
 				if (size > 0) {
 #ifdef GPAC_HTTPMUX
-					if (sess->hmux_sess) {
-						hmux_flush_internal_data(sess, GF_FALSE);
-					} else
+					if (!sess->hmux_sess)
 #endif
 						gf_dm_data_received(sess, (u8 *) sess->http_buf, size, GF_FALSE, NULL, NULL);
 				}
@@ -3353,13 +3361,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess)
 		sess->http_buf[size + prev_remaining_data_size] = 0;
 
 #ifdef GPAC_HTTPMUX
-		if (sess->hmux_sess) {
-			hmux_flush_internal_data(sess, GF_FALSE);
-			if (sess->hmux_stream_id<0) {
-				sess->status = GF_NETIO_DATA_TRANSFERED;
-				SET_LAST_ERR(GF_OK)
-			}
-		} else
+		if (!sess->hmux_sess)
 #endif
 			gf_dm_data_received(sess, (u8 *) sess->http_buf, size + prev_remaining_data_size, GF_FALSE, &rewrite_size, NULL);
 
