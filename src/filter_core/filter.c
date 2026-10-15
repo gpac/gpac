@@ -3648,8 +3648,17 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 	//detach all input pids
 	while (gf_list_count(f->input_pids)) {
 		GF_FilterPidInst *pidinst = gf_list_pop_back(f->input_pids);
+		GF_FilterPid *pid = pidinst->pid;
+		GF_Filter *src_filter = pid ? pid->filter : NULL;
 		gf_filter_instance_detach_pid(pidinst);
+		if (src_filter) {
+			gf_fs_post_pid_instance_delete_task(f->session, src_filter, pid, pidinst);
+		} else {
+			gf_filter_pid_inst_check_delete(pidinst);
+		}
 	}
+	f->num_input_pids = 0;
+	f->single_source = NULL;
 	//detach all output pids
 	while (gf_list_count(f->output_pids)) {
 		u32 j;
@@ -3737,7 +3746,10 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 		notif_filter = sfilter;
 	}
 	//filter was already connected, trigger removal of all pid instances
-	else if (filter->num_input_pids) {
+	else if (filter->num_input_pids
+		&& !filter->in_process_callback
+		&& (filter->scheduled_for_next_task != GF_FILTER_DIRECT_SCHEDULED)
+	) {
 		gf_filter_reset_pending_packets(filter);
 		filter->removed = 1;
 		gf_mx_p(filter->tasks_mx);
