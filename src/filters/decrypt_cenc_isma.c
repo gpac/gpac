@@ -1368,7 +1368,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	}
 
 	if (ctx->keys.nb_items) {
-		return GF_OK;
+		return cenc_dec_load_keys(ctx, cstr);
 	}
 
 	cinfo_prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_HLS_KMS);
