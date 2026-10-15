@@ -9,12 +9,11 @@ void gf_xml_dump_string(FILE* file, const char *before, const char *str, const c
 
 static Bool hls_output_contains(FILE *output, const char *marker)
 {
-	char text[4096];
+	char text[4096] = {0};
 	size_t bytes_read;
 
 	fflush(output);
 	rewind(output);
-	memset(text, 0, sizeof(text));
 	bytes_read = fread(text, 1, sizeof(text) - 1, output);
 	text[bytes_read] = 0;
 	return strstr(text, marker) ? GF_TRUE : GF_FALSE;
