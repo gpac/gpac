@@ -1164,13 +1164,13 @@ setup_multicast_clock:
 		availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate;
 	}
 
+	//the presentation delay moves where playback starts (current_time below), not when segments are available
+	s32 spd = 0;
 	if (group->dash->mpd->suggested_presentation_delay || group->dash->suggested_presentation_delay) {
-		s32 spd = 0;
 		if (group->dash->suggested_presentation_delay != GF_INT_MIN)
 			spd = group->dash->suggested_presentation_delay + group->dash->mpd->suggested_presentation_delay;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Applying suggested presentation delay of %ums\n", spd));
-		availabilityStartTime += spd;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Applying suggested presentation delay of %dms\n", spd));
 	}
 
 #ifdef FORCE_DESYNC
@@ -1222,6 +1222,8 @@ setup_multicast_clock:
 		}
 	} else {
 		current_time -= availabilityStartTime;
+		if ((s64) current_time > spd) current_time -= spd;
+		else current_time = 0;
 	}
 
 	if (gf_list_count(group->dash->mpd->periods)) {
