@@ -3561,15 +3561,28 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+//locate an element start tag, the name being followed by any XML whitespace
+static char *dashdmx_probe_elt(const char *data, const char *tag)
+{
+	u32 len = (u32) strlen(tag);
+	char *res = strstr(data, tag);
+	while (res) {
+		char c = res[len];
+		if ((c==' ') || (c=='\t') || (c=='\r') || (c=='\n')) return res;
+		res = strstr(res+len, tag);
+	}
+	return NULL;
+}
+
+GF_STATIC const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	char *d = (char *)data;
 	char *res_ghix, *res_dash, *res_m3u, *res_smooth;
 	char last_c = d[size-1];
 	d[size-1] = 0;
 	res_ghix = strstr(data, "<GHIX ");
-	res_dash = strstr(data, "<MPD ");
-	if (!res_dash) res_dash = strstr(data, "<Period ");
+	res_dash = dashdmx_probe_elt(data, "<MPD");
+	if (!res_dash) res_dash = dashdmx_probe_elt(data, "<Period");
 	res_m3u = strstr(data, "#EXTM3U");
 	res_smooth = strstr(data, "<SmoothStreamingMedia");
 	d[size-1] = last_c;
