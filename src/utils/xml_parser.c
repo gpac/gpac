@@ -1273,8 +1273,23 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u32 size;
 		u8 *xml_mem_address;
+		u8 *unz_data = NULL;
 		e = gf_blob_get(fileName, &xml_mem_address, &size, NULL);
 		if (e) return e;
+
+#ifndef NO_GZIP
+		//gzip-compressed blob (e.g. an HTTP body sent with Content-Encoding: gzip), accepted like gf_gzopen does for files
+		if ((size>2) && (xml_mem_address[0]==0x1f) && (xml_mem_address[1]==0x8b)) {
+			u32 unz_size = 0;
+			e = gf_gz_decompress_payload_ex(xml_mem_address, size, &unz_data, &unz_size, GF_TRUE);
+			if (e) {
+				gf_blob_release(fileName);
+				return e;
+			}
+			xml_mem_address = unz_data;
+			size = unz_size;
+		}
+#endif
 
 		parser->file_size = size;
 		u32 bom_max = MIN(size, 4);
@@ -1292,6 +1307,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 			if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
 		}
 		gf_blob_release(fileName);
+		if (unz_data) gf_free(unz_data);
 
 		parser->elt_start_pos = parser->elt_end_pos = 0;
 		parser->elt_name_start = parser->elt_name_end = 0;
