@@ -250,6 +250,7 @@ struct __dash_client
 };
 
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic);
+static void gf_dash_reset_groups(GF_DashClient *dash);
 
 
 enum
@@ -2557,6 +2558,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	GF_MPD *new_mpd=NULL;
 	Bool fetch_only = GF_FALSE;
 	Bool has_reps_unchanged = GF_FALSE;
+	Bool active_period_removed = GF_FALSE;
 
 	//HLS: do not reload the playlist, directly update the reps
 	if (dash->is_m3u8 && !dash->m3u8_reload_master) {
@@ -2837,14 +2839,14 @@ restart_period_check:
 		if (dash->mpd->type == GF_MPD_TYPE_DYNAMIC) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] current active period not found in MPD update - assuming end of active period and switching to first period in new MPD\n"));
 
-			//assume the old period is no longer valid
+			/* Retire playback and all borrowed owners before freeing the old MPD. */
+			gf_dash_reset_groups(dash);
 			dash->active_period_index = 0;
-			dash->request_period_switch = 1;
-			for (i=0; i<gf_list_count(dash->groups); i++) {
-				GF_DASH_Group *group = gf_list_get(dash->groups, i);
-				gf_dash_mark_group_done(group);
-				group->adaptation_set = NULL;
-			}
+			dash->request_period_switch = 0;
+			dash->max_last_seg_start = 0;
+			dash->period_groups_setup = GF_FALSE;
+			dash->dash_state = GF_DASH_STATE_SETUP;
+			active_period_removed = GF_TRUE;
 			goto exit;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: missing period\n"));
@@ -3577,6 +3579,10 @@ exit:
 	}
 	dash->last_update_time = gf_sys_clock();
 	dash->mpd_fetch_time = fetch_time;
+	if (active_period_removed && !dash->all_groups_done_notified) {
+		dash->all_groups_done_notified = GF_TRUE;
+		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_END_OF_PERIOD, 0, GF_OK);
+	}
 
 #ifndef GPAC_DISABLE_LOG
 	if (new_period) {
