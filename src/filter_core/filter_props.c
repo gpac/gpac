@@ -1864,7 +1864,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES, "STSDAllTemplates", "ISOBMFF serialized sample description box for this PID", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_ISOM_STSD_TEMPLATE_IDX, "STSDTemplateIdx", "Index of corresponding `STSDAllTemplates`", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP( GF_PROP_PID_PREMUX_STREAM_TYPE, "PremuxType", "Main streamtype of the PID before mux, only used for ROUTE/MABR setup", GF_PROP_UINT),
-	DEC_PROP_F( GF_PROP_PID_CODEC_MERGEABLE, "CodecMerge", "Indicate the PID can be merged with other streams with same value for single decoding  (HEVC only for now)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_CODEC_MERGEABLE, "CodecMerge", "Indicate the PID can be merged with other streams with same value for single decoding (HEVC and AV1 only for now)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_FILE_REL, "RelativePath", "Indicate the packet file name uses relative path", GF_PROP_BOOL, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_CLEARKEY_KID, "ClearKeyID", "Key ID for ClearKey scheme", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM),
 
