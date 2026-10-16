@@ -1776,16 +1776,18 @@ int AVI_close(avi_t *AVI)
 	}
 	for (j=0; j<AVI->anum; j++)
 	{
+		u32 k;
 		if(AVI->track[j].audio_index) gf_free(AVI->track[j].audio_index);
 		if(AVI->track[j].audio_superindex) {
 			avisuperindex_chunk *asi = AVI->track[j].audio_superindex;
-			if (asi && asi->aIndex) gf_free(asi->aIndex);
+			if (asi->aIndex) gf_free(asi->aIndex);
 
-			if (asi && asi->stdindex) {
-				for (j=0; j < NR_IXNN_CHUNKS; j++) {
-					if (asi->stdindex[j]->aIndex)
-						gf_free(asi->stdindex[j]->aIndex);
-					gf_free(asi->stdindex[j]);
+			if (asi->stdindex) {
+				for (k=0; k < NR_IXNN_CHUNKS; k++) {
+					if (!asi->stdindex[k]) continue;
+					if (asi->stdindex[k]->aIndex)
+						gf_free(asi->stdindex[k]->aIndex);
+					gf_free(asi->stdindex[k]);
 				}
 				gf_free(asi->stdindex);
 			}
@@ -2049,13 +2051,13 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					{
 
 						//inc audio tracks
+						if(AVI->anum >= AVI_MAX_TRACKS) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] error - only %d audio tracks supported\n", AVI_MAX_TRACKS));
+							ERR_EXIT(AVI_ERR_READ)
+						}
+
 						AVI->aptr=AVI->anum;
 						++AVI->anum;
-
-						if(AVI->anum > AVI_MAX_TRACKS) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] error - only %d audio tracks supported\n", AVI_MAX_TRACKS));
-							return(-1);
-						}
 
 						if ( (i+44+4>hdrl_len) || (i+sizeof(alAVISTREAMHEADER))>hdrl_len ) ERR_EXIT(AVI_ERR_READ)
 
@@ -2078,7 +2080,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					}
 					else if (strnicmp ((char*)hdrl_data+i,"iavs",4) ==0 && ! auds_strh_seen) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] AVILIB: error - DV AVI Type 1 no supported\n"));
-						return (-1);
+						ERR_EXIT(AVI_ERR_READ)
 					}
 					else
 						lasttag = 0;
@@ -2386,7 +2388,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 	{
 		int tk=0;
-		for(j=0; j<AVI->anum+1; ++j) {
+		for(j=0; j<AVI->anum+1 && tk<AVI_MAX_TRACKS; ++j) {
 			if (j == AVI->video_strn) continue;
 			AVI->track[tk].audio_tag[0] = j/10 + '0';
 			AVI->track[tk].audio_tag[1] = j%10 + '0';

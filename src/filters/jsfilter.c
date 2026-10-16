@@ -724,7 +724,10 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 		prop->value.boolean = JS_ToBool(ctx, value);
 	}
 	else if (JS_IsInteger(value)) {
-		if (!JS_ToInt32(ctx, &prop->value.sint, value)) {
+		if (type==GF_PROP_LSINT) {
+			if (!JS_ToInt64(ctx, &prop->value.longsint, value))
+				prop->type = GF_PROP_LSINT;
+		} else if (!JS_ToInt32(ctx, &prop->value.sint, value)) {
 			prop->type = (p4cc && type) ? type : GF_PROP_SINT;
 		} else if (!JS_ToInt64(ctx, &prop->value.longsint, value)) {
 			prop->type = GF_PROP_LSINT;
