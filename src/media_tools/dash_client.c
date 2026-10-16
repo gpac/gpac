@@ -2446,6 +2446,23 @@ static GF_Err gf_dash_solve_m3u8_representation_xlink(GF_DASH_Group *group, GF_M
 	return e;
 }
 
+//m3u8_media_seq_indep_last is computed by the playlist parser as an index in the parsed segment list
+//it must be recomputed whenever that list is merged or purged, or it points past the end of the list
+static void m3u8_update_indep_last(GF_MPD_Representation *rep, GF_List *l)
+{
+	u32 i = gf_list_count(l);
+	rep->m3u8_media_seq_indep_last = 0;
+	while (i) {
+		GF_MPD_SegmentURL *seg = gf_list_get(l, i-1);
+		//same rule as the parser: last full segment or independent part
+		if (seg->hls_ll_chunk_type != 1) {
+			rep->m3u8_media_seq_indep_last = i-1;
+			return;
+		}
+		i--;
+	}
+}
+
 static u32 ls_hls_purge_segments(s32 live_edge_idx, GF_List *l)
 {
 	u32 i=0, count = gf_list_count(l);
@@ -3334,6 +3351,9 @@ process_m3u8_manifest:
 							group->download_segment_index = (u32) live_edge_idx + dld_index_offset;
 					}
 				}
+				//new_segments is the list that survives: a temporary HLS rep hands it back to rep below
+				if (dash->is_m3u8)
+					m3u8_update_indep_last(hls_temp_rep ? rep : new_rep, new_segments);
 
 #ifdef DUMP_LIST
 				fprintf(stderr, "%d updated segment list - min/max seq num in new list %d / %d\n", gf_sys_clock(), new_rep->m3u8_media_seq_min, new_rep->m3u8_media_seq_max);
@@ -3991,6 +4011,7 @@ retry_pending:
 			if (rep->m3u8_low_latency && rep->segment_list) {
 				u32 nb_removed = ls_hls_purge_segments(group->download_segment_index, rep->segment_list->segment_URLs);
 				group->download_segment_index -= nb_removed;
+				m3u8_update_indep_last(rep, rep->segment_list->segment_URLs);
 			}
 
 			//if TSB set, roll back
@@ -4001,6 +4022,7 @@ retry_pending:
 		} else {
 			if (rep->m3u8_low_latency && rep->segment_list) {
 				ls_hls_purge_segments(-1, rep->segment_list->segment_URLs);
+				m3u8_update_indep_last(rep, rep->segment_list->segment_URLs);
 			}
 		}
 	}
