@@ -105,3 +105,25 @@ unittest(mpd_hls_scte35_nonzero_presentation_time_offset)
 	gf_list_del(event_stream.entries);
 	gf_list_del(period.event_streams);
 }
+
+/*************************************/
+
+// gf_mpd_parse_duration writes into its argument while parsing: give it a writable copy
+static u64 parse_duration(const char *str)
+{
+	char buf[64];
+	gf_strlcpy(buf, str, sizeof(buf));
+	return gf_mpd_parse_duration(buf);
+}
+
+unittest(mpd_parse_duration_fraction)
+{
+	// the digits after the decimal point are a fraction of a second, kept to the millisecond
+	assert_equal(parse_duration("PT0.5S"), (u64) 500, LLU);
+	assert_equal(parse_duration("PT2.05S"), (u64) 2050, LLU);
+	assert_equal(parse_duration("PT1.058545616S"), (u64) 1058, LLU);
+	assert_equal(parse_duration("PT1H2M3.25S"), (u64) 3723250, LLU);
+	// controls: whole seconds and exactly three decimals parse as before
+	assert_equal(parse_duration("PT10S"), (u64) 10000, LLU);
+	assert_equal(parse_duration("PT1.500S"), (u64) 1500, LLU);
+}
