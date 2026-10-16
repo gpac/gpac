@@ -3164,7 +3164,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		//scheduling order, resulting in random change of input pid declaration, for example:
 		//fin1 -> reframe1 -> fA
 		//fin2 -> reframe2 -> fA
-		//if we postpone by 10 us finX process while wating for rfX->fA setup, depending on the CPU charge fin2 might be rescheduled before fin1
+		//if we postpone by 10 us finX process while waiting for rfX->fA setup, depending on the CPU charge fin2 might be rescheduled before fin1
 		//leading to pushing new/pending packets ro reframe2 before reframe1, and having fA declare its pid in the reverse order as the one expected
 		//note that this is only valid for single-thread case, as in multithread we do not guarantee PID declaration order
 		if (!filter->out_pid_connection_pending) {

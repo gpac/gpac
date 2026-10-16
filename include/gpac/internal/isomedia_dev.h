@@ -43,6 +43,7 @@ enum
 	GF_ISOM_BOX_TYPE_CTTS	= GF_4CC( 'c', 't', 't', 's' ),
 	GF_ISOM_BOX_TYPE_CPRT	= GF_4CC( 'c', 'p', 'r', 't' ),
 	GF_ISOM_BOX_TYPE_KIND	= GF_4CC( 'k', 'i', 'n', 'd' ),
+	GF_ISOM_BOX_TYPE_CTLC	= GF_4CC( 'c', 't', 'l', 'c' ),
 	GF_ISOM_BOX_TYPE_CHPL	= GF_4CC( 'c', 'h', 'p', 'l' ),
 	GF_ISOM_BOX_TYPE_URL	= GF_4CC( 'u', 'r', 'l', ' ' ),
 	GF_ISOM_BOX_TYPE_URN	= GF_4CC( 'u', 'r', 'n', ' ' ),
@@ -364,6 +365,11 @@ enum
 	GF_ISOM_BOX_TYPE_REFT	= GF_4CC( 'R', 'E', 'F', 'T' ),
 	GF_ISOM_BOX_TYPE_REFI	= GF_4CC( 'R', 'E', 'F', 'I'),
 	GF_ISOM_BOX_TYPE_GRPT	= GF_4CC( 'G', 'R', 'P', 'T'),
+
+	GF_ISOM_BOX_TYPE_PRSL	= GF_4CC( 'p', 'r', 's', 'l'),
+	GF_ISOM_BOX_TYPE_ARDI	= GF_4CC( 'a', 'r', 'd', 'i' ),
+	GF_ISOM_BOX_TYPE_DIAP	= GF_4CC( 'd', 'i', 'a', 'p' ),
+	GF_ISOM_BOX_TYPE_LABL	= GF_4CC( 'l', 'a', 'b', 'l' ),
 
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 	/* Adobe extensions */
@@ -2332,6 +2338,11 @@ typedef struct
 	char *value;
 } GF_KindBox;
 
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 content_type;
+} GF_ContentTypeForLoudnessControlBox;
 
 typedef struct
 {
@@ -2364,6 +2375,43 @@ typedef struct
 	u32 data_len;
 
 } GF_EntityToGroupTypeBox;
+
+#define GF_ISOM_PRESELECTION_TAG_PRESENT 0x001000
+#define GF_ISOM_SELECTION_PRIORITY_PRESENT 0x002000
+#define GF_ISOM_INTERLEAVING_TAG_PRESENT 0x004000
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 group_id;
+	u32 entity_id_count;
+	u32 *entity_ids;
+	char *preselection_tag;
+	u8 selection_priority;
+	char *interleaving_tag;
+} GF_PreselectionGroupBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 audio_rendering_indication;
+} GF_AudioRenderingIndicationBox;
+
+#define GF_ISOM_IS_GROUP_LABEL 0x000001
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u16 label_id;
+	char *language;
+	char *label;
+} GF_LabelBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	s8 dialog_gain;
+} GF_DialogueProcessingBox;
 
 typedef struct
 {
@@ -4417,7 +4465,7 @@ struct __tag_isom {
 	void *progress_cbk_udta;
 
 	char *override_dref_url;
-
+	
 	/*in WRITE mode, this is the current MDAT where data is written*/
 	/*in READ mode this is the last valid file position before a gf_isom_box_read failed*/
 	u64 current_top_box_start;
