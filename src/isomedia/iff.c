@@ -721,6 +721,7 @@ GF_Box *grpl_box_new()
 void grpl_box_del(GF_Box *s)
 {
 	GF_GroupListBox *p = (GF_GroupListBox *)s;
+	if (s && s->child_boxes) gf_isom_box_array_del(s->child_boxes);
 	gf_free(p);
 }
 

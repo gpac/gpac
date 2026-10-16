@@ -1738,10 +1738,15 @@ GF_Err stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack)
 	return GF_OK;
 }
 
-GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack)
+GF_NOT_EXPORTED GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack)
 {
 	u32 i;
 	CHECK_PACK(GF_ISOM_INVALID_FILE)
+
+	if (stbl->SampleSize->sampleCount > GF_UINT_MAX - nb_pack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Sample count overflow while appending %u packed samples\n", nb_pack));
+		return GF_ISOM_INVALID_FILE;
+	}
 
 	if (!stbl->SampleSize->sampleCount && size) {
 		stbl->SampleSize->sampleSize = size;

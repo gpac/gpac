@@ -5135,7 +5135,7 @@ static Bool fs_check_locales(void *__self, const char *locales_parent_path, cons
 		char *sep_lang = strchr(opt, ';');
 		if (sep_lang) sep_lang[0] = 0;
 
-		while (strchr(" \t", opt[0]))
+		while (opt[0] && strchr(" \t", opt[0]))
 			opt++;
 
 		gf_strcpy(lan, opt);
