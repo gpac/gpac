@@ -584,7 +584,7 @@ typedef struct
 {
 	/*! time in mpd timescale*/
 	u64 time;
-	/*! duration in mpd timescale*/
+	/*! duration in representation media timescale (GF_MPD_Representation::timescale)*/
 	u64 dur;
 	/*! name as printed in segment lists / m3u8*/
 	char *filename;
@@ -623,6 +623,13 @@ typedef struct
 	u32 stl_rcount;
 	/*! LLHAS template*/
 	char *llhas_template;
+	/*! GPAC-internal event-to-segment boundary associations.
+	 * Opaque list owned by this segment context; entries are defined in
+	 * gpac/internal/dash_segment_events.h. NULL means legacy time-based
+	 * event placement; a non-NULL, possibly empty list indicates that
+	 * event placement is provided explicitly by the segmenter.
+	 * Appended to preserve offsets of all existing fields. */
+	GF_List *event_associations;
 } GF_DASH_SegmentContext;
 
 /*! Representation*/
