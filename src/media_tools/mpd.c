@@ -27,6 +27,7 @@
 #include <gpac/base_coding.h>
 #include <gpac/download.h>
 #include <gpac/internal/m3u8.h>
+#include <gpac/internal/dash_segment_events.h>
 #include <gpac/network.h>
 #include <gpac/maths.h>
 
@@ -943,6 +944,26 @@ static GF_List *gf_mpd_parse_segments_context(GF_MPD *mpd, GF_XMLNode *root)
 			else if (!strcmp(att->name, "seg_num")) sctx->seg_num = gf_mpd_parse_int(att->value);
 
 		}
+		/* The GPAC state format is private; ignore unknown child elements
+		 * while retaining generic event-to-boundary references. */
+		j = 0;
+		GF_XMLNode *event_node;
+		while ((event_node = gf_list_enum(child->content, &j))) {
+			char *scheme = NULL;
+			s64 presentation_time = 0;
+			u32 id = 0, boundary = 0;
+			u32 k = 0;
+			GF_XMLAttribute *event_att;
+			if (!gf_mpd_valid_child(mpd, event_node) || strcmp(event_node->name, "eventAssociation")) continue;
+			while ((event_att = gf_list_enum(event_node->attributes, &k))) {
+				if (!strcmp(event_att->name, "schemeIdUri")) scheme = event_att->value;
+				else if (!strcmp(event_att->name, "presentationTime")) sscanf(event_att->value, LLD, &presentation_time);
+				else if (!strcmp(event_att->name, "id")) id = gf_mpd_parse_int(event_att->value);
+				else if (!strcmp(event_att->name, "boundary")) boundary = gf_mpd_parse_int(event_att->value);
+			}
+			if (scheme && boundary)
+				gf_dash_segment_event_association_add(sctx, scheme, presentation_time, id, boundary);
+		}
 	}
 	return res;
 }
@@ -1459,6 +1480,7 @@ void gf_mpd_representation_free(void *_item)
 			if (s->llhas_template) gf_free(s->llhas_template);
 			if (s->frags) gf_free(s->frags);
 			if (s->hls_key_uri) gf_free(s->hls_key_uri);
+			gf_dash_segment_event_associations_del(s);
 			gf_free(s);
 		}
 		gf_list_del(ptr->state_seg_list);
@@ -3609,8 +3631,25 @@ static void gf_mpd_print_dasher_segments(FILE *out, GF_List *segments, s32 inden
 		}
 		//we don't store frag context because we can only serialize the dash state at segment boundaries, and we don't keep frag states for already published
 		//segments
-		gf_fprintf(out, "/>");
-		gf_mpd_lf(out, indent);
+		if (!sctx->event_associations || !gf_list_count(sctx->event_associations)) {
+			gf_fprintf(out, "/>");
+			gf_mpd_lf(out, indent);
+		} else {
+			u32 j = 0;
+			GF_DASH_SegmentEventAssociation *assoc;
+			gf_fprintf(out, ">");
+			gf_mpd_lf(out, indent);
+			while ((assoc = gf_list_enum(sctx->event_associations, &j))) {
+				gf_mpd_nl(out, indent+2);
+				gf_xml_dump_string(out, "<eventAssociation schemeIdUri=\"", assoc->scheme_id_uri, "\"");
+				gf_fprintf(out, " presentationTime=\"" LLD "\" id=\"%u\" boundary=\"%u\"/>",
+					assoc->presentation_time, assoc->id, assoc->boundary_type);
+				gf_mpd_lf(out, indent);
+			}
+			gf_mpd_nl(out, indent+1);
+			gf_fprintf(out, "</segmentInfo>");
+			gf_mpd_lf(out, indent);
+		}
 	}
 
 	gf_mpd_nl(out, indent);
