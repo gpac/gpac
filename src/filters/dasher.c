@@ -12568,6 +12568,8 @@ static const GF_FilterArgs DasherArgs[] =
 };
 
 
+#ifndef GPAC_DASHER_UNIT_TEST
+
 GF_FilterRegister DasherRegister = {
 	.name = "dasher",
 	GF_FS_SET_DESCRIPTION("DASH & HLS segmenter")
@@ -12876,9 +12878,13 @@ const GF_FilterRegister *dasher_register(GF_FilterSession *session)
 {
 	return &DasherRegister;
 }
-#else
+#endif // GPAC_DASHER_UNIT_TEST
+
+#else // GPAC_DISABLE_DASHER
+
 const GF_FilterRegister *dasher_register(GF_FilterSession *session)
 {
 	return NULL;
 }
+
 #endif // GPAC_DISABLE_DASHER
