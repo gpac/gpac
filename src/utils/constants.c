@@ -1082,9 +1082,9 @@ u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 layout)
 	if (layout & GF_AUDIO_CH_SIDE_SURROUND_LEFT) res |= (1<<6); //9
 	//Lw/Rw
 	if (layout & GF_AUDIO_CH_WIDE_FRONT_LEFT) res |= (1<<5); //10
-	//Vhl/Vhr
+	//Lvh/Rvh
 	if (layout & GF_AUDIO_CH_FRONT_TOP_LEFT) res |= (1<<4); //11
-	//Vhc
+	//Cvh
 	if (layout & GF_AUDIO_CH_FRONT_TOP_CENTER) res |= (1<<3); //12
 	//Lts/Rts
 	if (layout & GF_AUDIO_CH_SURROUND_TOP_LEFT) res |= (1<<2); //13
@@ -2971,6 +2971,56 @@ GF_EXPORT
 Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2)
 {
 	TIMECODE_COMPARE(==)
+}
+
+GF_EXPORT
+Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size)
+{
+	u32 i, n_keys, kpos, nb_missing = 19;
+	if (!key_info|| (key_info_size<19))
+		goto exit;
+
+	n_keys = 1;
+	if (key_info[0]) {
+		n_keys = key_info[1];
+		n_keys <<= 8;
+		n_keys |= key_info[2];
+	}
+	kpos=3;
+	for (i=0;i<n_keys; i++) {
+		u8 iv_size;
+		if (kpos + 17 > key_info_size) {
+			nb_missing = kpos + 17 - key_info_size;
+			goto exit;
+		}
+		iv_size = key_info[kpos];
+		if (iv_size && (iv_size != 8) && (iv_size != 16)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid CENC IV size %u, must be 8 or 16\n", (u32) iv_size));
+			return GF_FALSE;
+		}
+		kpos += 17;
+		if (!iv_size) {
+			if (kpos + 1 > key_info_size) {
+				nb_missing = kpos + 1  - key_info_size;
+				goto exit;
+			}
+			iv_size = key_info[kpos];
+			if (iv_size && (iv_size != 8) && (iv_size != 16)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid CENC constant IV size %u, must be 8 or 16\n", (u32) iv_size));
+				return GF_FALSE;
+			}
+			if (kpos + 1 + iv_size > key_info_size) {
+				nb_missing = kpos + 1 + iv_size - key_info_size;
+				goto exit;
+			}
+			kpos += 1 + iv_size;
+		}
+	}
+	return GF_TRUE;
+
+exit:
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid key info format, missing %d bytes\n", nb_missing));
+	return GF_FALSE;
 }
 
 GF_EXPORT

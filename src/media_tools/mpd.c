@@ -222,10 +222,15 @@ static u64 gf_mpd_parse_duration(const char * const duration)
 		char *sep_dec = strchr(sep2, '.');
 		*sep1 = 0;
 		if (sep_dec) {
+			u32 k, scale = 100;
 			sep_dec[0] = 0;
 			s = atoi(sep2);
-			ms = atoi(sep_dec+1);
 			sep_dec[0] = '.';
+			//decimal fraction of a second, kept to the millisecond: ".5" is 500 ms
+			for (k=1; (k<=3) && (sep_dec[k]>='0') && (sep_dec[k]<='9'); k++) {
+				ms += (sep_dec[k] - '0') * scale;
+				scale /= 10;
+			}
 		} else {
 			s = atoi(sep2);
 		}
@@ -4380,6 +4385,18 @@ static void hls_insert_scte35_info(FILE *out, u64 ast, const GF_MPD_Period *peri
 static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, GF_MPD_Representation *rep, char *m3u8_name, u32 hls_version, Double max_part_dur_session, const char *force_base_url, Bool delta_update, Bool is_last, FILE* out_file)
 {
 	u32 i, count;
+	u32 event_stream_index = 0;
+	GF_MPD_EventStream *event_stream;
+
+	/* Event entry state is scratch state used while serializing one HLS playlist.
+	 * Dynamic playlists are regenerated from the retained segment window, so a
+	 * previous serialization must not suppress SCTE-35 tags on a later rewrite. */
+	while (period->event_streams && (event_stream = gf_list_enum(period->event_streams, &event_stream_index))) {
+		u32 event_index = 0;
+		GF_MPD_EventStreamEntry *event_entry;
+		while ((event_entry = gf_list_enum(event_stream->entries, &event_index)))
+			event_entry->state = 0;
+	}
 	GF_DASH_SegmentContext *sctx;
 	FILE *out = out_file;
 	char *force_url=NULL;

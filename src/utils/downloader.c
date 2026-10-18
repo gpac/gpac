@@ -2899,7 +2899,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 			sprintf(pass_buf, "Basic %s", sess->creds->digest);
 	}
 
-	user_agent = gf_opts_get_key("core", "ua");
+	user_agent = gf_opts_get_key("core", "user-agent");
 	if (!user_agent) user_agent = GF_DOWNLOAD_AGENT_NAME;
 
 	sess->put_state = 0;

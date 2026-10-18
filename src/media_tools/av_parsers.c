@@ -2386,7 +2386,7 @@ void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24])
 {
 	u32 i;
 	u64 val[8] = {0};
-	u8 shuffle[8] = {4,5,0,1,2,3,6,7}; //RGB->GBR
+	u8 shuffle[8] = {2,3,4,5,0,1,6,7}; //RGB->GBR
 	GF_BitStream *bs_r = gf_bs_new(mdcv_in, 24, GF_BITSTREAM_READ);
 	GF_BitStream *bs_w = gf_bs_new(mdcv_out, 24, GF_BITSTREAM_WRITE);
 

@@ -432,6 +432,7 @@ struct __gf_download_manager
 
 
 //cache functions - NOT exported, only downloader has access to it
+GF_NOT_EXPORTED DownloadedCacheEntry gf_cache_create_entry(const char *cache_directory, const char *url, u64 start_range, u64 end_range, Bool mem_storage, GF_Mutex *mx);
 s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
 Bool gf_cache_set_mime(const DownloadedCacheEntry entry, const char *mime);
 Bool gf_cache_set_range(const DownloadedCacheEntry entry, u64 size, u64 start_range, u64 end_range);
@@ -440,7 +441,7 @@ Bool gf_cache_set_headers(const DownloadedCacheEntry entry, const char *headers)
 void gf_cache_set_downtime(const DownloadedCacheEntry entry, u32 download_time_ms);
 void gf_cache_set_max_age(const DownloadedCacheEntry entry, u32 max_age, Bool must_revalidate);
 Bool gf_cache_entry_persistent(const DownloadedCacheEntry entry);
-void gf_cache_delete_entry( const DownloadedCacheEntry entry );
+GF_NOT_EXPORTED void gf_cache_delete_entry( const DownloadedCacheEntry entry );
 GF_Err gf_cache_set_etag_on_server(const DownloadedCacheEntry entry, const char * eTag );
 const char * gf_cache_get_mime_type(const DownloadedCacheEntry entry );
 GF_Err gf_cache_set_mime_type(const DownloadedCacheEntry entry, const char * mime_type );
@@ -448,7 +449,7 @@ const char * gf_cache_get_url(const DownloadedCacheEntry entry );
 GF_Err gf_cache_set_last_modified_on_server(const DownloadedCacheEntry entry, const char * newLastModified );
 const char * gf_cache_get_cache_filename(const DownloadedCacheEntry entry );
 u32 gf_cache_get_cache_filesize(const DownloadedCacheEntry entry);
-GF_Err gf_cache_set_content_length(const DownloadedCacheEntry entry, u32 length );
+GF_NOT_EXPORTED GF_Err gf_cache_set_content_length(const DownloadedCacheEntry entry, u32 length );
 u32 gf_cache_get_content_length(const DownloadedCacheEntry entry);
 GF_Err gf_cache_get_http_headers(const DownloadedCacheEntry entry, const char **etag, const char **last_modif);
 u64 gf_cache_cleanup(const char * directory, u64 max_size);
@@ -459,16 +460,16 @@ Bool gf_cache_are_headers_processed(const DownloadedCacheEntry entry);
 GF_Err gf_cache_set_headers_processed(const DownloadedCacheEntry entry);
 FILE *gf_cache_open_read(const DownloadedCacheEntry entry);
 Bool gf_cache_is_mem(const DownloadedCacheEntry entry);
-GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, const char * data, const u32 size, GF_Mutex *mx);
-GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, Bool success);
-GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess );
+GF_NOT_EXPORTED GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, const char * data, const u32 size, GF_Mutex *mx);
+GF_NOT_EXPORTED GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, Bool success);
+GF_NOT_EXPORTED GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess );
 void gf_cache_set_end_range(DownloadedCacheEntry entry, u64 range_end);
 Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry);
 char *gf_cache_get_forced_headers(const DownloadedCacheEntry entry);
 u32 gf_cache_get_downtime(const DownloadedCacheEntry entry);
 u32 gf_cache_is_done(const DownloadedCacheEntry entry);
 Bool gf_cache_is_deleted(const DownloadedCacheEntry entry);
-const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size, u32 *max_valid_size, Bool *was_modified);
+GF_NOT_EXPORTED const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size, u32 *max_valid_size, Bool *was_modified);
 void gf_cache_release_content(const DownloadedCacheEntry entry);
 void gf_cache_remove_entry_from_session(GF_DownloadSession * sess);
 
