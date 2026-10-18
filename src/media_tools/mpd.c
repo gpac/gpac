@@ -27,6 +27,8 @@
 #include <gpac/base_coding.h>
 #include <gpac/download.h>
 #include <gpac/internal/m3u8.h>
+#include <gpac/internal/dash_segment_events.h>
+#include <gpac/internal/scte35.h>
 #include <gpac/network.h>
 #include <gpac/maths.h>
 
@@ -946,7 +948,30 @@ static GF_List *gf_mpd_parse_segments_context(GF_MPD *mpd, GF_XMLNode *root)
 			else if (!strcmp(att->name, "idx_size")) sctx->index_size = gf_mpd_parse_int(att->value);
 			else if (!strcmp(att->name, "idx_offset")) sctx->index_offset = gf_mpd_parse_long_int(att->value);
 			else if (!strcmp(att->name, "seg_num")) sctx->seg_num = gf_mpd_parse_int(att->value);
+			else if (!strcmp(att->name, "events_explicit") && gf_mpd_parse_int(att->value)) {
+				if (!sctx->event_associations) sctx->event_associations = gf_list_new();
+			}
 
+		}
+		/* The GPAC state format is private; ignore unknown child elements
+		 * while retaining generic event-to-boundary references. */
+		j = 0;
+		GF_XMLNode *event_node;
+		while ((event_node = gf_list_enum(child->content, &j))) {
+			char *scheme = NULL;
+			s64 presentation_time = 0;
+			u32 id = 0, boundary = 0;
+			u32 k = 0;
+			GF_XMLAttribute *event_att;
+			if (!gf_mpd_valid_child(mpd, event_node) || strcmp(event_node->name, "eventAssociation")) continue;
+			while ((event_att = gf_list_enum(event_node->attributes, &k))) {
+				if (!strcmp(event_att->name, "schemeIdUri")) scheme = event_att->value;
+				else if (!strcmp(event_att->name, "presentationTime")) sscanf(event_att->value, LLD, &presentation_time);
+				else if (!strcmp(event_att->name, "id")) id = gf_mpd_parse_int(event_att->value);
+				else if (!strcmp(event_att->name, "boundary")) boundary = gf_mpd_parse_int(event_att->value);
+			}
+			if (scheme && boundary)
+				gf_dash_segment_event_association_add(sctx, scheme, presentation_time, id, boundary);
 		}
 	}
 	return res;
@@ -1464,6 +1489,7 @@ void gf_mpd_representation_free(void *_item)
 			if (s->llhas_template) gf_free(s->llhas_template);
 			if (s->frags) gf_free(s->frags);
 			if (s->hls_key_uri) gf_free(s->hls_key_uri);
+			gf_dash_segment_event_associations_del(s);
 			gf_free(s);
 		}
 		gf_list_del(ptr->state_seg_list);
@@ -3602,6 +3628,10 @@ static void gf_mpd_print_dasher_segments(FILE *out, GF_List *segments, s32 inden
 		gf_fprintf(out, "time=\""LLU"\" ", sctx->time);
 		gf_fprintf(out, "dur=\""LLU"\" ", sctx->dur);
 		gf_fprintf(out, "seg_num=\"%d\" ", sctx->seg_num);
+		/* Persist the choice of explicit boundary placement even for segments
+		 * which contain no event transition. */
+		if (sctx->event_associations)
+			gf_fprintf(out, "events_explicit=\"1\" ");
 		if (sctx->filename) gf_fprintf(out, "file=\"%s\" ", sctx->filename);
 		if (sctx->filepath) gf_fprintf(out, "path=\"%s\" ", sctx->filepath);
 		if (sctx->file_size) {
@@ -3614,8 +3644,25 @@ static void gf_mpd_print_dasher_segments(FILE *out, GF_List *segments, s32 inden
 		}
 		//we don't store frag context because we can only serialize the dash state at segment boundaries, and we don't keep frag states for already published
 		//segments
-		gf_fprintf(out, "/>");
-		gf_mpd_lf(out, indent);
+		if (!sctx->event_associations || !gf_list_count(sctx->event_associations)) {
+			gf_fprintf(out, "/>");
+			gf_mpd_lf(out, indent);
+		} else {
+			u32 j = 0;
+			GF_DASH_SegmentEventAssociation *assoc;
+			gf_fprintf(out, ">");
+			gf_mpd_lf(out, indent);
+			while ((assoc = gf_list_enum(sctx->event_associations, &j))) {
+				gf_mpd_nl(out, indent+2);
+				gf_xml_dump_string(out, "<eventAssociation schemeIdUri=\"", assoc->scheme_id_uri, "\"");
+				gf_fprintf(out, " presentationTime=\"" LLD "\" id=\"%u\" boundary=\"%u\"/>",
+					assoc->presentation_time, assoc->id, assoc->boundary_type);
+				gf_mpd_lf(out, indent);
+			}
+			gf_mpd_nl(out, indent+1);
+			gf_fprintf(out, "</segmentInfo>");
+			gf_mpd_lf(out, indent);
+		}
 	}
 
 	gf_mpd_nl(out, indent);
@@ -4330,6 +4377,136 @@ static void hls_insert_crypt_info(FILE *out, GF_MPD_Representation *rep, GF_DASH
 	}
 }
 
+/* Explicit event associations are an alternative to reconstructing a splice
+ * boundary from a shared EventStream PTS and a representation's segment CTS.
+ * A non-NULL list, including an empty one, opts a segment into this scheme.
+ * This matters before the first splice as well as after state restoration. */
+static Bool hls_has_explicit_segment_events(const GF_MPD_Representation *rep)
+{
+	u32 i, count = gf_list_count(rep->state_seg_list);
+	for (i=0; i<count; i++) {
+		GF_DASH_SegmentContext *sctx = gf_list_get(rep->state_seg_list, i);
+		if (sctx->event_associations) return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+/* A cue pair on the same physical boundary offers no replaceable media.
+ * The original SCTE DATERANGE metadata is still retained on that segment. */
+static s32 hls_scte35_association_segment_index(const GF_MPD_Representation *rep,
+	const GF_DASH_SegmentEventAssociation *needle, u32 boundary_type)
+{
+	u32 i, j;
+	for (i=0; i<gf_list_count(rep->state_seg_list); i++) {
+		GF_DASH_SegmentContext *seg = gf_list_get(rep->state_seg_list, i);
+		GF_DASH_SegmentEventAssociation *a;
+		if (!seg || !seg->event_associations) continue;
+		for (j=0; (a = gf_list_enum(seg->event_associations, &j)); ) {
+			if ((a->boundary_type == boundary_type) && (a->id == needle->id)
+				&& (a->presentation_time == needle->presentation_time)
+				&& a->scheme_id_uri && needle->scheme_id_uri
+				&& !strcmp(a->scheme_id_uri, needle->scheme_id_uri))
+				return (s32)i;
+		}
+	}
+	return -1;
+}
+
+/* An SCTE DATERANGE describes the signaled event, independently of whether
+ * its splice admits a media-replacement boundary in this representation. */
+static void hls_insert_scte35_event_metadata(FILE *out, u64 ast, const GF_MPD_Period *period,
+	const GF_MPD_AdaptationSet *as, const GF_MPD_Representation *rep,
+	const GF_DASH_SegmentContext *sctx)
+{
+	u64 segment_duration = 0, pto = 0;
+	u32 seg_ts = 1, i = 0;
+	GF_MPD_EventStream *es;
+	GF_DASH_SegmentContext *first = gf_list_get(rep->state_seg_list, rep->tsb_first_entry);
+	if (!rep->timescale || !rep->timescale_mpd) return;
+	/* The MPD utility only reads its arguments, despite its non-const API. */
+	gf_mpd_resolve_segment_duration((GF_MPD_Representation *)rep, (GF_MPD_AdaptationSet *)as,
+		(GF_MPD_Period *)period, &segment_duration, &seg_ts, &pto, NULL);
+	if (!seg_ts) seg_ts = 1;
+
+	while ((es = gf_list_enum(period->event_streams, &i))) {
+		GF_MPD_EventStreamEntry *ese;
+		u32 j = 0;
+		u64 pto_event;
+		if (!es->scheme_id_uri || strcmp(es->scheme_id_uri, GF_SCTE35_SCHEME_URI_OUTBAND)
+			|| !es->timescale) continue;
+		pto_event = gf_timestamp_rescale(pto, seg_ts, es->timescale);
+		while ((ese = gf_list_enum(es->entries, &j))) {
+			u64 time, time_mpd, duration_mpd, segdur_mpd;
+			Bool in_segment, active_first;
+			if (ese->presentation_time < 0) continue;
+			time = (u64)ese->presentation_time;
+			if (time >= pto_event) time -= pto_event;
+			else time = 0;
+			time_mpd = gf_timestamp_rescale(time, es->timescale, rep->timescale_mpd);
+			duration_mpd = gf_timestamp_rescale(ese->duration, es->timescale, rep->timescale_mpd);
+			segdur_mpd = gf_timestamp_rescale(sctx->dur, rep->timescale, rep->timescale_mpd);
+			in_segment = (sctx->time <= time_mpd && time_mpd - sctx->time < segdur_mpd);
+			active_first = (sctx == first && time_mpd < sctx->time
+				&& ((!ese->duration || ese->duration == (u32)-1)
+					|| time_mpd + duration_mpd > sctx->time));
+			if (!in_segment && !active_first) continue;
+			gf_fprintf(out, "#EXT-X-DATERANGE:ID=\"%d-%04d\",", ese->id, 0);
+			gf_mpd_print_date(out, "START-DATE", ast + gf_timestamp_rescale(time, es->timescale, 1000));
+			gf_fprintf(out, ",PLANNED-DURATION=%g", ese->duration/(Double)es->timescale);
+			if (ese->message) {
+				gf_fprintf(out, ",SCTE35-OUT=0x");
+				for (u32 b=0; b<ese->message_size; ++b)
+					gf_fprintf(out, "%02X", ese->message[b]);
+			}
+			gf_fprintf(out, "\n");
+		}
+	}
+}
+
+/* An event association places the ad-replacement cue on a physical segment
+ * boundary; it does not redefine the original SCTE event's presentation time. */
+static void hls_insert_scte35_associations(FILE *out, const GF_MPD_Period *period,
+	const GF_MPD_Representation *rep, const GF_DASH_SegmentContext *sctx, Bool final_playlist)
+{
+	u32 i, j, k;
+	GF_DASH_SegmentEventAssociation *assoc;
+	if (!sctx->event_associations) return;
+
+	for (i=0; (assoc = gf_list_enum(sctx->event_associations, &i)); ) {
+		GF_MPD_EventStream *es;
+		GF_MPD_EventStreamEntry *ese = NULL;
+		if (assoc->boundary_type != GF_DASH_SEGMENT_EVENT_START
+			&& assoc->boundary_type != GF_DASH_SEGMENT_EVENT_END)
+			continue;
+		for (j=0; (es = gf_list_enum(period->event_streams, &j)); ) {
+			GF_MPD_EventStreamEntry *candidate;
+			if (!es->scheme_id_uri || strcmp(assoc->scheme_id_uri, es->scheme_id_uri)) continue;
+			for (k=0; (candidate = gf_list_enum(es->entries, &k)); ) {
+				if (candidate->id == assoc->id && candidate->presentation_time == assoc->presentation_time) {
+					ese = candidate;
+					break;
+				}
+			}
+			if (!ese) continue;
+			if (assoc->boundary_type == GF_DASH_SEGMENT_EVENT_START) {
+				s32 start_idx = gf_list_find(rep->state_seg_list, (void *)sctx);
+				s32 end_idx = hls_scte35_association_segment_index(rep, assoc, GF_DASH_SEGMENT_EVENT_END);
+				/* Never advertise an empty replacement interval or a finalized VOD
+				 * break without a later return boundary. Live can await the return. */
+				if ((end_idx != start_idx) && (!final_playlist || end_idx > start_idx))
+					gf_fprintf(out, "#EXT-X-CUE-OUT:%g\n", es->timescale ? ese->duration/(Double)es->timescale : 0);
+			} else {
+				s32 end_idx = gf_list_find(rep->state_seg_list, (void *)sctx);
+				s32 start_idx = hls_scte35_association_segment_index(rep, assoc, GF_DASH_SEGMENT_EVENT_START);
+				/* Permit CUE-IN with a purged OUT in a sliding live playlist. */
+				if ((start_idx != end_idx) && (!final_playlist || (start_idx >= 0 && start_idx < end_idx)))
+					gf_fprintf(out, "#EXT-X-CUE-IN\n");
+			}
+			break;
+		}
+	}
+}
+
 static void hls_insert_scte35_info(FILE *out, u64 ast, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *adaptation_set, const GF_MPD_Representation *representation, GF_DASH_SegmentContext *sctx)
 {
 	u64 segment_duration = 0;
@@ -4398,6 +4575,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			event_entry->state = 0;
 	}
 	GF_DASH_SegmentContext *sctx;
+	Bool explicit_segment_events = hls_has_explicit_segment_events(rep);
 	FILE *out = out_file;
 	char *force_url=NULL;
 	const char *last_kms = NULL;
@@ -4613,7 +4791,15 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			// 0-duration may be encountered in non-LL modes when the duration is not known yet, but players may not like (cf issue 3462)
 			if (!sctx->dur) continue;
 
-			hls_insert_scte35_info(out, mpd->availabilityStartTime, period, as, rep, sctx);
+			if (explicit_segment_events) {
+				hls_insert_scte35_event_metadata(out, mpd->availabilityStartTime, period, as, rep, sctx);
+				hls_insert_scte35_associations(out, period, rep, sctx,
+					(mpd->type != GF_MPD_TYPE_DYNAMIC) && is_last);
+			} else {
+				/* Keep existing no-association behavior unchanged in #11.01.
+				 * #04 retains ownership of corrected fallback semantics. */
+				hls_insert_scte35_info(out, mpd->availabilityStartTime, period, as, rep, sctx);
+			}
 
 			//signal discontinuity if needed
 			if (sctx && sctx->is_discontinuity)
