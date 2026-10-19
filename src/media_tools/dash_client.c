@@ -3422,12 +3422,6 @@ process_m3u8_manifest:
 				}
 			}
 
-			e = gf_dash_merge_segment_timeline(group, NULL, rep->segment_list, rep->segment_template, new_rep->segment_list, new_rep->segment_template, timeline_start_time);
-			if (e) {
-				gf_mpd_del(new_mpd);
-				return e;
-			}
-
 			//move redirections in representations base URLs (we could do that on AS as well )
 			if (rep->base_URLs && new_rep->base_URLs) {
 				u32 k;
@@ -3469,9 +3463,14 @@ process_m3u8_manifest:
 			}
 		}
 
-		/*update segmentTimeline at AdaptationSet level before switching the set (old setup needed to compute current timing of each group) */
+		/*update the group position once, from the timeline the active representation uses (its own, else the AdaptationSet's), before switching the set (old setup needed to compute current timing of each group) */
 		if (new_set) {
-			e = gf_dash_merge_segment_timeline(group, NULL, set->segment_list, set->segment_template, new_set->segment_list, new_set->segment_template, timeline_start_time);
+			GF_MPD_Representation *rep = gf_list_get(set->representations, group->active_rep_index);
+			GF_MPD_Representation *new_rep = gf_list_get(new_set->representations, group->active_rep_index);
+			if ((rep->segment_list && rep->segment_list->segment_timeline) || (rep->segment_template && rep->segment_template->segment_timeline))
+				e = gf_dash_merge_segment_timeline(group, NULL, rep->segment_list, rep->segment_template, new_rep->segment_list, new_rep->segment_template, timeline_start_time);
+			else
+				e = gf_dash_merge_segment_timeline(group, NULL, set->segment_list, set->segment_template, new_set->segment_list, new_set->segment_template, timeline_start_time);
 			if (e) {
 				gf_mpd_del(new_mpd);
 				return e;
