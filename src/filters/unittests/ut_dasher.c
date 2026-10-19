@@ -161,20 +161,20 @@ unittest(dasher_scte35_multi_break_ordering_dedup_and_renditions)
     assert_equal(dasher_scte35_schedule_boundary(GF_TRUE, GF_STREAM_VISUAL, 100, 180000, 90000, 0, &a, &seen_a), GF_OK, "%d");
     assert_equal(gf_list_count(a), 4, "%d");
     assert_true(dasher_scte35_next_cut(a, &when));
-    assert_equal(when, 180000ULL, LLU);
+    assert_equal(when, (u64)180000, LLU);
     assert_false(dasher_scte35_consume_due(a, 180000, 90000, GF_FILTER_SAP_NONE));
     assert_false(dasher_scte35_consume_due(a, 179999, 90000, GF_FILTER_SAP_1));
     assert_true(dasher_scte35_consume_due(a, 180000, 90000, GF_FILTER_SAP_1));
     assert_true(dasher_scte35_next_cut(a, &when));
-    assert_equal(when, 270000ULL, LLU);
+    assert_equal(when, (u64)270000, LLU);
     assert_equal(dasher_scte35_schedule_boundary(GF_TRUE, GF_STREAM_VISUAL, 100, 180000, 90000, 0, &a, &seen_a), GF_OK, "%d");
     assert_equal(gf_list_count(a), 3, "%d");
     assert_true(dasher_scte35_consume_due(a, 270000, 90000, GF_FILTER_SAP_1));
     assert_true(dasher_scte35_next_cut(a, &when));
-    assert_equal(when, 360000ULL, LLU);
+    assert_equal(when, (u64)360000, LLU);
     assert_true(dasher_scte35_consume_due(a, 360000, 90000, GF_FILTER_SAP_1));
     assert_true(dasher_scte35_next_cut(a, &when));
-    assert_equal(when, 540000ULL, LLU);
+    assert_equal(when, (u64)540000, LLU);
     assert_true(dasher_scte35_consume_due(a, 540000, 90000, GF_FILTER_SAP_1));
     assert_false(dasher_scte35_next_cut(a, &when));
 
