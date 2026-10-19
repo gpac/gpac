@@ -234,6 +234,7 @@ unittest(mpd_hls_explicit_scte35_boundaries)
 
     period = gf_mpd_period_new();
     assert_true(period != NULL);
+    mpd->periods = gf_list_new();
     gf_list_add(mpd->periods, period);
     assert_true(period->event_streams != NULL);
     GF_SAFEALLOC(es, GF_MPD_EventStream);
