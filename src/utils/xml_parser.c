@@ -2181,7 +2181,7 @@ GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child) {
 #endif //unused
 
 
-GF_XMLNode *gf_xml_dom_node_new(const char* ns, const char* name)
+GF_NOT_EXPORTED GF_XMLNode *gf_xml_dom_node_new(const char* ns, const char* name)
 {
 	GF_XMLNode* node;
 	GF_SAFEALLOC(node, GF_XMLNode);

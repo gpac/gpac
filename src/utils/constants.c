@@ -1095,7 +1095,7 @@ u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 layout)
 	return res;
 }
 
-u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
+GF_NOT_EXPORTED u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
 {
 	const u32 mask_dict[][2] = {
 		{0x000002, 1}, {0x000001, 2}, {0x000003, 3},

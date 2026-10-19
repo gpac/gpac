@@ -670,7 +670,7 @@ const GF_FilterRegister *cryptout_register(GF_FilterSession *session)
 	return &CryptFoutRegister;
 }
 
-GF_Err gf_cryptfout_push_key(GF_Filter *filter, bin128 *key, bin128 *IV)
+GF_NOT_EXPORTED GF_Err gf_cryptfout_push_key(GF_Filter *filter, bin128 *key, bin128 *IV)
 {
 	KeyInfo *key_info;
 	GF_CryptFileCtx *ctx;
@@ -700,7 +700,7 @@ const GF_FilterRegister *cryptout_register(GF_FilterSession *session)
 	return NULL;
 }
 
-GF_Err gf_cryptfout_push_key(GF_Filter *filter, bin128 *key, bin128 *IV)
+GF_NOT_EXPORTED GF_Err gf_cryptfout_push_key(GF_Filter *filter, bin128 *key, bin128 *IV)
 {
 	return GF_NOT_SUPPORTED;
 }
