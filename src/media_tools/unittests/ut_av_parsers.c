@@ -1,5 +1,7 @@
 #include "tests.h"
-#include <string.h>
+
+#if !defined(GPAC_DISABLE_AV_PARSERS)
+
 #include <gpac/bitstream.h>
 #include <gpac/internal/media_dev.h>
 
@@ -28,3 +30,7 @@ unittest(avc_pps_weighted_bipred_idc)
 
 	gf_free(avc);
 }
+
+#else
+unittest_disabled(avc_pps_weighted_bipred_idc, "AV parsers disabled")
+#endif // !defined(GPAC_DISABLE_AV_PARSERS)

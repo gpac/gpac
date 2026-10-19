@@ -1,7 +1,8 @@
 #include "tests.h"
-#include <gpac/filters.h>
 
-const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score);
+#if !defined(GPAC_DISABLE_DASHIN)
+
+#include "../dmx_dash.c"
 
 static Bool probed_as_dash(const char *doc)
 {
@@ -23,3 +24,7 @@ unittest(dashdmx_probe_start_tag_whitespace)
 	assert_true(probed_as_dash("<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\"></MPD>"));
 	assert_false(probed_as_dash("<MPDx a=\"1\"/><Periods a=\"1\"/>"));
 }
+
+#else
+unittest_disabled(dashdmx_probe_start_tag_whitespace, "DASH input disabled")
+#endif

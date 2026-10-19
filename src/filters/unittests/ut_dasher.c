@@ -1,8 +1,7 @@
-#ifndef GPAC_DISABLE_DASHER
-
 #include "tests.h"
 
-#define GPAC_DASHER_UNIT_TEST
+#ifndef GPAC_DISABLE_DASHER
+
 #include "../dasher.c"
 
 //ssr live edge must advertise part count before it is known
@@ -227,4 +226,11 @@ unittest(dasher_scte35_live_history_bounded_and_stale_replay)
     test_scte35_del_list(seen);
 }
 
+#else
+unittest_disabled(dasher_ssr_live_edge_estimate, "DASH segmenter disabled")
+unittest_disabled(dasher_ssr_live_edge_fragment_count, "DASH segmenter disabled")
+unittest_disabled(dasher_scte35_boundary_uses_first_sap_at_or_after_splice, "DASH segmenter disabled")
+unittest_disabled(dasher_scte35_multi_break_ordering_dedup_and_renditions, "DASH segmenter disabled")
+unittest_disabled(dasher_ssai_common_cut_clock_and_audio_sample_tolerance, "DASH segmenter disabled")
+unittest_disabled(dasher_scte35_live_history_bounded_and_stale_replay, "DASH segmenter disabled")
 #endif // GPAC_DISABLE_DASHER

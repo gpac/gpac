@@ -1,7 +1,6 @@
 #include "tests.h"
-#include <gpac/xml.h>
+#include "../xml_parser.c"
 
-char *xml_translate_xml_string(char *str);
 unittest(xml_translate_xml_string)
 {
     char *str= xml_translate_xml_string("&amp;");
@@ -27,6 +26,7 @@ static GF_Err parse_blob(const u8 *data, u32 size, char **root_name)
 
 unittest(xml_dom_parse_gzip_blob)
 {
+#ifndef GPAC_DISABLE_ZLIB
 	const char *xml = "<?xml version=\"1.0\"?>\n<MPD type=\"dynamic\"><Period id=\"1\"/></MPD>\n";
 	u32 len = (u32) strlen(xml);
 	char *root_name;
@@ -45,4 +45,7 @@ unittest(xml_dom_parse_gzip_blob)
 	assert_true(root_name && !strcmp(root_name, "MPD"));
 	if (root_name) gf_free(root_name);
 	gf_free(gz);
+#else
+	test_skip("zlib disabled");
+#endif // !defined(GPAC_DISABLE_ZLIB)
 }

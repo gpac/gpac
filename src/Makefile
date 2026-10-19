@@ -250,10 +250,10 @@ EXTRALIBS+=$(ffmpeg_ldflags) $(ogg_ldflags) $(vorbis_ldflags) $(theora_ldflags) 
 ##libgpac library output
 LIB=libgpac$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-Wl,-out-implib=../bin/gcc/libgpac.dll.a
+SHARED_LDFLAGS+=-Wl,-out-implib=../bin/gcc/libgpac.dll.a
 else
 ifeq ($(CONFIG_DARWIN),yes)
-LDFLAGS+=-dynamiclib -install_name $(prefix)/lib/$(LIB)
+SHARED_LDFLAGS+=-dynamiclib -install_name $(prefix)/lib/$(LIB)
 endif
 EXTRALIBS+=$(GPAC_SH_FLAGS)
 endif
@@ -282,43 +282,50 @@ SRCS := $(OBJS:.o=.c)
 
 all: lib
 
+lib: ../bin/gcc/libgpac_static.a
+ifneq ($(STATIC_BUILD),yes)
 lib: ../bin/gcc/$(LIB)
+endif
 
 crypto: $(LIBGPAC_CRYPTO)
 
-scenegraph: CFLAGS += $(SCENEGRAPH_CFLAGS)
+$(LIBGPAC_SCENE): CFLAGS += $(SCENEGRAPH_CFLAGS)
 scenegraph: $(LIBGPAC_SCENE)
 .deps/scenegraph/%: CFLAGS += $(SCENEGRAPH_CFLAGS)
 
-media_tools: CFLAGS += $(MEDIATOOLS_CFLAGS)
+$(LIBGPAC_MEDIATOOLS): CFLAGS += $(MEDIATOOLS_CFLAGS)
 media_tools: $(LIBGPAC_MEDIATOOLS)
 .deps/media_tools/%: CFLAGS += $(MEDIATOOLS_CFLAGS)
 
-compositor: CFLAGS+=$(COMPOSITOR_CFLAGS)
+$(LIBGPAC_COMPOSITOR): CFLAGS+=$(COMPOSITOR_CFLAGS)
 compositor: $(LIBGPAC_COMPOSITOR)
 .deps/compositor/%: CFLAGS += $(COMPOSITOR_CFLAGS)
 
-filters: CFLAGS += $(FILTERS_CFLAGS)
+$(LIBGPAC_FILTERS): CFLAGS += $(FILTERS_CFLAGS)
 filters: $(LIBGPAC_FILTERS)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
 
-filters_ffmpeg: CFLAGS += $(FILTERS_CFLAGS) $(ffmpeg_cflags)
+$(LIBGPAC_FILTERS_FFMPEG): CFLAGS += $(FILTERS_CFLAGS) $(ffmpeg_cflags)
 filters_ffmpeg: $(LIBGPAC_FILTERS_FFMPEG)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS) $(ffmpeg_cflags)
 
-filters_libcaption: CFLAGS += $(FILTERS_CFLAGS) $(caption_cflags)
+$(LIBGPAC_FILTERS_LIBCAPTION): CFLAGS += $(FILTERS_CFLAGS) $(caption_cflags)
 filters_libcaption: $(LIBGPAC_FILTERS_LIBCAPTION)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS) $(caption_cflags)
 
-filters_mpeghdec: CFLAGS += $(FILTERS_CFLAGS) $(mpeghdec_cflags)
+$(LIBGPAC_FILTERS_MPEGHDEC): CFLAGS += $(FILTERS_CFLAGS) $(mpeghdec_cflags)
 filters_mpeghdec: $(LIBGPAC_FILTERS_MPEGHDEC)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS) $(mpeghdec_cflags)
 
-filters_ohevc: CFLAGS += $(FILTERS_OHEVC_CFLAGS)
+ifneq ($(LIBGPAC_FILTERS_OHEVC),)
+$(LIBGPAC_FILTERS_OHEVC): CFLAGS += $(FILTERS_OHEVC_CFLAGS)
+endif
 filters_ohevc: $(LIBGPAC_FILTERS_OHEVC)
 .deps/filters/dec_openhevc.dep: CFLAGS += $(FILTERS_OHEVC_CFLAGS)
 
-jsmods: CFLAGS += $(JSMODS_CFLAGS)
+ifneq ($(LIBGPAC_JSMODS),)
+$(LIBGPAC_JSMODS): CFLAGS += $(JSMODS_CFLAGS)
+endif
 jsmods: $(LIBGPAC_JSMODS)
 .deps/jsmods/%: CFLAGS += $(JSMODS_CFLAGS)
 
@@ -376,13 +383,13 @@ media_tools/img.o: media_tools/img.c
 
 ifeq ($(CONFIG_DARWIN),yes)
 
-downloader: CFLAGS := $(ngtcp2_cflags) $(nghttp3_cflags) $(nghttp2_cflags) $(ssl_cflags) $(CFLAGS)
+$(LIBGPAC_DOWNLOADER): CFLAGS := $(ngtcp2_cflags) $(nghttp3_cflags) $(nghttp2_cflags) $(ssl_cflags) $(CFLAGS)
 downloader: $(LIBGPAC_DOWNLOADER)
 .deps/utils/%: CFLAGS := $(ngtcp2_cflags) $(nghttp3_cflags) $(nghttp2_cflags) $(ssl_cflags) $(CFLAGS)
 
 else
 
-downloader: CFLAGS += $(nghttp2_cflags) $(ngtcp2_cflags) $(nghttp3_cflags) $(ssl_cflags)
+$(LIBGPAC_DOWNLOADER): CFLAGS += $(nghttp2_cflags) $(ngtcp2_cflags) $(nghttp3_cflags) $(ssl_cflags)
 downloader: $(LIBGPAC_DOWNLOADER)
 .deps/utils/%: CFLAGS += $(nghttp2_cflags) $(ngtcp2_cflags) $(nghttp3_cflags) $(ssl_cflags)
 
@@ -393,44 +400,33 @@ crypto/g_crypt_openssl.o: crypto/g_crypt_openssl.c
 .deps/crypto/g_crypt_openssl.dep: CFLAGS += $(ssl_cflags)
 
 
-../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) downloader compositor scenegraph media_tools crypto filters filters_ffmpeg filters_libcaption filters_mpeghdec filters_ohevc jsmods $(OBJS)
-#	@echo "OBJS $(OBJS)"
-#	@echo "LIBS $(ALL_LIBS)"
+#flags belong to the actual objects, not to phony grouping targets
+LIB_DEPS=$(OBJS)
 
+../bin/gcc/libgpac_static.a: $(LIB_DEPS) ../config.mak
+	@mkdir -p ../bin/gcc
+	@rm -f $@.tmp
 ifeq ($(CONFIG_DARWIN),yes)
-
-	$(LIBTOOL) -s -o ../bin/gcc/libgpac_static.a $(OBJS)
-	$(RANLIB) ../bin/gcc/libgpac_static.a
-ifneq ($(STATIC_BUILD),yes)
-	$(CC) $(SHFLAGS) $(LD_SONAME) -o $@ $(OBJS) $(ALL_LIBS) $(LDFLAGS)
+	$(LIBTOOL) -s -o $@.tmp $(OBJS)
+else
+	$(AR) cr $@.tmp $(OBJS)
+endif
+	$(RANLIB) $@.tmp
+	@mv $@.tmp $@
+ifeq ($(shell grep -q "^Libs.private:" ../gpac.pc 2>/dev/null; echo $$?),1)
+	@echo "Libs.private: -lgpac_static $(ALL_LIBS)" >> ../gpac.pc
 endif
 
-else
-
-	$(AR) cr ../bin/gcc/libgpac_static.a $(OBJS)
-	$(RANLIB) ../bin/gcc/libgpac_static.a
-ifneq ($(STATIC_BUILD),yes)
-	$(CC) $(SHFLAGS) $(LD_SONAME) -o $@ $(OBJS) $(ALL_LIBS) $(LDFLAGS)
+../bin/gcc/$(LIB): $(LIB_DEPS) ../config.mak
+	@mkdir -p ../bin/gcc
+	$(CC) $(SHFLAGS) $(LD_SONAME) -o $@ $(OBJS) $(ALL_LIBS) $(LDFLAGS) $(SHARED_LDFLAGS)
+ifneq ($(CONFIG_DARWIN),yes)
 	mv $@ $@.$(VERSION_SONAME)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@.$(VERSION_MAJOR)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@
 endif
 
-endif
-
-ifeq ($(shell fgrep "Libs.private:" ../gpac.pc 1>&2 2> /dev/null ; echo $$?),1)
-	@echo "Libs.private: -lgpac_static $(ALL_LIBS)" >> ../gpac.pc
-endif
-
-
-unit_tests:
-ifeq ($(UNIT_TESTS),yes)
-	$(CC) $(CFLAGS) $(caption_cflags) -Wno-unused-variable -Wno-unused-function -I.. -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H  \
-		-o ../bin/gcc/unittests \
-		../bin/gcc/unittests.c \
-		$(shell find $(SRC_PATH) -path "*/unittests/*.c" | grep -v bin | sort) \
-		-Wl,-rpath,$(realpath ../bin/gcc) -lm -L../bin/gcc -lgpac
-endif
+include $(SRC_PATH)/unittests/unit_tests.mak
 
 
 dep:
@@ -446,7 +442,7 @@ DEPS := $(SRCS:%.c=.deps/%.dep)
 	@mkdir -p $(dir $@)
 	$(CC) -MM $(CFLAGS) "$<" -MT "$*.o" -MF "$@"
 
-clean:
+clean: unit_tests_clean
 	rm -f $(OBJS) ../bin/gcc/$(LIB)
 	rm -rf ../bin/gcc/libgpac_static.a ../bin/gcc/libgpac.so \
 		../bin/gcc/libgpac.so.$(VERSION_MAJOR) \

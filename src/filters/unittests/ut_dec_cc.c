@@ -1,4 +1,6 @@
 #include "tests.h"
+
+#if defined(GPAC_HAS_LIBCAPTION)
 #include "../dec_cc.c"
 #include "../../filter_core/filter_session.h" // GF_FilterPacket
 
@@ -164,3 +166,10 @@ unittest(ccdec_several_entries)
 	ctx.pck_send(NULL);
 #endif // GPAC_HAS_LIBCAPTION
 }
+
+#else
+unittest_disabled(ccdec_default, "libcaption unavailable")
+unittest_disabled(ccdec_aggregation, "libcaption unavailable")
+unittest_disabled(ccdec_aggregation_overlaps, "libcaption unavailable")
+unittest_disabled(ccdec_several_entries, "libcaption unavailable")
+#endif

@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC configure script
-#     (c) 2003-2026 Telecom Paris
+#     (c) 2003-2026 Telecom Paris, Motion Spell
 #     Authors: Jean Le Feuvre, Romain Bouqueau, Aurelien David
 #
 #set -v
@@ -3254,13 +3254,6 @@ fi
 echo "SRC_PATH=$source_path" >> config.mak
 echo "BUILD_PATH=$build_path" >> config.mak
 echo "LOCAL_INC_PATH=$local_inc" >> config.mak
-
-
-if test "$unit_tests" = "yes" ; then
-    mkdir -p unittests/build && cd unittests/build
-    build_object_files_directory_tree "$source_path"
-    cd -
-fi
 
 
 echo "#endif" >> $TMPH

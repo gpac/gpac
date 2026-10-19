@@ -1,29 +1,24 @@
-#!/bin/bash
-readonly scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+#!/bin/sh
+set -eu
 
-echo '#include <stdio.h>
-#include <stdlib.h> // EXIT_FAILURE
+if [ "${1:-}" = --list ]; then
+    shift
+    #a marker is emitted by tests.h only when preprocessing for discovery
+    #comments and declarations in inactive preprocessor branches are absent
+    sed -n 's/^[[:space:]]*GPAC_UNIT_TEST_ENTRY[[:space:]]*([[:space:]]*\([A-Za-z_][A-Za-z_0-9]*\)[[:space:]]*).*/\1/p' "$@"
+    exit
+fi
 
-int register_test(const char *name, int (*test_function)(void));
-int run_tests(int argc, char *argv[]);
-
-#define unittest(ut)                                                                                                   \
-  int test_##ut();                                                                                                     \
-  if(register_test(#ut, test_##ut)) {                                                                                  \
-    fprintf(stderr, "registration failed for unit test: %s\n", #ut);                                                   \
-    return EXIT_FAILURE;                                                                                               \
-  }
-
-int main(int argc, char *argv[])
-{'
-
-
-calls=$(cd "$scriptDir/.." && find . -path "*/unittests/*.c" -not -path "./unittests/*" | grep -v bin | xargs grep unittest | cut -d ":" -f 2)
-for call in $calls; do
-    echo "  $call;"
+printf '#include "tests.h"\n\n'
+for list in "$@"; do
+    while IFS= read -r name; do
+        printf 'void test_%s(void);\n' "$name"
+    done < "$list"
 done
-
-echo '
-  return run_tests(argc, argv);
-}
-'
+printf '\nint main(int argc, char **argv)\n{\n'
+for list in "$@"; do
+    while IFS= read -r name; do
+        printf '    if (register_test("%s", test_%s)) return EXIT_FAILURE;\n' "$name" "$name"
+    done < "$list"
+done
+printf '    return run_tests(argc, argv);\n}\n'
