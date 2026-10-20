@@ -854,7 +854,13 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[UNCV] No native format found, reconstructing as %s\n", gf_pixel_fmt_name(ctx->pixel_format)));
 
-	ctx->stride = ctx->bpp * ctx->width;
+	u64 stride = (u64) ctx->bpp * ctx->width;
+	// Packet sizes and output offsets are u32. Check the row before the frame product.
+	if ((stride > GF_UINT_MAX) || (stride * ctx->height > GF_UINT_MAX)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Output dimensions exceed 32-bit frame size\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	ctx->stride = (u32) stride;
 	ctx->output_size = ctx->stride * ctx->height;
 	ctx->tile_width = config->num_tile_cols ? ctx->width / config->num_tile_cols : 0;
 	ctx->tile_height = config->num_tile_rows ? ctx->height / config->num_tile_rows : 0;
