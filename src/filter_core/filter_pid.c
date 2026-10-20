@@ -419,6 +419,13 @@ static void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 		return;
 	}
 
+	//a packet dispatch on another thread is still using this pid instance
+	//(gf_filter_pck_send_internal), defer destruction
+	if (pidinst->nb_ext_use) {
+		TASK_REQUEUE(task)
+		return;
+	}
+
 	//reset PID instance buffers before checking number of output shared packets
 	//otherwise we may block because some of the shared packets are in the
 	//pid instance buffer (not consumed)
@@ -1066,8 +1073,11 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			}
 			gf_mx_v(pid->filter->tasks_mx);
 
-			//destroy pid instance
-			gf_filter_pid_inst_check_delete(pidinst);
+			//destroy pid instance - unless a packet dispatch on another thread is
+			//still using it (gf_filter_pck_send_internal), in which case the
+			//detached instance is simply dropped (leak rather than use-after-free)
+			if (!pidinst->nb_ext_use)
+				gf_filter_pid_inst_check_delete(pidinst);
 			pidinst = NULL;
 			gf_mx_v(pid->filter->tasks_mx);
 		}
