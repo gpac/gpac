@@ -6082,6 +6082,32 @@ GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sam
 */
 GF_Err gf_isom_get_original_format_type(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat);
 
+/*! CENC TrackEncryptionBox two-bit feature state */
+typedef enum
+{
+	GF_ISOM_CENC_TENC_FEATURE_UNSPECIFIED = 0,
+	GF_ISOM_CENC_TENC_FEATURE_USED = 1,
+	GF_ISOM_CENC_TENC_FEATURE_NOT_USED = 2
+} GF_ISOMCENCTencFeatureState;
+
+#define GF_ISOM_CENC_TENC_SUBSAMPLE_MASK 0x000003
+#define GF_ISOM_CENC_TENC_MULTI_KEY_MASK 0x00000C
+#define GF_ISOM_CENC_TENC_SENC_MASK 0x000030
+#define GF_ISOM_CENC_TENC_SAI_MASK 0x0000C0
+#define GF_ISOM_CENC_TENC_SEIG_MASK 0x000300
+#define GF_ISOM_CENC_TENC_ENCRYPTED_SLICE_HEADER_MASK 0x000C00
+#define GF_ISOM_CENC_TENC_FLAGS_MASK 0x000FFF
+
+/*! gets CENC TrackEncryptionBox informational flags and AES key size signaling
+\param isom_file the source ISO file
+\param trackNumber the source track
+\param sampleDescriptionIndex the sample description index
+\param flags set to packed two-bit feature states, using the GF_ISOM_CENC_TENC_* masks
+\param use_aes_256 set to AES-256 usage signaling
+\return error if any
+*/
+GF_Err gf_isom_get_cenc_protection_flags(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *flags, Bool *use_aes_256);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 /*! creates ISMACryp protection info for a sample description
@@ -6192,6 +6218,16 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *isom_file, u32 trackNumber
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 scheme_type,
                                    u32 scheme_version, u32 default_IsEncrypted, u32 default_crypt_byte_block, u32 default_skip_byte_block,
 								    u8 *key_info, u32 key_info_size);
+
+/*! sets CENC TrackEncryptionBox informational flags and AES key size signaling
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the sample description index
+\param flags packed two-bit feature states, using the GF_ISOM_CENC_TENC_* masks
+\param use_aes_256 indicates AES-256 usage and switches the box to version 2 when set
+\return error if any
+*/
+GF_Err gf_isom_set_cenc_protection_flags(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 flags, Bool use_aes_256);
 
 
 /*! creates CENC protection for a multi-key sample description

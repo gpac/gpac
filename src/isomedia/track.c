@@ -1167,7 +1167,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 
 						offset = saio->offsets[saio_idx] + moof_offset;
 					}
-					size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[i];
+					size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz_get_sample_info_size(saiz, i);
 
 					samp_num = num_first_sample_in_traf + i + 1;
 
@@ -1289,7 +1289,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				}
 				offset = saio->offsets[j] + moof_offset;
 			}
-			size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+			size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz_get_sample_info_size(saiz, j);
 			if (!size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] SAI of size 0 cannot be merged\n"));
 				continue;
