@@ -887,6 +887,9 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 	u32 probe_size=size;
 	char *res=NULL;
 
+//prefix compare guarded against the remaining probe size (buffer may not be NUL-terminated)
+#define BT_PFX(lit) ((probe_size >= (u32)(sizeof(lit)-1)) && !strncmp((const char*)probe_data, (lit), sizeof(lit)-1))
+
 	/* check gzip magic header */
 	if ((size>2) && (probe_data[0] == 0x1f) && (probe_data[1] == 0x8b)) {
 		*score = GF_FPROBE_EXT_MATCH;
@@ -908,14 +911,14 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 	//for XML, strip doctype, <?xml and comments
 	while (1) {
 		char *search=NULL;
-		if (!strncmp(probe_data, "<!DOCTYPE", 9)) {
+		if (BT_PFX("<!DOCTYPE")) {
 			search = ">";
 		}
 		//for XML, strip xml header
-		else if (!strncmp(probe_data, "<?xml", 5)) {
+		else if (BT_PFX("<?xml")) {
 			search = "?>";
 		}
-		else if (!strncmp(probe_data, "<!--", 4)) {
+		else if (BT_PFX("<!--")) {
 			search = "-->";
 		} else {
 			break;
@@ -937,7 +940,7 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 
 	if (gf_strmemstr(probe_data, probe_size, "http://www.w3.org/1999/XSL/Transform")
 	) {
-	} else if (!strncmp(probe_data, "<XMT-A", strlen("<XMT-A"))
+	} else if (BT_PFX("<XMT-A")
 		|| gf_strmemstr(probe_data, probe_size, "urn:mpeg:mpeg4:xmta:schema:2002")
 	) {
 		mime_type = "application/x-xmt";
@@ -950,17 +953,17 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 		|| gf_strmemstr(probe_data, probe_size, "urn:mpeg:mpeg4:LASeR:2005")
 	) {
 		mime_type = "application/x-LASeR+xml";
-	} else if (!strncmp(probe_data, "<DIMSStream", strlen("<DIMSStream") ) ) {
+	} else if (BT_PFX("<DIMSStream") ) {
 		mime_type = "application/dims";
-	} else if (!strncmp(probe_data, "<svg", 4) || gf_strmemstr(probe_data, probe_size, "http://www.w3.org/2000/svg") ) {
+	} else if (BT_PFX("<svg") || gf_strmemstr(probe_data, probe_size, "http://www.w3.org/2000/svg") ) {
 		mime_type = "image/svg+xml";
-	} else if (!strncmp(probe_data, "<widget", strlen("<widget") ) ) {
+	} else if (BT_PFX("<widget") ) {
 		mime_type = "application/widget";
-	} else if (!strncmp(probe_data, "<NHNTStream", strlen("<NHNTStream") ) ) {
+	} else if (BT_PFX("<NHNTStream") ) {
 		mime_type = "application/x-nhml";
-	} else if (!strncmp(probe_data, "<TextStream", strlen("<TextStream") ) ) {
+	} else if (BT_PFX("<TextStream") ) {
 		mime_type = "text/ttxt";
-	} else if (!strncmp(probe_data, "<text3GTrack", strlen("<text3GTrack") ) ) {
+	} else if (BT_PFX("<text3GTrack") ) {
 		mime_type = "quicktime/text";
 	}
 	//BT/VRML with no doc header
@@ -975,22 +978,22 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 			if (!probe_size) goto exit;
 
 			//VRML / XRDV files
-			if (!strncmp(probe_data, "#VRML V2.0", strlen("#VRML V2.0"))) {
+			if (BT_PFX("#VRML V2.0")) {
 				mime_type = "model/vrml";
 				goto exit;
 			}
-			if (!strncmp(probe_data, "#X3D V3.0", strlen("#X3D V3.0"))) {
+			if (BT_PFX("#X3D V3.0")) {
 				mime_type = "model/x3d+vrml";
 				goto exit;
 			}
 
 			//skip comment lines and some specific X3D keyword (we want to fetch a group
 			if ((probe_data[0] != '#')
-				&& strncmp(probe_data, "PROFILE", strlen("PROFILE"))
-				&& strncmp(probe_data, "COMPONENT", strlen("COMPONENT"))
-				&& strncmp(probe_data, "META", strlen("META"))
-				&& strncmp(probe_data, "IMPORT", strlen("IMPORT"))
-				&& strncmp(probe_data, "EXPORT", strlen("EXPORT"))
+				&& !BT_PFX("PROFILE")
+				&& !BT_PFX("COMPONENT")
+				&& !BT_PFX("META")
+				&& !BT_PFX("IMPORT")
+				&& !BT_PFX("EXPORT")
 			) {
 				break;
 			}
@@ -1001,18 +1004,20 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 			probe_data = next;
 		}
 
-		if (!strncmp(probe_data, "InitialObjectDescriptor", strlen("InitialObjectDescriptor"))
-			|| !strncmp(probe_data, "EXTERNPROTO", strlen("EXTERNPROTO"))
-			|| !strncmp(probe_data, "PROTO", strlen("PROTO"))
-			|| !strncmp(probe_data, "Group", strlen("Group"))
-			|| !strncmp(probe_data, "OrderedGroup", strlen("OrderedGroup"))
-			|| !strncmp(probe_data, "Layer2D", strlen("Layer2D"))
-			|| !strncmp(probe_data, "Layer3D", strlen("Layer3D"))
+		if (BT_PFX("InitialObjectDescriptor")
+			|| BT_PFX("EXTERNPROTO")
+			|| BT_PFX("PROTO")
+			|| BT_PFX("Group")
+			|| BT_PFX("OrderedGroup")
+			|| BT_PFX("Layer2D")
+			|| BT_PFX("Layer3D")
 		) {
 			if (gf_strmemstr(probe_data, probe_size, "children"))
 				mime_type = "application/x-bt";
 		}
 	}
+
+#undef BT_PFX
 
 exit:
 
