@@ -2065,7 +2065,7 @@ u64 gf_m2ts_get_pts(unsigned char *data)
 	return pts;
 }
 
-void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
+GF_NOT_EXPORTED void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
 {
 	u32 has_pts, has_dts;
 	u32 len_check;
@@ -2105,11 +2105,21 @@ void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF
 	pesh->hdr_data_len = data[5];
 
 	data += 6;
+	data_size -= 6;
+	if (has_pts && (data_size < 5)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PES header too small for PTS (%d bytes left < 5)\n", pes->pid, data_size));
+		has_pts = has_dts = 0;
+	}
 	if (has_pts) {
 		pesh->PTS = gf_m2ts_get_pts(data);
 		data+=5;
+		data_size -= 5;
 		len_check += 5;
 		pesh->has_pts = 1;
+	}
+	if (has_dts && (data_size < 5)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PES header too small for DTS (%d bytes left < 5)\n", pes->pid, data_size));
+		has_dts = 0;
 	}
 	if (has_dts) {
 		pesh->DTS = gf_m2ts_get_pts(data);
