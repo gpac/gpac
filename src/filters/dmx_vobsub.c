@@ -444,7 +444,7 @@ static void vobsubdmx_finalize(GF_Filter *filter)
 
 static const char * vobsubdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	if (!strncmp(data, "# VobSub", 8)) {
+	if ((size>=8) && !strncmp(data, "# VobSub", 8)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "text/vobsub";
 	}
