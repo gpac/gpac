@@ -3695,6 +3695,39 @@ static void gf_filter_setup_failure_notify_task(GF_FSTask *task)
 	}
 }
 
+static void gf_filter_disconnect_input_pids(GF_Filter *filter)
+{
+	gf_mx_p(filter->tasks_mx);
+
+	while (filter->num_input_pids) {
+		GF_FilterPidInst *a_pidi = gf_list_get(filter->input_pids, 0);
+		GF_Filter *a_filter = a_pidi->pid->filter;
+
+		gf_list_del_item(filter->input_pids, a_pidi);
+
+		gf_filter_instance_detach_pid(a_pidi);
+
+		filter->num_input_pids = gf_list_count(filter->input_pids);
+		if (!filter->num_input_pids)
+			filter->single_source = NULL;
+
+		//post a pid_delete task to also trigger removal of the filter if needed
+		gf_fs_post_pid_instance_delete_task(filter->session, a_filter, a_pidi->pid, a_pidi);
+	}
+	gf_mx_v(filter->tasks_mx);
+}
+
+static void gf_filter_disconnect_inputs_task(GF_FSTask *task)
+{
+	//task may have been direct-executed while the filter is still in its process
+	//callback (direct mode): defer until the callback returns
+	if (task->filter->in_process_callback) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
+	gf_filter_disconnect_input_pids(task->filter);
+}
+
 GF_EXPORT
 void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force_disconnect)
 {
@@ -3740,24 +3773,18 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 	else if (filter->num_input_pids) {
 		gf_filter_reset_pending_packets(filter);
 		filter->removed = 1;
-		gf_mx_p(filter->tasks_mx);
 
-		while (filter->num_input_pids) {
-			GF_FilterPidInst *a_pidi = gf_list_get(filter->input_pids, 0);
-			GF_Filter *a_filter = a_pidi->pid->filter;
-
-			gf_list_del_item(filter->input_pids, a_pidi);
-
-			gf_filter_instance_detach_pid(a_pidi);
-
-			filter->num_input_pids = gf_list_count(filter->input_pids);
-			if (!filter->num_input_pids)
-				filter->single_source = NULL;
-
-			//post a pid_delete task to also trigger removal of the filter if needed
-			gf_fs_post_pid_instance_delete_task(filter->session, a_filter, a_pidi->pid, a_pidi);
+		/* If a task is currently executing on this filter (typically the process
+		   callback calling us), the filter may still hold pointers to its input
+		   PID instances and dereference them after we return (e.g. packet drop).
+		   The pid instance deletion tasks could then run on another thread and
+		   free the instances while still in use. Defer the disconnect to a task
+		   on the filter so it only runs once the filter is idle. */
+		if (filter->in_process || filter->in_process_callback) {
+			gf_fs_post_task(filter->session, gf_filter_disconnect_inputs_task, filter, NULL, "disconnect_inputs", NULL);
+		} else {
+			gf_filter_disconnect_input_pids(filter);
 		}
-		gf_mx_v(filter->tasks_mx);
 		if (reason)
 			filter->session->last_connect_error = reason;
 	}
