@@ -1223,8 +1223,8 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	gf_av1_reset_state(&ctx->state, GF_FALSE);
 
 	return GF_OK;
-
 }
+
 GF_Err av1dmx_parse_av1(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 {
 	GF_Err e = GF_OK;
