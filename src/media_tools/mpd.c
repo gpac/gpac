@@ -4871,7 +4871,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 
 			dur = (Double) sctx->dur;
 			dur /= rep->timescale;
-			gf_fprintf(out,"#EXTINF:%g\n", dur);
+			gf_fprintf(out,"#EXTINF:%g,\n", dur);
 			gf_fprintf(out,"#EXT-X-BYTERANGE:%d@"LLU"\n", sctx->file_size, sctx->file_offset);
 			if (force_base_url)
 				force_url = gf_url_concatenate(force_base_url, b_url);
