@@ -1,12 +1,64 @@
 #include "tests.h"
 #include <gpac/xml.h>
 
-char *xml_translate_xml_string(char *str);
 unittest(xml_translate_xml_string)
 {
+	char *xml_translate_xml_string(char *str);
     char *str= xml_translate_xml_string("&amp;");
     assert_equal_str(str, "&");
     gf_free(str);
+}
+
+unittest(xml_get_root_type_file)
+{
+	const char *path = "ut-xml-root.xml";
+	const char *xml = "<GPACDRM/>";
+	//file reader consumes a 4-byte BOM probe then 4096-byte chunks
+	const u32 sizes[] = {10, 4099, 4100, 4101, 8193};
+	char data[8193];
+	u32 i;
+	memset(data, ' ', sizeof(data));
+	memcpy(data, xml, strlen(xml));
+	for (i=0; i<GF_ARRAY_LENGTH(sizes); i++) {
+		GF_Err e;
+		char *root;
+		FILE *f = gf_fopen(path, "wb");
+		assert_not_null(f);
+		if (!f) return;
+		assert_equal(gf_fwrite(data, sizes[i], f), (size_t) sizes[i], "%zu");
+		gf_fclose(f);
+		root = gf_xml_get_root_type(path, &e);
+		assert_equal(e, GF_OK, "%d");
+		assert_true(root && !strcmp(root, "GPACDRM"));
+		if (root) gf_free(root);
+	}
+	gf_file_delete(path);
+}
+
+unittest(xml_get_root_type_file_errors)
+{
+	const char *path = "ut-xml-root-errors.xml";
+	const char *inputs[] = { "\t", "<GPACDRM key=unquoted/>" };
+	u32 i;
+	GF_Err e;
+	char *root;
+	for (i=0; i<GF_ARRAY_LENGTH(inputs); i++) {
+		FILE *f = gf_fopen(path, "wb");
+		assert_not_null(f);
+		if (!f) return;
+		assert_equal(gf_fwrite(inputs[i], strlen(inputs[i]), f), strlen(inputs[i]), "%zu");
+		gf_fclose(f);
+		root = gf_xml_get_root_type(path, &e);
+		assert_true(root == NULL);
+		if (i==0) assert_equal(e, GF_EOS, "%d");
+		else assert_true(e<0);
+		if (root) gf_free(root);
+	}
+	gf_file_delete(path);
+	root = gf_xml_get_root_type(path, &e);
+	assert_true(root == NULL);
+	assert_equal(e, GF_URL_ERROR, "%d");
+	if (root) gf_free(root);
 }
 
 static GF_Err parse_blob(const u8 *data, u32 size, char **root_name)
@@ -27,6 +79,7 @@ static GF_Err parse_blob(const u8 *data, u32 size, char **root_name)
 
 unittest(xml_dom_parse_gzip_blob)
 {
+#ifndef GPAC_DISABLE_ZLIB
 	const char *xml = "<?xml version=\"1.0\"?>\n<MPD type=\"dynamic\"><Period id=\"1\"/></MPD>\n";
 	u32 len = (u32) strlen(xml);
 	char *root_name;
@@ -45,4 +98,7 @@ unittest(xml_dom_parse_gzip_blob)
 	assert_true(root_name && !strcmp(root_name, "MPD"));
 	if (root_name) gf_free(root_name);
 	gf_free(gz);
+#else
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("gzip test skipped because GPAC_DISABLE_ZLIB is defined") );
+#endif // GPAC_DISABLE_ZLIB
 }
