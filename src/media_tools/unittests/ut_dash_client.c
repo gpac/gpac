@@ -284,9 +284,11 @@ cleanup:
 		gf_mpd_del(dash.pending_mpd);
 		gf_xml_dom_del(parser);
 	}
+}
 #endif
 
 #ifndef GPAC_DISABLE_DASHIN
+
 static const char *multicast_header(GF_DASHFileIO *io, GF_DASHFileIOSession session, const char *name)
 {
 	return !strcmp(name, "x-mcast-first-seg") ? io->udta : NULL;
