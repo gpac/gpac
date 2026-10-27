@@ -1426,7 +1426,7 @@ void gf_mpd_common_attributes_free(GF_MPD_CommonAttributes *ptr)
 	gf_mpd_del_list(ptr->supplemental_properties, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->producer_reference_time, gf_mpd_producer_reftime_free, 0);
 	gf_mpd_del_list(ptr->group_labels, gf_mpd_grouplabel_free, 0);
-	gf_mpd_del_list(ptr->labels, gf_mpd_label_free, 0);	
+	gf_mpd_del_list(ptr->labels, gf_mpd_label_free, 0);
 }
 
 void gf_mpd_representation_free(void *_item)
@@ -2764,8 +2764,10 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 			return GF_NOT_READY;
 		}
 		rep->in_progress = GF_FALSE;
-		if (e<0)
+		if (e<0) {
+			gf_free(full_url);
 			return e;
+		}
 
 		loc_file = getter->get_cache_name(getter);
 		if (!loc_file) {
