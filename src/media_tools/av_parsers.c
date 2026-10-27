@@ -11188,8 +11188,15 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 		vp->avg_r = oggpack_read(&opb, 32);
 		vp->low_r = oggpack_read(&opb, 32);
 
-		vp->min_block = 1<<oggpack_read(&opb, 4);
-		vp->max_block = 1<<oggpack_read(&opb, 4);
+		s32 r1 = oggpack_read(&opb, 4);
+		s32 r2 = oggpack_read(&opb, 4);
+
+		u32 u1 = MAX(0, r1);
+		u32 u2 = MAX(0, r2);
+
+		vp->min_block = 1<<u1;
+		vp->max_block = 1<<u2;
+
 		if (vp->sample_rate < 1 || vp->channels < 1 || vp->min_block < 8 || vp->max_block < vp->min_block
 		    || oggpack_read(&opb, 1) != 1) {
 			return GF_FALSE;
