@@ -18178,7 +18178,11 @@ Bool gf_ac4_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC4Config *hdr, Bool full_p
 	(*pos) = AC4_FindSyncCode(buf, buflen);
 	if (*pos >= buflen) return GF_FALSE;
 
-	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
+	/* the bitstream starts at the sync code (buf + *pos), so its size is the
+	   remaining bytes from there; passing the full buflen would let reads run
+	   up to *pos bytes past the caller's buffer. The guard above ensures
+	   *pos < buflen, so buflen - *pos does not underflow. */
+	bs = gf_bs_new((const char*)(buf + *pos), buflen - *pos, GF_BITSTREAM_READ);
 	ret = gf_ac4_parser_bs(bs, hdr, full_parse, start_from_toc);
 	gf_bs_del(bs);
 
