@@ -4693,16 +4693,16 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 		return _mime; \
 
 
-	if (!strncmp(data, "WEBVTT", 6)) {
+	if ((res_size>=6) && !strncmp(data, "WEBVTT", 6)) {
 		PROBE_OK(GF_FPROBE_SUPPORTED, "subtitle/vtt")
 	}
 	if (gf_strmemstr(data, res_size, " --> ")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/srt")
 	}
-	if (!strncmp(data, "FWS", 3) || !strncmp(data, "CWS", 3)) {
+	if ((res_size>=3) && (!strncmp(data, "FWS", 3) || !strncmp(data, "CWS", 3))) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "application/x-shockwave-flash")
 	}
-	if (!strncmp(data, "[Script Info", 12)) {
+	if ((res_size>=12) && !strncmp(data, "[Script Info", 12)) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ssa")
 	}
 
