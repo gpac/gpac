@@ -887,13 +887,14 @@ setup_multicast_clock:
 
 		for (i=0; i<gf_list_count(dyn_period->adaptation_sets); i++) {
 			u64 sr, seg_dur_ms;
-			u32 j, len, nb_space=0;
+			u32 j, len;
 			GF_MPD_AdaptationSet *set;
-			char *sep, *start, *end, *seg_url = NULL;
+			char *sep, *start, *seg_url = NULL;
 
 			set = gf_list_get(dyn_period->adaptation_sets, i);
 			for (j=0; j<gf_list_count(set->representations); j++) {
 				u64 dur = dyn_period->duration;
+				u32 nb_space=0;
 				rep = gf_list_get(set->representations, j);
 
 				dyn_period->duration = 0;
@@ -932,26 +933,22 @@ setup_multicast_clock:
 					continue;
 				}
 				start = sep;
-				end = sep+4;
 				while (start>seg_url && (*(start-1)=='0')) { start--; nb_space++;}
 				start[0]=0;
 				len = (u32) strlen(seg_url);
 				if (!strncmp(val, seg_url, len)) {
 					u64 number=0;
-					char *szTemplate;
+					char szFmt[20];
+					const char *number_format = LLU;
 
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Resolve Multicast clock on bootstrap segment URL %s template %s\n", val, seg_url));
 
-					szTemplate = gf_strdup(seg_url);
-					gf_dynstrcat(&szTemplate, "%", NULL);
+					/* The matched URL prefix is literal data, not a scanf format. */
 					if (nb_space) {
-						char szFmt[20];
-						sprintf(szFmt, "0%d", nb_space+4);
-						gf_dynstrcat(&szTemplate, szFmt, NULL);
+						snprintf(szFmt, sizeof(szFmt), "%%0%u" LLU_SUF, nb_space+4);
+						number_format = szFmt;
 					}
-					gf_dynstrcat(&szTemplate, LLU_SUF, NULL);
-					gf_dynstrcat(&szTemplate, end, NULL);
-					if (sscanf(val, szTemplate, &number) == 1) {
+					if (sscanf(val+len, number_format, &number) == 1) {
 						u32 startNum = 1;
 						u64 pto=0;
 						u32 segdur=0, timescale=1; //MPD timescale is 1 if not present
@@ -1030,7 +1027,6 @@ setup_multicast_clock:
 							timeline_offset_ms = gf_timestamp_rescale(timeline_offset_ms, timescale, 1000);
 						}
 					}
-					gf_free(szTemplate);
 				} else {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Multicast bootstrap segment URL %s does not match template %s for rep #%d\n", val, seg_url+2, j+1));
 				}
