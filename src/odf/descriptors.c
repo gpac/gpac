@@ -2056,6 +2056,16 @@ GF_Err gf_odf_ac4_cfg_substream_group_dsi(GF_AC4SubStreamGroupV1 *g, GF_BitStrea
 	GF_AC4_SSS(bs, g->b_substreams_present, 1, size, desc_mode);
 	GF_AC4_SSS(bs, g->b_hsf_ext, 1, size, desc_mode);
 	GF_AC4_SSS(bs, g->b_channel_coded, 1, size, desc_mode);
+
+	if (desc_mode != GF_AC4_DESCMODE_PARSE) {
+		u32 list_count = g->substreams ? gf_list_count(g->substreams) : 0;
+		if (g->n_lf_substreams > list_count) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING,
+				("[AC4] substream list has %u entries but n_lf_substreams is %u, clamping to match\n",
+				list_count, (u32)g->n_lf_substreams));
+			g->n_lf_substreams = (u8)list_count;
+		}
+	}
 	GF_AC4_SSS(bs, g->n_lf_substreams, 8, size, desc_mode);
 
 	if (desc_mode == GF_AC4_DESCMODE_PARSE) {
