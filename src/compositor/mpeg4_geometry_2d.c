@@ -494,6 +494,9 @@ void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_
 	coord = (M_Coordinate2D *)c2D->point;
 	drawable_reset_path(stack);
 	if (!coord) return;
+	if ((gf_node_get_tag((GF_Node *)coord) != TAG_MPEG4_Coordinate)
+		&& (gf_node_get_tag((GF_Node *)coord) != TAG_MPEG4_Coordinate2D))
+		return;
 
 	stack->path->fineness = c2D->fineness;
 	if (tr_state->visual->compositor->fast)  stack->path->fineness /= 2;
