@@ -211,6 +211,7 @@ typedef struct __tsmx_pid
 
 	u32 sid;
 	u32 codec_id;
+	u32 dsi_crc;
 	u32 pmt_pid;
 	u32 nb_pck;
 	Bool is_repeat;
@@ -924,10 +925,13 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_TIMESCALE);
 	tspid->esi.timescale = p->value.uint;
 
+	u32 dsi_crc = 0;
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_DECODER_CONFIG);
 	if (p) {
 		tspid->esi.decoder_config = p->value.data.ptr;
 		tspid->esi.decoder_config_size = p->value.data.size;
+		if (p->value.data.ptr)
+			dsi_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 	}
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_ID);
 	if (p) tspid->esi.stream_id = p->value.uint;
@@ -1002,13 +1006,7 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	else if (bckp.codecid != tspid->esi.codecid) changed = GF_TRUE;
 	else if (bckp.depends_on_stream != tspid->esi.depends_on_stream) changed = GF_TRUE;
 	else if (bckp.lang != tspid->esi.lang) changed = GF_TRUE;
-	else if (bckp.decoder_config && !tspid->esi.decoder_config) changed = GF_TRUE;
-	else if (!bckp.decoder_config && tspid->esi.decoder_config) changed = GF_TRUE;
-	else if (bckp.decoder_config && tspid->esi.decoder_config &&
-		( (bckp.decoder_config_size != tspid->esi.decoder_config_size)
-		|| memcmp(bckp.decoder_config, tspid->esi.decoder_config, bckp.decoder_config_size))
-	)
-		changed = GF_TRUE;
+	else if (tspid->dsi_crc != dsi_crc) changed = GF_TRUE;
 	else if (memcmp(bckp.dv_info, tspid->esi.dv_info, 24))
 		changed = GF_TRUE;
 
@@ -1020,6 +1018,8 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 		changed = GF_TRUE;
 	else if ((tspid->esi.caps & GF_ESI_FORCE_DOLBY_VISION) != (bckp.caps & GF_ESI_FORCE_DOLBY_VISION))
 		changed = GF_TRUE;
+
+	tspid->dsi_crc = dsi_crc;
 
 	u32 crc_old = 0, crc_new = 0;
 	if (tspid->esi.gpac_meta_dsi) {
@@ -1048,7 +1048,7 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 		} else {
 			gf_bs_write_u32(bs, 0);
 		}
-		
+
 		if (tspid->esi.stream_type==GF_STREAM_VISUAL) {
 			p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_WIDTH);
 			gf_bs_write_u32(bs, p ? p->value.uint : 0);
@@ -1188,7 +1188,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 		}
 
 		sep = strchr(temi_cfg, ',');
-		if (sep) sep[0] = 0;	
+		if (sep) sep[0] = 0;
 
 		done = GF_TRUE;
 		if (temi_index && (temi_index!=st_idx)) done = GF_FALSE;
@@ -1976,7 +1976,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
 		}
 		if (!pck) return GF_OUT_OF_MEM;
-		
+
 		memcpy(output, ts_pck, osize);
 		gf_filter_pck_set_framing(pck, ctx->nb_pck ? ctx->next_is_start : GF_TRUE, (status==GF_M2TS_STATE_EOS) ? GF_TRUE : GF_FALSE);
 

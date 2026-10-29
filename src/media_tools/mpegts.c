@@ -175,7 +175,7 @@ static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, char *data, u32 size, Bool simple_c
 {
 	u32 i=0;
 	/*if first byte is sync assume we're sync*/
-	if (simple_check && (data[i]==0x47)) return 0;
+	if (simple_check && size && (data[i]==0x47)) return 0;
 
 	while (i < size) {
 		if (i+192 >= size) return size;
