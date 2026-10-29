@@ -3293,7 +3293,7 @@ attach_node:
 						gf_node_register(node, NULL);
 					} else if (parser->command->node != node) {
 						xmt_report(parser, GF_OK, "Warning: top-node already assigned - discarding node %s", name);
-						xmt_remove_od_links_for_node(parser, node);
+						xmt_remove_od_links_recursive(parser, node, 0);
 						xmt_discard_subtree(parser, node);
 						gf_node_register(node, NULL);
 						gf_node_unregister(node, NULL);
