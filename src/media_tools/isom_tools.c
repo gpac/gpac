@@ -4143,9 +4143,8 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, CO
 	av1_state->config = av1c;
 
 	for (i = 0; i < gf_list_count(av1c->obu_array); ++i) {
-		GF_BitStream *bs;
 		GF_AV1_OBUArrayEntry *a = gf_list_get(av1c->obu_array, i);
-		bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
+		GF_BitStream *bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
 		if (!av1_is_obu_header(a->obu_type))
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] AV1: unexpected obu_type %d - Parsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
 
