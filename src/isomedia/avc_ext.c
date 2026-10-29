@@ -226,6 +226,11 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 						ref_nalu_size = data_length;
 					}
 
+					if (ref_nalu_size > gf_bs_available(mdia->extracted_bs)) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMF: Extractor NALU size %u larger than remaining referred sample bytes "LLU" - skipping.\n", ref_nalu_size, gf_bs_available(mdia->extracted_bs)));
+						break;
+					}
+
 					if (ref_nalu_size > mdia->tmp_nal_copy_buffer_alloc) {
 						mdia->tmp_nal_copy_buffer_alloc = ref_nalu_size;
 						mdia->tmp_nal_copy_buffer = (char*) gf_realloc(mdia->tmp_nal_copy_buffer, sizeof(char) * ref_nalu_size );

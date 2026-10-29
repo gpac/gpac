@@ -1806,6 +1806,7 @@ GF_DOVIDecoderConfigurationRecord *gf_odf_dovi_cfg_read_bs(GF_BitStream *bs)
 {
 	GF_DOVIDecoderConfigurationRecord *cfg;
 	GF_SAFEALLOC(cfg, GF_DOVIDecoderConfigurationRecord);
+	if (!cfg) return NULL;
 
 	cfg->dv_version_major = gf_bs_read_u8(bs);
 	cfg->dv_version_minor = gf_bs_read_u8(bs);
