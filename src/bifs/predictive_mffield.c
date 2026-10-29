@@ -184,18 +184,21 @@ GF_Err PMF_Unquantize(PredMF *pmf, GF_FieldInfo *field)
 GF_Err PMF_ParsePValue(PredMF *pmf, GF_BitStream *bs, GF_FieldInfo *field)
 {
 	u32 i, numModel;
-	s32 prev_dir = 0;
+	s32 value, prev_dir = 0;
 	switch (pmf->QType) {
 	case QC_NORMALS:
 		prev_dir = pmf->direction;
 		pmf->direction = gp_bifs_aa_decode(pmf->dec, pmf->dir_model);
+		if (pmf->direction < 0) return GF_NON_COMPLIANT_BITSTREAM;
 		break;
 	}
 	/*decode (one model per component)*/
 	numModel = 0;
 	for (i=0; i<pmf->num_comp; i++) {
 		pmf->previous_val[i]= pmf->current_val[i];
-		pmf->current_val[i] =  gp_bifs_aa_decode(pmf->dec, pmf->models[numModel]) + pmf->comp_min[numModel];
+		value = gp_bifs_aa_decode(pmf->dec, pmf->models[numModel]);
+		if (value < 0) return GF_NON_COMPLIANT_BITSTREAM;
+		pmf->current_val[i] = value + pmf->comp_min[numModel];
 		numModel += (pmf->num_bounds==1) ? 0 : 1;
 	}
 
