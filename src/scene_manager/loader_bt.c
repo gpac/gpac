@@ -1245,6 +1245,7 @@ void gf_bt_check_unresolved_nodes(GF_BTParser *parser)
 		gf_bt_report(parser, GF_BAD_PARAM, "Cannot find node %s\n", gf_node_get_name(n) );
 		gf_node_unregister(n, NULL);
 	}
+	gf_list_reset(parser->undef_nodes);
 	parser->last_error = GF_BAD_PARAM;
 }
 
@@ -1951,7 +1952,11 @@ next_field:
 		} else {
 			GF_Node *n = gf_bt_sf_node(parser, str, NULL, isDEF ? szDefName : NULL);
 			isDEF = 0;
-			if (!n) goto err;
+			if (!n) {
+				// pending undef nodes live in the proto graph, which err: destroys
+				gf_bt_check_unresolved_nodes(parser);
+				goto err;
+			}
 			if ((0) && isDEF) {
 				u32 ID = gf_bt_get_def_id(parser, szDefName);
 				isDEF = 0;

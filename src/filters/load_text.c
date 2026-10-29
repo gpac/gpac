@@ -421,7 +421,7 @@ char *gf_text_get_utf8_line(char szLine[2048], u32 lineSize, FILE *txt_in, s32 u
 #endif
 	{
 		i=0;
-		while (1) {
+		while (i+1 < lineSize) {
 			char c;
 			if (!szLine[i] && !szLine[i+1]) break;
 			c = szLine[i+1];

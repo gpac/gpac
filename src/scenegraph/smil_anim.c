@@ -1091,6 +1091,7 @@ GF_Node *gf_smil_anim_get_target(GF_Node *e)
 void gf_smil_anim_init_runtime_info(GF_Node *e)
 {
 	u32 i;
+	u32 anim_value_type;
 	GF_FieldInfo target_attribute;
 	SMIL_AttributeAnimations *aa = NULL;
 	SMIL_Anim_RTI *rai;
@@ -1147,6 +1148,24 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 			        gf_node_get_log_name((GF_Node*)e) ));
 			return;
 		}
+	}
+
+	// animateTransform value types come from the 'type' attribute, not from the target
+	anim_value_type = 0;
+	if (animp->to && animp->to->type) anim_value_type = animp->to->type;
+	else if (animp->from && animp->from->type) anim_value_type = animp->from->type;
+	else if (animp->by && animp->by->type) anim_value_type = animp->by->type;
+	else if (animp->values && animp->values->type) anim_value_type = animp->values->type;
+
+	if (anim_value_type && (anim_value_type != target_attribute.fieldType)
+	    && (target_attribute.fieldType != SVG_Transform_datatype)
+	    && (target_attribute.fieldType != SVG_Motion_datatype)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME,
+		    ("[SMIL Animation] Cannot animate attribute of type %s with values of type %s on element %s\n",
+		        gf_svg_attribute_type_to_string(target_attribute.fieldType),
+		        gf_svg_attribute_type_to_string(anim_value_type),
+		        gf_node_get_log_name((GF_Node*)e)));
+		return;
 	}
 
 	/* Creation and setup of the runtime structure for animation */
