@@ -1685,6 +1685,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	"- 0: single sample description is used\n"
 	"- 1: a clear clone of the sample description is created, inserted before the CENC sample description\n"
 	"- 2: a clear clone of the sample description is created, inserted after the CENC sample description", GF_PROP_UINT),
+	DEC_PROP( GF_PROP_PID_CENC_TENC_FLAGS, "CENCTencFlags", "CENC TrackEncryptionBox feature flags", GF_PROP_UINT),
+	DEC_PROP( GF_PROP_PID_CENC_AES_256, "CENCAES256", "CENC TrackEncryptionBox signals AES-256", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_AMR_MODE_SET, "AMRModeSet", "ModeSet for AMR and AMR-WideBand", GF_PROP_UINT),
 	DEC_PROP_F( GF_PROP_PCK_SUBS, "SubSampleInfo", "Binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)codec_param(u8)priority(u8) discardable]. Subsamples for a given flag MUST appear in order, however flags can be interleaved", GF_PROP_DATA, GF_PROP_FLAG_PCK),
 	DEC_PROP( GF_PROP_PID_MAX_NALU_SIZE, "NALUMaxSize", "Max size of NAL units in stream - changes are signaled through PID info change (no reconfigure)", GF_PROP_UINT),
