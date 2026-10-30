@@ -1668,6 +1668,8 @@ char *gf_xml_get_root_type(const char *file, GF_Err *ret)
 	pt.res = NULL;
 	pt.parser = gf_xml_sax_new(on_peek_node_start, NULL, NULL, &pt);
 	e = gf_xml_sax_parse_file(pt.parser, file, NULL);
+	//a short file may reach EOF in the same read that finds the root - https://github.com/gpac/gpac/issues/4021
+	if ((e==GF_EOS) && pt.res) e = GF_OK;
 	if (ret) *ret = e;
 	gf_xml_sax_del(pt.parser);
 	return pt.res;
