@@ -1129,7 +1129,11 @@ GF_EXPORT
 GF_Err gf_sg_vrml_mf_reset(void *mf, u32 FieldType)
 {
 	GenMFField *mffield = (GenMFField *)mf;
-	if (!mffield || !mffield->array) return GF_OK;
+	if (!mffield) return GF_OK;
+	if (!mffield->array) {
+		mffield->count = 0;
+		return GF_OK;
+	}
 
 	//field we can't copy
 	if (gf_sg_vrml_is_sf_field(FieldType)) return GF_BAD_PARAM;
@@ -1433,7 +1437,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 			((GenMFField *)dest)->array = gf_realloc(((GenMFField *)dest)->array, size);
 			((GenMFField *)dest)->count = ((GenMFField *)orig)->count;
 		}
-		if (size)
+		if (size && ((GenMFField *)dest)->array && ((GenMFField *)orig)->array)
 			memcpy(((GenMFField *)dest)->array, ((GenMFField *)orig)->array, size);
 		break;
 	//complex MFFields
