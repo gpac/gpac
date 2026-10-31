@@ -117,7 +117,8 @@ void gf_svg_node_del(GF_Node *node)
 		SVGTimedAnimBaseElement *tap = (SVGTimedAnimBaseElement *)node;
 		if (tap->animp) {
 			gf_free(tap->animp);
-			gf_smil_anim_remove_from_target((GF_Node *)tap, (GF_Node *)tap->xlinkp->href->target);
+			if (tap->xlinkp && tap->xlinkp->href)
+				gf_smil_anim_remove_from_target((GF_Node *)tap, (GF_Node *)tap->xlinkp->href->target);
 		}
 		if (tap->timingp)		{
 			gf_smil_timing_delete_runtime_info((GF_Node *)tap, tap->timingp->runtime);
