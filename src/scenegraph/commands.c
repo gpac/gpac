@@ -339,6 +339,12 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			default:
 				/*this is a regular field, reset it and clone - we cannot switch pointers since the
 				original fields are NOT pointers*/
+				/* A command field whose stored type (e.g. SFVec2f) does not match the node's
+				   actual field type (e.g. MFVec2f) carries a too-small allocation for the MF
+				   path below and must be skipped.  This happens when a FIELD_REPLACE command
+				   is accidentally built with repValue children (type-mismatch side-effect of
+				   an "Oxtended" typo instead of "extended=indices"). */
+				if (inf->fieldType && (inf->fieldType != field.fieldType)) break;
 				if (!gf_sg_vrml_is_sf_field(field.fieldType)) {
 					e = gf_sg_vrml_mf_reset(field.far_ptr, field.fieldType);
 				}
