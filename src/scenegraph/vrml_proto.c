@@ -105,9 +105,11 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 	s32 i;
 
 	if (!proto) return GF_OK;
-	i = gf_list_del_item(proto->parent_graph->protos, proto);
-	if (i<0) {
-		gf_list_del_item(proto->parent_graph->unregistered_protos, proto);
+	if (proto->parent_graph) {
+		i = gf_list_del_item(proto->parent_graph->protos, proto);
+		if (i<0) {
+			gf_list_del_item(proto->parent_graph->unregistered_protos, proto);
+		}
 	}
 	if (proto->userpriv && proto->OnDelete) proto->OnDelete(proto->userpriv);
 
