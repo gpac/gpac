@@ -8882,7 +8882,7 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double
 		gather_ssr_rep(gr, select);
 		u32 j, count = gf_list_count(gr->xas_groups);
 		for (j=0; j<count; j++) {
-			GF_DASH_Group *agr = gf_list_get(group->xas_groups, j);
+			GF_DASH_Group *agr = gf_list_get(gr->xas_groups, j);
 			gather_ssr_rep(agr, select);
 		}
 		if (gf_list_count(select)) {

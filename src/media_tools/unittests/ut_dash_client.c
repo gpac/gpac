@@ -107,6 +107,58 @@ unittest(dash_update_manifest_timeline_position)
 	gf_file_delete(path);
 }
 
+/////////////////////////////////////////////////////////
+
+// a static MPD with two 10 s Periods, each with two AdaptationSets linked by adaptation-set-switching
+static void write_mpd_cross_as_two_periods(const char *path)
+{
+	u32 p;
+	FILE *f = gf_fopen(path, "w");
+	gf_fprintf(f, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" type=\"static\" profiles=\"urn:mpeg:dash:profile:isoff-live:2011\" "
+		"mediaPresentationDuration=\"PT20S\" minBufferTime=\"PT2S\">");
+	for (p=0; p<2; p++) {
+		gf_fprintf(f, "<Period id=\"p%u\" start=\"PT%uS\" duration=\"PT10S\">"
+			"<AdaptationSet id=\"1\" mimeType=\"video/mp4\" segmentAlignment=\"true\">"
+			"<SupplementalProperty schemeIdUri=\"urn:mpeg:dash:adaptation-set-switching:2016\" value=\"2\"/>"
+			"<SegmentTemplate media=\"$RepresentationID$_$Number$.m4s\" timescale=\"1\" duration=\"2\" startNumber=\"1\"/>"
+			"<Representation id=\"hi\" codecs=\"avc1.64001E\" width=\"640\" height=\"360\" bandwidth=\"400000\"/></AdaptationSet>"
+			"<AdaptationSet id=\"2\" mimeType=\"video/mp4\" segmentAlignment=\"true\">"
+			"<SupplementalProperty schemeIdUri=\"urn:mpeg:dash:adaptation-set-switching:2016\" value=\"1\"/>"
+			"<SegmentTemplate media=\"$RepresentationID$_$Number$.m4s\" timescale=\"1\" duration=\"2\" startNumber=\"1\"/>"
+			"<Representation id=\"lo\" codecs=\"avc1.64001E\" width=\"320\" height=\"180\" bandwidth=\"100000\"/></AdaptationSet>"
+			"</Period>", p+1, p*10);
+	}
+	gf_fprintf(f, "</MPD>");
+	gf_fclose(f);
+}
+
+unittest(dash_cross_as_seek_into_period)
+{
+	const char *path = "ut-dash-xas.mpd";
+	GF_DASHFileIO io = {0};
+	io.on_dash_event = dash_event;
+
+	GF_DashClient *dash = gf_dash_new(&io, 0, 0, GF_FALSE, GF_FALSE, GF_DASH_SELECT_QUALITY_LOWEST, 0);
+	gf_dash_enable_cross_as_switch(dash, GF_DASH_XAS_CODEC);
+	write_mpd_cross_as_two_periods(path);
+	assert_equal(gf_dash_open(dash, path), GF_OK, "%d");
+
+	// start 5 s into the second Period: its groups are set up with a seek
+	gf_dash_seek_periods(dash, 15);
+	assert_equal(dash->active_period_index, 1, "%u");
+	assert_true(dash->start_range_period == 5);
+
+	// AdaptationSet 2 joins AdaptationSet 1's group; seeking it walks the members of that group
+	assert_equal(gf_dash_setup_period(dash), GF_OK, "%d");
+	GF_DASH_Group *base = gf_list_get(dash->groups, 0);
+	GF_DASH_Group *member = gf_list_get(dash->groups, 1);
+	assert_true(base && member && (member->xas_base == base) && !member->xas_groups);
+
+	gf_dash_close(dash);
+	gf_dash_del(dash);
+	gf_file_delete(path);
+}
+
 #endif //GPAC_DISABLE_DASHIN
 
 #ifndef GPAC_DISABLE_DASHIN
