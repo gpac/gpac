@@ -1098,11 +1098,14 @@ GF_Err stbl_SetSyncShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 syncSamp
 #if !defined(GPAC_DISABLE_ISOM_WRITE) || !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
 
 //always called before removing the sample from SampleSize
+GF_NOT_EXPORTED
 GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples, u32 LastAUDefDuration)
 {
 	GF_SttsEntry *ent;
 	GF_TimeToSampleBox *stts;
 
+	if (!sampleNumber || !nb_samples || (sampleNumber > stbl->SampleSize->sampleCount)
+		|| (nb_samples > stbl->SampleSize->sampleCount)) return GF_BAD_PARAM;
 	if ((nb_samples>1) && (sampleNumber>1)) return GF_BAD_PARAM;
 
 	stts = stbl->TimeToSample;
@@ -1129,6 +1132,14 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 		u64 *DTSs, curDTS;
 		u32 i, j, k, sampNum;
 		u32 tot_samples;
+		u32 remaining_samples = stbl->SampleSize->sampleCount;
+		//The scratch table is sized from stsz, so stts must describe the same samples.
+		for (i=0; i<stts->nb_entries; i++) {
+			if (stts->entries[i].sampleCount > remaining_samples) return GF_ISOM_INVALID_FILE;
+			remaining_samples -= stts->entries[i].sampleCount;
+		}
+		if (remaining_samples) return GF_ISOM_INVALID_FILE;
+
 		//unpack the DTSs...
 		DTSs = (u64*)gf_malloc(sizeof(u64) * (stbl->SampleSize->sampleCount - 1));
 		if (!DTSs) return GF_OUT_OF_MEM;
@@ -1738,10 +1749,15 @@ GF_Err stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack)
 	return GF_OK;
 }
 
-GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack)
+GF_NOT_EXPORTED GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack)
 {
 	u32 i;
 	CHECK_PACK(GF_ISOM_INVALID_FILE)
+
+	if (stbl->SampleSize->sampleCount > GF_UINT_MAX - nb_pack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Sample count overflow while appending %u packed samples\n", nb_pack));
+		return GF_ISOM_INVALID_FILE;
+	}
 
 	if (!stbl->SampleSize->sampleCount && size) {
 		stbl->SampleSize->sampleSize = size;

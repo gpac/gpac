@@ -6780,6 +6780,8 @@ GF_Err gf_isom_get_preselection_info(GF_ISOFile *the_file, u8 **data, u32 *size)
 
 	gf_bs_get_content(bs, data, size);
 	gf_bs_del(bs);
+
+	return GF_OK;
 }
 
 GF_EXPORT

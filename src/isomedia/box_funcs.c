@@ -660,6 +660,7 @@ ISOM_BOX_IMPL_DECL(url)
 ISOM_BOX_IMPL_DECL(urn)
 ISOM_BOX_IMPL_DECL(cprt)
 ISOM_BOX_IMPL_DECL(kind)
+ISOM_BOX_IMPL_DECL(ctlc)
 ISOM_BOX_IMPL_DECL(chpl)
 ISOM_BOX_IMPL_DECL(hdlr)
 ISOM_BOX_IMPL_DECL(iods)
@@ -1601,6 +1602,7 @@ static struct box_registry_entry {
 	//apple boxes
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_MP3, audio_sample_entry, "stsd", "apple"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_CHPL, chpl, "udta", 0, "apple"),
+	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_CTLC, ctlc, "udta", 0, GF_ISOM_CTLC_FLAG_ADVERTISEMENT | GF_ISOM_CTLC_FLAG_IMMERSIVE_AUDIO, "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VOID, void, "", "apple"),
 	BOX_DEFINE_S(GF_QT_BOX_TYPE_WIDE, wide, "*", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_ILST, ilst, "meta", "apple"),

@@ -1,5 +1,5 @@
 // server/server.js
-import { Sys as sys9 } from "gpaccore";
+import { Sys as sys10 } from "gpaccore";
 
 // server/JSClient/Messaging/MessageHandler.js
 import { Sys as sys } from "gpaccore";
@@ -10,6 +10,7 @@ var UPDATE_INTERVALS = {
   FILTER_STATS: 1e3,
   CPU_STATS: 500
 };
+var WS_PROTOCOL_VERSION = 1;
 var LOG_RETENTION = {
   maxHistorySize: 500,
   maxHistorySizeVerbose: 2e3,
@@ -382,10 +383,12 @@ function SessionStatsManager(client) {
   this.interval = UPDATE_INTERVALS.SESSION_STATS;
   this.fields = [];
   this.lastSentMetrics = "";
+  this.lastSent = 0;
   this.subscribe = function(interval, fields) {
     this.isSubscribed = true;
     this.interval = interval || UPDATE_INTERVALS.SESSION_STATS;
     this.fields = fields || DEFAULT_FILTER_FIELDS;
+    this.lastSent = 0;
   };
   this.unsubscribe = function() {
     this.isSubscribed = false;
@@ -405,6 +408,8 @@ function SessionStatsManager(client) {
   };
   this.tick = function(now) {
     if (!this.isSubscribed) return;
+    if (now - this.lastSent < this.interval * 1e3) return;
+    this.lastSent = now;
     const serialized = cacheManager.getOrSet("session_stats", 50, () => {
       const stats = [];
       const filters = [];
@@ -554,19 +559,23 @@ function gpac_filter_to_minimal_object(f) {
     ipid: [],
     opid: []
   };
+  const hasSourceOpidIdx = typeof f.ipid_source_opid_idx === "function";
   for (let i = 0; i < f.nb_ipid; i++) {
     minimalFilters.ipid.push({
       pid_index: i,
       name: f.ipid_props(i, "name"),
       source_idx: f.ipid_source(i).idx,
-      stream_type: f.ipid_props(i, "StreamType")
+      source_opid_idx: hasSourceOpidIdx ? f.ipid_source_opid_idx(i) : -1,
+      stream_type: f.ipid_props(i, "StreamType"),
+      ID: f.ipid_props(i, "ID")
     });
   }
   for (let o = 0; o < f.nb_opid; o++) {
     minimalFilters.opid.push({
       pid_index: o,
       name: f.opid_props(o, "name"),
-      stream_type: f.opid_props(o, "StreamType")
+      stream_type: f.opid_props(o, "StreamType"),
+      ID: f.opid_props(o, "ID")
     });
   }
   return minimalFilters;
@@ -778,7 +787,7 @@ function FilterManager(client) {
       const idx = parseInt(idxStr);
       const sub = this.filterSubscriptions[idxStr];
       const lastSent = this.lastSentByFilter[idxStr] || 0;
-      if (now - lastSent < sub.interval) continue;
+      if (now - lastSent < sub.interval * 1e3) continue;
       const cacheKey = `filter_stats_${idx}`;
       const serialized = cacheManager.getOrSet(cacheKey, 50, () => {
         session.lock_filters(true);
@@ -877,7 +886,7 @@ function CpuStatsManager(client) {
   };
   this.tick = function(now) {
     if (!this.isSubscribed) return;
-    if (now - this.lastSent < this.interval) return;
+    if (now - this.lastSent < this.interval * 1e3) return;
     const serialized = cacheManager.getOrSet("cpu_stats", 50, () => {
       const { stats } = buildCpuStatsPayload();
       return JSON.stringify({ message: "cpu_stats", stats: { timestamp: now, ...stats } });
@@ -1086,6 +1095,25 @@ function CommandLineManager(client) {
   };
 }
 
+// server/JSClient/buildMonitorConfigPayload.js
+import { Sys as sys6 } from "gpaccore";
+function buildMonitorConfigPayload() {
+  let gpac_version = null;
+  try {
+    gpac_version = sys6.version_full || null;
+  } catch (_e) {
+    gpac_version = null;
+  }
+  const payload = {
+    message: "monitor_config",
+    intervals: UPDATE_INTERVALS,
+    logRetention: LOG_RETENTION,
+    ws_protocol_version: WS_PROTOCOL_VERSION,
+    gpac_version
+  };
+  return payload;
+}
+
 // server/JSClient/index.js
 function JSClient(id, client, all_clients2, ensureMonitoringLoop2, historyCollector2) {
   this.id = id;
@@ -1103,11 +1131,7 @@ function JSClient(id, client, all_clients2, ensureMonitoringLoop2, historyCollec
     this.messageHandler.handleMessage(msg, all_clients2);
   };
   this.sendMonitorConfig = function() {
-    this.client.send(JSON.stringify({
-      message: "monitor_config",
-      intervals: UPDATE_INTERVALS,
-      logRetention: LOG_RETENTION
-    }));
+    this.client.send(JSON.stringify(buildMonitorConfigPayload()));
   };
   this.cleanup = function() {
     try {
@@ -1122,7 +1146,7 @@ function JSClient(id, client, all_clients2, ensureMonitoringLoop2, historyCollec
 }
 
 // server/history/HistoryCollector.js
-import { Sys as sys6 } from "gpaccore";
+import { Sys as sys7 } from "gpaccore";
 
 // server/history/HistoryWriter.js
 import * as std3 from "std";
@@ -1437,7 +1461,7 @@ function HistoryCollector(historyDir) {
     this._writeCheckpointIfNeeded(newChunkIndex, this._lastEventTsUs);
   };
   this.startLogCapture = function() {
-    this.initialLogConfig = sys6.get_logs(true);
+    this.initialLogConfig = sys7.get_logs(true);
     logHub.add(LOG_ID, this);
   };
   this.writeSnapshot = function(data) {
@@ -1475,7 +1499,7 @@ function HistoryCollector(historyDir) {
         properties: { ...filter.properties, ipids: strippedIpids }
       };
     });
-    const filtersTsUs = sys6.clock_us();
+    const filtersTsUs = sys7.clock_us();
     this.writer.addEventIndex(filtersTsUs, "graph-change");
     if (!this.snapshotWritten) {
       this.writeSnapshot({
@@ -1512,7 +1536,7 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(filtersTsUs);
   };
   this.recordSessionStats = function(payload, force) {
-    const ts_us = sys6.clock_us();
+    const ts_us = sys7.clock_us();
     if (!force && ts_us - this.lastRecordUs < RATE_LIMIT_US) return;
     this.lastRecordUs = ts_us;
     const filterMap = {};
@@ -1541,7 +1565,7 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(ts_us);
   };
   this.recordCpuStats = function(payload) {
-    const cpuTsUs = sys6.clock_us();
+    const cpuTsUs = sys7.clock_us();
     if (cpuTsUs - this.lastCpuRecordUs < RATE_LIMIT_US) return;
     this.lastCpuRecordUs = cpuTsUs;
     const rotated = this.writer.writeEvent(JSON.stringify({
@@ -1554,7 +1578,7 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(cpuTsUs);
   };
   this.recordPidReconfigured = function(indexes, pidsByFilter) {
-    const tsUs = sys6.clock_us();
+    const tsUs = sys7.clock_us();
     this.writer.addEventIndex(tsUs, "pid-reconfig");
     if (!this._currentPidState) {
       this._currentPidState = {};
@@ -1582,7 +1606,7 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(tsUs);
   };
   this.recordArgUpdated = function(indexes, argsByFilter) {
-    const tsUs = sys6.clock_us();
+    const tsUs = sys7.clock_us();
     this.writer.addEventIndex(tsUs, "args-change");
     for (const idx of indexes) {
       if (argsByFilter[idx]) {
@@ -1603,7 +1627,7 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(tsUs);
   };
   this.recordFilterArgsUpdate = function(filterIdx, argName, newValue) {
-    const argsTsUs = sys6.clock_us();
+    const argsTsUs = sys7.clock_us();
     const rotated = this.writer.writeEvent(JSON.stringify({
       version: EVENT_VERSION,
       message: "filter_args_update",
@@ -1614,7 +1638,7 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(argsTsUs);
   };
   this.recordLogConfigChanged = function(logLevel) {
-    const tsUs = sys6.clock_us();
+    const tsUs = sys7.clock_us();
     this.writer.writeLog(JSON.stringify({
       version: EVENT_VERSION,
       message: "log_config_changed",
@@ -1624,7 +1648,7 @@ function HistoryCollector(historyDir) {
   };
   this.handleLog = function(tool, level, message, thread_id, caller) {
     this.pendingLogs.push({
-      timestamp: sys6.clock_us(),
+      timestamp: sys7.clock_us(),
       tool,
       level,
       message: message?.length > MAX_LOG_MESSAGE_LENGTH ? message.substring(0, MAX_LOG_MESSAGE_LENGTH) + "..." : message,
@@ -1641,7 +1665,7 @@ function HistoryCollector(historyDir) {
   };
   this.flushLogs = function() {
     if (this.pendingLogs.length) {
-      const tsUs = sys6.clock_us();
+      const tsUs = sys7.clock_us();
       this.writer.writeLog(JSON.stringify({
         version: EVENT_VERSION,
         message: "log_batch",
@@ -1676,10 +1700,10 @@ function HistoryCollector(historyDir) {
 }
 
 // server/GraphManager.js
-import { Sys as sys8 } from "gpaccore";
+import { Sys as sys9 } from "gpaccore";
 
 // server/history/SnapshotBuilder.js
-import { Sys as sys7 } from "gpaccore";
+import { Sys as sys8 } from "gpaccore";
 function SnapshotBuilder() {
   this.pidCollector = new PidDataCollector();
   this.buildFilterEntry = function(f) {
@@ -1705,7 +1729,7 @@ function SnapshotBuilder() {
     session.lock_filters(false);
     return {
       version: 1,
-      ts_us: sys7.clock_us(),
+      ts_us: sys8.clock_us(),
       command_line: commandLine,
       graph_v: graphVersion,
       filters,
@@ -1729,7 +1753,7 @@ function GraphManager(deps) {
     return graphVersion;
   };
   this.onGraphEvent = function() {
-    const now = sys8.clock_us();
+    const now = sys9.clock_us();
     graphDirty = true;
     lastGraphEventTime = now;
     if (!graphBuildStartTime) graphBuildStartTime = now;
@@ -1737,7 +1761,7 @@ function GraphManager(deps) {
     if (debounceRunning) return;
     debounceRunning = true;
     session.post_task(() => {
-      const now2 = sys8.clock_us();
+      const now2 = sys9.clock_us();
       const sinceLast = now2 - lastGraphEventTime;
       const sinceBuildStart = now2 - graphBuildStartTime;
       const graphStable = sinceLast >= GRAPH_DEBOUNCE_US;
@@ -1761,7 +1785,7 @@ function GraphManager(deps) {
       if (!historyCollector2.snapshotWritten) {
         let commandLine = null;
         try {
-          commandLine = sys8.args ? sys8.args.join(" ") : null;
+          commandLine = sys9.args ? sys9.args.join(" ") : null;
         } catch (_e) {
         }
         const snapshot = snapshotBuilder.build(graphVersion, commandLine);
@@ -1823,7 +1847,7 @@ function buildSessionStatsPayload(session2, fields) {
 }
 
 // server/server.js
-var recordPath = sys9.get_opt("core", "rmt-log");
+var recordPath = sys10.get_opt("core", "rmt-log");
 var historyCollector = new HistoryCollector(recordPath);
 print(recordPath ? `[History] Recording enabled -> ${recordPath}` : "[History] Recording disabled (no -rmt-log)");
 var all_clients = [];
@@ -1840,7 +1864,7 @@ function ensureMonitoringLoop() {
   if (monitoringRunning) return;
   monitoringRunning = true;
   session.post_task(() => {
-    const now = sys9.clock_us();
+    const now = sys10.clock_us();
     if (session.last_task) {
       for (const client of all_clients) client.sessionManager.handleSessionEnd(now);
       historyCollector.recordSessionStats(buildSessionStatsPayload(session), true);
@@ -1923,7 +1947,7 @@ session.set_filter_arg_updated_fun((f) => {
     return false;
   });
 });
-sys9.rmt_on_new_client = function(client) {
+sys10.rmt_on_new_client = function(client) {
   let js_client = new JSClient(++cid, client, all_clients, ensureMonitoringLoop, historyCollector);
   all_clients.push(js_client);
   js_client.sendMonitorConfig();

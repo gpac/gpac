@@ -126,7 +126,7 @@ typedef struct
 
 
 /*! macro for extensible MPD element
-Some elments are typically overloaded in XML, we keep the attributes / children nodes here. The attributes list is NULL if no extensions were found, otherwise it is a list of GF_XMLAttribute.
+Some elements are typically overloaded in XML, we keep the attributes / children nodes here. The attributes list is NULL if no extensions were found, otherwise it is a list of GF_XMLAttribute.
 The children list is NULL if no extensions were found, otherwise it is a list of GF_XMLNode
 */
 #define MPD_EXTENSIBLE	\
@@ -584,7 +584,7 @@ typedef struct
 {
 	/*! time in mpd timescale*/
 	u64 time;
-	/*! duration in mpd timescale*/
+	/*! duration in representation media timescale (GF_MPD_Representation::timescale)*/
 	u64 dur;
 	/*! name as printed in segment lists / m3u8*/
 	char *filename;
@@ -623,6 +623,14 @@ typedef struct
 	u32 stl_rcount;
 	/*! LLHAS template*/
 	char *llhas_template;
+
+	/*! GPAC-internal event-to-segment boundary associations.
+	 * Opaque list owned by this segment context; entries are defined in
+	 * gpac/internal/dash_segment_events.h. NULL means legacy time-based
+	 * event placement; a non-NULL, possibly empty list indicates that
+	 * event placement is provided explicitly by the segmenter.
+	 * Appended to preserve offsets of all existing fields. */
+	GF_List *event_associations;
 } GF_DASH_SegmentContext;
 
 /*! Representation*/
@@ -670,7 +678,7 @@ typedef struct {
 	/*! GPAC dasher context*/
 	GF_DASH_SegmenterContext *dasher_ctx;
 	/*! list of segment states*/
-	GF_List *state_seg_list;
+	GF_List *state_seg_list; //GF_DASH_SegmentContext
 	s32 tsb_first_entry;
 	/*! segment timescale (for HLS)*/
 	u32 timescale;
@@ -1366,7 +1374,7 @@ Double gf_mpd_get_duration(GF_MPD *mpd);
 \param out_pts_offset set to the presentation time offset if any (optional, may be NULL)
 \param out_segment_timeline set to the segment timeline description if any (optional, may be NULL)
 */
-void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
+void gf_mpd_resolve_segment_duration(const GF_MPD_Representation *rep, const GF_MPD_AdaptationSet *set, const GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
 
 /*! gets the start_time from the segment index of a period/set/rep
 \param in_segment_index the index of the target segment (startNumber based)

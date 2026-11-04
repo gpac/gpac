@@ -4033,9 +4033,10 @@ GF_Err dolby_get_codec_ac4(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size)
 		}
 	}
 	if (lowest_md_compat == GF_UINT_MAX) {
+		gf_odf_ac4_cfg_clean_list(&cfg);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	
+
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "ac-4.%02d.%02d.%02d", bitstream_version, presentation_version, lowest_md_compat);
 	gf_odf_ac4_cfg_clean_list(&cfg);
 	return e;

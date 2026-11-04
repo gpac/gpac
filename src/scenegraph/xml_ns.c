@@ -1129,6 +1129,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 
 	data = NULL;
 	sep = strstr(iri->string, ";base");
+	if (!sep) return GF_OK;
 	if (!strncmp(sep, ";base64,", 8)) {
 		sep += 8;
 		data_size = 2 * (u32) strlen(sep);
@@ -1143,7 +1144,11 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 		sep += 8;
 		data_size = gf_base16_decode(sep, (u32) strlen(sep), data, data_size);
 	}
-	if (!data || !data_size) return GF_OK;
+	if (!data) return GF_OK;
+	if (!data_size) {
+		gf_free(data);
+		return GF_OK;
+	}
 
 	iri->type = XMLRI_STRING;
 

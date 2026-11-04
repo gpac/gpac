@@ -244,6 +244,31 @@ typedef struct
 	char *mkey_subs;
 } GF_TrackCryptInfo;
 
+/*! Parsed DRM system information associated with a crypt configuration.
+
+This is populated for input formats which carry DRM system data e.g. CPIX.
+The payload is the private data of a CENC PSSH box.
+*/
+typedef struct
+{
+	/*! protection system ID*/
+	bin128 systemID;
+	/*! optional associated content key*/
+	bin128 associated_kid;
+	/*! whether associated_kid is present*/
+	Bool has_associated_kid;
+	/*! PSSH version*/
+	u32 version;
+	/*! number of KIDs carried by PSSH version>0*/
+	u32 nb_kids;
+	/*! KIDs carried by PSSH version>0*/
+	bin128 *kids;
+	/*! PSSH private data*/
+	u8 *private_data;
+	/*! size of PSSH private data*/
+	u32 private_data_size;
+} GF_CryptDRMInfo;
+
 /*! Crypto information*/
 typedef struct
 {
@@ -257,10 +282,15 @@ typedef struct
 	Bool in_text_header;
 	/*! intern to parser*/
 	GF_Err last_parse_error;
+	/*! optional parsed DRM system information (appended for ABI compatibility)*/
+	GF_List *drm_infos; /*GF_CryptDRMInfo*/
+	/*! configuration was loaded from a CPIX document*/
+	Bool is_cpix;
 } GF_CryptInfo;
 
-/*! loads a given crypto configuration file. Full doc is available at https://gpac.io/mp4box/encryption/common-encryption/
-\param file name of the crypt XML file
+/*! loads a given crypto configuration file. GPAC DRM XML and the supported CPIX plaintext-key subset are accepted.
+    Full doc is available at https://gpac.io/mp4box/encryption/common-encryption/
+\param file name of the crypt XML file (either GPAC or CPIX)
 \param out_err set to return error
 \return the crypt info
 */
@@ -323,4 +353,3 @@ GF_Err gf_crypt_fragment(GF_ISOFile *infile, const char *drm_file, const char *d
 
 
 #endif	/*_GF_CRYPT_TOOLS_H_*/
-

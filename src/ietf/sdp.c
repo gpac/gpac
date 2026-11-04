@@ -219,15 +219,20 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 			gf_list_add(media->FMTP, fmtp);
 		}
 		while (1) {
+			s32 value_start;
 			pos = gf_token_get(buffer, pos, "; =\r\n", comp, SDP_MAX_LINE);
 			if (pos <= 0) break;
 			att = (GF_X_Attribute*)gf_malloc(sizeof(GF_X_Attribute));
 			att->Name = gf_strdup(comp);
 			att->Value = NULL;
 			pos ++;
+			value_start = pos;
 			pos = gf_token_get(buffer, pos, ";\r\n", comp, SDP_MAX_LINE);
 			if (pos > 0) att->Value = gf_strdup(comp);
 			gf_list_add(fmtp->Attributes, att);
+			// A NUL byte inside the fmtp value makes gf_token_get stop at it (it is strlen-based) and
+			// return the same position it was given, so the loop would spin here allocating forever.
+			if (pos <= value_start) break;
 		}
 		return;
 	}

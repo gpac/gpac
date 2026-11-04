@@ -385,6 +385,51 @@ GF_Err kind_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void ctlc_box_del(GF_Box *s)
+{
+	GF_ContentTypeForLoudnessControlBox *ptr = (GF_ContentTypeForLoudnessControlBox *)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+GF_Err ctlc_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_ContentTypeForLoudnessControlBox *ptr = (GF_ContentTypeForLoudnessControlBox *)s;
+
+	ISOM_DECREASE_SIZE(ptr, 1)
+	ptr->content_type = gf_bs_read_u8(bs);
+	return GF_OK;
+}
+
+GF_Box *ctlc_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ContentTypeForLoudnessControlBox, GF_ISOM_BOX_TYPE_CTLC);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err ctlc_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ContentTypeForLoudnessControlBox *ptr = (GF_ContentTypeForLoudnessControlBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, ptr->content_type);
+	return GF_OK;
+}
+
+GF_Err ctlc_box_size(GF_Box *s)
+{
+	GF_ContentTypeForLoudnessControlBox *ptr = (GF_ContentTypeForLoudnessControlBox *)s;
+
+	ptr->size += 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 void prsl_box_del(GF_Box *s)
 {
 	GF_PreselectionGroupBox *ptr = (GF_PreselectionGroupBox *) s;
@@ -6619,7 +6664,7 @@ void stts_box_del(GF_Box *s)
 
 GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 i;
+	u32 i, nb_entries_in_box;
 	u32 nb_patches=0, needs_patch = 0;
 	GF_TimeToSampleBox *ptr = (GF_TimeToSampleBox *)s;
 
@@ -6633,6 +6678,10 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stts\n", ptr->nb_entries));
 		return GF_ISOM_INVALID_FILE;
 	}
+
+	// patching a sample_delta=0 entry below may split an entry and grow nb_entries; the box size check
+	// at the end must use the count read from the file, not the patched count
+	nb_entries_in_box = ptr->nb_entries;
 
 	ptr->alloc_size = ptr->nb_entries;
 	ptr->entries = gf_malloc(sizeof(GF_SttsEntry)*ptr->alloc_size);
@@ -6703,7 +6752,7 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 			ptr->max_ts_delta = ptr->entries[i].sampleDelta;
 
 	}
-	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries*8);
+	ISOM_DECREASE_SIZE(ptr, nb_entries_in_box*8);
 
 	if (nb_patches) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found %u stts entries with forbidden sample_delta=0 - patching to 1\n", nb_patches));

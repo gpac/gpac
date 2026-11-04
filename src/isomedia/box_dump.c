@@ -450,6 +450,17 @@ GF_Err kind_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err ctlc_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ContentTypeForLoudnessControlBox *p;
+
+	p = (GF_ContentTypeForLoudnessControlBox *)a;
+	gf_isom_box_dump_start(a, "ContentTypeForLoudnessControlBox", trace);
+	gf_fprintf(trace, "content_type=\"%u\">\n", p->content_type);
+	gf_isom_box_dump_done("ContentTypeForLoudnessControlBox", a, trace);
+	return GF_OK;
+}
+
 
 static void dump_escape_string(FILE * trace, char *name)
 {
@@ -3734,7 +3745,7 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 {
 	GF_Box *a;
 	u32 len, j;
-	u32 shift_offset[20];
+	u32 *shift_offset = NULL;
 	u32 so_count;
 	char szDur[100];
 	gf_fprintf(dump, "<TextSample sampleTime=\"%s\" sampleDescriptionIndex=\"%d\"", tx3g_format_time(ts, timescale, szDur, GF_FALSE), di);
@@ -3772,6 +3783,14 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 		}
 		if (len != GF_UTF8_FAIL) {
 			utf16Line[len] = 0;
+			/* Each CRLF consumes two UTF-16 code units. */
+			if (len>1) {
+				shift_offset = gf_malloc(sizeof(u32) * (len/2));
+				if (!shift_offset) {
+					gf_free(utf16Line);
+					return;
+				}
+			}
 			for (j=0; j<len; j++) {
 				if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') || (utf16Line[j]==0x85) || (utf16Line[j]==0x2028) || (utf16Line[j]==0x2029) ) {
 					gf_fprintf(dump, "\n");
@@ -3881,6 +3900,7 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 	}
 
 	gf_fprintf(dump, "</TextSample>\n");
+	if (shift_offset) gf_free(shift_offset);
 
 }
 static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDumpType dump_type)

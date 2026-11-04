@@ -269,7 +269,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	ctx->passthrough = GF_FALSE;
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
-	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.afmt==ctx->afmt) && (ctx->speed==FIX_ONE))
+	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.afmt==ctx->afmt) && (ctx->timescale==ctx->freq) && (ctx->speed==FIX_ONE))
 		ctx->passthrough = GF_TRUE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->freq));
@@ -428,7 +428,7 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (e) return e;
 	ctx->passthrough = GF_FALSE;
 
-	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.afmt==afmt) && (ctx->speed == FIX_ONE))
+	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.afmt==afmt) && (ctx->timescale==ctx->freq) && (ctx->speed == FIX_ONE))
 		ctx->passthrough = GF_TRUE;
 
 	resampler_set_ts_tolerance(ctx);

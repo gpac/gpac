@@ -1213,15 +1213,15 @@ static JSValue js_sys_rmt_client_send(JSContext *ctx, JSValueConst this_val, int
 	if (JS_IsString(argv[0])) {
 		const char *msg = JS_ToCString(ctx, argv[0]);
 		GF_Err e = gf_rmt_client_send_to_ws(client, msg, strlen(msg), GF_FALSE);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent msg <%s> to client <%p> returned <%d>\n", __FILE__, __LINE__, msg, client, e));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("[RMTWS] sent msg <%s> to client <%p> returned <%d>\n", msg, client, e));
 		JS_FreeCString(ctx, msg);
 	}
 	else if (JS_IsArrayBuffer(ctx, argv[0])) {
-		u32 bufsize=0;
-		u8* buf = JS_GetArrayBuffer(ctx, (size_t*)&bufsize, argv[0]);
+		size_t bufsize=0;
+		u8* buf = JS_GetArrayBuffer(ctx, &bufsize, argv[0]);
 		if (buf && bufsize) {
 			GF_Err e = gf_rmt_client_send_to_ws(client, buf, bufsize, GF_TRUE);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent binary msg <%.*s> to client <%p> returned <%d>\n", __FILE__, __LINE__, bufsize, buf, client, e));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("[RMTWS] sent binary msg <"LLU" bytes> to client <%p> returned <%d>\n", (u64) bufsize, client, e));
 		}
 
 	}
@@ -4494,7 +4494,14 @@ void qjs_init_all_modules(JSContext *ctx, Bool no_webgl, Bool for_vrml)
 	qjs_module_init_gpaccore(ctx);
 
 #ifndef GPAC_DISABLE_QJS_LIBC
-	qjs_module_init_qjs_libc(ctx);
+	/* never expose QuickJS libc modules (os, std) to scripts embedded in media
+	   content (VRML/X3D/BIFS scene scripts): these are untrusted inputs, and the
+	   os module provides process execution (os.exec) while std provides file
+	   and process APIs, all with the privileges of the GPAC process. Other JS
+	   hosts (jsf filters, DASH algo scripts, HTTP out scripting, workers) only
+	   run user-provided scripts where these modules are a feature. */
+	if (!for_vrml)
+		qjs_module_init_qjs_libc(ctx);
 #endif
 
 	//vrml, init scene JS but do not init xhr (defined in DOM JS)

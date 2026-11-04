@@ -1496,11 +1496,22 @@ static void gf_filter_pid_disconnect_task(GF_FSTask *task)
 		gf_filter_pid_configure(task->filter, task->pid->pid, GF_PID_CONF_REMOVE);
 
 	gf_mx_p(task->filter->tasks_mx);
+	//recompute active pids - we must do this because gf_filter_pid_remove will skip unlinking of a PID/filter marked as remove
+	//so we may still have PIDs in input or output lists
+	u32 i, num_active_pids = 0;
+	for (i=0; i<task->filter->num_output_pids && !num_active_pids; i++) {
+		GF_FilterPid *opid = gf_list_get(task->filter->output_pids, i);
+		if (!opid->removed) num_active_pids++;
+	}
+	for (i=0; i<task->filter->num_input_pids && !num_active_pids; i++) {
+		GF_FilterPidInst *ipid = gf_list_get(task->filter->input_pids, i);
+		if (!ipid->pid->removed) num_active_pids++;
+	}
+
 	//if the filter has no more connected ins and outs, remove it
 	if (task->filter->removed
 		&& !task->filter->finalized
-		&& !gf_list_count(task->filter->output_pids)
-		&& !gf_list_count(task->filter->input_pids)
+		&& !num_active_pids
 		//make sure we don't have any remove pid packets pending
 		&& !task->filter->pid_rem_packet_pending
 	) {
@@ -6089,8 +6100,7 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	return pid;
 }
 
-GF_NOT_EXPORTED
-void gf_filter_pid_del(GF_FilterPid *pid)
+GF_NOT_EXPORTED void gf_filter_pid_del(GF_FilterPid *pid)
 {
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s destruction (%p)\n", pid->filter->name, pid->name, pid));
 	while (gf_list_count(pid->destinations)) {
@@ -10303,7 +10313,7 @@ void gf_filter_pid_send_flush(GF_FilterPid *pid)
 	pid->eos_keepalive = GF_TRUE;
 }
 
-void gf_filter_pid_force_single_link(GF_FilterPid *pid)
+GF_NOT_EXPORTED void gf_filter_pid_force_single_link(GF_FilterPid *pid)
 {
 	if (!pid) return;
 	if (PID_IS_INPUT(pid)) {
@@ -10312,7 +10322,7 @@ void gf_filter_pid_force_single_link(GF_FilterPid *pid)
 	}
 	pid->link_flags |= PID_FORCE_SINGLE;
 }
-void gf_filter_pid_disable_clone(GF_FilterPid *pid)
+GF_NOT_EXPORTED void gf_filter_pid_disable_clone(GF_FilterPid *pid)
 {
 	if (!pid) return;
 	if (PID_IS_INPUT(pid)) {
