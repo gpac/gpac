@@ -1193,7 +1193,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	return GF_OK;
 }
 
-GF_Err dash_state_check_timing(const char *dash_state, u64 *next_gen_ntp_ms, u32 *next_time_ms)
+GF_NOT_EXPORTED GF_Err dash_state_check_timing(const char *dash_state, u64 *next_gen_ntp_ms, u32 *next_time_ms)
 {
 	u64 next_gen_ntp = 0;
 	GF_Err e = GF_OK;

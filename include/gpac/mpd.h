@@ -623,9 +623,12 @@ typedef struct
 	u32 stl_rcount;
 	/*! LLHAS template*/
 	char *llhas_template;
+
 	/*! GPAC-internal event-to-segment boundary associations.
 	 * Opaque list owned by this segment context; entries are defined in
-	 * gpac/internal/dash_segment_events.h. NULL when there are no events.
+	 * gpac/internal/dash_segment_events.h. NULL means legacy time-based
+	 * event placement; a non-NULL, possibly empty list indicates that
+	 * event placement is provided explicitly by the segmenter.
 	 * Appended to preserve offsets of all existing fields. */
 	GF_List *event_associations;
 } GF_DASH_SegmentContext;
@@ -675,7 +678,7 @@ typedef struct {
 	/*! GPAC dasher context*/
 	GF_DASH_SegmenterContext *dasher_ctx;
 	/*! list of segment states*/
-	GF_List *state_seg_list;
+	GF_List *state_seg_list; //GF_DASH_SegmentContext
 	s32 tsb_first_entry;
 	/*! segment timescale (for HLS)*/
 	u32 timescale;

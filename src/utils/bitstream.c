@@ -99,6 +99,7 @@ GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const u8 *buffer, u64 BufferSize)
 		bs->nbBits = 8;
 		bs->current = 0;
 		bs->nb_zeros = bs->nb_removed = 0;
+		bs->overflow_state = 0;
 		return GF_OK;
 	}
 	if (bs->bsmode==GF_BITSTREAM_WRITE) {

@@ -181,7 +181,7 @@ static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const ch
 	return args_striped;
 }
 
-const char *gf_filter_get_dst_args(GF_Filter *filter)
+GF_NOT_EXPORTED const char *gf_filter_get_dst_args(GF_Filter *filter)
 {
 	return gf_filter_get_args_stripped(filter->session, filter->dst_args, GF_TRUE);
 }
@@ -5869,7 +5869,7 @@ const char *gf_filter_meta_get_instances(GF_Filter *filter)
 	return filter ? filter->meta_instances : NULL;
 }
 
-void gf_filter_skip_seg_size_events(GF_Filter *filter)
+GF_NOT_EXPORTED void gf_filter_skip_seg_size_events(GF_Filter *filter)
 {
 	if (filter) filter->no_segsize_evts=GF_TRUE;
 }

@@ -11188,8 +11188,15 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 		vp->avg_r = oggpack_read(&opb, 32);
 		vp->low_r = oggpack_read(&opb, 32);
 
-		vp->min_block = 1<<oggpack_read(&opb, 4);
-		vp->max_block = 1<<oggpack_read(&opb, 4);
+		s32 r1 = oggpack_read(&opb, 4);
+		s32 r2 = oggpack_read(&opb, 4);
+
+		u32 u1 = MAX(0, r1);
+		u32 u2 = MAX(0, r2);
+
+		vp->min_block = 1<<u1;
+		vp->max_block = 1<<u2;
+
 		if (vp->sample_rate < 1 || vp->channels < 1 || vp->min_block < 8 || vp->max_block < vp->min_block
 		    || oggpack_read(&opb, 1) != 1) {
 			return GF_FALSE;
@@ -18171,7 +18178,11 @@ Bool gf_ac4_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC4Config *hdr, Bool full_p
 	(*pos) = AC4_FindSyncCode(buf, buflen);
 	if (*pos >= buflen) return GF_FALSE;
 
-	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
+	/* the bitstream starts at the sync code (buf + *pos), so its size is the
+	   remaining bytes from there; passing the full buflen would let reads run
+	   up to *pos bytes past the caller's buffer. The guard above ensures
+	   *pos < buflen, so buflen - *pos does not underflow. */
+	bs = gf_bs_new((const char*)(buf + *pos), buflen - *pos, GF_BITSTREAM_READ);
 	ret = gf_ac4_parser_bs(bs, hdr, full_parse, start_from_toc);
 	gf_bs_del(bs);
 

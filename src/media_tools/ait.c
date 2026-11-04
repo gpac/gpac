@@ -602,6 +602,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 		if(dsmcc_overlord && !gf_m2ts_is_dmscc_app(ChanAppInfo)) {
 			gf_dir_cleanup(dsmcc_overlord->root_dir);
 			gf_rmdir(dsmcc_overlord->root_dir);
+			gf_list_del_item(ts->dsmcc_controler, dsmcc_overlord);
 			gf_m2ts_delete_dsmcc_overlord(dsmcc_overlord);
 
 		}
@@ -740,10 +741,11 @@ static void gf_ait_application_decode_destroy(GF_M2TS_AIT_APPLICATION_DECODE* ap
 			case TRANSPORT_HTTP:
 			{
 				GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE* Transport_http_selector_byte = (GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE*)protocol_descriptor->selector_byte;
+				u32 j;
 				gf_free(Transport_http_selector_byte->URL_base_byte);
 				if (Transport_http_selector_byte->URL_extension_count) {
-					for (i=0; i < Transport_http_selector_byte->URL_extension_count; i++) {
-						gf_free(Transport_http_selector_byte->URL_extentions[i].URL_extension_byte);
+					for (j=0; j < Transport_http_selector_byte->URL_extension_count; j++) {
+						gf_free(Transport_http_selector_byte->URL_extentions[j].URL_extension_byte);
 					}
 					gf_free(Transport_http_selector_byte->URL_extentions);
 				}
