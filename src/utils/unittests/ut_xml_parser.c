@@ -56,6 +56,15 @@ unittest(xml_dom_parse_utf16_blob)
 	if (root_name) gf_free(root_name);
 }
 
+unittest(xml_dom_parse_unterminated_blob)
+{
+	// raw blob with no NUL byte: must not read past the blob end
+	static const u8 junk[] = "<?5=\"2.???b?P>M&";
+	char *root_name;
+	parse_blob(junk, sizeof(junk)-1, &root_name);
+	if (root_name) gf_free(root_name);
+}
+
 unittest(xml_dom_parse_gzip_blob)
 {
 	const char *xml = "<?xml version=\"1.0\"?>\n<MPD type=\"dynamic\"><Period id=\"1\"/></MPD>\n";

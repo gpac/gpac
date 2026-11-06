@@ -1324,7 +1324,16 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 
 		e = gf_xml_sax_init_len(parser, szLine, 6);
 		if (!e) {
-			e = gf_xml_sax_parse_len(parser, xml_mem_address+bom_max, size-bom_max);
+			/*the intern parser and u16 scan need a NUL terminator within the input - copy the blob tail into a terminated buffer*/
+			u32 tail_len = size - bom_max;
+			u8 *buf = (u8 *) gf_malloc(tail_len + 2);
+			if (!buf) e = GF_OUT_OF_MEM;
+			else {
+				memcpy(buf, xml_mem_address+bom_max, tail_len);
+				buf[tail_len] = buf[tail_len+1] = 0;
+				e = gf_xml_sax_parse_len(parser, buf, tail_len+2);
+				gf_free(buf);
+			}
 			if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
 		}
 		gf_blob_release(fileName);
