@@ -567,7 +567,7 @@ void hevcmerge_build_srdmap(GF_HEVCMergeCtx *ctx, Bool use_abs_pos)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD, NULL);
 }
 
-static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
+static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx, GF_FilterPid *pid)
 {
 	u32 nb_cols=0;
 	u32 nb_rows=0;

@@ -554,7 +554,7 @@ u64 gf_bs_get_size(GF_BitStream *bs);
 /*!
 \brief file-based size query
 
-Returns the size of a file-based bitstream and force a seek to end of file. This is used in case the file handle describes a file being constructed on disk while being read?
+Returns the size of a file-based bitstream and force a seek to end of file. This is used in case the file handle describes a file being constructed on disk while being read.
 \param bs the target bitstream
 \return the disk size of the associated file
  */
@@ -575,7 +575,7 @@ GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src, Bool keep_src);
 /*!
 \brief Flushes bitstream content to disk
 
-Flushes bitstream contet to disk
+Flushes bitstream content to disk
 \param bs the target bitstream
  */
 void gf_bs_flush(GF_BitStream *bs);

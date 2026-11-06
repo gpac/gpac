@@ -1,8 +1,9 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre
+ *			Authors: Jean Le Feuvre, Romain Bouqueau
  *			Copyright (c) Telecom ParisTech 2022-2024
+ *			              Motion Spell      2026
  *					All rights reserved
  *
  *  This file is part of GPAC / compressed bitstream splitter filter
@@ -29,6 +30,8 @@
 #include <gpac/mpeg4_odf.h>
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_BSSPLIT)
+
+#include "bs_av1.h"
 
 typedef struct
 {
@@ -330,6 +333,15 @@ static BSSplitOut *bs_split_get_out_stream(BSSplitCtx *ctx, BSSplitIn *pctx, Boo
 			if ((c_opid->max_layer_id==99) && (c_opid->max_temporal_id==99))
 				max_c_opid = c_opid;
 
+			//av1 layers can appear after higher layers have already been
+			//declared. Default/all splitting uses exact IDs, not ranges
+			if ((pctx->codec_id == GF_CODECID_AV1)
+				&& (!ctx->ltid.nb_items || ((ctx->ltid.nb_items == 1) && !strcmp(ctx->ltid.vals[0], "all")))
+				&& ((c_opid->max_layer_id != layer_id)
+					|| (ctx->ltid.nb_items && (c_opid->max_temporal_id != temporal_id)))) {
+				c_opid = NULL;
+				continue;
+			}
 			if (match_substream(c_opid, layer_id, temporal_id))
 				break;
 
@@ -466,7 +478,7 @@ static BSSplitOut *bs_split_get_out_stream(BSSplitCtx *ctx, BSSplitIn *pctx, Boo
 		//- temporal sublayers which are usually not detected at configure
 		//- SVC for which we need frames to detect LID TID
 		//- DolbyVision RPU/EL
-		if (!is_config) {
+		if (!is_config && (pctx->codec_id != GF_CODECID_AV1)) {
 			Bool base_is_enh=GF_FALSE;
 			//always remove decoder config from enhancement
 			gf_filter_pid_set_property(c_opid->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
@@ -1248,6 +1260,167 @@ static GF_Err vvc_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacket
 	return nalu_split_packet(ctx, pctx, pck, 2);
 }
 
+static void av1_split_copy_props(BSSplitCtx *ctx, BSSplitIn *pctx, BSSplitOut *c_opid)
+{
+	bs_split_copy_props_base(ctx, c_opid, pctx->ipid, 0);
+	//av1 has a shared sequence header, including the operating points
+	//preserve it on each output and the dependency for subsequent aggregation
+	gf_filter_pid_set_property(c_opid->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
+	if (c_opid->dep_id) {
+		GF_PropertyValue refs = {0};
+		refs.type = GF_PROP_UINT_LIST;
+		refs.value.uint_list.nb_items = 1;
+		refs.value.uint_list.vals = &c_opid->dep_id;
+		gf_filter_pid_set_property_str(c_opid->opid, "isom:scal", &refs);
+	} else {
+		gf_filter_pid_set_property(c_opid->opid, GF_PROP_PID_DEPENDENCY_ID, NULL);
+		gf_filter_pid_set_property_str(c_opid->opid, "isom:scal", NULL);
+	}
+}
+
+static GF_Err av1_rewrite_pid_config(BSSplitCtx *ctx, BSSplitIn *pctx)
+{
+	u32 i;
+	BSSplitOut *base = bs_split_get_out_stream(ctx, pctx, GF_TRUE, 0, 1, GF_FALSE);
+	if (!base)
+		return GF_OUT_OF_MEM;
+
+	for (i=0; i<gf_list_count(pctx->opids); i++) {
+		BSSplitOut *c_opid = gf_list_get(pctx->opids, i);
+		av1_split_copy_props(ctx, pctx, c_opid);
+	}
+
+	return GF_OK;
+}
+
+static GF_Err av1_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacket *pck)
+{
+	u32 size, pos = 0, i;
+	u64 ts = gf_filter_pck_get_dts(pck);
+	GF_Err e = GF_OK;
+	const u8 *data = gf_filter_pck_get_data(pck, &size);
+	if (!data)
+		return none_split_packet(ctx, pctx, pck);
+
+	if (ts == GF_FILTER_NO_TS)
+		ts = gf_filter_pck_get_cts(pck);
+	if (ts == GF_FILTER_NO_TS)
+		ts = 0;
+	if (!pctx->first_ts_plus_one)
+		pctx->first_ts_plus_one = ts+1;
+
+	//validate the complete TU before creating PIDs or sending any packets
+	while (pos < size) {
+		BSAV1OBU obu;
+		e = bs_av1_obu_inspect(data+pos, size-pos, &obu);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BSSplit] Invalid AV1 OBU at packet offset %u\n", pos));
+			return e;
+		}
+		pos += obu.size;
+	}
+
+	pos = 0;
+	while (pos < size) {
+		BSAV1OBU obu;
+		BSSplitOut *c_opid;
+		u8 *dst;
+		bs_av1_obu_inspect(data+pos, size-pos, &obu);
+		//this filter uses 1-based temporal IDs for all codecs
+		//sequence headers and delimiters belong to the base stream regardless of extension IDs
+		if ((obu.type == OBU_SEQUENCE_HEADER) || (obu.type == OBU_TEMPORAL_DELIMITER))
+			obu.spatial_id = obu.temporal_id = 0;
+		c_opid = bs_split_get_out_stream(ctx, pctx, GF_FALSE, obu.spatial_id, obu.temporal_id+1, GF_FALSE);
+		if (!c_opid) {
+			e = GF_OUT_OF_MEM;
+			goto exit;
+		}
+
+		if (!c_opid->is_init) {
+			av1_split_copy_props(ctx, pctx, c_opid);
+			//late appearing layer is possible and starts on the same timeline when
+			//stored in MP4 ; delimiter-only packets carry gaps but no frame!
+			if (ts > pctx->first_ts_plus_one-1) {
+				u64 duration = ts - (pctx->first_ts_plus_one-1);
+				GF_FilterPacket *gap;
+				if (duration > GF_UINT_MAX) {
+					e = GF_NOT_SUPPORTED;
+					goto exit;
+				}
+
+				gap = gf_filter_pck_new_alloc(c_opid->opid, 2, &dst);
+				if (!gap) {
+					e = GF_OUT_OF_MEM;
+					goto exit;
+				}
+
+				dst[0] = 0x12;
+				dst[1] = 0;
+				gf_filter_pck_set_dts(gap, pctx->first_ts_plus_one-1);
+				gf_filter_pck_set_cts(gap, pctx->first_ts_plus_one-1);
+				gf_filter_pck_set_duration(gap, (u32) duration);
+				gf_filter_pck_set_framing(gap, GF_TRUE, GF_TRUE);
+				gf_filter_pck_send(gap);
+			}
+			c_opid->is_init = GF_TRUE;
+		}
+
+		if (!c_opid->pck) {
+			c_opid->pck = gf_filter_pck_new_alloc(c_opid->opid, obu.size, &dst);
+			if (!c_opid->pck) {
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
+
+			gf_filter_pck_merge_properties(pck, c_opid->pck);
+
+			if (!c_opid->is_base)
+				gf_filter_pck_set_sap(c_opid->pck, GF_FILTER_SAP_NONE);
+		}
+		else {
+			e = gf_filter_pck_expand(c_opid->pck, obu.size, NULL, &dst, NULL);
+			if (e) goto exit;
+		}
+		memcpy(dst, data+pos, obu.size);
+		pos += obu.size;
+	}
+
+	//ok this is getting tricky: send a gap for absent layers
+	//beside retaining mp4 sample timing, this lets bsagg continue processing
+	//without waiting for a future enhancement TU
+	for (i=0; i<gf_list_count(pctx->opids); i++) {
+		BSSplitOut *c_opid = gf_list_get(pctx->opids, i);
+		if (!c_opid->pck) {
+			u8 *dst;
+			c_opid->pck = gf_filter_pck_new_alloc(c_opid->opid, 2, &dst);
+			if (!c_opid->pck) {
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
+
+			dst[0] = 0x12;
+			dst[1] = 0;
+			gf_filter_pck_merge_properties(pck, c_opid->pck);
+			gf_filter_pck_set_sap(c_opid->pck, GF_FILTER_SAP_NONE);
+			c_opid->is_init = GF_TRUE;
+		}
+	}
+
+exit:
+	for (i=0; i<gf_list_count(pctx->opids); i++) {
+		BSSplitOut *c_opid = gf_list_get(pctx->opids, i);
+		if (!c_opid->pck)
+			continue;
+		if (e) {
+			gf_filter_pck_discard(c_opid->pck);
+		} else {
+			gf_filter_pck_send(c_opid->pck);
+		}
+		c_opid->pck = NULL;
+	}
+	return e;
+}
+
 static void bs_split_reset_stream(GF_Filter *filter, BSSplitCtx *ctx, BSSplitIn *pctx, Bool is_finalize, Bool is_reconf)
 {
 	if (!pctx) return;
@@ -1341,6 +1514,10 @@ static GF_Err bs_split_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		pctx->rewrite_pid_config = vvc_hevc_rewrite_pid_config;
 		pctx->split_packet = vvc_split_packet;
 		break;
+	case GF_CODECID_AV1:
+		pctx->rewrite_pid_config = av1_rewrite_pid_config;
+		pctx->split_packet = av1_split_packet;
+		break;
 	default:
 		pctx->rewrite_pid_config = none_rewrite_pid_config;
 		pctx->split_packet = none_split_packet;
@@ -1386,8 +1563,10 @@ static GF_Err bs_split_process(GF_Filter *filter)
 				}
 				break;
 			}
-			pctx->split_packet(ctx, pctx, pck);
+			GF_Err e = pctx->split_packet(ctx, pctx, pck);
 			gf_filter_pid_drop_packet(pid);
+			if (e)
+				return e;
 		}
 	}
 	return GF_OK;
@@ -1437,10 +1616,12 @@ GF_FilterRegister BSSplitRegister = {
 	GF_FS_SET_DESCRIPTION("Layered bitstream splitter")
 	GF_FS_SET_HELP("This filter splits input stream by layers and sublayers\n"
 	"\n"
-	"The filter supports AVC|H264, HEVC and VVC stream splitting and is pass-through for other codec types.\n"
+	"The filter supports AVC|H264, HEVC, VVC and AV1 stream splitting and is pass-through for other codec types.\n"
 	"\n"
 	"Splitting is based on temporalID value (start from 1) and layerID value (start from 0).\n"
 	"For AVC|H264, layerID is the dependency value, or quality value if `svcqid` is set.\n"
+	"For AV1, layerID is `spatial_id` and temporalID is `temporal_id + 1`. Enhancement emits non-standalone video streams that retain their dependencies. The sequence header and operating points are preserved by this filter.\n"
+	"AV1 outputs can be saved together in MP4 and reconstructed with `bsagg`. Absent layers use delimiter-only packets to preserve timing.\n"
 	"\n"
 	"Each input stream is filtered according to the `ltid` option as follows:\n"
 	"- no value set: input stream is split by layerID, i.e. each layer creates an output\n"

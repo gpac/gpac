@@ -1,8 +1,9 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre
+ *			Authors: Jean Le Feuvre, Romain Bouqueau
  *			Copyright (c) Telecom ParisTech 2022-2024
+ *			              Motion Spell      2026
  *					All rights reserved
  *
  *  This file is part of GPAC / compressed split bitstream aggregator filter
@@ -30,6 +31,8 @@
 
 #ifndef GPAC_DISABLE_BSAGG
 
+#include "bs_av1.h"
+
 #define MAX_LID	64
 #define MAX_TID	7
 
@@ -38,7 +41,6 @@ typedef struct
 	u8 *data;
 	u32 size, alloc_size, lid, tid;
 } NALStore;
-
 
 typedef struct
 {
@@ -778,6 +780,229 @@ static GF_Err vvc_process(BSAggCtx *ctx, BSAggOut *c_opid)
 	return nalu_process(ctx, c_opid, 2);
 }
 
+static u32 bsagg_av1_dependency(GF_FilterPid *pid)
+{
+	const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
+	if (p && p->value.uint)
+		return p->value.uint;
+
+	//mp4 preserves the split layer dependency as a track reference
+	p = gf_filter_pid_get_property_str(pid, "isom:scal");
+	if (p && (p->type == GF_PROP_UINT_LIST) && p->value.uint_list.nb_items)
+		return p->value.uint_list.vals[0];
+
+	return 0;
+}
+
+static GF_Err av1_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
+{
+	u32 i;
+	GF_FilterPid *base = gf_list_get(pctx->ipids, 0);
+	for (i=0; i<gf_list_count(pctx->ipids); i++) {
+		GF_FilterPid *pid = gf_list_get(pctx->ipids, i);
+		if (!bsagg_av1_dependency(pid)) {
+			base = pid;
+			break;
+		}
+	}
+
+	gf_filter_pid_copy_properties(pctx->opid, base);
+	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DEPENDENCY_ID, NULL);
+	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
+	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_ISOM_STSD_TEMPLATE, NULL);
+	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES, NULL);
+	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_ISOM_TRACK_TEMPLATE, NULL);
+	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_BITRATE, NULL);
+	gf_filter_pid_set_property_str(pctx->opid, "isom:scal", NULL);
+	gf_filter_pid_set_property_str(pctx->opid, "max_layer_id", NULL);
+	gf_filter_pid_set_property_str(pctx->opid, "max_temporal_id", NULL);
+
+	return GF_OK;
+}
+
+static u64 bsagg_av1_timestamp(GF_FilterPacket *pck)
+{
+	u64 ts = gf_filter_pck_get_dts(pck);
+	if (ts == GF_FILTER_NO_TS)
+		ts = gf_filter_pck_get_cts(pck);
+	return (ts == GF_FILTER_NO_TS) ? 0 : ts;
+}
+
+static GF_Err av1_process(BSAggCtx *ctx, BSAggOut *pctx)
+{
+	u32 i, layer, count = gf_list_count(pctx->ipids), done = 0;
+	u32 min_timescale = 0, total = 0;
+	u64 min_ts = GF_FILTER_NO_TS;
+	GF_FilterPacket *ref_pck = NULL, *out = NULL;
+	GF_FilterPid *ref_pid = NULL;
+	GF_Err e = GF_OK;
+	u8 *dst = NULL;
+
+	//o input is consumed until every live PID has a packet
+	//a future timestamp (or EOS) proves that a layer is absent from the current TU
+	for (i=0; i<count; i++) {
+		GF_FilterPid *pid = gf_list_get(pctx->ipids, i);
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
+		u64 ts;
+		u32 timescale;
+		if (!pck) {
+			if (gf_filter_pid_is_eos(pid)) {
+				done++;
+				continue;
+			}
+			return GF_OK;
+		}
+		ts = bsagg_av1_timestamp(pck);
+		timescale = gf_filter_pck_get_timescale(pck);
+		if ((min_ts == GF_FILTER_NO_TS) || gf_timestamp_less(ts, timescale, min_ts, min_timescale)) {
+			min_ts = ts;
+			min_timescale = timescale;
+		}
+	}
+	if (done == count) {
+		gf_filter_pid_set_eos(pctx->opid);
+		return GF_EOS;
+	}
+	if (!min_timescale)
+		return GF_OK;
+
+	//validate and compute size of the complete output before allocating or dropping input
+	for (i=0; i<count; i++) {
+		u32 size, pos = 0;
+		const u8 *data;
+		GF_FilterPid *pid = gf_list_get(pctx->ipids, i);
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
+
+		if (!pck || !gf_timestamp_less_or_equal(bsagg_av1_timestamp(pck), gf_filter_pck_get_timescale(pck), min_ts, min_timescale))
+			continue;
+
+			if (!ref_pck || !bsagg_av1_dependency(pid)) {
+			ref_pck = pck;
+			ref_pid = pid;
+		}
+
+		data = gf_filter_pck_get_data(pck, &size);
+		if (!data)
+			continue;
+
+		while (pos < size) {
+			BSAV1OBU obu;
+			e = bs_av1_obu_inspect(data+pos, size-pos, &obu);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BSAgg] Invalid AV1 OBU at packet offset %u\n", pos));
+				goto exit;
+			}
+
+			if (obu.type != OBU_TEMPORAL_DELIMITER) {
+				if (obu.size > GF_UINT_MAX-total) {
+					e = GF_OUT_OF_MEM;
+					goto exit;
+				}
+				total += obu.size;
+			}
+			pos += obu.size;
+		}
+	}
+	if (total) {
+		u32 src_scale = gf_filter_pck_get_timescale(ref_pck);
+		u32 dst_scale = gf_filter_pid_get_timescale(pctx->opid);
+		u64 duration = gf_timestamp_rescale(gf_filter_pck_get_duration(ref_pck), src_scale, dst_scale);
+		const GF_PropertyValue *dsi = gf_filter_pid_get_property(ref_pid, GF_PROP_PID_DECODER_CONFIG);
+
+		if (duration > GF_UINT_MAX) {
+			e = GF_NOT_SUPPORTED;
+			goto exit;
+		}
+
+		//reconfiguration delivered independently on each PID
+		//we compare configs only after all packet heads are available, and only
+		//for layers contributing to this TU
+		for (i=0; dsi && i<count; i++) {
+			u32 size;
+			const u8 *data;
+			const GF_PropertyValue *cfg;
+			GF_FilterPid *pid = gf_list_get(pctx->ipids, i);
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
+
+			if (!pck || !gf_timestamp_less_or_equal(bsagg_av1_timestamp(pck), gf_filter_pck_get_timescale(pck), min_ts, min_timescale))
+				continue;
+
+			data = gf_filter_pck_get_data(pck, &size);
+			if (!data || ((size == 2) && (data[0] == 0x12) && !data[1]))
+				continue;
+
+			cfg = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+			if (!cfg)
+				continue;
+			if ((cfg->value.data.size != dsi->value.data.size) ||
+			    memcmp(cfg->value.data.ptr, dsi->value.data.ptr, dsi->value.data.size)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BSAgg] AV1 layers must share the same decoder configuration\n"));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
+		}
+
+		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, dsi);
+		out = gf_filter_pck_new_alloc(pctx->opid, total, &dst);
+		if (!out) {
+			e = GF_OUT_OF_MEM;
+			goto exit;
+		}
+
+		gf_filter_pck_merge_properties_filter(ref_pck, out, bsagg_filter_prop, ctx);
+
+		//a TU containing only enhancement data may use a different timescale
+		if (src_scale != dst_scale) {
+			u64 ts = gf_filter_pck_get_dts(ref_pck);
+			if (ts != GF_FILTER_NO_TS)
+				gf_filter_pck_set_dts(out, gf_timestamp_rescale(ts, src_scale, dst_scale));
+			ts = gf_filter_pck_get_cts(ref_pck);
+			if (ts != GF_FILTER_NO_TS)
+				gf_filter_pck_set_cts(out, gf_timestamp_rescale(ts, src_scale, dst_scale));
+			gf_filter_pck_set_duration(out, (u32) duration);
+		}
+		gf_filter_pck_set_framing(out, GF_TRUE, GF_TRUE);
+	}
+
+	//av1 requires non-decreasing spatial IDs within a TU
+	for (layer=0; total && layer<4; layer++) {
+		for (i=0; i<count; i++) {
+			u32 size, pos = 0;
+			const u8 *data;
+			GF_FilterPid *pid = gf_list_get(pctx->ipids, i);
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
+			if (!pck || !gf_timestamp_less_or_equal(bsagg_av1_timestamp(pck), gf_filter_pck_get_timescale(pck), min_ts, min_timescale))
+				continue;
+
+			data = gf_filter_pck_get_data(pck, &size);
+			if (!data)
+				continue;
+
+			while (pos < size) {
+				BSAV1OBU obu;
+				bs_av1_obu_inspect(data+pos, size-pos, &obu);
+				if (obu.type == OBU_SEQUENCE_HEADER)
+					obu.spatial_id = 0;
+				if ((obu.spatial_id == layer) && (obu.type != OBU_TEMPORAL_DELIMITER)) {
+					memcpy(dst, data+pos, obu.size);
+					dst += obu.size;
+				}
+				pos += obu.size;
+			}
+		}
+	}
+
+exit:
+	for (i=0; i<count; i++) {
+		GF_FilterPid *pid = gf_list_get(pctx->ipids, i);
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
+		if (pck && gf_timestamp_less_or_equal(bsagg_av1_timestamp(pck), gf_filter_pck_get_timescale(pck), min_ts, min_timescale))
+			gf_filter_pid_drop_packet(pid);
+	}
+	if (out) gf_filter_pck_send(out);
+	return e;
+}
+
 static Bool bs_agg_is_base(BSAggOut *pctx, u32 codec_id, u32 dep_id, u32 rec_level)
 {
 	u32 i, count = gf_list_count(pctx->ipids);
@@ -850,6 +1075,11 @@ static GF_Err bs_agg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
 		if (prop && prop->value.uint)
 			pctx = bs_agg_get_base(ctx, codec_id, prop->value.uint);
+		else if (codec_id == GF_CODECID_AV1) {
+			u32 dep_id = bsagg_av1_dependency(pid);
+			if (dep_id)
+				pctx = bs_agg_get_base(ctx, codec_id, dep_id);
+		}
 
 		if (!pctx) {
 			GF_SAFEALLOC(pctx, BSAggOut);
@@ -881,6 +1111,10 @@ static GF_Err bs_agg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	case GF_CODECID_VVC:
 		pctx->rewrite_pid_config = vvc_hevc_rewrite_pid_config;
 		pctx->agg_process = vvc_process;
+		break;
+	case GF_CODECID_AV1:
+		pctx->rewrite_pid_config = av1_rewrite_pid_config;
+		pctx->agg_process = av1_process;
 		break;
 	default:
 		pctx->rewrite_pid_config = none_rewrite_pid_config;
@@ -964,10 +1198,11 @@ GF_FilterRegister BSAggRegister = {
 	GF_FS_SET_DESCRIPTION("Layered bitstream aggregator")
 	GF_FS_SET_HELP("This filter aggregates layers and sublayers into a single output PID.\n"
 	"\n"
-	"The filter supports AVC|H264, HEVC and VVC stream reconstruction, and is passthrough for other codec types.\n"
+	"The filter supports AVC|H264, HEVC, VVC and AV1 stream reconstruction, and is passthrough for other codec types.\n"
 	"\n"
 	"Aggregation is based on temporalID value (start from 1) and layerID value (start from 0).\n"
 	"For AVC|H264, layerID is the dependency value, or quality value if `svcqid` is set.\n"
+	"For AV1, inputs must be layers of the same coded sequence with a shared decoder configuration and signaled dependencies (`DependencyID` or `isom:scal` from MP4). OBUs are ordered by spatial ID within each temporal unit; layer IDs and coded frame data are forwarded.\n"
 	"\n"
 	"The filter can also be used on AVC and HEVC DolbyVision dual-streams to aggregate base stream and DV RPU/EL.\n"
 	"\n"
