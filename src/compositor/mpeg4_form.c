@@ -440,11 +440,17 @@ static void sh_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 
 	tot_len = 0;
 	if (space == -FIX_ONE) {
-		r = &form_get_group(st, group_idx[count-1])->final;
-		l = &form_get_group(st, group_idx[0])->final;
+		FormGroup *fgl = form_get_group(st, group_idx[0]);
+		FormGroup *fgr = form_get_group(st, group_idx[count-1]);
+		if (!fgl || !fgr) return;
+		l = &fgl->final;
+		r = &fgr->final;
 		inter_space = r->x - l->x;
 		if(group_idx[0] != 0) inter_space -= l->width;
-		for (i=1; i<count-1; i++) tot_len += form_get_group(st, group_idx[i])->final.width;
+		for (i=1; i<count-1; i++) {
+			FormGroup *fgi = form_get_group(st, group_idx[i]);
+			if (fgi) tot_len += fgi->final.width;
+		}
 		inter_space -= tot_len;
 		inter_space /= (count-1);
 	} else {
@@ -454,12 +460,16 @@ static void sh_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 	k = count - 1;
 	if (space != -1) k += 1;
 	for (i=1; i<k; i++) {
+		FormGroup *fgi, *fgprev;
 		if (group_idx[i] ==0) continue;
-		l = &form_get_group(st, group_idx[i-1])->final;
-		r = &form_get_group(st, group_idx[i])->final;
+		fgprev = form_get_group(st, group_idx[i-1]);
+		fgi    = form_get_group(st, group_idx[i]);
+		if (!fgprev || !fgi) continue;
+		l = &fgprev->final;
+		r = &fgi->final;
 		r->x = l->x + inter_space;
 		if(group_idx[i-1] != 0) r->x += l->width;
-		fg_update_bounds(form_get_group(st, group_idx[i]));
+		fg_update_bounds(fgi);
 	}
 }
 
@@ -527,15 +537,17 @@ static void al_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 	Fixed min_x;
 	GF_Rect *rc;
 	u32 i, start;
+	FormGroup *fg0 = form_get_group(st, group_idx[0]);
+	if (!fg0) return;
 
 	start = 0;
-	min_x = form_get_group(st, group_idx[0])->final.x;
+	min_x = fg0->final.x;
 	if (space>-FIX_ONE) {
 		start = 1;
 		min_x += space;
 	} else {
 		for (i=1; i<count; i++) {
-			rc = &form_get_group(st, group_idx[0])->final;
+			rc = &fg0->final;
 			if (group_idx[i]==0) {
 				min_x = rc->x;
 				break;
@@ -544,9 +556,12 @@ static void al_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 		}
 	}
 	for (i=start; i<count; i++) {
+		FormGroup *fgi;
 		if( group_idx[i] == 0) continue;
-		form_get_group(st, group_idx[i])->final.x = min_x;
-		fg_update_bounds(form_get_group(st, group_idx[i]));
+		fgi = form_get_group(st, group_idx[i]);
+		if (!fgi) continue;
+		fgi->final.x = min_x;
+		fg_update_bounds(fgi);
 	}
 }
 
@@ -555,9 +570,11 @@ static void ar_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 	Fixed max_x;
 	u32 i, start;
 	GF_Rect *rc;
+	FormGroup *fg0 = form_get_group(st, group_idx[0]);
+	if (!fg0) return;
 
 	start = 0;
-	rc = &form_get_group(st, group_idx[0])->final;
+	rc = &fg0->final;
 	max_x = rc->x + rc->width;
 
 	if(space>-FIX_ONE) {
@@ -565,7 +582,9 @@ static void ar_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 		start = 1;
 	} else {
 		for (i=1; i<count; i++) {
-			rc = &form_get_group(st, group_idx[i])->final;
+			FormGroup *fgi = form_get_group(st, group_idx[i]);
+			if (!fgi) continue;
+			rc = &fgi->final;
 			if (group_idx[i]==0) {
 				max_x = rc->x + rc->width;
 				break;
@@ -574,10 +593,13 @@ static void ar_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 		}
 	}
 	for (i=start; i<count; i++) {
+		FormGroup *fgi;
 		if(group_idx[i] == 0) continue;
-		rc = &form_get_group(st, group_idx[i])->final;
+		fgi = form_get_group(st, group_idx[i]);
+		if (!fgi) continue;
+		rc = &fgi->final;
 		rc->x = max_x - rc->width;
-		fg_update_bounds(form_get_group(st, group_idx[i]));
+		fg_update_bounds(fgi);
 	}
 }
 
@@ -588,7 +610,11 @@ static void at_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 	GF_Rect *rc;
 
 	start = 0;
-	max_y = form_get_group(st, group_idx[0])->final.y;
+	{
+		FormGroup *fg0 = form_get_group(st, group_idx[0]);
+		if (!fg0) return;
+		max_y = fg0->final.y;
+	}
 	if(space>-FIX_ONE) {
 		start = 1;
 		max_y -= space;
@@ -623,8 +649,12 @@ static void ab_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 	GF_Rect *rc;
 
 	start = 0;
-	rc = &form_get_group(st, group_idx[0])->final;
-	min_y = rc->y - rc->height;
+	{
+		FormGroup *fg0 = form_get_group(st, group_idx[0]);
+		if (!fg0) return;
+		rc = &fg0->final;
+		min_y = rc->y - rc->height;
+	}
 	if(space>-FIX_ONE) {
 		start = 1;
 		min_y += space;
