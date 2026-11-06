@@ -1029,8 +1029,9 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 
 
 	cstr->use_subsamples = GF_FALSE;
-	if (cstr->cenc_codec != CENC_FULL_SAMPLE)
+	if (cstr->cenc_codec != CENC_FULL_SAMPLE) {
 		cstr->use_subsamples = GF_TRUE;
+	}
 	//CBCS mode with skip byte block may be used for any track, in which case we need subsamples
 	else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) {
 		const GF_PropertyValue *prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_STREAM_TYPE);
@@ -1214,6 +1215,14 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	if (cstr->tci->roll_type && (cstr->tci->roll_type!=GF_KEYROLL_PERIODS)) {
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_HAS_ROLL, &PROP_BOOL(GF_TRUE) );
 	}
+
+	u32 tenc_flags = cstr->use_subsamples ? GF_ISOM_CENC_TENC_FEATURE_USED : GF_ISOM_CENC_TENC_FEATURE_NOT_USED;
+	tenc_flags |= (cstr->multi_key ? GF_ISOM_CENC_TENC_FEATURE_USED : GF_ISOM_CENC_TENC_FEATURE_NOT_USED) << 2;
+	if ((cstr->cenc_codec==CENC_AVC) && cstr->ctr_mode) {
+		u32 sh_state = cstr->slice_header_clear ? GF_ISOM_CENC_TENC_FEATURE_NOT_USED : GF_ISOM_CENC_TENC_FEATURE_USED;
+		tenc_flags |= sh_state << 10;
+	}
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_TENC_FLAGS, &PROP_UINT(tenc_flags));
 
 	//parse pssh even if reinit since we need to reassign pssh property
 	return cenc_parse_pssh(ctx, cstr, cfile_name, cstr->cinfo ? cstr->cinfo : ctx->cinfo);
