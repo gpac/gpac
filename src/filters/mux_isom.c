@@ -1171,7 +1171,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	u32 m_subtype_src=0;
 	u32 m_subtype_alt_raw=0;
 	u32 override_stype=0;
-	u32 width, height, sr, nb_chan, nb_bps, z_order, txt_fsize;
+	u32 width, height, sr, nb_chan, nb_bps, txt_fsize;
+	s32 z_order;
 	u32 afmt_flags = 0;
 	u64 ch_layout;
 	GF_Fraction fps, sar;
@@ -2008,7 +2009,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		}
 	}
 
-	width = height = sr = nb_chan = z_order = txt_fsize = 0;
+	width = height = sr = nb_chan = txt_fsize = 0;
+	z_order = 0;
 	nb_bps = 16;
 	ch_layout = 0;
 	fps.num = 25;
@@ -2048,7 +2050,7 @@ sample_entry_setup:
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
 	if (p) sar = p->value.frac;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ZORDER);
-	if (p) z_order = p->value.uint;
+	if (p) z_order = p->value.sint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	if (p) sr = p->value.uint;
