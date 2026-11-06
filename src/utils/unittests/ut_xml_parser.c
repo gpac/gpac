@@ -25,6 +25,37 @@ static GF_Err parse_blob(const u8 *data, u32 size, char **root_name)
 	return e;
 }
 
+unittest(xml_dom_parse_string_unterminated_utf16)
+{
+	// UTF-16LE BOM + "A" units with NO aligned 0x0000 terminator: the byte
+	// string's single trailing NUL sits at an odd offset, so the u16 view has
+	// no terminator within the buffer and must be rejected, not over-read.
+	char *buf = (char *) gf_malloc(20);
+	memset(buf, 'A', 19);
+	buf[0] = (char) 0xFF; buf[1] = (char) 0xFE;
+	buf[19] = 0;
+
+	GF_DOMParser *dom = gf_xml_dom_new();
+	GF_Err e = gf_xml_dom_parse_string(dom, buf);
+	assert_equal(e, GF_CORRUPTED_DATA, "%d");
+	gf_xml_dom_del(dom);
+	gf_free(buf);
+
+}
+
+unittest(xml_dom_parse_utf16_blob)
+{
+	// control: a properly 0x0000-terminated UTF-16LE document still parses
+	// through the sized buffer path (file/blob), where the real extent is known
+	static const u8 u16doc[] = {
+		0xFF, 0xFE, '<', 0, 'a', 0, '/', 0, '>', 0, 0, 0
+	};
+	char *root_name;
+	assert_equal(parse_blob(u16doc, sizeof(u16doc), &root_name), GF_OK, "%d");
+	assert_true(root_name && !strcmp(root_name, "a"));
+	if (root_name) gf_free(root_name);
+}
+
 unittest(xml_dom_parse_gzip_blob)
 {
 	const char *xml = "<?xml version=\"1.0\"?>\n<MPD type=\"dynamic\"><Period id=\"1\"/></MPD>\n";
