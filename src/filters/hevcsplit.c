@@ -220,8 +220,30 @@ static void hevcsplit_get_tile_pixel_coords(HEVCState *hevc, u32 index_row, u32 
 		*height = hevc->sps[sps_id].height - *ty;
 }
 
+//HEVC Annex A.3 Table A.1 "General tier and level limits": for a given number of luma
+//samples in the picture, returns the general_level_idc (level*30) of the lowest level
+//whose MaxLumaPs is not exceeded. Used to recompute the level when the picture size
+//changes (e.g. tile merge/split), since MaxLumaPs does not depend on tier.
+//also used by HEVCmerge to keep the HEVCConfigurationBox's own level_idc field (redundant
+//with the level_idc carried in the in-band/out-of-band SPS) in sync after a tile merge
+u8 hevc_level_idc_for_pic_size(u32 width, u32 height)
+{
+	u64 luma_ps = (u64) width * height;
+	if (luma_ps <= 36864) return 30;      //Level 1
+	if (luma_ps <= 122880) return 60;     //Level 2
+	if (luma_ps <= 245760) return 63;     //Level 2.1
+	if (luma_ps <= 552960) return 90;     //Level 3
+	if (luma_ps <= 983040) return 93;     //Level 3.1
+	if (luma_ps <= 2228224) return 120;   //Level 4 (and 4.1: same MaxLumaPs)
+	if (luma_ps <= 8912896) return 150;   //Level 5 (and 5.1/5.2: same MaxLumaPs)
+	return 180;                            //Level 6 (and 6.1/6.2: same MaxLumaPs)
+}
+
 //rewrite the profile and level
-static void hevc_write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, Bool ProfilePresentFlag, u8 MaxNumSubLayersMinus1)
+//if pic_width/pic_height are non-zero, the general_level_idc is raised (never lowered) to the
+//minimum level required for that picture size, so the declared level stays spec-compliant
+//after a tile merge/split changes the picture dimensions
+static void hevc_write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, Bool ProfilePresentFlag, u8 MaxNumSubLayersMinus1, u32 pic_width, u32 pic_height)
 {
 	u8 j;
 	Bool sub_layer_profile_present_flag[8], sub_layer_level_present_flag[8];
@@ -231,7 +253,14 @@ static void hevc_write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_
 		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 4), 4);
 		gf_bs_write_long_int(bs_out, gf_bs_read_long_int(bs_in, 44), 44);
 	}
-	gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8), 8);
+	{
+		u8 level_idc = gf_bs_read_int(bs_in, 8);
+		if (pic_width && pic_height) {
+			u8 min_level_idc = hevc_level_idc_for_pic_size(pic_width, pic_height);
+			if (min_level_idc > level_idc) level_idc = min_level_idc;
+		}
+		gf_bs_write_int(bs_out, level_idc, 8);
+	}
 
 	for (j = 0; j < MaxNumSubLayersMinus1; j++) {
 		sub_layer_profile_present_flag[j] = gf_bs_read_int(bs_in, 1);
@@ -294,7 +323,7 @@ void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, ch
 	multiLayerExtSpsFlag = (layer_id != 0) && (sps_ext_or_max_sub_layers_minus1 == 7);
 	if (!multiLayerExtSpsFlag) {
 		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);
-		hevc_write_profile_tier_level(bs_in, bs_out, 1, max_sub_layers_minus1);
+		hevc_write_profile_tier_level(bs_in, bs_out, 1, max_sub_layers_minus1, width, height);
 	}
 
 	gf_bs_write_ue(bs_out, gf_bs_read_ue(bs_in)); //copy sps_id
