@@ -3574,7 +3574,7 @@ static char *dashdmx_probe_elt(const char *data, const char *tag)
 	return NULL;
 }
 
-GF_STATIC const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	char *d = (char *)data;
 	char *res_ghix, *res_dash, *res_m3u, *res_smooth;

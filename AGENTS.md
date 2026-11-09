@@ -72,9 +72,8 @@ separate checkout or worktree, then build there. Run that checkout's
 `bin/gcc/MP4Box` and `bin/gcc/gpac`; for shared builds, ensure they load the
 matching `libgpac`. See [the build guide](https://wiki.gpac.io/Build/Build-Introduction)
 for platform setup and [the unit-test guide](unittests/README.md) for harness
-and component test patterns. For tests of private functions, follow its
-`GF_STATIC`, `GF_NOT_EXPORTED`, and filter-source inclusion patterns instead of
-exporting an API solely for testing.
+and component test patterns. For tests of private functions, follow the visibility and
+filter-source inclusion patterns instead of exporting an API solely for testing.
 
 For a targeted command-line test, initialize the pinned submodule and run from
 its directory. Replace `NAME` and the script path with the affected test;

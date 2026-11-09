@@ -1095,7 +1095,7 @@ u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 layout)
 	return res;
 }
 
-GF_NOT_EXPORTED u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
+u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
 {
 	const u32 mask_dict[][2] = {
 		{0x000002, 1}, {0x000001, 2}, {0x000003, 3},
@@ -1117,7 +1117,7 @@ GF_NOT_EXPORTED u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
 }
 
 // ETSI TS 103 190-2 V1.3.1 (2018-02) E10.14 presentation_v1_channel_groups
-GF_NOT_EXPORTED u32 gf_ac4_dolby_channel_count_from_channel_mask_v1(u32 speaker_group_index_mask)
+u32 gf_ac4_dolby_channel_count_from_channel_mask_v1(u32 speaker_group_index_mask)
 {
 	u32 channel_count = 0;
     if ((speaker_group_index_mask & 1) != 0) //  0: L,R

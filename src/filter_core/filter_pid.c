@@ -6100,7 +6100,7 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	return pid;
 }
 
-GF_NOT_EXPORTED void gf_filter_pid_del(GF_FilterPid *pid)
+void gf_filter_pid_del(GF_FilterPid *pid)
 {
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s destruction (%p)\n", pid->filter->name, pid->name, pid));
 	while (gf_list_count(pid->destinations)) {
@@ -10313,7 +10313,7 @@ void gf_filter_pid_send_flush(GF_FilterPid *pid)
 	pid->eos_keepalive = GF_TRUE;
 }
 
-GF_NOT_EXPORTED void gf_filter_pid_force_single_link(GF_FilterPid *pid)
+void gf_filter_pid_force_single_link(GF_FilterPid *pid)
 {
 	if (!pid) return;
 	if (PID_IS_INPUT(pid)) {
@@ -10322,7 +10322,7 @@ GF_NOT_EXPORTED void gf_filter_pid_force_single_link(GF_FilterPid *pid)
 	}
 	pid->link_flags |= PID_FORCE_SINGLE;
 }
-GF_NOT_EXPORTED void gf_filter_pid_disable_clone(GF_FilterPid *pid)
+void gf_filter_pid_disable_clone(GF_FilterPid *pid)
 {
 	if (!pid) return;
 	if (PID_IS_INPUT(pid)) {

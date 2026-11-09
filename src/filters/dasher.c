@@ -10123,7 +10123,7 @@ static void dasher_set_pto(GF_DashStream *ds, u64 pto_adj)
 	}
 }
 
-GF_STATIC Bool dasher_scte35_boundary_due(u64 packet_cts, u32 packet_timescale, u32 sap_type, u64 boundary_time)
+static Bool dasher_scte35_boundary_due(u64 packet_cts, u32 packet_timescale, u32 sap_type, u64 boundary_time)
 {
 	if (!sap_type || !packet_timescale) return GF_FALSE;
 	return gf_timestamp_greater_or_equal(packet_cts, packet_timescale, boundary_time, 90000);
@@ -10173,7 +10173,7 @@ static GF_Err dasher_scte35_insert_cut(GF_List *cuts, DasherSctePendingCut *cut)
 
 /* Do not treat a second transmission of an already-consumed event as a new
  * splice. Identity is (event ID, source presentation time), per rendition. */
-GF_STATIC GF_Err dasher_scte35_schedule_boundary(Bool needs_idr, u32 stream_type,
+static GF_Err dasher_scte35_schedule_boundary(Bool needs_idr, u32 stream_type,
 	u32 event_id, u64 splice_time, u64 duration, u64 completed_cut,
 	GF_List **pending, GF_List **seen)
 {
@@ -10228,7 +10228,7 @@ GF_STATIC GF_Err dasher_scte35_schedule_boundary(Bool needs_idr, u32 stream_type
 /* Completed live events must not accumulate for the channel lifetime. Once
  * all planned cuts are past, remember only the monotonic serviced watermark:
  * it also rejects stale retransmissions after their per-event key is freed. */
-GF_STATIC void dasher_scte35_prune_seen(GF_List *seen, u64 completed_cut)
+static void dasher_scte35_prune_seen(GF_List *seen, u64 completed_cut)
 {
 	u32 i=0;
 	if (!seen) return;
@@ -10240,7 +10240,7 @@ GF_STATIC void dasher_scte35_prune_seen(GF_List *seen, u64 completed_cut)
 	}
 }
 
-GF_STATIC Bool dasher_scte35_next_cut(GF_List *pending, u64 *time)
+static Bool dasher_scte35_next_cut(GF_List *pending, u64 *time)
 {
 	DasherSctePendingCut *cut = pending ? gf_list_get(pending, 0) : NULL;
 	if (!cut) return GF_FALSE;
@@ -10250,7 +10250,7 @@ GF_STATIC Bool dasher_scte35_next_cut(GF_List *pending, u64 *time)
 
 /* A single RAP may satisfy several pending transitions: consume all due
  * times but create at most one segment cut at that physical boundary. */
-GF_STATIC Bool dasher_scte35_consume_due(GF_List *pending, u64 cts, u32 timescale, u32 sap_type)
+static Bool dasher_scte35_consume_due(GF_List *pending, u64 cts, u32 timescale, u32 sap_type)
 {
 	Bool had_due = GF_FALSE;
 	u64 when;
@@ -10306,7 +10306,7 @@ static void dasher_ssai_trim(GF_DasherCtx *ctx)
 }
 
 /* A cut belongs to the presentation clock, not a segment number. */
-GF_STATIC Bool dasher_ssai_boundary_reached(u64 source_cts, u32 timescale, u64 cut90k)
+static Bool dasher_ssai_boundary_reached(u64 source_cts, u32 timescale, u64 cut90k)
 {
     return gf_timestamp_greater_or_equal(source_cts, timescale, cut90k, 90000);
 }

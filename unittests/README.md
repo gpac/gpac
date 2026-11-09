@@ -45,9 +45,7 @@ implementation `.c`, as the filter tests do. This recompiles only the relevant
 implementation for testing. Include the complete implementation: its externally
 linked definitions must be supplied by the test object so the linker does not
 also extract the original object from the archive. Do not add duplicate stubs for
-functions or globals supplied by the library. There is no need to change `static`
-to `GF_STATIC`, or annotate internal functions with `GF_NOT_EXPORTED` for tests.
-Existing annotations remain compatible.
+functions or globals supplied by the library.
 
 Specific compiler flags are in `unittests/unit_tests.mak`.
 
