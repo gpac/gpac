@@ -9179,6 +9179,8 @@ GF_FilterRegister MP4MuxRegister = {
 	"  \n"
 	"The box patch is applied before writing the initial `moov box in fragmented mode, or when writing the complete file otherwise.\n"
 	"The box patch can either be a filename or the full XML string.\n"
+	"In a box path, `*` matches zero or more box levels and edits every match. Empty `Box` elements with paths `trak.*.mdcv` and `trak.*.clli` remove HDR metadata regardless of the sample entry type.\n"
+	"Wildcard paths without matches are ignored. Paths starting with `trak` or `traf` apply to all tracks unless a track ID is specified.\n"
 	"  \n"
 	"# Tagging\n"
 	"When tagging is enabled, the filter will watch the property `CoverArt` and all custom properties on incoming PID.\n"
