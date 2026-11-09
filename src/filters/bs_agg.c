@@ -31,8 +31,6 @@
 
 #ifndef GPAC_DISABLE_BSAGG
 
-#include "bs_av1.h"
-
 #define MAX_LID	64
 #define MAX_TID	7
 
@@ -876,7 +874,7 @@ static GF_Err av1_process(BSAggCtx *ctx, BSAggOut *pctx)
 		if (!pck || !gf_timestamp_less_or_equal(bsagg_av1_timestamp(pck), gf_filter_pck_get_timescale(pck), min_ts, min_timescale))
 			continue;
 
-			if (!ref_pck || !bsagg_av1_dependency(pid)) {
+		if (!ref_pck || !bsagg_av1_dependency(pid)) {
 			ref_pck = pck;
 			ref_pid = pid;
 		}

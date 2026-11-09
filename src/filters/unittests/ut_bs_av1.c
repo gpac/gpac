@@ -4,8 +4,6 @@
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_BSSPLIT) && !defined(GPAC_DISABLE_BSAGG)
 
-#include "../bs_av1.h"
-
 //frame payloads with ayer 3 before layers 1/2
 //we also use temporal_id=7 (upper value)
 //every frame starts with a temporal delimiter

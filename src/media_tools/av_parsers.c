@@ -4608,6 +4608,42 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 }
 
 
+GF_NOT_EXPORTED
+GF_Err bs_av1_obu_inspect(const u8 *data, u32 size, BSAV1OBU *obu)
+{
+	u32 pos = 1, i;
+	u64 payload = 0;
+	if (!size || (data[0] & 0x81) || !(data[0] & 2))
+		return GF_NON_COMPLIANT_BITSTREAM;
+
+	obu->type = (data[0] >> 3) & 15;
+	obu->spatial_id = obu->temporal_id = 0;
+	if (data[0] & 4) {
+		if (size < 2)
+			return GF_NON_COMPLIANT_BITSTREAM;
+
+		obu->temporal_id = data[1] >> 5;
+		obu->spatial_id = (data[1] >> 3) & 3;
+		pos++;
+	}
+
+	for (i=0; i<8; i++) {
+		u8 byte;
+		if (pos == size)
+			return GF_NON_COMPLIANT_BITSTREAM;
+		byte = data[pos++];
+		payload |= (u64) (byte & 127) << (7*i);
+		if (!(byte & 128)) {
+			if (payload > size-pos)
+			return GF_NON_COMPLIANT_BITSTREAM;
+			obu->size = pos + (u32) payload;
+			return GF_OK;
+		}
+	}
+	return GF_NON_COMPLIANT_BITSTREAM;
+}
+
+
 GF_EXPORT
 GF_Err gf_media_prores_parse_bs(GF_BitStream *bs, GF_ProResFrameInfo *prores_frame)
 {

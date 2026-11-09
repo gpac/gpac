@@ -31,8 +31,6 @@
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_BSSPLIT)
 
-#include "bs_av1.h"
-
 typedef struct
 {
 	GF_FilterPid *opid;

@@ -1107,6 +1107,22 @@ u32 gf_av1_leb128_size(u64 value);
 u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value);
 GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id);
 
+
+typedef struct{
+	u32 size, type, spatial_id, temporal_id;
+} BSAV1OBU;
+
+/*! inspect low-overhead OBU input buffer to a BSAV1OBU struct
+    note: framed AV1 use the low-overhead OBU format with a size field OBU so we only
+          inspect the framing (enh layers dont need to be decodable without their deps)
+\param data pointer to the input buffer
+\param size size of the input buffer
+\param obu pointer to the BSAV1OBU structure to fill
+\return GF_OK on success, GF_NON_COMPLIANT_BITSTREAM on failure
+*/
+GF_Err bs_av1_obu_inspect(const u8 *data, u32 size, BSAV1OBU *obu);
+
+
 typedef struct
 {
 	Bool seen_valid_iamf_seq_header;
