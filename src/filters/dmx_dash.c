@@ -104,6 +104,7 @@ typedef struct
 	Bool first_cache_name_fetched;
 
 	Bool initial_setup_done;
+	Bool playback_retired;
 	Bool in_error;
 	u32 nb_playing;
 
@@ -1266,6 +1267,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 
 	/*for all running services, stop service*/
 	if (dash_evt==GF_DASH_EVENT_DESTROY_PLAYBACK) {
+		ctx->playback_retired = GF_TRUE;
 		for (i=0; i<gf_dash_get_group_count(ctx->dash); i++) {
 			GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, i);
 			if (!group) continue;
@@ -3049,6 +3051,8 @@ fetch_next:
 		group->segment_sent = GF_FALSE;
 		//no thread mode, we work with at most one entry in cache, call process right away to get the group next URL ready
 		gf_dash_process(ctx->dash);
+		/* A synchronous MPD refresh can retire this group and its callers' borrows. */
+		if (ctx->playback_retired) return;
 	}
 
 #if 0
@@ -3300,6 +3304,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	if (pck) {
 		gf_filter_pid_drop_packet(ctx->mpd_pid);
 	}
+	/* Process MPD changes before borrowing groups: playback reset can free them. */
 	e = gf_dash_process(ctx->dash);
 	if (e == GF_IP_NETWORK_EMPTY) {
 		gf_filter_ask_rt_reschedule(filter, 10000);
@@ -3314,6 +3319,9 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	}
 	if (e)
 		return e;
+
+	/* No group borrow crosses the top-level call; new playback is safe to use. */
+	ctx->playback_retired = GF_FALSE;
 
 	next_time_ms = gf_dash_get_min_wait_ms(ctx->dash);
 	if (next_time_ms>1000)
@@ -3411,6 +3419,10 @@ GF_Err dashdmx_process(GF_Filter *filter)
 						dashdmx_switch_segment(ctx, group);
 
 						gf_filter_prevent_blocking(filter, GF_FALSE);
+						if (ctx->playback_retired) {
+							gf_filter_post_process_task(filter);
+							return GF_OK;
+						}
 						if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
 					}
 				}
@@ -3440,6 +3452,10 @@ GF_Err dashdmx_process(GF_Filter *filter)
 					}
 					dashdmx_switch_segment(ctx, group);
 					gf_filter_prevent_blocking(filter, GF_FALSE);
+					if (ctx->playback_retired) {
+						gf_filter_post_process_task(filter);
+						return GF_OK;
+					}
 					if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
 				}
 				break;

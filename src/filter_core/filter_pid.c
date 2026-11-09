@@ -774,6 +774,18 @@ void gf_filter_instance_detach_pid(GF_FilterPidInst *pidinst)
 {
 	u32 i, count;
 	if (!pidinst->filter) return;
+	//never detach if a packet dispatch is in progress on the PID instance - we could use a task for this rather than blocking
+	//but the dispatch is fairly short
+	while (pidinst->in_packet_dispatch) {
+		//if we hold the task mutex on the target filter, unlock/relock
+		if (gf_mx_get_num_locks(pidinst->filter->tasks_mx)>0) {
+			gf_mx_v(pidinst->filter->tasks_mx);
+			gf_sleep(0);
+			gf_mx_p(pidinst->filter->tasks_mx);
+		} else {
+			gf_sleep(0);
+		}
+	}
 
 	count = gf_fq_count(pidinst->packets);
 	for (i=0; i<count; i++) {

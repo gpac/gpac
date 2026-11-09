@@ -3717,7 +3717,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	DUMP_ATT_U("dur", gf_filter_pck_get_duration(pck) )
 	sap = gf_filter_pck_get_sap(pck);
 	if (sap==GF_FILTER_SAP_4_PROL) {
-		DUMP_ATT_STR(sap, "4 (prol)");
+		DUMP_ATT_STR("sap", "4 (prol)");
 	} else {
 		DUMP_ATT_U("sap", gf_filter_pck_get_sap(pck) )
 	}

@@ -1768,7 +1768,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		}
 		/*store full path for info*/
 		else if (!location_entry->data_reference_index) {
-			if (data) {
+			if (data && data_len) {
 				infe->full_path = (char *)gf_malloc(sizeof(char) * data_len);
 				if (!infe->full_path) return GF_OUT_OF_MEM;
 
