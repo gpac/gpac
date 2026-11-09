@@ -560,6 +560,14 @@ u32 drawable_get_aspect_2d_mpeg4(GF_Node *node, DrawAspect2D *asp, GF_TraverseSt
 	asp->pen_props.width = 0;
 
 	if (appear == NULL) goto check_default;
+	{
+		u32 app_tag = gf_node_get_tag(appear);
+		if (app_tag != TAG_MPEG4_Appearance
+#ifndef GPAC_DISABLE_X3D
+			&& app_tag != TAG_X3D_Appearance
+#endif
+		) goto check_default;
+	}
 
 	if ( ((M_Appearance *) appear)->texture ) {
 		asp->fill_texture = gf_sc_texture_get_handler( ((M_Appearance *) appear)->texture );

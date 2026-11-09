@@ -2018,7 +2018,7 @@ typedef struct {
 GF_Err gf_odf_preselection_cfg_parse(u8 *data, u32 data_len, GF_List *cfg);
 
 /*! write preselection config to bitstream in property or file
-\param cfg the address of the list of GF_PreselectionConfig
+\param cfg_list the address of the list of GF_PreselectionConfig
 \param bs the bitstream object in which to write the config
 \return error if any
 */

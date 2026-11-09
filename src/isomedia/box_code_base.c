@@ -6979,7 +6979,7 @@ GF_Err tkhd_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 60);
 	ptr->reserved2[0] = gf_bs_read_u32(bs);
 	ptr->reserved2[1] = gf_bs_read_u32(bs);
-	ptr->layer = gf_bs_read_u16(bs);
+	ptr->layer = (s16) gf_bs_read_u16(bs);
 	ptr->alternate_group = gf_bs_read_u16(bs);
 	ptr->volume = gf_bs_read_u16(bs);
 	ptr->reserved3 = gf_bs_read_u16(bs);
@@ -7032,7 +7032,7 @@ GF_Err tkhd_box_write(GF_Box *s, GF_BitStream *bs)
 	}
 	gf_bs_write_u32(bs, ptr->reserved2[0]);
 	gf_bs_write_u32(bs, ptr->reserved2[1]);
-	gf_bs_write_u16(bs, ptr->layer);
+	gf_bs_write_u16(bs, (u16) ptr->layer);
 	gf_bs_write_u16(bs, ptr->alternate_group);
 	gf_bs_write_u16(bs, ptr->volume);
 	gf_bs_write_u16(bs, ptr->reserved3);

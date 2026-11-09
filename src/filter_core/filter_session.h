@@ -1017,6 +1017,7 @@ struct __gf_filter_pid_inst
 
 	GF_Filter *swap_source;
 	Bool in_swap;
+	Bool in_packet_dispatch;
 	//clock handling by the consumer: the clock values are not automatically dispatched to the output pids and are kept
 	//available as regular packets in the input pid
 	Bool handles_clock_references;
