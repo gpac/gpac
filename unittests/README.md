@@ -2,7 +2,10 @@
 
 ## Build and run
 
-Enable unit tests with `./configure --unittests`, then run `make -j2`.
+Unit tests are enabled by default with `./configure --enable-debug`. Use
+`./configure --unittests` to enable them in other builds, or
+`./configure --unittests=no` to disable them in a debug build.
+Then run `make -j2`.
 The normal build runs the tests before building applications and stops on failure.
 
 To execute the steps manually:

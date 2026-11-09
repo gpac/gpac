@@ -93,7 +93,7 @@ libgpac_cflags=""
 libgpac_extralibs=""
 static_build="no"
 static_bin="no"
-unit_tests="no"
+unit_tests="auto"
 static_modules="no"
 lm_lib=""
 is_arm="no"
@@ -401,7 +401,7 @@ GPAC build options:
   --disable-opt            disable GCC optimizations
   --static-build           link statically against libgpac but still allow dependencies to shared libraries (enable --static-modules)
   --static-bin             enable static linking of MP4Box and gpac only (will enable --static-build), disable all libraries not linkable statically.
-  --unittests              enable unit tests [default=no]
+  --unittests[=auto|yes|no] enable unit tests [default=auto: yes with --enable-debug]
   --sdl-cfg=SDL_PATH       specify path to sdl-config for local install [$sdl_path]
   --enable-sdl-static      use static SDL linking [default=no]
   --X11-path=X11_PATH      specify path for X11 includes and libraries [$X11_PATH]
@@ -667,6 +667,12 @@ for opt do
             ;;
         --unittests) unit_tests="yes"
             ;;
+        --unittests=*) unit_tests=${opt#--unittests=}
+            case "$unit_tests" in
+                auto|yes|no) ;;
+                *) echo "Invalid --unittests value: $unit_tests" >&2; exit 1 ;;
+            esac
+            ;;
         --static-modules) static_modules="yes"
             ;;
         --sdl-cfg=*) sdl_path=`echo $opt | cut -d '=' -f 2`; sdl_local="yes"
@@ -748,6 +754,10 @@ for opt do
             ;;
     esac
 done
+
+if test "$unit_tests" = "auto" ; then
+    unit_tests="$debuginfo"
+fi
 
 
 if test "$is_em" = "yes" ; then
