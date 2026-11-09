@@ -10,16 +10,15 @@
 #define unittest_disabled(suffix, reason) GPAC_UNIT_TEST_ENTRY(suffix)
 #else
 #define unittest(suffix) void test_##suffix(void)
-#define unittest_disabled(suffix, reason) unittest(suffix) { test_skip(reason); }
+#define unittest_disabled(suffix, reason) unittest(suffix) { test_skip(reason " (" __FILE__ ")"); }
 #endif
 
 int register_test(const char *name, void (*test_function)(void));
 int run_tests(int argc, char *argv[]);
+
+//cleanup need run in reverse order on success, skip, and assertion failure
 void test_abort(void);
 void test_skip(const char *reason);
-/* Cleanups run in reverse order on success, skip, and assertion failure.
- * Pass the resource itself, not the address of a test's automatic variable.
- * Assertions and cleanup registration are for the runner thread only. */
 void test_defer(void (*cleanup)(void *), void *data);
 
 extern int checks_passed;

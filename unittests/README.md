@@ -27,8 +27,8 @@ The executable is `bin/gcc/unittests` (`unittests.exe` on Windows). For an
 out-of-tree build, run the launcher from the build directory, or set
 `GPAC_UNITTEST_BINARY` to that build's executable. No alternate `libgpac` loader
 path is needed since we now build from the static library (`libgpac_static.a`).
-`make clean` removes test artifacts, including the obsolete
-second build left by earlier versions.
+`make clean` removes test artifacts (including the obsolete
+second build left by earlier versions).
 
 These tests complement the separate testsuite. The unit tests in `gpac.c` and
 the `units` filter are independent of this harness.
@@ -79,8 +79,8 @@ cleanups, stops the suite after a fatal assertion, and returns failure.
 `check_true` and `check_false` record failures but continue, for checks where
 continuing is safe. Do not rely on code after an assertion to release resources.
 
-`test_defer(cleanup, resource)` registers a cleanup that runs in reverse order on
-success, skip, or failure. Pass the resource itself or a heap-owned fixture;
+The new `test_defer(cleanup, resource)` registers a cleanup that runs in reverse
+order on success, skip, or failure. Pass the resource itself or a heap-owned fixture;
 never pass the address of a local variable, since the test's stack frame may
 already have been unwound. Do not free a deferred resource separately.
 Assertions, skips, and cleanup registration must run on the runner thread;
