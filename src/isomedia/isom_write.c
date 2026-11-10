@@ -9137,6 +9137,47 @@ static GF_Err isom_box_patch_check_wildcard_path(const char *path)
 	return GF_BAD_PARAM;
 }
 
+static GF_Box *isom_box_patch_find_iprp(GF_List *boxes, GF_Box *ipco)
+{
+	u32 i;
+	for (i=0; i<gf_list_count(boxes); i++) {
+		GF_Box *box = gf_list_get(boxes, i);
+		GF_Box *found;
+		if ((box->type==GF_ISOM_BOX_TYPE_IPRP) && (gf_list_find(box->child_boxes, ipco)>=0)) return box;
+		found = isom_box_patch_find_iprp(box->child_boxes, ipco);
+		if (found) return found;
+	}
+	return NULL;
+}
+
+static void isom_box_patch_remove_property_refs(GF_ISOFile *file, GF_Box *ipco, GF_Box *property)
+{
+	u32 i, j, index = 1 + gf_list_find(ipco->child_boxes, property);
+	GF_Box *iprp = isom_box_patch_find_iprp(file->TopBoxes, ipco);
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	if (!iprp && file->moof) iprp = isom_box_patch_find_iprp(file->moof->child_boxes, ipco);
+#endif
+	if (!iprp || !index) return;
+	for (i=0; i<gf_list_count(iprp->child_boxes); i++) {
+		GF_ItemPropertyAssociationBox *ipma = gf_list_get(iprp->child_boxes, i);
+		if (ipma->type!=GF_ISOM_BOX_TYPE_IPMA) continue;
+		for (j=0; j<gf_list_count(ipma->entries); j++) {
+			u32 k = 0;
+			GF_ItemPropertyAssociationEntry *entry = gf_list_get(ipma->entries, j);
+			while (k<entry->nb_associations) {
+				if (entry->associations[k].index==index) {
+					entry->nb_associations--;
+					memmove(&entry->associations[k], &entry->associations[k+1],
+						(entry->nb_associations-k) * sizeof(GF_ItemPropertyAssociationSlot));
+					continue;
+				}
+				if (entry->associations[k].index>index) entry->associations[k].index--;
+				k++;
+			}
+		}
+	}
+}
+
 static GF_Err isom_apply_box_edit(GF_ISOFile *file, GF_Box *parent_box, GF_Box *box, const char *box_path, u8 *box_data, u32 box_data_size, u32 item_id, Bool essential_prop)
 {
 	GF_Err e = GF_OK;
@@ -9170,6 +9211,9 @@ static GF_Err isom_apply_box_edit(GF_ISOFile *file, GF_Box *parent_box, GF_Box *
 	}
 
 	if (!box_data) {
+		//ipma indices are one-based positions in ipco, shared by all items
+		if (parent_box && (parent_box->type==GF_ISOM_BOX_TYPE_IPCO))
+			isom_box_patch_remove_property_refs(file, parent_box, box);
 		if (insert_pos>=0) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMFF] Invalid path %s for box removal, ignoring position\n", box_path));
 		}
