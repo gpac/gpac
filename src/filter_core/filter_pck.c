@@ -1141,6 +1141,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
 		if (!dst->filter || dst->filter->finalized || (dst->filter->removed==1) || !dst->filter->freg->process || dst->in_swap) continue;
 
+		dst->in_packet_dispatch = GF_TRUE;
+
 		if (dst->discard_inputs==GF_PIDI_DISCARD_ON) {
 			//in discard input mode, we drop all input packets but trigger reconfigure as they happen
 			if ((pck->info.flags & GF_PCKF_PROPS_CHANGED) && (dst->props != pck->pid_props)) {
@@ -1168,22 +1170,28 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				gf_fs_post_task(dst->filter->session, gf_filter_pid_reconfigure_task_discard, dst->filter, (GF_FilterPid *)dst, "pidinst_reconfigure", NULL);
 				//keep packets, they will be trashed if we are still in discard when executing gf_filter_pid_reconfigure_task_discard
 			} else {
+				dst->in_packet_dispatch = GF_FALSE;
 				continue;
 			}
 		}
 		//ignore flush packets if destination requires full blocks and block is in progress
 		if (dst->requires_full_data_block && !dst->last_block_ended && (pck->info.flags & GF_PCKF_IS_FLUSH)) {
+			dst->in_packet_dispatch = GF_FALSE;
 			continue;
 		}
 		//stop forwarding clock packets when in EOS
 		if (dst->is_end_of_stream && cktype) {
+			dst->in_packet_dispatch = GF_FALSE;
 			continue;
 		}
 
 		inst = gf_fq_pop(pck->pid->filter->pcks_inst_reservoir);
 		if (!inst) {
 			GF_SAFEALLOC(inst, GF_FilterPacketInstance);
-			if (!inst) return GF_OUT_OF_MEM;
+			if (!inst) {
+				dst->in_packet_dispatch = GF_FALSE;
+				continue;
+			}
 		}
 		inst->pck = pck;
 		inst->pid = dst;
@@ -1265,6 +1273,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 					inst->pck = gf_filter_pck_new_alloc_internal(pck->pid, pck->data_length, &data);
 					if (!inst->pck) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s: failed to allocate new packet\n", pid->filter->name));
+						dst->in_packet_dispatch = GF_FALSE;
+						inst = gf_fq_pop(pck->pid->filter->pcks_inst_reservoir);
 						continue;
 					}
 
@@ -1358,6 +1368,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			//post process task
 			gf_filter_post_process_task_internal(dst->filter, pid->direct_dispatch);
 		}
+		dst->in_packet_dispatch = GF_FALSE;
 	}
 
 #ifdef GPAC_MEMORY_TRACKING

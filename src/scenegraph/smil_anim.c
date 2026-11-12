@@ -1136,6 +1136,8 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Missing attributeName attribute on element %s\n",
 			        gf_node_get_log_name((GF_Node*)e) ));
+			/*rai is never added to target's list; clear forward ref so teardown won't use stale target*/
+			xlinkp->href->target = NULL;
 			return;
 		}
 	}
@@ -1146,6 +1148,8 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Using CSS attributeType for an animation on an attribute which is not a property %s\n",
 			        gf_node_get_log_name((GF_Node*)e) ));
+			/*rai is never added to target's list; clear forward ref so teardown won't use stale target*/
+			xlinkp->href->target = NULL;
 			return;
 		}
 	}
@@ -1165,6 +1169,8 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 		        gf_svg_attribute_type_to_string(target_attribute.fieldType),
 		        gf_svg_attribute_type_to_string(anim_value_type),
 		        gf_node_get_log_name((GF_Node*)e)));
+		/*rai is never added to target's list; clear forward ref so teardown won't use stale target*/
+		xlinkp->href->target = NULL;
 		return;
 	}
 
