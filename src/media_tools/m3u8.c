@@ -1151,7 +1151,9 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 	FILE *f = NULL;
 	u8 *m3u8_payload;
 	u32 m3u8_size, m3u8pos;
-	char currentLine[M3U8_BUF_SIZE];
+	char line_buffer[M3U8_BUF_SIZE];
+	char *currentLine = line_buffer;
+	size_t line_capacity = sizeof(line_buffer);
 	char **attributes = NULL;
 	Bool release_blob = GF_FALSE;
 	s_accumulated_attributes attribs;
@@ -1175,6 +1177,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 
 #define _CLEANUP \
 	reset_attribs(&attribs, GF_TRUE);\
+	if (currentLine != line_buffer) gf_free(currentLine); \
 	if (f) gf_fclose(f); \
 	else if (release_blob) gf_blob_release(m3u8_file);
 
@@ -1193,23 +1196,33 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 		char *eof;
 		int len;
 		if (f) {
-			if (!gf_fgets(currentLine, sizeof(currentLine), f))
+			if (!gf_fgets(currentLine, sizeof(line_buffer), f))
 				break;
 		} else {
-			u32 __idx = 0;
+			u32 line_start = m3u8pos;
+			size_t line_size;
 			if (m3u8pos >= m3u8_size)
 				break;
-			while (1) {
-				if (__idx >= M3U8_BUF_SIZE) break;
-
-				currentLine[__idx] = m3u8_payload[m3u8pos];
-				__idx++;
-				m3u8pos++;
-				if ((currentLine[__idx-1]=='\n') || (currentLine[__idx-1]=='\r') || (m3u8pos >= m3u8_size)) {
-					currentLine[__idx]=0;
-					break;
-				}
+			/* Keep a complete logical line, including its terminating newline. */
+			while (m3u8pos < m3u8_size) {
+				char c = m3u8_payload[m3u8pos++];
+				if ((c=='\n') || (c=='\r')) break;
 			}
+			line_size = m3u8pos - line_start;
+			if (line_size >= line_capacity) {
+				char *new_line = NULL;
+				/* Reserve the NUL without overflowing size_t on 32-bit builds. */
+				if (line_size != (size_t) -1)
+					new_line = gf_realloc(currentLine == line_buffer ? NULL : currentLine, line_size + 1);
+				if (!new_line) {
+					_CLEANUP
+					return GF_OUT_OF_MEM;
+				}
+				currentLine = new_line;
+				line_capacity = line_size + 1;
+			}
+			memcpy(currentLine, m3u8_payload + line_start, line_size);
+			currentLine[line_size] = 0;
 		}
 		currentLineNumber++;
 		eof = strchr(currentLine, '\r');

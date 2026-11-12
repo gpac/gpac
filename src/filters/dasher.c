@@ -29,6 +29,7 @@
 #include <gpac/mpd.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/internal/scte35.h>
+#include <gpac/internal/dash_segment_events.h>
 #include <gpac/base_coding.h>
 #include <gpac/network.h>
 #include <gpac/crypt_tools.h>
@@ -216,6 +217,7 @@ typedef struct
 	DasherCMAFMode cmaf;
 	DasherDefaultKIDInjection dkid;
 	GF_Fraction segdur;
+	GF_Fraction hls_tdur; /* optional, fixed playlist target duration */
 	GF_DashDynamicMode dmode;
 	char *template;
 	char *segext;
@@ -252,6 +254,7 @@ typedef struct
 	GF_Fraction cdur;
 	Bool ll_preload_hint, ll_rend_rep;
 	Bool gencues, force_init, gxns;
+	Bool ssai_align; /* opt-in common A/V segment schedule for SSAI */
 	Double ll_part_hb;
 	GF_DashAbsoluteURLMode hls_absu;
 	DasherWaitLastPktCtrl seg_sync;
@@ -273,6 +276,8 @@ typedef struct
 
 	GF_DasherPeriod *current_period, *next_period;
 	GF_List *pids;
+	struct _dash_stream *ssai_ref;
+	GF_List *ssai_cut_times; /* u64 timestamps on the 90 kHz source clock */
 	Bool template_use_source;
 	s32 period_idx;
 
@@ -523,6 +528,13 @@ typedef struct _dash_stream
 	s32 cues_ts_offset;
 	Bool inband_cues;
 
+	/* SCTE-35 splice cuts (90 kHz): pending ordered cuts and per-stream
+	 * event identities retained so duplicate delivery cannot re-arm a cut. */
+	GF_List *scte35_pending_cuts;
+	GF_List *scte35_seen_events;
+	u64 scte35_completed_cut; /* highest physically serviced SCTE cut (90 kHz) */
+	u32 ssai_cut_index; /* next reference cut to apply */
+
 	Bool clamp_done;
 	u32 dcd_not_ready;
 
@@ -579,6 +591,7 @@ typedef struct _dash_stream
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_last_in_period);
 static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds);
 static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_destroy);
+static void dasher_scte35_clear_schedule(GF_DashStream *ds);
 static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_switch);
 static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *for_ds);
 static GF_Err dasher_setup_profile(GF_DasherCtx *ctx);
@@ -5579,6 +5592,7 @@ static void dasher_purge_rep(GF_DasherCtx *ctx, GF_MPD_Representation *rep, GF_M
 		if (sctx->hls_key_uri) gf_free(sctx->hls_key_uri);
 		if (sctx->frags) gf_free(sctx->frags);
 		if (sctx->llhas_template) gf_free(sctx->llhas_template);
+		gf_dash_segment_event_associations_del(sctx);
 		gf_free(sctx);
 		gf_list_rem(rep->state_seg_list, 0);
 	}
@@ -6648,6 +6662,7 @@ resend:
 
 static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_destroy)
 {
+	dasher_scte35_clear_schedule(ds);
 	//we do not remove the destination filter, it will be removed automatically once all remove_pids are called
 	//removing it explicitly will discard the upper chain and any packets not yet processed
 	ds->dst_filter = NULL;
@@ -8600,6 +8615,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, B
 
 	//live edge, always inject an entry and remember we just did
 	if (is_ll_anouncement) {
+		GF_MPD_SegmentTimelineEntry *prev;
 		//is timeline is at set level, only inject entry for LL edge on the rep owning the set
 		if (stl_in_as && !ds->owns_set)
 			return;
@@ -8608,6 +8624,19 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, B
 
 		s->start_time = ds->seg_start_time + pto;
 		s->duration = (u32) duration;
+
+		//SSR part count is only known once segment is complete. So we use the last
+		//segment as a guess so that live edge remains addressable through $SubNumber$
+		//See https://github.com/gpac/gpac/issues/3959
+		prev = gf_list_last(tl->entries);
+		if (ds->set->ssr_mode && prev && !prev->is_ll_edge && (prev->duration == s->duration))
+			s->nb_parts = prev->nb_parts;
+		if (ds->set->ssr_mode && !s->nb_parts && ctx->cdur.num>0 && ctx->cdur.den>0) {
+			u64 part_dur = gf_timestamp_rescale(ctx->cdur.num, ctx->cdur.den, ds->mpd_timescale);
+			if (duration && part_dur)
+				s->nb_parts = 1 + (u32) ((duration - 1) / part_dur);
+		}
+
 		s->is_ll_edge = GF_TRUE;
 		gf_list_add(tl->entries, s);
 		ds->last_stl_is_ll = GF_TRUE;
@@ -8769,6 +8798,18 @@ static void dasher_set_timeline_parts(GF_DasherCtx *ctx, GF_DashStream *ds, GF_D
 	if (!ent)
 		return;
 
+	//live edge is inserted before the fragment size events are received
+	//so keep estimated SSR part count in sync with the last seg so clients
+	//can resolve $SubNumber$ at the edge (https://github.com/gpac/gpac/issues/3959)
+	for (i=nb_entries; i>0; i--) {
+		GF_MPD_SegmentTimelineEntry *ll_edge = gf_list_get(stl->entries, i-1);
+		if (!ll_edge->is_ll_edge)
+			continue;
+		if (ll_edge->duration == ent->duration)
+			ll_edge->nb_parts = nb_parts;
+		break;
+	}
+
 	//first seg in timeline entry
 	if (!ent->nb_parts) {
 		ent->nb_parts = nb_parts;
@@ -8897,7 +8938,12 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 
 		if (ctx->do_m3u8 && !(ds->stream_type == GF_STREAM_TEXT && ctx->rawsub)) {
 			u64 segdur = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
-			if (gf_timestamp_less(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, segdur, base_ds->timescale)) {
+			if (ctx->hls_tdur.num > 0 && ctx->hls_tdur.den) {
+				if (gf_timestamp_greater(segdur, base_ds->timescale, ctx->hls_tdur.num, ctx->hls_tdur.den)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] HLS fixed target duration exceeded: %g seconds\n", ((Double)segdur)/base_ds->timescale));
+					ctx->in_error = GF_TRUE;
+				}
+			} else if (gf_timestamp_less(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, segdur, base_ds->timescale)) {
 				s64 diff = gf_timestamp_rescale(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, 1000);
 				diff -= gf_timestamp_rescale(segdur, base_ds->timescale, 1000);
 				//allow 50ms variation
@@ -9156,6 +9202,131 @@ u64 dasher_translate_cts(GF_DashStream *ds, u64 cts)
 	return cts;
 }
 
+/* An SCTE section carries 33-bit source PTS in 90 kHz ticks. Unlike an MPD
+ * segment timestamp, this is not yet relative to a representation's CTS
+ * origin. Translate using the SAME function as the media packets. */
+GF_STATIC u64 dasher_scte35_translate_event(u64 scte_pts90k, u32 source_timescale,
+        u64 first_cts, u64 first_dts, s64 pts_minus_cts, u64 ts_offset,
+        Bool cues, u32 mpd_timescale)
+{
+    u64 cts;
+    if (!source_timescale || !mpd_timescale) return 0;
+    cts = gf_timestamp_rescale(scte_pts90k, 90000, source_timescale);
+    cts += ts_offset;
+    if (cues) {
+        cts = cts < first_cts ? 0 : cts - first_cts;
+    } else if (cts < first_dts) {
+        cts = 0;
+    } else if (pts_minus_cts < 0) {
+        if ((s64)(cts - first_dts) >= -pts_minus_cts)
+            cts = cts - first_dts + pts_minus_cts;
+        else
+            cts = 0;
+    } else if (cts < first_cts) {
+        cts = 0;
+    } else {
+        cts -= first_cts;
+    }
+    return gf_timestamp_rescale(cts, source_timescale, mpd_timescale);
+}
+
+/* A transition is placed on the first ACTUAL segment start at/after the
+ * event. In particular it never belongs to the segment being closed. */
+GF_STATIC Bool dasher_scte35_transition_at_segment(u64 event_in_mpd,
+        u64 segment_start, Bool has_predecessor, u64 previous_start)
+{
+    return (segment_start >= event_in_mpd)
+        && (!has_predecessor || previous_start < event_in_mpd);
+}
+
+static GF_Err dasher_scte35_map_one_event(GF_DashStream *ds,
+    GF_MPD_EventStream *es, GF_MPD_EventStreamEntry *evt,
+    GF_DASH_SegmentContext *sctx, GF_DASH_SegmentContext *prev)
+{
+    u32 j;
+    u64 event_start, end90k;
+    GF_DASH_SegmentEventAssociation *assoc;
+    if (!ds->rep_init || !ds->timescale || !ds->mpd_timescale
+        || evt->presentation_time < 0 || !es->timescale || !sctx->event_associations)
+        return GF_OK;
+    /* The SCTE parser returns 90k timestamps, regardless of packet scale. */
+    event_start = dasher_scte35_translate_event((u64)evt->presentation_time,
+        ds->timescale, ds->first_cts, ds->first_dts,
+        ds->pts_minus_cts, ds->ts_offset, ds->cues ? GF_TRUE : GF_FALSE,
+        ds->mpd_timescale);
+
+    for (j=0; j<2; j++) {
+        u64 stamp = event_start;
+        u32 boundary = GF_DASH_SEGMENT_EVENT_START;
+        u32 k=0;
+        if (j) {
+            /* A missing/unknown break duration has no synthesized return. */
+            if (!evt->duration || evt->duration == (u32)-1) break;
+            end90k = (u64)evt->presentation_time + evt->duration;
+            stamp = dasher_scte35_translate_event(end90k, ds->timescale,
+                ds->first_cts, ds->first_dts, ds->pts_minus_cts,
+                ds->ts_offset, ds->cues ? GF_TRUE : GF_FALSE, ds->mpd_timescale);
+            boundary = GF_DASH_SEGMENT_EVENT_END;
+        }
+        if (!dasher_scte35_transition_at_segment(stamp, sctx->time,
+                prev ? GF_TRUE : GF_FALSE, prev ? prev->time : 0))
+            continue;
+        while ((assoc = gf_list_enum(sctx->event_associations, &k))) {
+            if (assoc->boundary_type == boundary && assoc->id == evt->id
+                && assoc->presentation_time == evt->presentation_time
+                && !strcmp(assoc->scheme_id_uri, es->scheme_id_uri))
+                break;
+        }
+        if (!assoc) {
+            GF_Err e = gf_dash_segment_event_association_add(sctx,
+                es->scheme_id_uri, evt->presentation_time, evt->id, boundary);
+            if (e) return e;
+        }
+    }
+    return GF_OK;
+}
+
+static GF_Err dasher_scte35_reconcile_segment(GF_DashStream *ds,
+    GF_DASH_SegmentContext *seg, GF_DASH_SegmentContext *prev)
+{
+    GF_MPD_EventStream *es;
+    u32 i=0;
+    if (!ds->period || !ds->period->period || !ds->period->period->event_streams)
+        return GF_OK;
+    while ((es = gf_list_enum(ds->period->period->event_streams, &i))) {
+        GF_MPD_EventStreamEntry *evt;
+        u32 j=0;
+        if (!es->scheme_id_uri || strcmp(es->scheme_id_uri, GF_SCTE35_SCHEME_URI_OUTBAND))
+            continue;
+        while ((evt=gf_list_enum(es->entries, &j))) {
+            GF_Err e=dasher_scte35_map_one_event(ds, es, evt, seg, prev);
+            if (e) return e;
+        }
+    }
+    return GF_OK;
+}
+
+/* A section may arrive after another PID has created its segment context.
+ * Reconcile retained boundaries when the Period first sees that event.
+ * The association is idempotent and survives later manifest rewrites. */
+static GF_Err dasher_scte35_reconcile_period(GF_DasherCtx *ctx)
+{
+    u32 i=0;
+    GF_DashStream *ds;
+    if (!ctx->current_period) return GF_OK;
+    while ((ds = gf_list_enum(ctx->current_period->streams, &i))) {
+        u32 j=0;
+        GF_DASH_SegmentContext *seg, *prev=NULL;
+        if (!ds->rep || !ds->rep->state_seg_list || ds->muxed_base) continue;
+        while ((seg=gf_list_enum(ds->rep->state_seg_list, &j))) {
+            GF_Err e=dasher_scte35_reconcile_segment(ds, seg, prev);
+            if (e) return e;
+            prev=seg;
+        }
+    }
+    return GF_OK;
+}
+
 static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_FilterPacket *pck, GF_FilterPacket *in_pck)
 {
 	Bool no_concat;
@@ -9296,7 +9467,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				ds->rep->hls_forced = p->value.string;
 
 			ds->rep->dash_dur = ds->dash_dur;
-			ds->rep->hls_max_seg_dur = ds->dash_dur;
+			ds->rep->hls_max_seg_dur = (ctx->hls_tdur.num > 0 && ctx->hls_tdur.den) ? ctx->hls_tdur : ds->dash_dur;
 
 			if (!ds->rep->hls_single_file_name) {
 				switch (ctx->muxtype) {
@@ -9356,6 +9527,22 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		if (!seg_state) return;
 		seg_state->time = ds->seg_start_time;
 		seg_state->seg_num = ds->seg_number;
+		if (ctx->do_m3u8 && (ctx->scte35 == SCTE35_ALL
+		    || ctx->scte35 == SCTE35_DASH_AUTO || ctx->scte35 == SCTE35_DASH_XML_BIN)) {
+			GF_DASH_SegmentContext *prev = gf_list_last(ds->rep->state_seg_list);
+			seg_state->event_associations = gf_list_new();
+			if (!seg_state->event_associations) {
+				gf_free(seg_state);
+				ctx->in_error = GF_TRUE;
+				return;
+			}
+			if (dasher_scte35_reconcile_segment(ds, seg_state, prev)) {
+				gf_dash_segment_event_associations_del(seg_state);
+				gf_free(seg_state);
+				ctx->in_error = GF_TRUE;
+				return;
+			}
+		}
 		if (ctx->llhls) seg_state->llhls_mode = ctx->llhls;
 		else if (ds->set->ssr_mode) seg_state->llhls_mode = GF_DASH_LL_HLS_BRSF;
 		ds->current_seg_state = seg_state;
@@ -9472,6 +9659,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				}
 			} else {
 				gf_list_del_item(ds->rep->state_seg_list, seg_state);
+				gf_dash_segment_event_associations_del(seg_state);
 				gf_free(seg_state);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Manifest generation only but not fragment information in packet, source demux not properly configured\n"));
 				ctx->in_error = GF_TRUE;
@@ -10076,6 +10264,194 @@ static void dasher_set_pto(GF_DashStream *ds, u64 pto_adj)
 	}
 }
 
+GF_STATIC Bool dasher_scte35_boundary_due(u64 packet_cts, u32 packet_timescale, u32 sap_type, u64 boundary_time)
+{
+	if (!sap_type || !packet_timescale) return GF_FALSE;
+	return gf_timestamp_greater_or_equal(packet_cts, packet_timescale, boundary_time, 90000);
+}
+
+/* Each visual representation schedules its own cuts before the period-global
+ * MPD EventStream de-duplicates event IDs. Multiple future splice events may
+ * arrive before the first RAP; one mutable pending slot loses later events. */
+typedef struct {
+	u32 event_id;
+	u64 event_time;
+	u64 event_end; /* retire only after the last planned cut is serviced */
+} DasherScteSeenEvent;
+
+typedef struct {
+	u64 time; /* 90 kHz SCTE source clock */
+} DasherSctePendingCut;
+
+static void dasher_scte35_clear_schedule(GF_DashStream *ds)
+{
+	if (ds->scte35_pending_cuts) {
+		while (gf_list_count(ds->scte35_pending_cuts)) gf_free(gf_list_pop_back(ds->scte35_pending_cuts));
+		gf_list_del(ds->scte35_pending_cuts);
+		ds->scte35_pending_cuts = NULL;
+	}
+	if (ds->scte35_seen_events) {
+		while (gf_list_count(ds->scte35_seen_events)) gf_free(gf_list_pop_back(ds->scte35_seen_events));
+		gf_list_del(ds->scte35_seen_events);
+		ds->scte35_seen_events = NULL;
+	}
+	ds->scte35_completed_cut = 0;
+}
+
+static GF_Err dasher_scte35_insert_cut(GF_List *cuts, DasherSctePendingCut *cut)
+{
+	u32 i, count = gf_list_count(cuts);
+	for (i=0; i<count; i++) {
+		DasherSctePendingCut *existing = gf_list_get(cuts, i);
+		if (existing->time == cut->time) {
+			gf_free(cut);
+			return GF_OK;
+		}
+		if (existing->time > cut->time) return gf_list_insert(cuts, cut, i);
+	}
+	return gf_list_add(cuts, cut);
+}
+
+/* Do not treat a second transmission of an already-consumed event as a new
+ * splice. Identity is (event ID, source presentation time), per rendition. */
+GF_STATIC GF_Err dasher_scte35_schedule_boundary(Bool needs_idr, u32 stream_type,
+	u32 event_id, u64 splice_time, u64 duration, u64 completed_cut,
+	GF_List **pending, GF_List **seen)
+{
+	DasherScteSeenEvent *record;
+	DasherSctePendingCut *start, *end = NULL;
+	u32 i;
+	GF_Err e;
+	if (!needs_idr || stream_type != GF_STREAM_VISUAL) return GF_OK;
+	/* A replay whose nominal start precedes an already serviced RAP cannot
+	 * request a second cut. Out-of-order FUTURE events are still accepted. */
+	if (completed_cut && splice_time <= completed_cut) return GF_OK;
+	if (!*seen) {
+		*seen = gf_list_new();
+		if (!*seen) return GF_OUT_OF_MEM;
+	}
+	if (!*pending) {
+		*pending = gf_list_new();
+		if (!*pending) return GF_OUT_OF_MEM;
+	}
+	for (i=0; i<gf_list_count(*seen); i++) {
+		DasherScteSeenEvent *existing = gf_list_get(*seen, i);
+		if ((existing->event_id == event_id) && (existing->event_time == splice_time))
+			return GF_OK;
+	}
+	GF_SAFEALLOC(record, DasherScteSeenEvent);
+	GF_SAFEALLOC(start, DasherSctePendingCut);
+	if (!record || !start) {
+		gf_free(record);
+		gf_free(start);
+		return GF_OUT_OF_MEM;
+	}
+	start->time = splice_time;
+	if (duration && (duration != (u64)-1) && (splice_time <= ((u64)-1) - duration)) {
+		GF_SAFEALLOC(end, DasherSctePendingCut);
+		if (!end) { gf_free(record); gf_free(start); return GF_OUT_OF_MEM; }
+		end->time = splice_time + duration;
+	}
+	record->event_id = event_id;
+	record->event_time = splice_time;
+	record->event_end = end ? end->time : splice_time;
+	e = gf_list_add(*seen, record);
+	if (e) { gf_free(record); gf_free(start); gf_free(end); return e; }
+	e = dasher_scte35_insert_cut(*pending, start);
+	if (e) { gf_list_del_item(*seen, record); gf_free(record); gf_free(start); gf_free(end); return e; }
+	if (end) {
+		e = dasher_scte35_insert_cut(*pending, end);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
+/* Completed live events must not accumulate for the channel lifetime. Once
+ * all planned cuts are past, remember only the monotonic serviced watermark:
+ * it also rejects stale retransmissions after their per-event key is freed. */
+GF_STATIC void dasher_scte35_prune_seen(GF_List *seen, u64 completed_cut)
+{
+	u32 i=0;
+	if (!seen) return;
+	while (i<gf_list_count(seen)) {
+		DasherScteSeenEvent *record = gf_list_get(seen, i);
+		if (record->event_end > completed_cut) { i++; continue; }
+		gf_list_rem(seen, i);
+		gf_free(record);
+	}
+}
+
+GF_STATIC Bool dasher_scte35_next_cut(GF_List *pending, u64 *time)
+{
+	DasherSctePendingCut *cut = pending ? gf_list_get(pending, 0) : NULL;
+	if (!cut) return GF_FALSE;
+	*time = cut->time;
+	return GF_TRUE;
+}
+
+/* A single RAP may satisfy several pending transitions: consume all due
+ * times but create at most one segment cut at that physical boundary. */
+GF_STATIC Bool dasher_scte35_consume_due(GF_List *pending, u64 cts, u32 timescale, u32 sap_type)
+{
+	Bool had_due = GF_FALSE;
+	u64 when;
+	if (!sap_type || !timescale) return GF_FALSE;
+	while (dasher_scte35_next_cut(pending, &when)
+		&& dasher_scte35_boundary_due(cts, timescale, sap_type, when)) {
+		gf_free(gf_list_pop_front(pending));
+		had_due = GF_TRUE;
+	}
+	return had_due;
+}
+
+/* SSAI is opt-in: ordinary DASH/HLS keeps its original independent
+ * representation segmenter. Only un-muxed A/V streams take part. */
+static void dasher_ssai_select_reference(GF_DasherCtx *ctx)
+{
+    u32 i, n;
+    if (!ctx->ssai_align || !ctx->ssai_cut_times) return;
+    if (ctx->ssai_ref && gf_list_find(ctx->current_period->streams, ctx->ssai_ref) >= 0)
+        return;
+    ctx->ssai_ref = NULL;
+    while (gf_list_count(ctx->ssai_cut_times))
+        gf_free(gf_list_pop_back(ctx->ssai_cut_times));
+    n = gf_list_count(ctx->current_period->streams);
+    for (i=0; i<n; i++) {
+        GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+        ds->ssai_cut_index = 0;
+        if (!ctx->ssai_ref && !ds->muxed_base && ds->stream_type == GF_STREAM_VISUAL)
+            ctx->ssai_ref = ds;
+    }
+}
+
+/* Bound the retained common-cut history after all active followers have
+ * passed its oldest entry; no leak during long-running live channels. */
+static void dasher_ssai_trim(GF_DasherCtx *ctx)
+{
+    u32 i, n;
+    Bool all_seen = GF_TRUE;
+    if (!ctx->ssai_ref || !gf_list_count(ctx->ssai_cut_times)) return;
+    n = gf_list_count(ctx->current_period->streams);
+    for (i=0; i<n; i++) {
+        GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+        if (ds == ctx->ssai_ref || ds->done || ds->muxed_base) continue;
+        if (ds->stream_type != GF_STREAM_VISUAL && ds->stream_type != GF_STREAM_AUDIO) continue;
+        if (!ds->ssai_cut_index) { all_seen = GF_FALSE; break; }
+    }
+    if (!all_seen) return;
+    gf_free(gf_list_pop_front(ctx->ssai_cut_times));
+    for (i=0; i<n; i++) {
+        GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+        if (ds->ssai_cut_index) ds->ssai_cut_index--;
+    }
+}
+
+/* A cut belongs to the presentation clock, not a segment number. */
+GF_STATIC Bool dasher_ssai_boundary_reached(u64 source_cts, u32 timescale, u64 cut90k)
+{
+    return gf_timestamp_greater_or_equal(source_cts, timescale, cut90k, 90000);
+}
+
 static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_DashStream *ds)
 {
 	GF_Err ret = GF_OK;
@@ -10148,6 +10524,12 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 		Bool needs_idr = GF_FALSE;
 		u64 dur = 0;
 		if (scte35dec_get_timing(data, size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
+            /* SCTE may reach multiple video PIDs with the same event ID. */
+            GF_DashStream *splice_ds = (ctx->ssai_align && ctx->ssai_ref) ? ctx->ssai_ref : ds;
+            ret = dasher_scte35_schedule_boundary(needs_idr, splice_ds->stream_type,
+                evt->id, evt->presentation_time, dur, splice_ds->scte35_completed_cut,
+                &splice_ds->scte35_pending_cuts, &splice_ds->scte35_seen_events);
+            if (ret) goto exit;
 			Bool found = GF_FALSE;
 			GF_MPD_EventStreamEntry *ese = NULL;
 			u32 i = 0;
@@ -10161,13 +10543,16 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 
 			if (!found) {
 				evt->duration = (u32)dur;
-				es->timescale = gf_filter_pck_get_timescale(pck);
+				/* Raw SCTE-35 splice_time and break_duration use 90 kHz. */
+				es->timescale = 90000;
 				evt->message = gf_malloc(size);
 				if (!evt->message) goto fail;
 				memcpy(evt->message, data, size);
 				evt->message_size = size;
 				gf_list_add(es->entries, evt);
-				return GF_OK;
+				/* Audio or another rendition may already have reached this
+				 * boundary before the section arrived on the video PID. */
+				return dasher_scte35_reconcile_period(ctx);
 			}
 		}
 
@@ -10250,6 +10635,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 	if (ctx->setup_failure)
 		return ctx->setup_failure;
 
+	dasher_ssai_select_reference(ctx);
 	count = gf_list_count(ctx->current_period->streams);
 	if (!ctx->min_cts_period.den) {
 		u64 min_ts=0, min_timescale = 0;
@@ -10597,6 +10983,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 			GF_Err e = dasher_handle_scte35(ctx, pck, ds);
 			if (e) return e;
 
+			Bool scte35_splice_boundary = GF_FALSE;
+			u64 scte35_next_cut = 0;
+			if (dasher_scte35_next_cut(ds->scte35_pending_cuts, &scte35_next_cut))
+				scte35_splice_boundary = dasher_scte35_boundary_due(cts, ds->timescale, sap_type, scte35_next_cut);
+
 			if (!ds->rep_init) {
 				u32 set_start_with_sap;
 				//for video, resync on sap 1 or 2 if not full profile
@@ -10738,8 +11129,31 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (e) return e;
 			}
 
+			u64 ssai_source_cts = cts;
 			cts = dasher_translate_cts(ds, cts);
 			dts -= ds->first_dts;
+			/* Never advance a follower past the next uncommitted video cut.
+			 * Leave this packet queued on its input PID until the reference
+			 * stream supplies a decodable boundary. */
+			if (ctx->ssai_align && ctx->ssai_ref && (ds != ctx->ssai_ref)
+				&& ds->segment_started && ctx->ssai_ref->segment_started
+				&& !ctx->ssai_ref->done && !gf_filter_pid_is_eos(ctx->ssai_ref->ipid)
+				&& !ds->muxed_base && (ds->stream_type == GF_STREAM_VISUAL || ds->stream_type == GF_STREAM_AUDIO)
+				&& ds->ssai_cut_index >= gf_list_count(ctx->ssai_cut_times)) {
+				u64 next_ref_cut = gf_timestamp_rescale(
+					ctx->ssai_ref->first_cts + ctx->ssai_ref->adjusted_next_seg_start,
+					ctx->ssai_ref->timescale, 90000);
+				/* An SCTE splice may insert a cut earlier than the regular
+				 * cadence. Hold followers at the earlier boundary even if
+				 * the reference video has not yet reached its RAP. */
+				{
+					u64 splice_cut = 0;
+					if (dasher_scte35_next_cut(ctx->ssai_ref->scte35_pending_cuts, &splice_cut)
+						&& (splice_cut < next_ref_cut)) next_ref_cut = splice_cut;
+				}
+				if (dasher_ssai_boundary_reached(ssai_source_cts, ds->timescale, next_ref_cut))
+					break;
+			}
 			//check time discontinuities not explicitely signaled
 			if (ds->last_dts && ctx->td_detect) {
 				Bool is_disc = GF_FALSE;
@@ -10844,7 +11258,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 				is_packet_split = GF_TRUE;
 			}
 
-			if (ds->splitable && !ds->split_dur_next && !ds->cues && !ds->inband_cues) {
+			if (ds->splitable && !ds->split_dur_next && !ds->cues && !ds->inband_cues
+				&& !(ctx->ssai_align && ctx->ssai_ref && (ds != ctx->ssai_ref))) {
 				Bool do_split = GF_FALSE;
 				//adding this sample would exceed the segment duration
 				if (gf_sys_old_arch_compat()) {
@@ -10897,6 +11312,46 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//flush for entire input, segment is done upon eos
 			else if (ctx->sflush==SFLUSH_SINGLE) {
+			}
+            /* A follower closes only at an actual reference-video cut. */
+            else if (ctx->ssai_align && ctx->ssai_ref && (ds != ctx->ssai_ref)
+                && !ds->muxed_base && !ctx->sigfrag && !ds->inband_cues && !ds->cues
+                && ds->segment_started && (ds->stream_type == GF_STREAM_VISUAL || ds->stream_type == GF_STREAM_AUDIO)) {
+                u64 *cut = gf_list_get(ctx->ssai_cut_times, ds->ssai_cut_index);
+                if (cut && dasher_ssai_boundary_reached(ssai_source_cts, ds->timescale, *cut)) {
+                    u64 cut_here = gf_timestamp_rescale(ssai_source_cts, ds->timescale, 90000);
+                    u64 delta90 = cut_here >= *cut ? cut_here - *cut : *cut - cut_here;
+                    u64 tolerance90 = (ds->stream_type == GF_STREAM_AUDIO) ? 3600 : 4500;
+                    if ((ds->stream_type == GF_STREAM_VISUAL && !sap_type) || delta90 > tolerance90) {
+                        GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] SSAI boundary could not align PID %s: cut "LLU" cts "LLU" /90k, SAP %u\n", gf_filter_pid_get_name(ds->ipid), *cut, cut_here, sap_type));
+                        ctx->in_error = GF_TRUE;
+                        return GF_NON_COMPLIANT_BITSTREAM;
+                    }
+                    seg_over = GF_TRUE;
+                    ds->adjusted_next_seg_start = cts;
+                    ds->ssai_cut_index++;
+                    dasher_ssai_trim(ctx);
+                }
+            }
+			/* SCTE-35 adds a boundary without replacing normal duration-based
+			 * segmentation. The cue timestamp may fall slightly before an IDR,
+			 * so cut at the first SAP at or after the requested splice time. */
+			else if (scte35_splice_boundary && !ctx->sigfrag && !ds->inband_cues && !ds->cues) {
+				if (dasher_scte35_consume_due(ds->scte35_pending_cuts, ssai_source_cts, ds->timescale, sap_type)) {
+					u64 cut90k = gf_timestamp_rescale(ssai_source_cts, ds->timescale, 90000);
+					if (cut90k > ds->scte35_completed_cut) ds->scte35_completed_cut = cut90k;
+					dasher_scte35_prune_seen(ds->scte35_seen_events, ds->scte35_completed_cut);
+				}
+
+				if (ds->segment_started) {
+					seg_over = GF_TRUE;
+					if (ds == base_ds) {
+						/* Re-anchor the regular cadence at the splice boundary. The
+						 * regular segment-duration update will advance from here. */
+						base_ds->next_seg_start = cts;
+						base_ds->adjusted_next_seg_start = cts;
+					}
+				}
 			}
 			//source-driven fragmentation check for segment start
 			else if (ctx->sigfrag) {
@@ -11222,6 +11677,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//if dur=0 (some text streams), don't flush segment
 			if (seg_over && dur) {
+				if (ctx->ssai_align && (ds == ctx->ssai_ref) && ds->segment_started) {
+					u64 *cut = gf_malloc(sizeof(u64));
+					if (!cut) return GF_OUT_OF_MEM;
+					*cut = gf_timestamp_rescale(ssai_source_cts, ds->timescale, 90000);
+					if (gf_list_add(ctx->ssai_cut_times, cut) != GF_OK) { gf_free(cut); return GF_OUT_OF_MEM; }
+				}
+
 				gf_assert(!ds->seg_done);
 
 				if (ds->request_period_switch && !gf_list_count(ds->packet_queue)) {
@@ -12181,6 +12643,7 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 
 	ctx->explicit_mode = !gf_filter_is_dynamic(filter);
 	ctx->pids = gf_list_new();
+	if (ctx->ssai_align) ctx->ssai_cut_times = gf_list_new();
 	ctx->postponed_pids = gf_list_new();
 	ctx->tpl_records = gf_list_new();
 	if (!ctx->initext && (ctx->muxtype==DASHER_MUX_AUTO))
@@ -12276,6 +12739,10 @@ static void dasher_finalize(GF_Filter *filter)
 		gf_free(ds);
 	}
 	gf_list_del(ctx->pids);
+	if (ctx->ssai_cut_times) {
+		while (gf_list_count(ctx->ssai_cut_times)) gf_free(gf_list_pop_back(ctx->ssai_cut_times));
+		gf_list_del(ctx->ssai_cut_times);
+	}
 	if (ctx->mpd) gf_mpd_del(ctx->mpd);
 
 	while (gf_list_count(ctx->tpl_records)) {
@@ -12348,6 +12815,7 @@ static const GF_FilterCapability DasherCaps[] =
 static const GF_FilterArgs DasherArgs[] =
 {
 	{ OFFS(segdur), "target segment duration in seconds. A value less than or equal to 0 defaults to 1.0 second", GF_PROP_FRACTION, "0/0", NULL, 0},
+	{ OFFS(hls_tdur), "optional fixed HLS target duration in seconds; signal error if a segment exceeds it (0: legacy behavior)", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tpl), "use template mode (multiple segment, template URLs)", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(stl), "use segment timeline (ignored in on_demand mode)", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(dmode), "dash content mode\n"
@@ -12359,6 +12827,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(sseg), "single segment is used", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sfile), "use a single file for all segments (default in on_demand)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(align), "enable segment time alignment between representations", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ssai_align), "opt-in strict A/V segment-cut coordination for HLS SSAI (video RAP is reference; incompatible video RAPs abort rather than drift)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sap), "enable splitting segments at SAP boundaries", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(mix_codecs), "enable mixing different codecs in an adaptation set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ntp), "insert/override NTP clock at the beginning of each segment\n"
@@ -12541,6 +13010,8 @@ static const GF_FilterArgs DasherArgs[] =
 	{0}
 };
 
+
+#ifndef GPAC_DASHER_UNIT_TEST
 
 GF_FilterRegister DasherRegister = {
 	.name = "dasher",
@@ -12850,9 +13321,13 @@ const GF_FilterRegister *dasher_register(GF_FilterSession *session)
 {
 	return &DasherRegister;
 }
-#else
+#endif // GPAC_DASHER_UNIT_TEST
+
+#else // GPAC_DISABLE_DASHER
+
 const GF_FilterRegister *dasher_register(GF_FilterSession *session)
 {
 	return NULL;
 }
+
 #endif // GPAC_DISABLE_DASHER

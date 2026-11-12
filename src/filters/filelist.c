@@ -2142,6 +2142,9 @@ restart:
 					continue;
 				}
 
+				//commented out: signaling EOS could trigger downstream pipeline shutdown on these PIDs but we don't know if the PIDs
+				//will be reactivated after a playlist update...
+#if 0
 				if (iopid->opid && !iopid->detached) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] Output PID %s no longer has an associated input, signaling EOS\n", gf_filter_pid_get_name(iopid->opid) ));
 					gf_filter_pid_set_eos(iopid->opid);
@@ -2150,6 +2153,7 @@ restart:
 					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] Output PID %s no longer has an associated input, signaling EOS\n", gf_filter_pid_get_name(iopid->opid_aux) ));
 					gf_filter_pid_set_eos(iopid->opid_aux);
 				}
+#endif
 				iopid->detached = GF_TRUE;
 
 				nb_eos++;

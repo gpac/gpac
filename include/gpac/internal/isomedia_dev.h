@@ -963,7 +963,7 @@ typedef struct
 	u32 reserved1;
 	u64 duration;
 	u32 reserved2[2];
-	u16 layer;
+	s16 layer;
 	u16 alternate_group;
 	u16 volume;
 	u16 reserved3;

@@ -2982,7 +2982,6 @@ GF_Err gf_isom_fragment_add_sample_ex(GF_ISOFile *movie, GF_ISOTrackID TrackID, 
 		}
 
 	}
-	if (od_sample) gf_isom_sample_del(&od_sample);
 
 	if (traf->trex->tfra) {
 		GF_RandomAccessEntry *raf;
@@ -2994,6 +2993,9 @@ GF_Err gf_isom_fragment_add_sample_ex(GF_ISOFile *movie, GF_ISOTrackID TrackID, 
 			raf->sample_number = trun->sample_count;
 		}
 	}
+
+	if (od_sample) gf_isom_sample_del(&od_sample);
+
 	return GF_OK;
 }
 

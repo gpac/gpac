@@ -347,6 +347,23 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			cts -= (u64) -delay;
 		}
 
+		if (!ctx->last_cts) {
+			GF_Fraction64 media_ts;
+			u64 clock_us;
+			gf_filter_get_clock_hint(ctx->filter, &clock_us, &media_ts);
+			if (clock_us && media_ts.den) {
+				u64 ref_ellapsed = gf_sys_clock_high_res() - clock_us;
+				u64 ref = gf_timestamp_rescale(media_ts.num, media_ts.den, 1000000);
+				u64 ts = gf_timestamp_rescale(cts, ctx->timescale, 1000000);
+				ref += ref_ellapsed;
+				if (ts > ref) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Frame too early by "LLU" us\n", ts - ref));
+					gf_filter_ask_rt_reschedule(ctx->filter, ts - ref);
+					goto err_empty;
+				}
+			}
+		}
+
 		if (ctx->last_cts && (cts != GF_FILTER_NO_TS) && (cts>ctx->last_cts)) {
 			u64 now = gf_sys_clock_high_res();
 			u64 diff = cts - ctx->last_cts;

@@ -6664,7 +6664,7 @@ void stts_box_del(GF_Box *s)
 
 GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 i;
+	u32 i, nb_entries_in_box;
 	u32 nb_patches=0, needs_patch = 0;
 	GF_TimeToSampleBox *ptr = (GF_TimeToSampleBox *)s;
 
@@ -6678,6 +6678,10 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stts\n", ptr->nb_entries));
 		return GF_ISOM_INVALID_FILE;
 	}
+
+	// patching a sample_delta=0 entry below may split an entry and grow nb_entries; the box size check
+	// at the end must use the count read from the file, not the patched count
+	nb_entries_in_box = ptr->nb_entries;
 
 	ptr->alloc_size = ptr->nb_entries;
 	ptr->entries = gf_malloc(sizeof(GF_SttsEntry)*ptr->alloc_size);
@@ -6748,7 +6752,7 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 			ptr->max_ts_delta = ptr->entries[i].sampleDelta;
 
 	}
-	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries*8);
+	ISOM_DECREASE_SIZE(ptr, nb_entries_in_box*8);
 
 	if (nb_patches) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found %u stts entries with forbidden sample_delta=0 - patching to 1\n", nb_patches));
@@ -6975,7 +6979,7 @@ GF_Err tkhd_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 60);
 	ptr->reserved2[0] = gf_bs_read_u32(bs);
 	ptr->reserved2[1] = gf_bs_read_u32(bs);
-	ptr->layer = gf_bs_read_u16(bs);
+	ptr->layer = (s16) gf_bs_read_u16(bs);
 	ptr->alternate_group = gf_bs_read_u16(bs);
 	ptr->volume = gf_bs_read_u16(bs);
 	ptr->reserved3 = gf_bs_read_u16(bs);
@@ -7028,7 +7032,7 @@ GF_Err tkhd_box_write(GF_Box *s, GF_BitStream *bs)
 	}
 	gf_bs_write_u32(bs, ptr->reserved2[0]);
 	gf_bs_write_u32(bs, ptr->reserved2[1]);
-	gf_bs_write_u16(bs, ptr->layer);
+	gf_bs_write_u16(bs, (u16) ptr->layer);
 	gf_bs_write_u16(bs, ptr->alternate_group);
 	gf_bs_write_u16(bs, ptr->volume);
 	gf_bs_write_u16(bs, ptr->reserved3);

@@ -1764,6 +1764,8 @@ typedef struct __m2ts_mux_stream {
 
 	/*! last process result*/
 	u32 process_res;
+	/*! number of time we postponed PCR stream due to this stream being late (behind pcr) because no data present*/
+	u32 nb_postponed_empty;
 } GF_M2TS_Mux_Stream;
 
 /*! MPEG-4 systems signaling mode*/

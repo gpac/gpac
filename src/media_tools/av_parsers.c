@@ -11188,8 +11188,15 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 		vp->avg_r = oggpack_read(&opb, 32);
 		vp->low_r = oggpack_read(&opb, 32);
 
-		vp->min_block = 1<<oggpack_read(&opb, 4);
-		vp->max_block = 1<<oggpack_read(&opb, 4);
+		s32 r1 = oggpack_read(&opb, 4);
+		s32 r2 = oggpack_read(&opb, 4);
+
+		u32 u1 = MAX(0, r1);
+		u32 u2 = MAX(0, r2);
+
+		vp->min_block = 1<<u1;
+		vp->max_block = 1<<u2;
+
 		if (vp->sample_rate < 1 || vp->channels < 1 || vp->min_block < 8 || vp->max_block < vp->min_block
 		    || oggpack_read(&opb, 1) != 1) {
 			return GF_FALSE;
@@ -17184,7 +17191,6 @@ static Bool gf_ac4_dialog_enhancement_info(GF_BitStream *bs, GF_AC4SubStream *su
 	// this is the dialog_enhancement_info() function in Dolby AC-4 Streams Within the ISO Base Media File Format Guidelines for multiplexers v1.0 section 7.2.2
 	u8 dei_version;
 	u32 dei_drc_offset_code;
-	u32 dei_drc_offset_value, dei_drc_offset_ext;
 
 	dei_version = gf_bs_read_int_log(bs, 2, "dei_version");
 	if (dei_version == 0x0) {
@@ -17202,14 +17208,14 @@ static Bool gf_ac4_dialog_enhancement_info(GF_BitStream *bs, GF_AC4SubStream *su
 			/* DRC Loudness Offset */
 			if (substream->dei_dialog_gain_code_present != 0x0) {
 				dei_drc_offset_code = gf_bs_read_int_log(bs, 4, "dei_drc_offset_code");
-				dei_drc_offset_value = (dei_drc_offset_code - 6) / 2; // [dB]; range: -3dB .. +4 dB, 0.5 dB steps
+				//unused : dei_drc_offset_value = (dei_drc_offset_code - 6) / 2; // [dB]; range: -3dB .. +4 dB, 0.5 dB steps
 				if (dei_drc_offset_code == 0xf) {
-					dei_drc_offset_ext = gf_bs_read_int_log(bs, 4, "dei_drc_offset_ext");
-					dei_drc_offset_value = dei_drc_offset_ext + 5; // [dB]; range: +5dB .. +20 dB, 1 dB steps
+					/* unused u32 dei_drc_offset_ext =*/ gf_bs_read_int_log(bs, 4, "dei_drc_offset_ext");
+					//unused : dei_drc_offset_value = dei_drc_offset_ext + 5; // [dB]; range: +5dB .. +20 dB, 1 dB steps
 				}
 			}
 			else {
-				dei_drc_offset_value = 0; // 0 dB
+				//unused : dei_drc_offset_value = 0; // 0 dB
 			}
 
 			/* Dialogue Enhancement Group ID */
@@ -18171,7 +18177,11 @@ Bool gf_ac4_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC4Config *hdr, Bool full_p
 	(*pos) = AC4_FindSyncCode(buf, buflen);
 	if (*pos >= buflen) return GF_FALSE;
 
-	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
+	/* the bitstream starts at the sync code (buf + *pos), so its size is the
+	   remaining bytes from there; passing the full buflen would let reads run
+	   up to *pos bytes past the caller's buffer. The guard above ensures
+	   *pos < buflen, so buflen - *pos does not underflow. */
+	bs = gf_bs_new((const char*)(buf + *pos), buflen - *pos, GF_BITSTREAM_READ);
 	ret = gf_ac4_parser_bs(bs, hdr, full_parse, start_from_toc);
 	gf_bs_del(bs);
 

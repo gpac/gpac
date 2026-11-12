@@ -774,6 +774,18 @@ void gf_filter_instance_detach_pid(GF_FilterPidInst *pidinst)
 {
 	u32 i, count;
 	if (!pidinst->filter) return;
+	//never detach if a packet dispatch is in progress on the PID instance - we could use a task for this rather than blocking
+	//but the dispatch is fairly short
+	while (pidinst->in_packet_dispatch) {
+		//if we hold the task mutex on the target filter, unlock/relock
+		if (gf_mx_get_num_locks(pidinst->filter->tasks_mx)>0) {
+			gf_mx_v(pidinst->filter->tasks_mx);
+			gf_sleep(0);
+			gf_mx_p(pidinst->filter->tasks_mx);
+		} else {
+			gf_sleep(0);
+		}
+	}
 
 	count = gf_fq_count(pidinst->packets);
 	for (i=0; i<count; i++) {
@@ -6100,8 +6112,7 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	return pid;
 }
 
-GF_NOT_EXPORTED
-void gf_filter_pid_del(GF_FilterPid *pid)
+GF_NOT_EXPORTED void gf_filter_pid_del(GF_FilterPid *pid)
 {
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s destruction (%p)\n", pid->filter->name, pid->name, pid));
 	while (gf_list_count(pid->destinations)) {
@@ -10314,7 +10325,7 @@ void gf_filter_pid_send_flush(GF_FilterPid *pid)
 	pid->eos_keepalive = GF_TRUE;
 }
 
-void gf_filter_pid_force_single_link(GF_FilterPid *pid)
+GF_NOT_EXPORTED void gf_filter_pid_force_single_link(GF_FilterPid *pid)
 {
 	if (!pid) return;
 	if (PID_IS_INPUT(pid)) {
@@ -10323,7 +10334,7 @@ void gf_filter_pid_force_single_link(GF_FilterPid *pid)
 	}
 	pid->link_flags |= PID_FORCE_SINGLE;
 }
-void gf_filter_pid_disable_clone(GF_FilterPid *pid)
+GF_NOT_EXPORTED void gf_filter_pid_disable_clone(GF_FilterPid *pid)
 {
 	if (!pid) return;
 	if (PID_IS_INPUT(pid)) {

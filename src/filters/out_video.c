@@ -2128,6 +2128,13 @@ static GF_Err vout_process(GF_Filter *filter)
 		}
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d  "LLU" ms\n", gf_sys_clock(), cts, ctx->timescale, (1000*cts)/ctx->timescale));
+
+		if (!clock_us) {
+			GF_Fraction64 timestamp;
+			timestamp.num = cts;
+			timestamp.den = ctx->timescale;
+			gf_filter_hint_single_clock(ctx->filter, gf_sys_clock_high_res(), timestamp);
+		}
 	} else {
 		gf_filter_pck_ref(&pck);
 		gf_filter_pid_drop_packet(ctx->pid);
