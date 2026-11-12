@@ -388,6 +388,12 @@ media_tools/img.o: CFLAGS += $(jpeg_cflags) $(zlib_cflags) $(png_cflags)
 media_tools/img.o: media_tools/img.c
 .deps/media_tools/img.dep: CFLAGS += $(jpeg_cflags) $(zlib_cflags) $(png_cflags)
 
+
+ietf/rtsp_session.o: CFLAGS += $(ssl_cflags)
+ietf/rtsp_session.o: ietf/rtsp_session.c
+.deps/ietf/rtsp_session.dep: CFLAGS += $(ssl_cflags)
+
+
 ifeq ($(CONFIG_DARWIN),yes)
 
 downloader: CFLAGS := $(ngtcp2_cflags) $(nghttp3_cflags) $(nghttp2_cflags) $(ssl_cflags) $(CFLAGS)

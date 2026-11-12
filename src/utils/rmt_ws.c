@@ -51,23 +51,10 @@ struct RMT_WS {
 
 #define RMT_MAX_PAYLOAD 256*1024*1024 // limit valid payloads to prevent absurd allocations
 
-GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, Bool async, GF_Err *e);
-void  gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value);
-GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *response_body, u32 body_len, Bool no_body);
-void gf_dm_sess_clear_headers(GF_DownloadSession *sess);
-void  gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value);
-GF_Err dm_sess_write(GF_DownloadSession *session, const u8 *buffer, u32 size);
-GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read);
+#include "downloader_exp.h"
+
 void httpout_format_date(u64 time, char szDate[200], Bool for_listing);
 
-#ifdef GPAC_HAS_SSL
-
-void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
-void *gf_ssl_server_context_new(const char *cert, const char *key);
-void gf_ssl_server_context_del(void *ssl_server_ctx);
-Bool gf_ssl_init_lib();
-
-#endif
 
 enum {
     RMT_WEBSOCKET_CONTINUATION = 0,
@@ -410,7 +397,7 @@ GF_Err rmt_create_server(RMT_ServerCtx* ctx) {
         if (!prev_noh2)
             gf_opts_set_key("core", "no-h2", "1");
 
-        ctx->ssl_ctx = gf_ssl_server_context_new(rmt_settings->cert, rmt_settings->pkey);
+        ctx->ssl_ctx = gf_ssl_server_context_new(rmt_settings->cert, rmt_settings->pkey, GF_FALSE);
 
         if (!prev_noh2)
             gf_opts_set_key("core", "no-h2", "0");
@@ -530,7 +517,7 @@ GF_Err rmt_client_send_payload(RMT_ClientCtx* client, const u8* payload, u64 siz
     u32 respsize=0;
     gf_bs_get_content(respbs, &respbuf, &respsize);
     GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("ready to send respbuf of size %d: %.*s\n", respsize, respsize, respbuf));
-    e = dm_sess_write(client->http_sess, respbuf, respsize);
+    e = gf_dm_sess_send(client->http_sess, respbuf, respsize);
 
     gf_bs_del(respbs);
     gf_free(respbuf);
@@ -595,12 +582,12 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
         e = GF_OK;
         while (!e && extra_read < extra_size) {
             u32 new_read = 0;
-            e = gf_dm_read_data(client->http_sess, extra_payload + extra_read, (u32)(extra_size-extra_read), &new_read);
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("read extra gf_dm_read_data => %d e=%s\n",new_read, gf_error_to_string(e)));
+            e = gf_dm_sess_read(client->http_sess, extra_payload + extra_read, (u32)(extra_size-extra_read), &new_read);
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("read extra gf_dm_sess_read => %d e=%s\n",new_read, gf_error_to_string(e)));
             if (e==GF_OK && !new_read) break;
             extra_read += new_read;
         }
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("extra gf_dm_read_data => %d e=%s\n",extra_read, gf_error_to_string(e)));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("extra gf_dm_sess_read => %d e=%s\n",extra_read, gf_error_to_string(e)));
 		if (extra_read != extra_size) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("invalid read of extra payload, expected (%u) got (%u)\n", extra_size, extra_read));
 			gf_free(extra_payload);
@@ -659,7 +646,7 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
             u32 respsize=0;
             gf_bs_get_content(respbs, &respbuf, &respsize);
             GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("ready to send PONG respbuf of size %d: %.*s\n", respsize, respsize, respbuf));
-            e = dm_sess_write(client->http_sess, respbuf, respsize);
+            e = gf_dm_sess_send(client->http_sess, respbuf, respsize);
 
             gf_bs_del(respbs);
             gf_free(respbuf);
@@ -693,8 +680,8 @@ GF_Err rmt_client_handle_event(RMT_ClientCtx* client) {
     else {
         u8 buffer[1024]; //TODO: what size here?? do something like extra_payload??
         u32 read = 0;
-        e = gf_dm_read_data(client->http_sess, buffer, 1024, &read);
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("gf_dm_read_data => %d sHTTP %.*s\n", read, read, buffer));
+        e = gf_dm_sess_read(client->http_sess, buffer, 1024, &read);
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("gf_dm_sess_read => %d sHTTP %.*s\n", read, read, buffer));
 
         client->last_active_time = gf_sys_clock_high_res();
 
@@ -720,7 +707,7 @@ GF_Err rmt_client_handle_event(RMT_ClientCtx* client) {
 
 GF_Err rmt_client_send_ping(RMT_ClientCtx* client) {
 
-    GF_Err e = dm_sess_write(client->http_sess, RMT_WEBSOCKET_PING_MSG, 2);
+    GF_Err e = gf_dm_sess_send(client->http_sess, RMT_WEBSOCKET_PING_MSG, 2);
     return e;
 
 }

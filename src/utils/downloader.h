@@ -42,27 +42,19 @@
 #ifdef GPAC_HAS_SSL
 
 #ifdef GPAC_HAS_GNUTLS
-
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
-
 typedef gnutls_session_t gf_ssl_sess_t;
 typedef gnutls_certificate_credentials_t gf_ssl_ctx_t;
-
 #else // openssl
-#ifdef GPAC_HAS_NGTCP2
-#include <openssl/types.h>
-#endif
 #include <openssl/ssl.h>
+#include <openssl/err.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
-#include <openssl/err.h>
 #include <openssl/rand.h>
-
 typedef SSL* gf_ssl_sess_t;
 typedef SSL_CTX* gf_ssl_ctx_t;
-
-#endif // end gnutls-openssl
+#endif
 
 #endif // end ssl
 
@@ -120,6 +112,9 @@ enum {
 	H3_MODE_AUTO,
 	H3_MODE_ONLY,
 };
+
+#include "downloader_exp.h"
+
 
 #ifdef GPAC_HTTPMUX
 typedef struct
@@ -501,13 +496,9 @@ void gf_cache_remove_entry_from_session(GF_DownloadSession * sess);
 
 
 void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size, Bool store_in_init, u32 *rewrite_size, u8 *original_payload);
-GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read);
-GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size);
-GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select);
-GF_Err gf_dm_sess_flush_close(GF_DownloadSession *sess);
 void gf_dm_sess_set_header_ex(GF_DownloadSession *sess, const char *name, const char *value, Bool allow_overwrite);
+GF_Err gf_dm_sess_write(GF_DownloadSession *session, const u8 *buffer, u32 size);
 
-GF_Err dm_sess_write(GF_DownloadSession *sess, const u8 *buffer, u32 size);
 GF_Err gf_ssl_write(GF_DownloadSession *sess, const u8 *buffer, u32 size, u32 *written);
 
 void dm_sess_sk_del(GF_DownloadSession *sess);
@@ -522,8 +513,6 @@ void gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const cha
 void gf_dm_sess_reload_cached_headers(GF_DownloadSession *sess);
 
 GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *response_body, u32 body_len, Bool no_body);
-
-Bool gf_dm_sess_use_tls(GF_DownloadSession * sess);
 
 typedef enum
 {
@@ -573,11 +562,8 @@ GF_Err curl_process_reply(GF_DownloadSession *sess, u32 *ContentLength);
 #endif
 
 #ifdef GPAC_HAS_SSL
-void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic);
-Bool gf_ssl_check_cert(gf_ssl_sess_t ssl, const char *server_name);
 void gf_dm_sess_server_setup_ssl(GF_DownloadSession *sess);
 GF_Err gf_ssl_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read);
-void gf_ssl_shutdown(gf_ssl_sess_t ssl);
 
 typedef enum
 {
@@ -588,62 +574,6 @@ typedef enum
 SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy);
 
 #endif
-
-
-//exported for httpout
-
-//socket and SSL context ownership is transfered to the download session object
-GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, Bool async, GF_Err *e);
-GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, s64 stream_id, void *usr_cbk, GF_Err *e);
-u32 gf_dm_sess_subsession_count(GF_DownloadSession *);
-
-void gf_dm_sess_set_timeout(GF_DownloadSession *sess, u32 timeout);
-
-GF_Socket *gf_dm_sess_get_socket(GF_DownloadSession *);
-GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size);
-void gf_dm_sess_clear_headers(GF_DownloadSession *sess);
-void  gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value);
-void  gf_dm_sess_set_header_ex(GF_DownloadSession *sess, const char *name, const char *value, Bool allow_overwrite);
-GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select);
-u32 gf_dm_sess_async_pending(GF_DownloadSession *sess);
-
-GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *response_body, u32 body_len, Bool no_body);
-void gf_dm_sess_server_reset(GF_DownloadSession *sess);
-
-typedef enum
-{
-	GF_SESS_TYPE_HTTP=0,
-	GF_SESS_TYPE_HTTP2,
-	GF_SESS_TYPE_HTTP3,
-} GF_HTTPSessionType;
-GF_HTTPSessionType gf_dm_sess_is_hmux(GF_DownloadSession *sess);
-void gf_dm_sess_close_hmux(GF_DownloadSession *sess);
-
-void gf_dm_sess_set_sock_group(GF_DownloadSession *sess, GF_SockGroup *sg);
-
-#ifdef GPAC_HAS_SSL
-
-void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
-void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic);
-void gf_ssl_server_context_del(void *ssl_server_ctx);
-Bool gf_ssl_init_lib();
-
-#endif
-
-#ifdef GPAC_HAS_NGTCP2
-
-typedef struct __gf_quic_server GF_QuicServer;
-GF_Err gf_dm_quic_server_new(GF_DownloadManager *dm, void *ssl_ctx, GF_QuicServer **oq, const char *ip, u32 port, const char *netcap_id,
-	Bool (*accept_conn)(void *udta, GF_DownloadSession *sess, const char *address, u32 port),
-	void *udta);
-
-void gf_dm_quic_server_del(GF_QuicServer *qs);
-GF_Socket *gf_dm_quic_get_socket(GF_QuicServer *qs);
-GF_Err gf_dm_quic_process(GF_QuicServer *qs);
-GF_Err gf_dm_quic_verify(GF_QuicServer *qs);
-void gf_dm_sess_set_callback(GF_DownloadSession *sess, gf_dm_user_io user_io, void *usr_cbk);
-#endif
-
 
 
 //end GPAC_DISABLE_NETWORK, start EMSCRIPTEN

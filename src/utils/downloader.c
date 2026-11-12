@@ -62,7 +62,7 @@ static void sess_connection_closed(GF_DownloadSession *sess)
 #endif
 }
 
-GF_Err dm_sess_write(GF_DownloadSession *session, const u8 *buffer, u32 size)
+GF_Err gf_dm_sess_write(GF_DownloadSession *session, const u8 *buffer, u32 size)
 {
 	GF_Err e;
 	u32 written=0;
@@ -252,7 +252,7 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 		memcpy(rsp_buf+count, response_body, body_len);
 		count+=body_len;
 	}
-	e = dm_sess_write(sess, rsp_buf, count);
+	e = gf_dm_sess_write(sess, rsp_buf, count);
 	gf_free(rsp_buf);
 	return e;
 }
@@ -1203,7 +1203,7 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 }
 
 
-GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read)
+GF_Err gf_dm_sess_read(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read)
 {
 	GF_Err e;
 
@@ -1739,7 +1739,7 @@ static void gf_dm_sess_flush_input(GF_DownloadSession *sess)
 {
 	u32 res;
 	sess->http_buf[0] = 0;
-	GF_Err e = gf_dm_read_data(sess, sess->http_buf, sess->http_buf_size, &res);
+	GF_Err e = gf_dm_sess_read(sess, sess->http_buf, sess->http_buf_size, &res);
 	switch (e) {
 	case GF_IP_NETWORK_EMPTY:
 	case GF_OK:
@@ -2662,7 +2662,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			} else if (nb_read >= buffer_size) {
 				break;
 			}
-			e = gf_dm_read_data(sess, buffer + nb_read + sess->remaining_data_size, buffer_size - sess->remaining_data_size - nb_read, &single_read);
+			e = gf_dm_sess_read(sess, buffer + nb_read + sess->remaining_data_size, buffer_size - sess->remaining_data_size - nb_read, &single_read);
 			if (e<0) {
 				gf_assert(single_read==0);
 				break;
@@ -2701,7 +2701,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 #endif
 
 		*read_size = nb_read;
-		//we had data but last call to gf_dm_read_data may have returned network empty
+		//we had data but last call to gf_dm_sess_read may have returned network empty
 		if (nb_read && (e<0))
 			e = GF_OK;
 
@@ -3238,7 +3238,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
 		sess->req_hdr_size = len+par.size;
 
-		e = dm_sess_write(sess, tmp_buf, len+par.size);
+		e = gf_dm_sess_write(sess, tmp_buf, len+par.size);
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[%s] Sending request to %s %s\n\n", sess->log_name, sess->server_name, tmp_buf));
 		gf_free(tmp_buf);
@@ -3248,7 +3248,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
 		sess->req_hdr_size = len;
 
-		e = dm_sess_write(sess, sHTTP, len);
+		e = gf_dm_sess_write(sess, sHTTP, len);
 
 #ifndef GPAC_DISABLE_LOG
 		if (e) {
@@ -3320,7 +3320,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess)
 			}
 			memcpy(sess->http_buf, sess->remaining_data, sess->remaining_data_size);
 		}
-		e = gf_dm_read_data(sess, sess->http_buf + sess->remaining_data_size, sess->http_buf_size - sess->remaining_data_size, &size);
+		e = gf_dm_sess_read(sess, sess->http_buf + sess->remaining_data_size, sess->http_buf_size - sess->remaining_data_size, &size);
 #ifdef GPAC_HTTPMUX
 		//flush even if this read got nothing: another session's read may have received (and closed) our stream
 		if (sess->hmux_sess) {
@@ -3525,7 +3525,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 			e = h3_check_sess(sess);
 		} else
 #endif
-			e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
+			e = gf_dm_sess_read(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 
 #ifdef GPAC_HTTPMUX
 		/* break as soon as we have a header frame*/
@@ -4056,7 +4056,7 @@ process_reply:
 	) {
 		u32 start = gf_sys_clock();
 		while (BodyStart + ContentLength > (u32) bytesRead) {
-			e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
+			e = gf_dm_sess_read(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 			switch (e) {
 			case GF_IP_NETWORK_EMPTY:
 				break;
@@ -4815,7 +4815,7 @@ static GF_Err gf_dm_sess_flush_async_close(GF_DownloadSession *sess, Bool no_sel
 #endif
 
 	if (sess->async_buf_size) {
-		GF_Err e = dm_sess_write(sess, sess->async_buf, sess->async_buf_size);
+		GF_Err e = gf_dm_sess_write(sess, sess->async_buf, sess->async_buf_size);
 		if (e) return e;
 		if (sess->async_buf_size) return GF_IP_NETWORK_EMPTY;
 	}
@@ -4862,7 +4862,7 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 		return GF_OK;
 	}
 
-	e = dm_sess_write(sess, data, size);
+	e = gf_dm_sess_write(sess, data, size);
 
 	if (e==GF_IP_CONNECTION_CLOSED) {
 		sess_connection_closed(sess);

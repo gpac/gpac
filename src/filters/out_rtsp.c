@@ -39,8 +39,7 @@
 #include "out_rtp.h"
 
 #ifdef GPAC_HAS_SSL
-#include "../utils/downloader.h"
-
+#include "../utils/downloader_exp.h"
 #endif
 
 enum

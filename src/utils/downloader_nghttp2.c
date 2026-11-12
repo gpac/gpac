@@ -242,7 +242,7 @@ static int h2_error_callback(nghttp2_session *session, const char *msg, size_t l
 
 static ssize_t h2_write_data(GF_DownloadSession *sess, const uint8_t *data, size_t length)
 {
-	GF_Err e = dm_sess_write(sess, data, (u32) length);
+	GF_Err e = gf_dm_sess_write(sess, data, (u32) length);
 	switch (e) {
 	case GF_OK:
 		return length;
@@ -639,7 +639,7 @@ static void h2_flush_send_ex(GF_DownloadSession *sess, Bool flush_local_buf)
 
 		if (!sess->local_buf_len || flush_local_buf) {
 			//read any frame pending from remote peer (window update and co)
-			e = gf_dm_read_data(sess, h2_flush, 1023, &res);
+			e = gf_dm_sess_read(sess, h2_flush, 1023, &res);
 			if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
 				sess->status = GF_NETIO_STATE_ERROR;
 				SET_LAST_ERR(sess->last_error)
@@ -701,7 +701,7 @@ static void h2_close_session(GF_DownloadSession *sess)
 			break;
 
 		//read any frame pending from remote peer (window update and co)
-		e = gf_dm_read_data(sess, h2_flush, 2023, &res);
+		e = gf_dm_sess_read(sess, h2_flush, 2023, &res);
 		if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
 			if (e!=GF_IP_CONNECTION_CLOSED) {
 				SET_LAST_ERR(e)
@@ -907,7 +907,7 @@ GF_Err http2_check_upgrade(GF_DownloadSession *sess)
 							"Upgrade: h2c\r\n\r\n", NULL);
 
 	len = (u32) strlen(rsp_buf);
-	e = dm_sess_write(sess, rsp_buf, len);
+	e = gf_dm_sess_write(sess, rsp_buf, len);
 
 	gf_free(rsp_buf);
 	h2_initialize_session(sess);

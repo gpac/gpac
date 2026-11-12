@@ -30,11 +30,15 @@
 #include <nettle/cbc.h>
 #include <nettle/ctr.h>
 #include <nettle/macros.h>
+#include <nettle/version.h>
 
 typedef struct {
 
-    struct aes_ctx enc_ctx;
-    struct aes_ctx dec_ctx;
+#if NETTLE_VERSION_MAJOR>=4
+    struct aes128_ctx enc_ctx, dec_ctx;
+#else
+    struct aes_ctx enc_ctx, dec_ctx;
+#endif
 
     u8 iv[AES_BLOCK_SIZE];
     u32 key_len;
@@ -51,8 +55,13 @@ void gf_crypt_set_key_gnutls(GF_Crypt* td, void* key) {
     if (!ctx || !key)
         return;
 
+#if NETTLE_VERSION_MAJOR>=4
+    aes128_set_encrypt_key(&ctx->enc_ctx, key);
+    aes128_set_decrypt_key(&ctx->dec_ctx, key);
+#else
     aes_set_encrypt_key(&ctx->enc_ctx, ctx->key_len, key);
     aes_set_decrypt_key(&ctx->dec_ctx, ctx->key_len, key);
+#endif
 
     ctx->pos = 0;
     memset(ctx->buffer, 0, AES_BLOCK_SIZE);
@@ -120,7 +129,11 @@ GF_Err gf_crypt_encrypt_gnutls_cbc(GF_Crypt* td, u8* buffer, u32 size) {
     if (size % AES_BLOCK_SIZE)
         return GF_BAD_PARAM;
 
+#if NETTLE_VERSION_MAJOR>=4
+    cbc_encrypt(&ctx->enc_ctx, (nettle_cipher_func*)aes128_encrypt, AES_BLOCK_SIZE, ctx->iv, size, buffer, buffer);
+#else
     cbc_encrypt(&ctx->enc_ctx, (nettle_cipher_func*)aes_encrypt, AES_BLOCK_SIZE, ctx->iv, size, buffer, buffer);
+#endif
     return GF_OK;
 }
 
@@ -132,7 +145,11 @@ GF_Err gf_crypt_decrypt_gnutls_cbc(GF_Crypt* td, u8* buffer, u32 size) {
     if (size % AES_BLOCK_SIZE)
         return GF_BAD_PARAM;
 
+#if NETTLE_VERSION_MAJOR>=4
+    cbc_decrypt(&ctx->dec_ctx, (nettle_cipher_func*)aes128_decrypt, AES_BLOCK_SIZE, ctx->iv, size, buffer, buffer);
+#else
     cbc_decrypt(&ctx->dec_ctx, (nettle_cipher_func*)aes_decrypt, AES_BLOCK_SIZE, ctx->iv, size, buffer, buffer);
+#endif
     return GF_OK;
 }
 
@@ -197,14 +214,22 @@ GF_Err gf_crypt_encrypt_gnutls_ctr(GF_Crypt* td, u8 *buffer, u32 size) {
     // bulk: whole blocks via ctr_crypt
     if (size >= AES_BLOCK_SIZE) {
         u32 bulk = size & ~(AES_BLOCK_SIZE - 1);
+#if NETTLE_VERSION_MAJOR>=4
+        ctr_crypt(&ctx->enc_ctx, (nettle_cipher_func*)aes128_encrypt, AES_BLOCK_SIZE, ctx->iv, bulk, buffer + i, buffer + i);
+#else
         ctr_crypt(&ctx->enc_ctx, (nettle_cipher_func*)aes_encrypt, AES_BLOCK_SIZE, ctx->iv, bulk, buffer + i, buffer + i);
+#endif
         i += bulk;
         size -= bulk;
     }
 
     // trailing partial block
     if (size > 0) {
+#if NETTLE_VERSION_MAJOR>=4
+        aes128_encrypt(&ctx->enc_ctx, AES_BLOCK_SIZE, ctx->buffer, ctx->iv);
+#else
         aes_encrypt(&ctx->enc_ctx, AES_BLOCK_SIZE, ctx->buffer, ctx->iv);
+#endif
         INCREMENT(AES_BLOCK_SIZE, ctx->iv);
         for (u32 j = 0; j < size; j++)
             buffer[i + j] ^= ctx->buffer[j];
@@ -244,7 +269,11 @@ GF_Err gf_crypt_encrypt_gnutls_ecb(GF_Crypt* td, u8 *buffer, u32 size) {
 	if (size % AES_BLOCK_SIZE) return GF_BAD_PARAM;
 
 	for (i = 0; i < size; i += AES_BLOCK_SIZE) {
+#if NETTLE_VERSION_MAJOR>=4
+		aes128_encrypt(&ctx->enc_ctx, AES_BLOCK_SIZE, buffer + i, buffer + i);
+#else
 		aes_encrypt(&ctx->enc_ctx, AES_BLOCK_SIZE, buffer + i, buffer + i);
+#endif
 	}
 	return GF_OK;
 }
@@ -258,7 +287,11 @@ GF_Err gf_crypt_decrypt_gnutls_ecb(GF_Crypt* td, u8 *buffer, u32 size) {
 	if (size % AES_BLOCK_SIZE) return GF_BAD_PARAM;
 
 	for (i = 0; i < size; i += AES_BLOCK_SIZE) {
+#if NETTLE_VERSION_MAJOR>=4
+		aes128_decrypt(&ctx->dec_ctx, AES_BLOCK_SIZE, buffer + i, buffer + i);
+#else
 		aes_decrypt(&ctx->dec_ctx, AES_BLOCK_SIZE, buffer + i, buffer + i);
+#endif
 	}
 	return GF_OK;
 }

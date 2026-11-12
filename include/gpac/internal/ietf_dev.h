@@ -280,23 +280,6 @@ typedef enum
 	RTSP_HTTP_DISABLE
 } RTSP_HTTP_Tunnel;
 
-#ifdef GPAC_HAS_SSL
-
-#ifdef GPAC_HAS_GNUTLS
-
-#include <gnutls/gnutls.h>
-typedef gnutls_session_t gf_ssl_sess_t;
-typedef gnutls_certificate_credentials_t gf_ssl_ctx_t;
-
-#else //openssl
-
-#include <openssl/ssl.h>
-typedef SSL* gf_ssl_sess_t;
-typedef SSL_CTX* gf_ssl_ctx_t;
-
-#endif //openssl
-#endif //ssl
-
 /**************************************
 		RTSP Session
 ***************************************/
@@ -361,9 +344,7 @@ struct _tag_rtsp_session
 	u32 async_buf_size, async_buf_alloc;
 
 #ifdef GPAC_HAS_SSL
-	Bool use_ssl, ssl_connect_pending;
-	gf_ssl_ctx_t ssl_ctx;
-	gf_ssl_sess_t ssl, ssl_http;
+	struct _rtsp_ssl_ctx *ssl_c;
 #endif
 
 };

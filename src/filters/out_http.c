@@ -42,7 +42,7 @@
 #include "../scenegraph/qjs_common.h"
 #endif
 
-#include "../utils/downloader.h"
+#include "../utils/downloader_exp.h"
 
 GF_OPT_ENUM (GF_HTTPOutFilterOperationMode,
 	MODE_DEFAULT=0,

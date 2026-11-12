@@ -170,6 +170,8 @@
 		9206822C20EA41530041169F /* in_pipe.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206822B20EA41530041169F /* in_pipe.c */; };
 		9206822E20EA69680041169F /* out_pipe.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206822D20EA69680041169F /* out_pipe.c */; };
 		9206823420EA96AA0041169F /* mux_gsf.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206823320EA96AA0041169F /* mux_gsf.c */; };
+		9209F22830A5DFA700206995 /* g_crypt_gnutls.c in Sources */ = {isa = PBXBuildFile; fileRef = 9209F22730A5DFA700206995 /* g_crypt_gnutls.c */; };
+		9209F22A30A5E31700206995 /* downloader_exp.h in Headers */ = {isa = PBXBuildFile; fileRef = 9209F22930A5E31700206995 /* downloader_exp.h */; };
 		920D52AF29CAF7CE00105401 /* dec_uncv.c in Sources */ = {isa = PBXBuildFile; fileRef = 920D52AE29CAF7CE00105401 /* dec_uncv.c */; };
 		920F4C9B29950A9D00EC9D21 /* dec_webcodec.c in Sources */ = {isa = PBXBuildFile; fileRef = 920F4C9A29950A9D00EC9D21 /* dec_webcodec.c */; };
 		920F4C9D299D20CE00EC9D21 /* enc_webcodec.c in Sources */ = {isa = PBXBuildFile; fileRef = 920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */; };
@@ -821,6 +823,8 @@
 		9206822B20EA41530041169F /* in_pipe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_pipe.c; path = filters/in_pipe.c; sourceTree = "<group>"; };
 		9206822D20EA69680041169F /* out_pipe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_pipe.c; path = filters/out_pipe.c; sourceTree = "<group>"; };
 		9206823320EA96AA0041169F /* mux_gsf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_gsf.c; path = filters/mux_gsf.c; sourceTree = "<group>"; };
+		9209F22730A5DFA700206995 /* g_crypt_gnutls.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = g_crypt_gnutls.c; path = crypto/g_crypt_gnutls.c; sourceTree = "<group>"; };
+		9209F22930A5E31700206995 /* downloader_exp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = downloader_exp.h; sourceTree = "<group>"; };
 		920D52AE29CAF7CE00105401 /* dec_uncv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_uncv.c; path = filters/dec_uncv.c; sourceTree = "<group>"; };
 		920F4C9A29950A9D00EC9D21 /* dec_webcodec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_webcodec.c; path = filters/dec_webcodec.c; sourceTree = "<group>"; };
 		920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_webcodec.c; path = filters/enc_webcodec.c; sourceTree = "<group>"; };
@@ -1707,6 +1711,7 @@
 		9255468F2D3011AF00E0AAF9 /* downloader */ = {
 			isa = PBXGroup;
 			children = (
+				9209F22930A5E31700206995 /* downloader_exp.h */,
 				925546902D3011C400E0AAF9 /* downloader.h */,
 				9201009418D5A444003D1ACA /* downloader.c */,
 				925546932D3011C400E0AAF9 /* downloader_cache.c */,
@@ -1780,6 +1785,7 @@
 		929CB5C120B6F02800849696 /* crypto */ = {
 			isa = PBXGroup;
 			children = (
+				9209F22730A5DFA700206995 /* g_crypt_gnutls.c */,
 				923E89C620B6F04600F299B2 /* g_crypt_openssl.c */,
 				923E89CA20B6F04600F299B2 /* g_crypt_tinyaes.c */,
 				923E89C820B6F04600F299B2 /* g_crypt.c */,
@@ -2263,6 +2269,7 @@
 				92BBFCE51A7122AD006A7735 /* font.h in Headers */,
 				92BBFCD61A7122AD006A7735 /* swf_dev.h in Headers */,
 				92BBFCC31A7122AD006A7735 /* bifs_dev.h in Headers */,
+				9209F22A30A5E31700206995 /* downloader_exp.h in Headers */,
 				925975042215BA3A0007E02B /* rast_soft.h in Headers */,
 				92493D8220E2A81700203C2C /* crypt_tools.h in Headers */,
 				92BBFCF81A7122AD006A7735 /* rtp_streamer.h in Headers */,
@@ -2768,6 +2775,7 @@
 				92B9A58F1F8660D700A24FE4 /* mpeg4_bitmap.c in Sources */,
 				9210D8222A0E64B00047019A /* evg_rescale.c in Sources */,
 				9201015618D5A445003D1ACA /* mpeg2_ps.c in Sources */,
+				9209F22830A5DFA700206995 /* g_crypt_gnutls.c in Sources */,
 				9201015818D5A445003D1ACA /* mpegts.c in Sources */,
 				92B9A5AD1F8660D700A24FE4 /* clock.c in Sources */,
 				9234CF3D1FD7E00700CCDFA1 /* filter_register.c in Sources */,
@@ -3187,6 +3195,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					../../include,
+					"/opt/homebrew/opt/openssl@4/include",
 					/usr/local/include,
 					/opt/homebrew/include,
 					/opt/local/include,
@@ -3198,6 +3207,7 @@
 					../../src/quickjs/,
 				);
 				LIBRARY_SEARCH_PATHS = (
+					"/opt/homebrew/opt/openssl@4/lib",
 					/usr/local/lib,
 					/opt/local/lib,
 					/opt/homebrew/lib,
@@ -3284,7 +3294,7 @@
 					"-lXext",
 					"-lvvenc",
 					"-lcurl",
-					"-lngtcp2_crypto_quictls",
+					"-lngtcp2_crypto_ossl",
 					"-lnghttp3",
 					"-lngtcp2",
 					"-lcaca",
@@ -3338,6 +3348,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					../../include,
+					"/opt/homebrew/opt/openssl@4/include",
 					/usr/local/include,
 					/opt/homebrew/include,
 					/opt/local/include,
@@ -3349,6 +3360,7 @@
 					../../src/quickjs/,
 				);
 				LIBRARY_SEARCH_PATHS = (
+					"/opt/homebrew/opt/openssl@4/lib",
 					/usr/local/lib,
 					/opt/local/lib,
 					/opt/homebrew/lib,
@@ -3435,7 +3447,7 @@
 					"-lXext",
 					"-lvvenc",
 					"-lcurl",
-					"-lngtcp2_crypto_quictls",
+					"-lngtcp2_crypto_ossl",
 					"-lnghttp3",
 					"-lngtcp2",
 					"-lcaca",

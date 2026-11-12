@@ -38,7 +38,7 @@
 #if defined(WIN32) && !defined(__GNUC__)
 #pragma comment(lib, "libnghttp3.lib")
 #ifndef GPAC_HAS_GNUTLS
-#pragma comment(lib, "libngtcp2_crypto_quictls.lib")
+#pragma comment(lib, "libngtcp2_crypto_ossl.lib")
 #else
 #pragma comment(lib, "libngtcp2_crypto_gnutls.lib")
 #endif
@@ -48,7 +48,8 @@
 #include <ngtcp2/ngtcp2.h>
 #include <ngtcp2/ngtcp2_crypto.h>
 #ifndef GPAC_HAS_GNUTLS
-#include <ngtcp2/ngtcp2_crypto_quictls.h>
+#include <ngtcp2/ngtcp2_crypto_ossl.h>
+#include <openssl/crypto.h>
 #else
 #include <gnutls/crypto.h>
 #include <ngtcp2/ngtcp2_crypto_gnutls.h>
@@ -102,6 +103,7 @@ typedef struct __gf_quic_connection
 {
 	GF_QuicServer *server;
 
+	ngtcp2_cid initial_dcid;
 	ConnIDInfo conn_ids[MAC_CONN_ID];
 
 	u8 addr[MAX_ADDR_LEN];
@@ -136,6 +138,9 @@ typedef struct
 	ngtcp2_path path;
 	ngtcp2_conn *conn;
 	ngtcp2_crypto_conn_ref conn_ref;
+#ifndef GPAC_HAS_GNUTLS
+	ngtcp2_crypto_ossl_ctx *ossl_ctx;
+#endif
 	nghttp3_conn *http_conn;
 	ngtcp2_ccerr last_error;
 
@@ -148,6 +153,28 @@ typedef struct
 	//for client
 	u8 secret[32];
 } GF_QuicConnection;
+
+#ifndef GPAC_HAS_GNUTLS
+static CRYPTO_ONCE ngtcp2_crypto_ossl_once = CRYPTO_ONCE_STATIC_INIT;
+static int ngtcp2_crypto_ossl_init_result = -1;
+
+static void ngtcp2_crypto_ossl_init_once(void)
+{
+	ngtcp2_crypto_ossl_init_result = ngtcp2_crypto_ossl_init();
+}
+#endif
+
+static GF_Err ngtcp2_crypto_init(void)
+{
+#ifndef GPAC_HAS_GNUTLS
+	if (!CRYPTO_THREAD_run_once(&ngtcp2_crypto_ossl_once, ngtcp2_crypto_ossl_init_once)
+		|| ngtcp2_crypto_ossl_init_result) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] OpenSSL ngtcp2 crypto initialization failed\n"));
+		return GF_IO_ERR;
+	}
+#endif
+	return GF_OK;
+}
 
 typedef struct
 {
@@ -1122,6 +1149,9 @@ static void h3_destroy(struct _http_mux_session *hmux)
 	if (qc->http_conn)
 		nghttp3_conn_del(qc->http_conn);
 	ngtcp2_conn_del(qc->conn);
+#ifndef GPAC_HAS_GNUTLS
+	if (qc->ossl_ctx) ngtcp2_crypto_ossl_ctx_del(qc->ossl_ctx);
+#endif
 	if (qc->path.local.addr) gf_free(qc->path.local.addr);
 	if (qc->path.remote.addr) gf_free(qc->path.remote.addr);
 	if (qc->serv_conn) {
@@ -1144,7 +1174,7 @@ static GF_Err h3_async_flush(GF_DownloadSession *sess, Bool for_close)
 		u8 buf[1500];
 		u32 res;
 		//read any frame pending from remote peer (ack, window update and co)
-		GF_Err e = gf_dm_read_data(sess, buf, 1500, &res);
+		GF_Err e = gf_dm_sess_read(sess, buf, 1500, &res);
 		if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
 			sess->status = GF_NETIO_STATE_ERROR;
 			SET_LAST_ERR(sess->last_error)
@@ -1381,11 +1411,13 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	} else if (!sess->ssl) {
 		return GF_IP_CONNECTION_FAILURE;
 	}
+	e = ngtcp2_crypto_init();
+	if (e) return e;
 
 	GF_SAFEALLOC(sess->hmux_sess, GF_HMUX_Session);
 	if (!sess->hmux_sess) return GF_OUT_OF_MEM;
 	GF_SAFEALLOC(ng_quic, GF_QuicConnection);
-	if (!sess->hmux_sess) {
+	if (!ng_quic) {
 		gf_free(sess->hmux_sess);
 		sess->hmux_sess = NULL;
 		return GF_OUT_OF_MEM;
@@ -1610,7 +1642,25 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 		}
 	}
 
+#ifndef GPAC_HAS_GNUTLS
+	rv = ngtcp2_crypto_ossl_ctx_new(&ng_quic->ossl_ctx, sess->ssl);
+	if (rv) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_crypto_ossl_ctx_new failed: %s\n", ngtcp2_strerror(rv)));
+		e = (rv == NGTCP2_CRYPTO_ERR_NOMEM) ? GF_OUT_OF_MEM : GF_IP_CONNECTION_FAILURE;
+		goto err;
+	}
+	ngtcp2_conn_set_tls_native_handle(ng_quic->conn, ng_quic->ossl_ctx);
+	rv = sess->server_mode
+		? ngtcp2_crypto_ossl_configure_server_session(sess->ssl)
+		: ngtcp2_crypto_ossl_configure_client_session(sess->ssl);
+	if (rv) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Failed to configure OpenSSL QUIC session\n"));
+		e = GF_IP_CONNECTION_FAILURE;
+		goto err;
+	}
+#else
 	ngtcp2_conn_set_tls_native_handle(ng_quic->conn, sess->ssl);
+#endif
 
 	//set hmux callbacks
 	sess->hmux_sess->sessions = gf_list_new();
@@ -1647,6 +1697,14 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	return h3_session_write(sess);
 
 err:
+#ifndef GPAC_HAS_GNUTLS
+	if (sess->ssl) SSL_set_app_data(sess->ssl, NULL);
+#endif
+	if (ng_quic->conn) ngtcp2_conn_del(ng_quic->conn);
+#ifndef GPAC_HAS_GNUTLS
+	if (ng_quic->ossl_ctx) ngtcp2_crypto_ossl_ctx_del(ng_quic->ossl_ctx);
+#endif
+	if (qsc) qsc->hmux = NULL;
 	gf_free(sess->hmux_sess);
 	sess->hmux_sess = NULL;
 	if (ng_quic->path.local.addr) gf_free(ng_quic->path.local.addr);
@@ -1667,7 +1725,7 @@ GF_Err http3_connect(GF_DownloadSession *sess, char *server, u32 server_port)
 		return GF_IP_CONNECTION_CLOSED;
 
 	u32 res;
-	GF_Err e = gf_dm_read_data(sess, sess->http_buf, sess->http_buf_size, &res);
+	GF_Err e = gf_dm_sess_read(sess, sess->http_buf, sess->http_buf_size, &res);
 	if (e) return e;
 
 	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
@@ -1687,28 +1745,20 @@ void gf_dm_sess_set_callback(GF_DownloadSession *sess, gf_dm_user_io user_io, vo
 	sess->usr_cbk = usr_cbk;
 }
 
-static Bool ngtcp2_tls_init=GF_FALSE;
-
 GF_Err gf_dm_quic_server_new(GF_DownloadManager *dm, void *ssl_ctx, GF_QuicServer **oq, const char *ip, u32 port, const char *netcap_id,
 	Bool (*accept_conn)(void *udta, GF_DownloadSession *sess, const char *address, u32 port),
 	void *udta)
 {
 	GF_QuicServer *tmp;
 	if (!dm || !ssl_ctx || !accept_conn || !port) return GF_BAD_PARAM;
-	if (!ngtcp2_tls_init) {
-#ifndef GPAC_HAS_GNUTLS //quictls
-		if (ngtcp2_crypto_quictls_init() != 0) {
-			return GF_IO_ERR;
-		}
-#endif
-		ngtcp2_tls_init=GF_TRUE;
-	}
+	GF_Err e = ngtcp2_crypto_init();
+	if (e) return e;
 
 	GF_SAFEALLOC(tmp, GF_QuicServer);
 	if (!tmp) return GF_OUT_OF_MEM;
 	tmp->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, netcap_id);
 	gf_sk_set_block_mode(tmp->sock, GF_TRUE);
-	GF_Err e = gf_sk_bind_ex(tmp->sock, NULL, port, ip, 0, GF_SOCK_REUSE_PORT, NULL, NULL, &tmp->local_add, &tmp->local_add_len);
+	e = gf_sk_bind_ex(tmp->sock, NULL, port, ip, 0, GF_SOCK_REUSE_PORT, NULL, NULL, &tmp->local_add, &tmp->local_add_len);
 	if (e) {
 		gf_sk_del(tmp->sock);
 		gf_free(tmp);
@@ -2059,7 +2109,7 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 	}
 
 	//setup SSL
-#ifndef GPAC_HAS_GNUTLS // quictls
+#ifndef GPAC_HAS_GNUTLS // openssl
 
 	sess->ssl = SSL_new(qs->ssl_ctx);
 	if (!sess->ssl) {
@@ -2068,9 +2118,6 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 		return GF_IP_CONNECTION_FAILURE;
 	}
 	SSL_set_accept_state(sess->ssl);
-#ifndef LIBRESSL_VERSION_NUMBER
-	SSL_set_quic_early_data_enabled(sess->ssl, 1);
-#endif // !defined(LIBRESSL_VERSION_NUMBER)
 
 #else // GPAC_HAS_GNUTLS
 
@@ -2107,9 +2154,8 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 	GF_SAFEALLOC(c, GF_QuicServerConnection)
 	if (!c) return GF_OUT_OF_MEM;
 	memcpy(c->addr, s_add, s_add_len);
+	ngtcp2_cid_init(&c->initial_dcid, hd.dcid.data, hd.dcid.datalen);
 	c->conn_ids[0].associated = GF_TRUE;
-	c->conn_ids[0].dcid_len = (u32)vc->dcidlen;
-	memcpy(c->conn_ids[0].dcid, vc->dcid, vc->dcidlen);
 	c->addr_len = s_add_len;
 	c->server = qs;
 	gf_list_add(qs->connections, c);
@@ -2123,15 +2169,14 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 
 
 	e = h3_initialize(sess, NULL, 0, &hd, pocid, token_type, &path, c);
-	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
 	if (e) {
 		gf_list_del_item(qs->connections, c);
-		qc->serv_conn = NULL;
-		gf_free(qc);
+		gf_free(c);
 		sess->status = GF_NETIO_DISCONNECTED;
 		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
 		return GF_IP_CONNECTION_FAILURE;
 	}
+	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
 	sess->hmux_stream_id = -2;
 
 	e = gf_quic_on_data(c, data, data_len);
@@ -2187,6 +2232,13 @@ restart:
 	u32 i, count = gf_list_count(qs->connections);
 	for (i=0; i<count; i++) {
 		qc = gf_list_get(qs->connections, i);
+		if ((qc->initial_dcid.datalen == vc.dcidlen)
+			&& !memcmp(qc->initial_dcid.data, vc.dcid, vc.dcidlen)
+			&& (qc->addr_len == src_add_len)
+			&& !memcmp(qc->addr, src_add, src_add_len)
+		) {
+			break;
+		}
 		u32 j;
 		ConnIDInfo *ci=NULL;
 		for (j=0; j<MAC_CONN_ID; j++) {

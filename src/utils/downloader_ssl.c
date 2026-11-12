@@ -24,6 +24,7 @@
  */
 
 #include "downloader.h"
+
 #ifndef GPAC_DISABLE_NETWORK
 
 #ifdef GPAC_HAS_HTTP2
@@ -35,7 +36,7 @@
 #ifdef GPAC_HAS_GNUTLS
 #include <ngtcp2/ngtcp2_crypto_gnutls.h>
 #else
-#include <ngtcp2/ngtcp2_crypto_quictls.h>
+#include <ngtcp2/ngtcp2_crypto_ossl.h>
 #endif
 #endif
 
@@ -265,8 +266,12 @@ static void gnutls_log_callback(int level, const char* str) {
 #ifndef GPAC_HAS_GNUTLS
 static char ALPN_PROTOS[20];
 #else
+#ifdef GPAC_HAS_HTTP2
 static const gnutls_datum_t alpn_h2 = { (unsigned char *)"h2", 2 };
+#endif
+#ifdef GPAC_HAS_NGTCP2
 static const gnutls_datum_t alpn_h3 = { (unsigned char *)"h3", 2 };
+#endif
 static gnutls_datum_t alpn_protos[2];
 static u32 alpn_count = 0;
 #endif
@@ -409,12 +414,7 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic) {
 	if (dm->h3_mode && !no_quic) {
 #ifdef GPAC_HAS_NGTCP2
 #ifndef GPAC_HAS_GNUTLS // openssl
-		if (ngtcp2_crypto_quictls_configure_client_context(dm->ssl_ctx) != 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unable to initialize SSL context for QUIC, disabling HTTP3\n"));
-			dm->h3_mode = H3_MODE_NO;
-		} else {
-			gf_strcat(ALPN_PROTOS, "\x02h3");
-		}
+		gf_strcat(ALPN_PROTOS, "\x02h3");
 #else // gnutls
 		alpn_protos[alpn_count++] = alpn_h3;
 #endif // ssl lib
@@ -637,9 +637,7 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 
 #ifdef GPAC_HAS_NGTCP2
 	if (for_quic) {
-#ifndef GPAC_HAS_GNUTLS // quictls
-		ngtcp2_crypto_quictls_configure_server_context(ctx);
-
+#ifndef GPAC_HAS_GNUTLS // openssl
 		next_proto_list[next_proto_list_len] = 2;
 		memcpy(&next_proto_list[next_proto_list_len+1], "h3", 2);
 		next_proto_list_len = 1 + 2;
@@ -812,7 +810,7 @@ void *gf_ssl_new(void *ssl_ctx, GF_Socket *client_sock, GF_Err *e)
 	return (void*)ssl;
 }
 
-void gf_ssl_shutdown(gf_ssl_sess_t ssl) {
+void gf_ssl_shutdown(void *ssl) {
     if (ssl) {
 #ifdef GPAC_HAS_GNUTLS
         gnutls_bye(ssl, GNUTLS_SHUT_WR);
@@ -834,7 +832,7 @@ void gf_ssl_free_ctx(gf_ssl_ctx_t ssl_ctx) {
     }
 }
 
-Bool gf_ssl_check_cert(gf_ssl_sess_t ssl, const char *server_name)
+Bool gf_ssl_check_cert(void *ssl, const char *server_name)
 {
 #ifndef GPAC_HAS_GNUTLS //openssl
 	long vresult = SSL_get_verify_result(ssl);
@@ -1073,13 +1071,6 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 			}
 		}
 #endif
-
-#ifdef GPAC_HAS_NGTCP2
-		// CTX-level quic_method is inherited; clear it for plain TLS sessions
-		if (!use_quic)
-			SSL_set_quic_method(sess->ssl, NULL);
-#endif
-
 
 #else //gnutls
 

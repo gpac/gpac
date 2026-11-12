@@ -1144,7 +1144,11 @@ dolog() {
 }
 
 docc() {
- $cc -o $TMPO $TMPC $@ 0>/dev/null 2>$TMPL
+ if test -n "$cc_naked" ; then
+     $cc_naked $@ $CFLAGS -o $TMPO $TMPC 0>/dev/null 2>$TMPL
+ else
+     $cc -o $TMPO $TMPC $@ 0>/dev/null 2>$TMPL
+ fi
  dolog $@
 }
 
@@ -1152,7 +1156,11 @@ docc() {
 docxx() {
  #for logs
  cat $TMPCXX > $TMPC
- $cxx -o $TMPO $TMPCXX $@ 0>/dev/null 2>$TMPL
+ if test -n "$cxx_naked" ; then
+     $cxx_naked $@ $CXXFLAGS -o $TMPO $TMPCXX 0>/dev/null 2>$TMPL
+ else
+     $cxx -o $TMPO $TMPCXX $@ 0>/dev/null 2>$TMPL
+ fi
  dolog $@
 }
 
@@ -1378,6 +1386,8 @@ config_package_test ()
     package_ldflags=$4
     local_inc_dir=$5
     package_src="$6"
+    package_dep_cflags="$7"
+    package_dep_ldflags="$8"
 
     sysname="system"
     if test "$is_em" = "yes" ; then
@@ -1438,13 +1448,13 @@ config_package_test ()
 
                 if test "$pck_cxx" = "yes" ; then
                     echo "$package_src" > $TMPCXX
-                    if docxx $pck_cflags $pck_ldflags $LDFLAGS ; then
+                    if docxx $package_dep_cflags $package_dep_ldflags $pck_cflags $pck_ldflags $LDFLAGS ; then
                         has_pck="$sysname (pkgconfig)"
                         return
                     fi
                 else
                     echo "$package_src" > $TMPC
-                    if docc $pck_cflags $pck_ldflags $LDFLAGS ; then
+                    if docc $package_dep_cflags $package_dep_ldflags $pck_cflags $pck_ldflags $LDFLAGS ; then
                         has_pck="$sysname (pkgconfig)"
                         return
                     fi
@@ -1462,7 +1472,7 @@ config_package_test ()
         echo "$package_src" > $TMPCXX
 
         if test "$forced" != "local" ; then
-            if docxx $package_cflags $LDFLAGS $package_ldflags ; then
+            if docxx $package_dep_cflags $package_dep_ldflags $package_cflags $LDFLAGS $package_ldflags ; then
                 pck_cflags="$package_cflags"
                 pck_ldflags="$package_ldflags"
                 has_pck="$sysname"
@@ -1474,14 +1484,14 @@ config_package_test ()
             return
         fi
 
-        if docxx -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$local_lib $package_ldflags ; then
+        if docxx $package_dep_cflags $package_dep_ldflags -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$local_lib $package_ldflags ; then
             pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
             pck_ldflags="-L$local_lib $package_ldflags"
             has_pck="local"
             return
         fi
 
-        if docxx -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$execdir $package_ldflags ; then
+        if docxx $package_dep_cflags $package_dep_ldflags -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$execdir $package_ldflags ; then
             pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
             pck_ldflags="-L$execdir $package_ldflags"
             has_pck="local (bin dir)"
@@ -1493,7 +1503,7 @@ config_package_test ()
     echo "$package_src" > $TMPC
 
     if test "$custom" = "yes" ; then
-        if docc -I"$forced//include" $package_cflags -L$forced//lib $package_ldflags ; then
+        if docc $package_dep_cflags $package_dep_ldflags -I"$forced//include" $package_cflags -L$forced//lib $package_ldflags ; then
             pck_cflags="-I$forced//include $package_cflags"
             pck_ldflags="-L$forced//lib $package_ldflags"
             has_pck="custom"
@@ -1502,7 +1512,7 @@ config_package_test ()
     fi
 
     if test "$forced" != "local" ; then
-        if docc $package_cflags $LDFLAGS $package_ldflags ; then
+        if docc $package_dep_cflags $package_dep_ldflags $package_cflags $LDFLAGS $package_ldflags ; then
             pck_cflags="$package_cflags"
             pck_ldflags="$package_ldflags"
             has_pck="$sysname"
@@ -1510,7 +1520,7 @@ config_package_test ()
         fi
 
         if test "$alt_macosx_dir" != "" ; then
-            if docc -I$alt_macosx_dir/include $package_cflags -L$alt_macosx_dir/lib $LDFLAGS $package_ldflags 2>>$logs ; then
+            if docc $package_dep_cflags $package_dep_ldflags -I$alt_macosx_dir/include $package_cflags -L$alt_macosx_dir/lib $LDFLAGS $package_ldflags 2>>$logs ; then
                 pck_cflags="$package_cflags"
                 pck_ldflags="$package_ldflags"
                 has_pck="system"
@@ -1524,14 +1534,14 @@ config_package_test ()
         return
     fi
 
-    if docc -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$local_lib $package_ldflags ; then
+    if docc $package_dep_cflags $package_dep_ldflags -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$local_lib $package_ldflags ; then
         pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
         pck_ldflags="-L$local_lib $package_ldflags"
         has_pck="local"
         return
     fi
 
-    if docc -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$execdir $package_ldflags ; then
+    if docc $package_dep_cflags $package_dep_ldflags -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$execdir $package_ldflags ; then
         pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
         pck_ldflags="-L$execdir $package_ldflags"
         has_pck="local"
@@ -1553,19 +1563,14 @@ config_package ()
         ;;
     esac
 
-    config_package_test "$1" "$2" "$3" "$4" "$5" "$6"
+    config_package_test "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"
     if test "$has_pck" = "no" -a "$forced" != "" -a "$forced" != "no" ; then
         echo "error: $pname requested with --use-$pname=$forced but not found"
         exit 1
     fi
     if test "$has_pck" != "no" ; then
-        eval "cflags_$pname=\"$pck_cflags\""
-        eval "ldflags_$pname=\"$pck_ldflags\""
-        # if test "$pname" = "ngtcp2" ; then
-        #     eval "ldflags_$pname=\"$pck_ldflags -lngtcp2_crypto_quictls\""
-        # else
-        #     eval "ldflags_$pname=\"$pck_ldflags\""
-        # fi
+        eval "cflags_$pname=\"$7 $pck_cflags\""
+        eval "ldflags_$pname=\"$8 $pck_ldflags\""
     fi
 
     eval "has_$pname=\"$has_pck\""
@@ -1677,23 +1682,29 @@ config_package ssl "openssl" "" "$ssl_lflags" "" '#include <openssl/ssl.h>
 #include <stddef.h>
 int main( void ) {  SSL_CTX_set_options(NULL, SSL_OP_ALL); return 0; }'
 
-set -x
+orig_cflags_ssl="$cflags_ssl"
+orig_ldflags_ssl="$ldflags_ssl"
+
 config_package gnutls "gnutls" "" "-lgnutls" "gnutls" '#include <gnutls/gnutls.h>
 int main( void ) { gnutls_global_init(); return 0; }'
 
 config_package nettle "nettle" "" "-lnettle" "nettle" '#include <nettle/aes.h>
+#include <nettle/version.h>
 int main(void) {
-    struct aes_ctx ctx;
     uint8_t key[16] = {0};
+#if NETTLE_VERSION_MAJOR>=4
+    struct aes128_ctx ctx;
+    aes128_set_encrypt_key(&ctx, key);
+#else
+    struct aes_ctx ctx;
     aes_set_encrypt_key(&ctx, 16, key);
+#endif
     return 0;
 }'
 
 if test "$has_nettle" = "no" ; then
     has_gnutls="no"
 fi
-
-set +x
 
 
 config_package jpeg "libjpeg" "" "-ljpeg" "jpeg" '#include <stdio.h>
@@ -1809,12 +1820,33 @@ if test "$has_gnutls" != "no" ; then
 config_package ngtcp2 "libngtcp2 libngtcp2_crypto_gnutls" "" "-lngtcp2 -lngtcp2_crypto_gnutls" "" '#include <stdio.h>
 #include <ngtcp2/ngtcp2.h>
 #include <ngtcp2/ngtcp2_crypto_gnutls.h>
-int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); ngtcp2_ccerr ccerr; (void)ccerr; return 0; }'
-else
-config_package ngtcp2 "libngtcp2 libngtcp2_crypto_quictls" "" "-lngtcp2 -lngtcp2_crypto_quictls" "" '#include <stdio.h>
+int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); ngtcp2_ccerr ccerr; (void)ccerr; return 0; }' "$cflags_gnutls" "$ldflags_gnutls"
+fi
+
+if [ "$has_ngtcp2" = "no" ] && [ "$has_ssl" != "no" ] ; then
+config_package ngtcp2 "libngtcp2 libngtcp2_crypto_ossl" "" "-lngtcp2 -lngtcp2_crypto_ossl" "" '#include <stdio.h>
+#include <openssl/opensslv.h>
+#if OPENSSL_VERSION_NUMBER < 0x30500000L
+#error OpenSSL 3.5.0 or newer is required for the ngtcp2 OpenSSL backend
+#endif
 #include <ngtcp2/ngtcp2.h>
-#include <ngtcp2/ngtcp2_crypto_quictls.h>
-int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); ngtcp2_ccerr ccerr; (void)ccerr; return 0; }'
+#include <ngtcp2/ngtcp2_crypto_ossl.h>
+int main( void ) {
+    ngtcp2_conn *ng_sess=NULL;
+    ngtcp2_crypto_ossl_ctx *tls_ctx=NULL;
+    ngtcp2_conn_del(ng_sess);
+    ngtcp2_ccerr ccerr; (void)ccerr;
+    if (ngtcp2_crypto_ossl_ctx_new(&tls_ctx, NULL)) return 1;
+    ngtcp2_crypto_ossl_ctx_del(tls_ctx);
+    return ngtcp2_crypto_ossl_init();
+}' "$orig_cflags_ssl" "$orig_ldflags_ssl"
+
+if [ "$has_ngtcp2" != "no" ] && [ "$has_gnutls" != "no" ] ; then
+has_gnutls="disabled"
+cflags_ssl="$orig_cflags_ssl"
+ldflags_ssl="$orig_ldflags_ssl"
+fi
+
 fi
 
 config_package nghttp3 "libnghttp3" "" "-lnghttp3" "" '#include <stdio.h>
@@ -2598,7 +2630,12 @@ if test "$disable_tinygl" = "no" ; then
 echo "TinyGL support: $has_tinygl"
 fi
 echo "OpenSSL support: $has_ssl"
+if [ "$has_gnutls" = "disabled" ] ; then
+echo "Gnutls support: Disabled because no GnuTLS backend for NGTCP2 but OpenSSL+NGTCP2 available"
+has_gnutls="no"
+else
 echo "Gnutls support: $has_gnutls"
+fi
 echo "nghttp2: $has_nghttp2"
 echo "ngtcp2: $has_ngtcp2"
 echo "nghttp3: $has_nghttp3"
@@ -2902,7 +2939,6 @@ fi
 
 
 
-set -x
 #gnutls takes precedence over openssl if present
 echo "HAS_GNUTLS=$has_gnutls" >> config.mak
 if test "$has_gnutls" != "no" ; then
@@ -2928,7 +2964,6 @@ else
         echo "#define GPAC_HAS_SSL" >> $TMPH
     fi
 fi
-set +x
 
 if test "$has_poll" = "yes" ; then
     echo "#define GPAC_HAS_POLL" >> $TMPH
