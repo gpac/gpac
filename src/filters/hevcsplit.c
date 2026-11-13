@@ -42,6 +42,7 @@ typedef struct
 
 typedef struct
 {
+	Bool minl;
 	GF_FilterPid *ipid;
 	GF_List *outputs;
 	u32 num_tiles, got_p;
@@ -220,30 +221,65 @@ static void hevcsplit_get_tile_pixel_coords(HEVCState *hevc, u32 index_row, u32 
 		*height = hevc->sps[sps_id].height - *ty;
 }
 
-//HEVC Annex A.3 Table A.1 "General tier and level limits": for a given number of luma
-//samples in the picture, returns the general_level_idc (level*30) of the lowest level
-//whose MaxLumaPs is not exceeded. Used to recompute the level when the picture size
-//changes (e.g. tile merge/split), since MaxLumaPs does not depend on tier.
+//HEVC Annex A Table A.8 "General tier and level limits": returns the general_level_idc
+//of the lowest level whose picture-size and tile-grid limits are not exceeded, or the
+//highest level with those same limits when min_idc_forced is set.
 //also used by HEVCmerge to keep the HEVCConfigurationBox's own level_idc field (redundant
 //with the level_idc carried in the in-band/out-of-band SPS) in sync after a tile merge
-u8 hevc_level_idc_for_pic_size(u32 width, u32 height)
+u8 hevc_level_idc_for_pic_size(u32 width, u32 height, u32 max_tile_cols, u32 max_tile_rows, Bool min_idc_forced)
 {
+	u32 i;
 	u64 luma_ps = (u64) width * height;
-	if (luma_ps <= 36864) return 30;      //Level 1
-	if (luma_ps <= 122880) return 60;     //Level 2
-	if (luma_ps <= 245760) return 63;     //Level 2.1
-	if (luma_ps <= 552960) return 90;     //Level 3
-	if (luma_ps <= 983040) return 93;     //Level 3.1
-	if (luma_ps <= 2228224) return 120;   //Level 4 (and 4.1: same MaxLumaPs)
-	if (luma_ps <= 8912896) return 150;   //Level 5 (and 5.1/5.2: same MaxLumaPs)
-	return 180;                            //Level 6 (and 6.1/6.2: same MaxLumaPs)
+	static const struct {
+		u32 max_luma_ps;
+		u32 max_tile_cols;
+		u32 max_tile_rows;
+		u8 level_idc;
+	} level_limits[] = {
+		{ 36864,     1,  1,  30 }, //Level 1
+		{ 122880,    1,  1,  60 }, //Level 2
+		{ 245760,    1,  1,  63 }, //Level 2.1
+		{ 552960,    2,  2,  90 }, //Level 3
+		{ 983040,    3,  3,  93 }, //Level 3.1
+		{ 2228224,   5,  5, 120 }, //Level 4
+		{ 2228224,   5,  5, 123 }, //Level 4.1
+		{ 8912896,  10, 11, 150 }, //Level 5
+		{ 8912896,  10, 11, 153 }, //Level 5.1
+		{ 8912896,  10, 11, 156 }, //Level 5.2
+		{ 35651584, 20, 22, 180 }, //Level 6
+		{ 35651584, 20, 22, 183 }, //Level 6.1
+		{ 35651584, 20, 22, 186 }, //Level 6.2
+		{ 80216064, 20, 22, 189 }, //Level 6.3
+		{ 142606336, 40, 44, 210 }, //Level 7
+		{ 142606336, 40, 44, 213 }, //Level 7.1
+		{ 142606336, 40, 44, 216 }  //Level 7.2
+	};
+	for (i = 0; i < sizeof(level_limits) / sizeof(level_limits[0]); i++) {
+		if ((luma_ps <= level_limits[i].max_luma_ps)
+			&& (max_tile_cols <= level_limits[i].max_tile_cols)
+			&& (max_tile_rows <= level_limits[i].max_tile_rows)
+		) {
+			if (min_idc_forced) {
+				u32 j;
+				for (j = i + 1; j < sizeof(level_limits) / sizeof(level_limits[0]); j++) {
+					if ((level_limits[j].max_luma_ps != level_limits[i].max_luma_ps)
+						|| (level_limits[j].max_tile_cols != level_limits[i].max_tile_cols)
+						|| (level_limits[j].max_tile_rows != level_limits[i].max_tile_rows))
+						break;
+				}
+				return level_limits[j - 1].level_idc;
+			}
+			return level_limits[i].level_idc;
+		}
+	}
+	return level_limits[sizeof(level_limits) / sizeof(level_limits[0]) - 1].level_idc;
 }
 
 //rewrite the profile and level
 //if pic_width/pic_height are non-zero, the general_level_idc is raised (never lowered) to the
 //minimum level required for that picture size, so the declared level stays spec-compliant
 //after a tile merge/split changes the picture dimensions
-static void hevc_write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, Bool ProfilePresentFlag, u8 MaxNumSubLayersMinus1, u32 pic_width, u32 pic_height)
+static void hevc_write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_out, Bool ProfilePresentFlag, u8 MaxNumSubLayersMinus1, u32 pic_width, u32 pic_height, u32 max_tile_cols, u32 max_tile_rows, Bool use_min_level, u8 *out_level_idc)
 {
 	u8 j;
 	Bool sub_layer_profile_present_flag[8], sub_layer_level_present_flag[8];
@@ -256,9 +292,11 @@ static void hevc_write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_
 	{
 		u8 level_idc = gf_bs_read_int(bs_in, 8);
 		if (pic_width && pic_height) {
-			u8 min_level_idc = hevc_level_idc_for_pic_size(pic_width, pic_height);
-			if (min_level_idc > level_idc) level_idc = min_level_idc;
+			u8 min_level_idc = hevc_level_idc_for_pic_size(pic_width, pic_height, max_tile_cols, max_tile_rows, use_min_level);
+			if ((min_level_idc > level_idc) || use_min_level)
+				level_idc = min_level_idc;
 		}
+		if (out_level_idc) *out_level_idc = level_idc;
 		gf_bs_write_int(bs_out, level_idc, 8);
 	}
 
@@ -286,7 +324,7 @@ static void hevc_write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_
 }
 
 //also used by HEVCmerge, don't use context bitstream objects
-void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, char **out_SPS, u32 *out_SPS_length)
+void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, u32 max_tile_cols, u32 max_tile_rows, char **out_SPS, u32 *out_SPS_length, Bool use_min_level, u8 *out_level_idc)
 {
 	GF_BitStream *bs_in, *bs_out;
 	u64 length_no_use = 4096;
@@ -296,6 +334,7 @@ void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, ch
 	Bool conformance_window_flag, multiLayerExtSpsFlag;
 	u32 chroma_format_idc;
 
+	if (out_level_idc) *out_level_idc = 0;
 	bs_in = gf_bs_new(in_SPS, in_SPS_length, GF_BITSTREAM_READ);
 	gf_bs_enable_emulation_byte_removal(bs_in, GF_TRUE);
 	bs_out = gf_bs_new(NULL, length_no_use, GF_BITSTREAM_WRITE);
@@ -323,7 +362,7 @@ void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, ch
 	multiLayerExtSpsFlag = (layer_id != 0) && (sps_ext_or_max_sub_layers_minus1 == 7);
 	if (!multiLayerExtSpsFlag) {
 		gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);
-		hevc_write_profile_tier_level(bs_in, bs_out, 1, max_sub_layers_minus1, width, height);
+		hevc_write_profile_tier_level(bs_in, bs_out, 1, max_sub_layers_minus1, width, height, max_tile_cols, max_tile_rows, use_min_level, out_level_idc);
 	}
 
 	gf_bs_write_ue(bs_out, gf_bs_read_ue(bs_in)); //copy sps_id
@@ -640,6 +679,7 @@ static char *hevcsplit_rewrite_nal(GF_Filter *filter, GF_HEVCSplitCtx *ctx, char
 static GF_Err hevcsplit_rewrite_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *data, u32 size, u32 new_width, u32 new_height)
 {
 	u32 i, j;
+	u8 max_level_idc = 0;
 	u8 *new_dsi;
 	u32 new_size;
 	GF_HEVCConfig *hvcc = gf_odf_hevc_cfg_read(data, size, GF_FALSE);
@@ -655,7 +695,9 @@ static GF_Err hevcsplit_rewrite_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, ch
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
 				char *outSPS=NULL;
 				u32 outSize=0;
-				hevc_rewrite_sps(sl->data, sl->size, new_width, new_height, &outSPS, &outSize);
+				u8 sps_level_idc = 0;
+				hevc_rewrite_sps(sl->data, sl->size, new_width, new_height, 1, 1, &outSPS, &outSize, ctx->minl, &sps_level_idc);
+				if (sps_level_idc > max_level_idc) max_level_idc = sps_level_idc;
 				gf_free(sl->data);
 				sl->data = outSPS;
 				sl->size= outSize;
@@ -672,6 +714,8 @@ static GF_Err hevcsplit_rewrite_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, ch
 			}
 		}
 	}
+	if (max_level_idc && (ctx->minl || (max_level_idc > hvcc->level_idc)))
+		hvcc->level_idc = max_level_idc;
 	gf_odf_hevc_cfg_write(hvcc, &new_dsi, &new_size);
 	gf_odf_hevc_cfg_del(hvcc);
 
@@ -1002,10 +1046,12 @@ static const GF_FilterCapability HEVCSplitCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_HEVC)
 };
 
+
 #define OFFS(_n)	#_n, offsetof(GF_HEVCSplitCtx, _n)
 
 static const GF_FilterArgs HEVCSplitArgs[] =
 {
+	{ OFFS(minl), "rewrite level to minimum value acceptable for each stream", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

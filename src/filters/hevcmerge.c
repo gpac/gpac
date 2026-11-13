@@ -74,7 +74,7 @@ typedef struct {
 typedef struct
 {
 	//options
-	Bool strict, mrows;
+	Bool strict, mrows, minl;
 
 	GF_FilterPid *opid;
 	s32 base_pps_init_qp_delta_minus26;
@@ -106,8 +106,7 @@ typedef struct
 } GF_HEVCMergeCtx;
 
 //in src/filters/hevcsplit.c
-void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, char **out_SPS, u32 *out_SPS_length);
-u8 hevc_level_idc_for_pic_size(u32 width, u32 height);
+void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, u32 max_tile_cols, u32 max_tile_rows, char **out_SPS, u32 *out_SPS_length, Bool use_min_level, u8 *out_level_idc);
 
 #if 0 //todo
 //rewrite the profile and level
@@ -429,6 +428,7 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, char
 static GF_Err hevcmerge_rewrite_config(GF_HEVCMergeCtx *ctx, GF_FilterPid *opid, char *data, u32 size)
 {
 	u32 i, j;
+	u8 max_level_idc = 0;
 	u8 *new_dsi;
 	u32 new_size;
 	GF_HEVCConfig *hvcc = gf_odf_hevc_cfg_read(data, size, GF_FALSE);
@@ -444,7 +444,9 @@ static GF_Err hevcmerge_rewrite_config(GF_HEVCMergeCtx *ctx, GF_FilterPid *opid,
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
 				char *outSPS=NULL;
 				u32 outSize=0;
-				hevc_rewrite_sps(sl->data, sl->size, ctx->out_width, ctx->out_height, &outSPS, &outSize);
+				u8 sps_level_idc = 0;
+				hevc_rewrite_sps(sl->data, sl->size, ctx->out_width, ctx->out_height, ctx->nb_cols, ctx->nb_rows ? ctx->nb_rows : 1, &outSPS, &outSize, ctx->minl, &sps_level_idc);
+				if (sps_level_idc > max_level_idc) max_level_idc = sps_level_idc;
 				gf_free(sl->data);
 				sl->data = outSPS;
 				sl->size = outSize;
@@ -461,14 +463,10 @@ static GF_Err hevcmerge_rewrite_config(GF_HEVCMergeCtx *ctx, GF_FilterPid *opid,
 			}
 		}
 	}
-	//the HEVCConfigurationBox record carries its own level_idc, redundant with (and not
-	//automatically kept in sync with) the level_idc rewritten into the SPS above - raise it
-	//to the level required by the merged picture size so container-level readers (and hardware
-	//decoders that trust this field rather than re-parsing the SPS) see a spec-compliant level
-	{
-		u8 min_level_idc = hevc_level_idc_for_pic_size(ctx->out_width, ctx->out_height);
-		if (min_level_idc > hvcc->level_idc) hvcc->level_idc = min_level_idc;
-	}
+	//Keep the HEVCConfigurationBox level in sync with the rewritten SPSs. When not
+	//forcing the minimum level, retain any higher level already declared by the record.
+	if (max_level_idc && (ctx->minl || (max_level_idc > hvcc->level_idc)))
+		hvcc->level_idc = max_level_idc;
 
 	gf_odf_hevc_cfg_write(hvcc, &new_dsi, &new_size);
 	gf_odf_hevc_cfg_del(hvcc);
@@ -1728,6 +1726,7 @@ static const GF_FilterArgs HEVCMergeArgs[] =
 {
 	{ OFFS(strict), "strict comparison of SPS and PPS of input PIDs", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mrows), "signal multiple rows in tile grid when possible", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(minl), "rewrite level to minimum value acceptable for each stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
