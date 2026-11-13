@@ -4066,7 +4066,8 @@ sample_entry_done:
 				gf_isom_set_ambient_viewing_environment(ctx->file, tkw->track_num, tkw->stsd_idx, ambient_illuminance, ambient_light_x, ambient_light_y);
 			}
 
-			p = (codec_id==GF_CODECID_HEVC) ? gf_filter_pid_get_property_str(pid, "hevc_split") : NULL;
+			p = (codec_id==GF_CODECID_HEVC) ? gf_filter_pid_get_property_str(pid, "hevc_split")
+				: ((codec_id==GF_CODECID_AV1) ? gf_filter_pid_get_property_str(pid, "av1_split") : NULL);
 			if (p && p->value.boolean) {
 				p = gf_filter_pid_get_property(pid, GF_PROP_PID_CROP_POS);
 				p2 = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_SIZE);
