@@ -2163,7 +2163,12 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	ffmpeg_set_enc_dec_flags(ctx->options, ctx->encoder);
 
-	if (ctx->all_intra) ctx->encoder->gop_size = 0;
+	if (ctx->all_intra) {
+		ctx->encoder->gop_size = 0;
+		//if no gop size no bitrate no QP and gop_size is too small, libaom-av1 just crashes when requesting I only ..
+		if (codec && !strcmp(codec->name, "libaom-av1"))
+			ctx->encoder->gop_size = 25;
+	}
 	else if (ctx->gop_size) ctx->encoder->gop_size = ctx->gop_size;
 
 	//by default let libavcodec decide - if single thread is required, let the user define -threads option
