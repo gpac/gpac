@@ -964,6 +964,7 @@ typedef struct
 	u64 sequence_size, frame_size, render_size, tile_info, tile_info_end, header_end;
 	u32 col_start[AV1_MAX_TILE_COLS+1], row_start[AV1_MAX_TILE_ROWS+1];
 	u32 tile_group_start;
+	s32 frame_size_ref; //reference slot supplying frame/render size, or -1
 } AV1ParseOffsets;
 
 typedef struct

@@ -45,7 +45,7 @@ static GF_Err av1split_test_source_init(GF_Filter *filter)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(128));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(64));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
-		gf_filter_pid_set_property(pid, GF_PROP_PID_TILE_ID, &PROP_UINT(i+1));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(128 * (i % av1split_test.cols), 64 * (i / av1split_test.cols)));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(dsi, size));
 	}
 	gf_free(dsi);
@@ -178,6 +178,7 @@ static GF_Err av1split_test_middle_process(GF_Filter *filter)
 
 static GF_Err av1split_test_sink_configure(GF_Filter *filter, GF_FilterPid *pid, Bool remove)
 {
+	if (!remove) assert_true(!gf_filter_pid_get_property(pid, GF_PROP_PID_SRD_MAP));
 	const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_TILE_ID);
 	assert_true(p && p->value.uint && p->value.uint <= 6);
 	if (!p || !p->value.uint || p->value.uint > 6) return GF_BAD_PARAM;

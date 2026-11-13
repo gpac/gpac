@@ -155,11 +155,11 @@ static GF_Err av1split_config_tile(GF_AV1SplitCtx *ctx, AV1SplitTile *tile, u32 
 	gf_filter_pid_set_name(tile->pid, name);
 	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size));
 	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_ID, &PROP_UINT(id));
-	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_TILE_ID, &PROP_UINT(id));
 	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_WIDTH, &PROP_UINT(tile->width));
 	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_HEIGHT, &PROP_UINT(tile->height));
 	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(tile->x, tile->y));
 	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(ctx->width, ctx->height));
+	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_SRD_MAP, NULL);
 	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_ESID, NULL);
 	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_DEPENDENCY_ID, NULL);
 	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_BITRATE, NULL);
@@ -566,9 +566,9 @@ GF_FilterRegister AV1SplitRegister = {
 	GF_FS_SET_DESCRIPTION("AV1 Tile extractor")
 	GF_FS_SET_HELP("This filter splits a tiled AV1 PID into independent AV1 PIDs, one per tile in row-major order.\n"
 		"The input must contain independently coded tiles, typically produced by av1merge. Motion prediction, entropy adaptation and loop restoration coding must not depend on other tiles. Ordinary tiled AV1 encodes may not satisfy these constraints.\n"
-		"Each output has a rewritten decoder configuration and frame headers, a 1-based TileID, CropOrigin and OrigSize properties. Packet timestamps and properties are preserved.\n"
-		"The tile grid and frame dimensions must remain constant, with frame dimensions matching the sequence dimensions. Super-resolution, spatial scalability, redundant frame headers and tile lists are not supported.\n"
-		"Example: gpac -i merged.av1 av1split -o 'tile_$TileID$.obu'")
+		"Each output has a rewritten decoder configuration and frame headers, CropOrigin and OriginalSize properties. Packet timestamps and properties are preserved.\n"
+		"CropOrigin and OriginalSize are preserved when split outputs are stored in MP4. av1merge uses CropOrigin to reconstruct their layout.\n"
+		"Example: gpac -i merged.av1 av1split -o 'tile_$CropOrigin$.obu'")
 	.private_size = sizeof(GF_AV1SplitCtx),
 	SETCAPS(AV1SplitCaps),
 	.flags = GF_FS_REG_EXPLICIT_ONLY | GF_FS_REG_DYNAMIC_PIDS,

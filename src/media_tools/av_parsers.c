@@ -3134,6 +3134,7 @@ static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_s
 	for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
 		found_ref = gf_bs_read_int_log_idx(bs, 1, "found_ref", i);
 		if (found_ref == 1) {
+			if (state->parse_offsets) state->parse_offsets->frame_size_ref = ref_frame_idx[i];
 			state->UpscaledWidth = state->RefUpscaledWidth[ref_frame_idx[i]];
 			state->width = state->UpscaledWidth;
 			state->height = state->RefFrameHeight[ref_frame_idx[i]];
@@ -4336,6 +4337,7 @@ void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 		u64 pos = gf_bs_get_position(bs);
 		if (state->parse_offsets) {
 			state->parse_offsets->frame_size = state->parse_offsets->render_size = 0;
+			state->parse_offsets->frame_size_ref = -1;
 			state->parse_offsets->tile_info = state->parse_offsets->tile_info_end = 0;
 		}
 		state->frame_state.show_existing_frame = GF_FALSE;
