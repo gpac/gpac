@@ -272,7 +272,7 @@ typedef struct
 {
 	//filter args
 	GF_ISOFile *file;
-	Bool m4sys, dref;
+	Bool m4sys, dref, strack;
 	GF_Fraction dur;
 	u32 pack3gp;
 	GF_MP4MuxCompositionOffsetMode ctmode;
@@ -8386,8 +8386,9 @@ void mp4_mux_progress_cbk(void *udta, u64 done, u64 total)
 static GF_Err mp4_mux_initialize(GF_Filter *filter)
 {
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
-	gf_filter_set_max_extra_input_pids(filter, -1);
 	ctx->filter = filter;
+	if (!ctx->strack)
+		gf_filter_set_max_extra_input_pids(filter, -1);
 	time_t current_time =time(NULL);
 	if (ctx->sfrag_tolerance)
 		ctx->store = MP4MX_MODE_SFRAG;
@@ -8983,6 +8984,7 @@ static const GF_FilterCapability MP4MuxCaps[] =
 static const GF_FilterArgs MP4MuxArgs[] =
 {
 	{ OFFS(m4sys), "force MPEG-4 Systems signaling of tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(strack), "force single-track file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dref), "only reference data from source file - not compatible with all media sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ctmode), "set composition offset mode for video tracks\n"
 	"- auto: if fragmenting an ISOBMFF source, use source settings otherwise resolve to `edit`\n"
