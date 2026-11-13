@@ -1098,7 +1098,6 @@ GF_Err stbl_SetSyncShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 syncSamp
 #if !defined(GPAC_DISABLE_ISOM_WRITE) || !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
 
 //always called before removing the sample from SampleSize
-GF_NOT_EXPORTED
 GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples, u32 LastAUDefDuration)
 {
 	GF_SttsEntry *ent;
@@ -1749,7 +1748,7 @@ GF_Err stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack)
 	return GF_OK;
 }
 
-GF_NOT_EXPORTED GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack)
+GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack)
 {
 	u32 i;
 	CHECK_PACK(GF_ISOM_INVALID_FILE)

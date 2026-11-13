@@ -1,16 +1,32 @@
 #pragma once
 
 #include <gpac/tools.h> // Bool
+#include <stdio.h>      // printf
+#include <stdlib.h>     // NULL
+#include <string.h>     // strcmp, memcmp
 
+#ifdef GPAC_UNIT_TEST_LIST
+#define unittest(suffix) GPAC_UNIT_TEST_ENTRY(suffix)
+#define unittest_disabled(suffix, reason) GPAC_UNIT_TEST_ENTRY(suffix)
+#else
 #define unittest(suffix) void test_##suffix(void)
+#define unittest_disabled(suffix, reason) unittest(suffix) { test_skip(reason " (" __FILE__ ")"); }
+#endif
+
+int register_test(const char *name, void (*test_function)(void));
+int run_tests(int argc, char *argv[]);
+
+//cleanup need run in reverse order on success, skip, and assertion failure
+void test_abort(void);
+void test_skip(const char *reason);
+void test_defer(void (*cleanup)(void *), void *data);
 
 extern int checks_passed;
 extern int checks_failed;
 
-static Bool verbose_ut = GF_FALSE;
-static Bool fatal_ut = GF_TRUE;
+extern Bool verbose_ut;
 
-#define assert_generic(expr, trace)                                  \
+#define test_check(expr, trace, fatal)                               \
     do {                                                             \
         if (expr) {                                                  \
             if (verbose_ut)                                          \
@@ -21,9 +37,13 @@ static Bool fatal_ut = GF_TRUE;
             trace;                                                   \
             printf("\tFile: \"%s\"\n\tLine: %d\n\tFunction: \"%s\"\n", __FILE__, __LINE__, __func__); \
             checks_failed++;                                         \
-            if (fatal_ut) checks_failed|=0x8000000;                  \
+            if (fatal) test_abort();                                 \
         }                                                            \
     } while (0)
+
+#define assert_generic(expr, trace) test_check(expr, trace, GF_TRUE)
+#define check_true(expr) test_check(expr, {}, GF_FALSE)
+#define check_false(expr) check_true(!(expr))
 
 #define assert_true(expr)                assert_generic(expr, {})
 #define assert_false(expr)               assert_true(!(expr))

@@ -1,4 +1,7 @@
 #include "tests.h"
+
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)
+
 #include "../nodes_stacks.h"
 
 unittest(compositor_font_style_type_check)
@@ -32,3 +35,7 @@ unittest(compositor_font_style_type_check)
 	gf_sg_del(scenegraph);
 #endif
 }
+
+#else
+unittest_disabled(compositor_font_style_type_check, "VRML compositor disabled")
+#endif // !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)

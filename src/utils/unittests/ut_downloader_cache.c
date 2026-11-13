@@ -18,6 +18,8 @@ unittest(cache_rejects_wrapped_content_length)
 	gf_cache_close_write_cache(entry, &sess, GF_FALSE);
 	gf_cache_delete_entry(entry);
 	gf_mx_del(mx);
+#else
+	test_skip("network support disabled");
 #endif
 }
 
@@ -46,5 +48,7 @@ unittest(cache_accepts_valid_content_length)
 	gf_cache_close_write_cache(entry, &sess, GF_TRUE);
 	gf_cache_delete_entry(entry);
 	gf_mx_del(mx);
+#else
+	test_skip("network support disabled");
 #endif
 }

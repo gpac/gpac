@@ -1,4 +1,7 @@
 #include "tests.h"
+
+#if !defined(GPAC_DISABLE_ISOM)
+
 #include "../dec_scte35.c"
 #include "../../filter_core/filter_session.h" // GF_FilterPacket
 
@@ -627,3 +630,18 @@ unittest(scte35dec_splice_insert_pts_wrap)
 }
 
 /*************************************/
+
+#else
+unittest_disabled(scte35dec_safety, "ISO media disabled")
+unittest_disabled(scte35dec_no_event, "ISO media disabled")
+unittest_disabled(scte35dec_segmentation_no_event, "ISO media disabled")
+unittest_disabled(scte35dec_splice_point_with_idr, "ISO media disabled")
+unittest_disabled(scte35dec_unspecified_splice_command_length, "ISO media disabled")
+unittest_disabled(scte35dec_simple, "ISO media disabled")
+unittest_disabled(scte35dec_initial_delay, "ISO media disabled")
+unittest_disabled(scte35dec_segmentation_beginning, "ISO media disabled")
+unittest_disabled(scte35dec_short_segmentation_end, "ISO media disabled")
+unittest_disabled(scte35dec_time_signal_basic, "ISO media disabled")
+unittest_disabled(scte35dec_time_signal_pts_wrap, "ISO media disabled")
+unittest_disabled(scte35dec_splice_insert_pts_wrap, "ISO media disabled")
+#endif // !defined(GPAC_DISABLE_ISOM)

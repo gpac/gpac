@@ -1,5 +1,5 @@
 #include "tests.h"
-#include <gpac/xml.h>
+#include "../xml_parser.c"
 
 unittest(xml_translate_xml_string)
 {
@@ -99,6 +99,6 @@ unittest(xml_dom_parse_gzip_blob)
 	if (root_name) gf_free(root_name);
 	gf_free(gz);
 #else
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("gzip test skipped because GPAC_DISABLE_ZLIB is defined") );
-#endif // GPAC_DISABLE_ZLIB
+	test_skip("zlib disabled");
+#endif // !defined(GPAC_DISABLE_ZLIB)
 }

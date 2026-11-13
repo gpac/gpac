@@ -2,68 +2,111 @@
 
 ## Build and run
 
-Unit tests can be activate with ```configure --unittests```.
+Unit tests are enabled by default with `./configure --enable-debug`. Use
+`./configure --unittests` to enable them in other builds, or
+`./configure --unittests=no` to disable them in a debug build.
+Then run `make -j2`.
+The normal build runs the tests before building applications and stops on failure.
 
-Unit tests are executed each time a build occurs with ```make```. Execution of the tests happens as soon as possible and it will stop on errors. 
+To execute the steps manually:
+```sh
+make unit_tests                         # build and run, including harness checks
+make unit_tests_build                   # build without running
+make unit_tests TEST_ARGS='--only xml_translate_xml_string'
+unittests/launch.sh --list
+unittests/launch.sh --only xml_translate_xml_string
+```
 
-## Notes
+The runner also accepts `--only INDEX` and `--verbose`. Names are preferable to
+indices, which change when tests are added. Unknown names, invalid indices, and
+unknown options return failure.
 
-Some unit tests require extra visibility of symbols. That's why a second build is required. This is done automatically.
+Disabled features are reported as skipped tests.
 
-Alternately you can run the tests with ```make unit_tests``` or look into ```unittests/launch.sh``` to set environment variable. Available options are ```--list``` (or ```-l```) and ```--only``` with a test number.
+By design, listing doesn't initialize GPAC. Test execution initializes an in-memory GPAC
+profile, so it neither depends on nor saves the user's configuration.
 
-The unit tests pre-processing could happen along with other reformatting and checks in a ```precommit``` command as part of developer's best practices.
+The executable is `bin/gcc/unittests` (`unittests.exe` on Windows). For an
+out-of-tree build, run the launcher from the build directory, or set
+`GPAC_UNITTEST_BINARY` to that build's executable. No alternate `libgpac` loader
+path is needed since we now build from the static library (`libgpac_static.a`).
+`make clean` removes test artifacts (including the obsolete
+second build left by earlier versions).
 
-These tests are intented to complement existing tests from the testsuite.
+These tests complement the separate testsuite. The unit tests in `gpac.c` and
+the `units` filter are independent of this harness.
 
-```gpac.c```also contains some unit tests of its own. They are unrelated to the runtime discussed in this document.
+## Build organization
+
+Tests link against the usual `libgpac_static.a`, reusing the same objects, configuration,
+and dependency libraries as the production build. Non-static internal functions
+can be called through this static link without exporting them from the shared
+library.
+
+Tests needing static functions or implementation-private types can include the
+implementation `.c`, as the filter tests do. This recompiles only the relevant
+implementation for testing. Include the complete implementation: its externally
+linked definitions must be supplied by the test object so the linker does not
+also extract the original object from the archive. Do not add duplicate stubs for
+functions or globals supplied by the library.
+
+Specific compiler flags are in `unittests/unit_tests.mak`.
+
+One will need to use separate build directories for sanitizer or different feature configurations, as all objects linked into a test must use compatible flags.
 
 ## Writing a unit test
 
-Include the unit test framework:
-```
+Include `tests.h` and declare each test with `unittest(name)`:
+
+```c
 #include "tests.h"
-```
+#include "../xml_parser.c"
 
-### Static function testing
+static void free_string(void *data)
+{
+    gf_free(data);
+}
 
-If the function is static, replace ```static``` with ```GF_STATIC```. If the function is not static and not exported while you need it, add ```GF_NOT_EXPORTED```. Then add a definition in your unit test file:
-```
-char *xml_translate_xml_string(char *str);
-
-```
-
-Then write test functions:
-```
 unittest(xml_translate_xml_string)
 {
-    assert_equal_str(xml_translate_xml_string("&amp;"), "&");
+    char *str = xml_translate_xml_string("&amp;");
+    test_defer(free_string, str);
+    assert_not_null(str);
+    assert_equal_str(str, "&");
 }
 ```
 
-### Testing a full filter
+`assert_*()` records a failure and immediately stops the test, including when
+called from a helper or synchronous callback. The runner executes registered
+cleanups, stops the suite after a fatal assertion, and returns failure.
+`check_true` and `check_false` record failures but continue, for checks where
+continuing is safe. Do not rely on code after an assertion to release resources.
 
-You can include the filter source code file in your test file. This has the advantage of allowing to reuse private contexts in the unit tests:
-```
+The new `test_defer(cleanup, resource)` registers a cleanup that runs in reverse
+order on success, skip, or failure. Pass the resource itself or a heap-owned fixture;
+never pass the address of a local variable, since the test's stack frame may
+already have been unwound. Do not free a deferred resource separately.
+Assertions, skips, and cleanup registration must run on the runner thread;
+worker threads should report results to that thread after being joined.
+
+Memory-tracking builds will rightfully fail if GPAC allocations or file handles remain after
+shutdown. `unittests/selftest.sh` exercises the runner's success, failure, cleanup,
+skip, argument-validation, and leak behavior using a separate fixture executable.
+
+For unavailable features, keep a named skipped test rather than an empty body:
+
+```c
 #include "tests.h"
-#include "../dec_scte35.c" // include the source code
 
-...
-
-unittest(scte35dec_segmentation_end)
+#ifndef GPAC_DISABLE_NETWORK
+unittest(cache_accepts_valid_content_length)
 {
-    SCTE35DecCtx ctx = {0};
-    assert_equal(scte35dec_initialize_internal(&ctx), GF_OK, "%d");
-
-    ctx.segdur = (GF_Fraction){1, 1};
-
-    u64 pts = 0;
-    SEND_VIDEO(1);
-    SEND_EVENT(SCTE35_DUR);
-
-    scte35dec_flush(&ctx);
-    scte35dec_finalize_internal(&ctx);
-
-    ctx.pck_send(NULL); // trigger final checks
+    /* Test the cache. */
 }
+#else
+unittest_disabled(cache_accepts_valid_content_length, "network support disabled")
+#endif
 ```
+
+A test can also call `test_skip("reason")` at runtime. Include `tests.h` before
+checking feature macros so the configured feature definitions are available.

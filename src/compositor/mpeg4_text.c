@@ -58,7 +58,7 @@ typedef struct
 	GF_Compositor *compositor;
 } TextStack;
 
-GF_NOT_EXPORTED M_FontStyle *compositor_get_font_style(GF_Node *font_style)
+M_FontStyle *compositor_get_font_style(GF_Node *font_style)
 {
 	if (!font_style) return NULL;
 
