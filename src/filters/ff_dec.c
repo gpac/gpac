@@ -1147,9 +1147,18 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	ctx->channels = prop ? prop->value.uint : 0;
 
-	if (gpac_codecid==GF_CODECID_VVC) {
+	if (ctx->c) {
+		codec = avcodec_find_decoder_by_name(ctx->c);
 		u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
-		codec = codec_id ? avcodec_find_decoder(codec_id) : NULL;
+		if (codec && (codec->id != codec_id)) codec = NULL;
+	}
+
+	if (gpac_codecid==GF_CODECID_VVC) {
+		if (!codec) {
+			u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
+			codec = codec_id ? avcodec_find_decoder(codec_id) : NULL;
+		}
+
 		//first version of libvvdec+ffmpeg only supported annexB, request ufnalu adaptation filter
 		if (codec && codec->name && strstr(codec->name, "vvdec") && gf_opts_get_bool("core", "vvdec-annexb")) {
 			//vvdec currently requires bootstrap on SAP
@@ -1241,7 +1250,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 
 		}
-		if (codec_id)
+		if (codec_id && !codec)
 			codec = avcodec_find_decoder(codec_id);
 
 		if (!codec_id && ctx->ffcmap.nb_items) {

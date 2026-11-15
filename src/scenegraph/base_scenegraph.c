@@ -557,11 +557,13 @@ restart:
 		/*this will unregister the proto from the graph, so don't delete the chain entry*/
 		gf_sg_proto_del(p);
 	}
-	/*destroy all unregistered proto*/
+	/*unregistered protos are owned by the commands that declared them (new_proto_list);
+	  gf_sg_command_del frees them.  Null out parent_graph so gf_sg_proto_del can detect
+	  that the graph is already gone, then drop the non-owning references from the list.*/
 	while (gf_list_count(sg->unregistered_protos)) {
 		GF_Proto *p = (GF_Proto *)gf_list_get(sg->unregistered_protos, 0);
-		/*this will unregister the proto from the graph, so don't delete the chain entry*/
-		gf_sg_proto_del(p);
+		p->parent_graph = NULL;
+		gf_list_rem(sg->unregistered_protos, 0);
 	}
 
 	/*last destroy all routes*/

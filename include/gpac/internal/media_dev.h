@@ -957,6 +957,16 @@ typedef struct
 
 #define AV1_NUM_REF_FRAMES	8
 
+//optional syntax positions needed for tile header rewriting:
+//bit positions are absolute, tile boundaries are in superblocks
+typedef struct
+{
+	u64 sequence_size, frame_size, render_size, tile_info, tile_info_end, header_end;
+	u32 col_start[AV1_MAX_TILE_COLS+1], row_start[AV1_MAX_TILE_ROWS+1];
+	u32 tile_group_start;
+	s32 frame_size_ref; //reference slot supplying frame/render size, or -1
+} AV1ParseOffsets;
+
 typedef struct
 {
 	s32 coefs[AV1_NUM_REF_FRAMES][6];
@@ -1044,6 +1054,7 @@ typedef struct
 
 	/*frame parsing state*/
 	AV1StateFrame frame_state;
+	AV1ParseOffsets *parse_offsets;
 
 	/*layer sizes for AVIF a1lx*/
 	u32 layer_size[4];
@@ -1096,6 +1107,22 @@ u64 gf_av1_leb128_read(GF_BitStream *bs, u8 *opt_Leb128Bytes);
 u32 gf_av1_leb128_size(u64 value);
 u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value);
 GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id);
+
+
+typedef struct{
+	u32 size, type, spatial_id, temporal_id;
+} BSAV1OBU;
+
+/*! inspect low-overhead OBU input buffer to a BSAV1OBU struct
+    note: framed AV1 use the low-overhead OBU format with a size field OBU so we only
+          inspect the framing (enh layers dont need to be decodable without their deps)
+\param data pointer to the input buffer
+\param size size of the input buffer
+\param obu pointer to the BSAV1OBU structure to fill
+\return GF_OK on success, GF_NON_COMPLIANT_BITSTREAM on failure
+*/
+GF_Err bs_av1_obu_inspect(const u8 *data, u32 size, BSAV1OBU *obu);
+
 
 typedef struct
 {

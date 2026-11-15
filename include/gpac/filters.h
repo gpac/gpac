@@ -2559,7 +2559,7 @@ typedef enum
 	/*! Indicates the filter uses async tools (JS promises & co) blocking the calling thread until resolved - only needed for emscripten multithreaded support*/
 	GF_FS_REG_ASYNC_BLOCK = 1<<17,
 	/*! Indicates a dynamic instance of the filter can be reused in resolver even if the source PID already has a possible link to an explicit non-sink filter
-		This is typically required by PID merger filters allowing implicit loading (tileagg, hevcmerge, etc)
+		This is typically required by PID merger filters allowing implicit loading (tileagg, av1/hevcmerge, etc)
 	*/
 	GF_FS_REG_DYNAMIC_REUSE = 1<<18,
 
@@ -4456,7 +4456,7 @@ void gf_filter_pid_discard_block(GF_FilterPid *PID);
 */
 char *gf_filter_pid_get_destination(GF_FilterPid *PID);
 
-/*! Gets URL  argument of first source of PID if any - memory shall be freed by caller.
+/*! Gets URL argument of first source of PID if any - memory shall be freed by caller.
 \param PID the target filter PID
 \return source URL string or NULL if error
 */
@@ -4527,7 +4527,7 @@ void *gf_filter_pid_get_alias_udta(GF_FilterPid *PID);
 */
 GF_Filter *gf_filter_pid_get_owner(GF_FilterPid *PID);
 
-/*! Gets the filter owning the  input PID
+/*! Gets the filter owning the input PID
 \param PID the target filter PID
 \return the filter owning the PID or NULL if error
 */
