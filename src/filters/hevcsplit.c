@@ -948,6 +948,9 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			e = hevcsplit_get_tile_pixel_coords(&ctx->hevc_state, i, j, pps_id, tpid);
 			if (e) return e;
 			gf_filter_pid_copy_properties(tpid->opid, ctx->ipid);
+			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_TRANS_X, NULL);
+			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_TRANS_Y, NULL);
+			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_ISOM_TRACK_MATRIX, NULL);
 			// for each output pid, set decoder_config, width and height.
 			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_WIDTH, &PROP_UINT(tpid->width));
 			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(tpid->height));

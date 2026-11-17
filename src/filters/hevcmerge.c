@@ -1393,6 +1393,9 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, pid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_HEVC));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TRANS_X, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TRANS_Y, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ISOM_TRACK_MATRIX, NULL);
 		//remove all SRD related properties
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD_REF, NULL);

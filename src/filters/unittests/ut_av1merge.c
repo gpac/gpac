@@ -355,16 +355,10 @@ static GF_Err av1merge_test_sink_process(GF_Filter *filter)
 	assert_true(!gf_filter_pid_get_property(av1merge_test.sink_pid, GF_PROP_PID_TILE_ID));
 	assert_true(!gf_filter_pid_get_property_str(av1merge_test.sink_pid, "av1_split"));
 	if (av1merge_test.mode == AV1MERGE_TRACK_MATRIX) {
-		const s32 expected[9] = {0, 65536, 0, -65536, 0, 0, 0, 0, 0x40000000};
 		const GF_PropertyValue *matrix = gf_filter_pid_get_property(av1merge_test.sink_pid, GF_PROP_PID_ISOM_TRACK_MATRIX);
 		assert_true(!gf_filter_pid_get_property(av1merge_test.sink_pid, GF_PROP_PID_TRANS_X));
 		assert_true(!gf_filter_pid_get_property(av1merge_test.sink_pid, GF_PROP_PID_TRANS_Y));
-		assert_true(matrix != NULL);
-		if (matrix) {
-			assert_equal(matrix->value.sint_list.nb_items, 9U, "%u");
-			if (matrix->value.sint_list.nb_items == 9)
-				assert_equal_mem(matrix->value.sint_list.vals, expected, sizeof(expected));
-		}
+		assert_true(matrix == NULL);
 	}
 	const GF_PropertyValue *map = gf_filter_pid_get_property(av1merge_test.sink_pid, GF_PROP_PID_SRD_MAP);
 	Bool relative = av1merge_test.mode == AV1MERGE_RELATIVE_ORIGIN || av1merge_test.mode == AV1MERGE_RELATIVE_OFFSET

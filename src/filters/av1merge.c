@@ -1086,6 +1086,9 @@ static GF_Err av1merge_rewrite_pck(GF_AV1MergeCtx *ctx)
 static void av1merge_copy_output_properties(GF_AV1MergeCtx *ctx, GF_FilterPid *pid)
 {
 	gf_filter_pid_copy_properties(ctx->opid, pid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TRANS_X, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TRANS_Y, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ISOM_TRACK_MATRIX, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CROP_POS, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ORIG_SIZE, NULL);
 	gf_filter_pid_set_property_str(ctx->opid, "av1_split", NULL);
