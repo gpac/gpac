@@ -2185,6 +2185,10 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		gf_img_parse(bs, &codecid, &w, &h, NULL, NULL);
 		gf_bs_del(bs);
 
+		if (!w || !h || w > UINT_MAX / 4 / h) {
+			gf_free(buf);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		osize = w*h*4;
 		raw = gf_malloc(sizeof(char)*osize);
 		if (!raw) {
@@ -2203,7 +2207,17 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		if (swf_read_data(read, (char *) buf, AlphaPlaneSize) == AlphaPlaneSize) {
 
 			osize = w*h;
+			if (!osize) {
+				gf_free(raw);
+				gf_free(buf);
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 			dst = gf_malloc(sizeof(char)*osize);
+			if (!dst) {
+				gf_free(raw);
+				gf_free(buf);
+				return GF_OUT_OF_MEM;
+			}
 			destLen = (uLongf)osize;
 			uncompress((Bytef *) dst, &destLen, buf, AlphaPlaneSize);
 			/*write alpha channel*/
@@ -2221,6 +2235,11 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 			osize = w*h*4;
 			buf = gf_realloc(buf, sizeof(char)*osize);
+			if (!buf) {
+				gf_free(dst);
+				gf_free(raw);
+				return GF_OUT_OF_MEM;
+			}
 			gf_img_png_enc(raw, w, h, w*4, GF_PIXEL_RGBA, (char *)buf, &osize);
 
 			file = gf_fopen(szName, "wb");
