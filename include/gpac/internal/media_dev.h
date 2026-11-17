@@ -486,7 +486,7 @@ typedef struct
 	Bool loop_filter_across_tiles_enabled_flag;
 	s32 pic_init_qp_minus26;
 	u32 num_tile_columns, num_tile_rows;
-	u32 column_width[22], row_height[20];
+	u32 column_width[22], row_height[22];
 
 	Bool sign_data_hiding_flag, constrained_intra_pred_flag, transform_skip_enabled_flag, cu_qp_delta_enabled_flag, transquant_bypass_enable_flag;
 	u32 diff_cu_qp_delta_depth, pic_cb_qp_offset, pic_cr_qp_offset;
@@ -653,6 +653,7 @@ GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, u8 *sps_data, u32 
 /*parses HEVC SEI and fill state accordingly*/
 void gf_hevc_parse_sei(char* buffer, u32 nal_size, HEVCState *hevc);
 u32 gf_hevc_reformat_sei(char* buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter);
+GF_Err gf_hevc_filter_suffix_hash(char *data, u32 *nal_length, Bool keep_hash);
 
 
 
