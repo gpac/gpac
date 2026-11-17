@@ -1689,7 +1689,12 @@ static void operating_parameters_info(GF_BitStream *bs, const u8 idx, const u8 b
 	gf_bs_read_int_log(bs, 1, "low_delay_mode_flag");
 }
 
-static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
+u64 av1_bit_position(GF_BitStream *bs)
+{
+	return gf_bs_get_position(bs) * 8 - (8 - gf_bs_get_bit_position(bs));
+}
+
+void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 {
 	u8 buffer_delay_length_minus_1 = 0;
 	state->frame_state.seen_seq_header = GF_TRUE;
@@ -1765,6 +1770,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 
 	state->frame_width_bits_minus_1 = gf_bs_read_int_log(bs, 4, "frame_width_bits_minus1");
 	state->frame_height_bits_minus_1 = gf_bs_read_int_log(bs, 4, "frame_height_bits_minus1");
+	if (state->parse_offsets) state->parse_offsets->sequence_size = av1_bit_position(bs);
 	state->width = gf_bs_read_int_log(bs, state->frame_width_bits_minus_1 + 1, "width_minus1") + 1;
 	state->height = gf_bs_read_int_log(bs, state->frame_height_bits_minus_1 + 1, "height_minus1") + 1;
 	state->sequence_width = state->width;
@@ -2827,10 +2833,13 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 	gf_bs_mark_overflow(bs, GF_TRUE);
 	tusize = sz = gf_av1_leb128_read(bs, NULL);
 	tupos = gf_bs_get_position(bs);
+	if (gf_bs_is_overflow(bs)) return GF_BUFFER_TOO_SMALL;
 	if (!sz) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[AV1] temporal unit size is 0, likely not annex B\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+	//for incomplete TUs, don't update ref frames nor accumulate OBUs until the entire TU is available
+	if (sz > gf_bs_available(bs)) return GF_BUFFER_TOO_SMALL;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", sz));
 	while (sz > 0) {
@@ -2931,7 +2940,7 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 #define MAX_TILE_WIDTH 4096
 #define MAX_TILE_AREA (4096 * 2304)
 
-static u32 aom_av1_tile_log2(u32 blkSize, u32 target)
+u32 aom_av1_tile_log2(u32 blkSize, u32 target)
 {
 	u32 k;
 	for (k = 0; (blkSize << k) < target; k++) {
@@ -2966,6 +2975,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 	u32 maxLog2tileCols = aom_av1_tile_log2(1, MIN(sbCols, AV1_MAX_TILE_COLS));
 	u32 maxLog2tileRows = aom_av1_tile_log2(1, MIN(sbRows, AV1_MAX_TILE_ROWS));
 	u32 minLog2Tiles = MAX(minLog2tileCols, aom_av1_tile_log2(maxTileAreaSb, sbRows * sbCols));
+	if (state->parse_offsets) state->parse_offsets->tile_info = av1_bit_position(bs);
 	Bool uniform_tile_spacing_flag = gf_bs_read_int_log(bs, 1, "uniform_tile_spacing_flag");
 	if (uniform_tile_spacing_flag) {
 		u32 startSb, tileWidthSb, tileHeightSb, minLog2tileRows;
@@ -2981,6 +2991,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 		tileWidthSb = (sbCols + (1 << state->tileColsLog2) - 1) >> state->tileColsLog2;
 		i = 0;
 		for (startSb = 0; startSb < sbCols; startSb += tileWidthSb) {
+			if (state->parse_offsets && i < AV1_MAX_TILE_COLS) state->parse_offsets->col_start[i] = startSb;
 			i += 1;
 		}
 		state->tileCols = i;
@@ -2997,6 +3008,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 		tileHeightSb = (sbRows + (1 << state->tileRowsLog2) - 1) >> state->tileRowsLog2;
 		i = 0;
 		for (startSb = 0; startSb < sbRows; startSb += tileHeightSb) {
+			if (state->parse_offsets && i < AV1_MAX_TILE_ROWS) state->parse_offsets->row_start[i] = startSb;
 			i += 1;
 		}
 		state->tileRows = i;
@@ -3009,6 +3021,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 			u32 maxWidth = MIN((int)(sbCols - startSb), maxTileWidthSb);
 			u32 width_in_sbs_minus_1 = av1_read_ns(bs, maxWidth, "width_in_sbs_minus_1");
 			u32 sizeSb = width_in_sbs_minus_1 + 1;
+			if (state->parse_offsets && i < AV1_MAX_TILE_COLS) state->parse_offsets->col_start[i] = startSb;
 			widestTileSb = MAX(sizeSb, widestTileSb);
 			startSb += sizeSb;
 		}
@@ -3030,6 +3043,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 			u32 maxHeight = MIN((int)(sbRows - startSb), maxTileHeightSb);
 			u32 height_in_sbs_minus_1 = av1_read_ns(bs, maxHeight, "height_in_sbs_minus_1");
 			u32 sizeSb = height_in_sbs_minus_1 + 1;
+			if (state->parse_offsets && i < AV1_MAX_TILE_ROWS) state->parse_offsets->row_start[i] = startSb;
 			startSb += sizeSb;
 		}
 
@@ -3039,6 +3053,11 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 	if (state->tileColsLog2 > 0 || state->tileRowsLog2 > 0) {
 		gf_bs_read_int_log(bs, state->tileRowsLog2 + state->tileColsLog2, "context_update_tile_id");
 		state->tile_size_bytes = gf_bs_read_int_log(bs, 2, "tile_size_bytes_minus1") + 1;
+	}
+	if (state->parse_offsets) {
+		state->parse_offsets->tile_info_end = av1_bit_position(bs);
+		if (state->tileCols <= AV1_MAX_TILE_COLS) state->parse_offsets->col_start[state->tileCols] = sbCols;
+		if (state->tileRows <= AV1_MAX_TILE_ROWS) state->parse_offsets->row_start[state->tileRows] = sbRows;
 	}
 }
 
@@ -3068,6 +3087,7 @@ static void av1_frame_size(GF_BitStream *bs, AV1State *state, Bool frame_size_ov
 {
 	if (frame_size_override_flag) {
 		u32 frame_width_minus_1, frame_height_minus_1;
+		if (state->parse_offsets) state->parse_offsets->frame_size = av1_bit_position(bs);
 		u8 n = state->frame_width_bits_minus_1 + 1;
 		frame_width_minus_1 = gf_bs_read_int_log(bs, n, "frame_width_minus_1");
 		n = state->frame_height_bits_minus_1 + 1;
@@ -3082,8 +3102,9 @@ static void av1_frame_size(GF_BitStream *bs, AV1State *state, Bool frame_size_ov
 	//compute_image_size(); //no bits
 }
 
-static void av1_render_size(GF_BitStream *bs)
+static void av1_render_size(GF_BitStream *bs, AV1State *state)
 {
+	if (state->parse_offsets) state->parse_offsets->render_size = av1_bit_position(bs);
 	Bool render_and_frame_size_different = gf_bs_read_int_log(bs, 1, "render_and_frame_size_different_flag");
 	if (render_and_frame_size_different == GF_TRUE) {
 		gf_bs_read_int_log(bs, 16, "render_width_minus_1");
@@ -3112,6 +3133,7 @@ static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_s
 	for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
 		found_ref = gf_bs_read_int_log_idx(bs, 1, "found_ref", i);
 		if (found_ref == 1) {
+			if (state->parse_offsets) state->parse_offsets->frame_size_ref = ref_frame_idx[i];
 			state->UpscaledWidth = state->RefUpscaledWidth[ref_frame_idx[i]];
 			state->width = state->UpscaledWidth;
 			state->height = state->RefFrameHeight[ref_frame_idx[i]];
@@ -3120,7 +3142,7 @@ static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_s
 	}
 	if (found_ref == 0) {
 		av1_frame_size(bs, state, frame_size_override_flag);
-		av1_render_size(bs);
+		av1_render_size(bs, state);
 	}
 	else {
 		superres_params(bs, state);
@@ -3625,7 +3647,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	u8 allow_intrabc = 0;
 	if (frame_state->frame_type == AV1_KEY_FRAME) {
 		av1_frame_size(bs, state, frame_size_override_flag);
-		av1_render_size(bs);
+		av1_render_size(bs, state);
 		if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
 			allow_intrabc = gf_bs_read_int_log(bs, 1, "allow_intrabc");
 		}
@@ -3633,7 +3655,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	else {
 		if (frame_state->frame_type == AV1_INTRA_ONLY_FRAME) {
 			av1_frame_size(bs, state, frame_size_override_flag);
-			av1_render_size(bs);
+			av1_render_size(bs, state);
 			if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
 				allow_intrabc = gf_bs_read_int_log(bs, 1, "allow_intrabc");
 			}
@@ -3665,7 +3687,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			}
 			else {
 				av1_frame_size(bs, state, frame_size_override_flag);
-				av1_render_size(bs);
+				av1_render_size(bs, state);
 			}
 			frame_state->allow_high_precision_mv = 0;
 			if (!force_integer_mv) {
@@ -4244,7 +4266,7 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 	}
 }
 
-static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
+GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
 {
 	u32 TileNum, tg_start = 0, tg_end = 0;
 	u32 numTiles = state->tileCols * state->tileRows;
@@ -4268,7 +4290,8 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 
 	gf_bs_align(bs);
 
-	if (tg_end >= GF_ARRAY_LENGTH(state->frame_state.tiles))
+	if (state->parse_offsets) state->parse_offsets->tile_group_start = tg_start;
+	if (tg_start > tg_end || tg_end >= numTiles || tg_end >= GF_ARRAY_LENGTH(state->frame_state.tiles))
 		return GF_NON_COMPLIANT_BITSTREAM;
 
 	state->frame_state.nb_tiles_in_obu = 0;
@@ -4289,7 +4312,6 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 			tile_size = (u32)(tile_size_minus_1 + 1/* + state->tile_size_bytes*/);
 		}
 
-
 		if (tile_start_offset + tile_size > obu_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Error parsing tile group, tile %d start %d + size %d exceeds OBU length %d\n", TileNum, tile_start_offset, tile_size, obu_size));
 			e = GF_NON_COMPLIANT_BITSTREAM;
@@ -4307,14 +4329,20 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 	return e;
 }
 
-static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
+void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 {
 	AV1StateFrame *frame_state = &state->frame_state;
 	if (frame_state->seen_frame_header == GF_FALSE) {
 		u64 pos = gf_bs_get_position(bs);
+		if (state->parse_offsets) {
+			state->parse_offsets->frame_size = state->parse_offsets->render_size = 0;
+			state->parse_offsets->frame_size_ref = -1;
+			state->parse_offsets->tile_info = state->parse_offsets->tile_info_end = 0;
+		}
 		state->frame_state.show_existing_frame = GF_FALSE;
 		frame_state->seen_frame_header = GF_TRUE;
 		av1_parse_uncompressed_header(bs, state);
+		if (state->parse_offsets) state->parse_offsets->header_end = av1_bit_position(bs);
 		state->frame_state.is_first_frame = GF_FALSE;
 		state->frame_state.uncompressed_header_bytes = (u32) (gf_bs_get_position(bs) - pos);
 
@@ -4494,7 +4522,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		state->layer_size[i] = (u32) (pos + *obu_size);
 	}
 	if (state->parse_metadata_filter) {
-		//for now no dependency on metadat to state
+		//for now no dependency on metadata to state
 		if (*obu_type != OBU_METADATA) {
 			gf_bs_seek(bs, pos + *obu_size);
 			return e;
@@ -4534,7 +4562,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	case OBU_FRAME:
 		e = av1_parse_frame(bs, state, pos, *obu_size);
 		if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) != pos + *obu_size)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Frame parsing did not consume the right number of bytes !\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Frame parsing did consume %llu bytes instead of %llu !\n", gf_bs_get_position(bs) - pos, *obu_size));
 			e = GF_NON_COMPLIANT_BITSTREAM;
 		}
 		gf_bs_seek(bs, pos + *obu_size);
@@ -4578,6 +4606,41 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		}
 	}
 	return e;
+}
+
+
+GF_Err bs_av1_obu_inspect(const u8 *data, u32 size, BSAV1OBU *obu)
+{
+	u32 pos = 1, i;
+	u64 payload = 0;
+	if (!size || (data[0] & 0x81) || !(data[0] & 2))
+		return GF_NON_COMPLIANT_BITSTREAM;
+
+	obu->type = (data[0] >> 3) & 15;
+	obu->spatial_id = obu->temporal_id = 0;
+	if (data[0] & 4) {
+		if (size < 2)
+			return GF_NON_COMPLIANT_BITSTREAM;
+
+		obu->temporal_id = data[1] >> 5;
+		obu->spatial_id = (data[1] >> 3) & 3;
+		pos++;
+	}
+
+	for (i=0; i<8; i++) {
+		u8 byte;
+		if (pos == size)
+			return GF_NON_COMPLIANT_BITSTREAM;
+		byte = data[pos++];
+		payload |= (u64) (byte & 127) << (7*i);
+		if (!(byte & 128)) {
+			if (payload > size-pos)
+			return GF_NON_COMPLIANT_BITSTREAM;
+			obu->size = pos + (u32) payload;
+			return GF_OK;
+		}
+	}
+	return GF_NON_COMPLIANT_BITSTREAM;
 }
 
 
@@ -8822,6 +8885,39 @@ u32 gf_hevc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Fi
 	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, GF_TRUE, sei_filter);
 }
 
+GF_Err gf_hevc_filter_suffix_hash(char *data, u32 *nal_length, Bool keep_hash)
+{
+	if (*nal_length < 3)
+		return GF_NON_COMPLIANT_BITSTREAM;
+
+	if (!keep_hash) {
+		u32 hash_type = 132;
+		SEI_Filter sei_filter = {0};
+		char *check;
+		u32 check_size;
+
+		sei_filter.seis.vals = &hash_type;
+		sei_filter.seis.nb_items = 1;
+		*nal_length = gf_hevc_reformat_sei(data, *nal_length, GF_TRUE, &sei_filter);
+
+		/* The helper can retain the original NAL on parse failure. */
+		if (*nal_length) {
+			check = gf_malloc(*nal_length);
+			if (!check) return GF_OUT_OF_MEM;
+			memcpy(check, data, *nal_length);
+			sei_filter.is_whitelist = GF_TRUE;
+			check_size = gf_hevc_reformat_sei(check, *nal_length, GF_TRUE, &sei_filter);
+			gf_free(check);
+			if (check_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA,
+					("[HEVC] Cannot safely remove decoded picture hash SEI\n"));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+		}
+	}
+	return GF_OK;
+}
+
 static void hevc_compute_poc(HEVCSliceInfo *si)
 {
 	u32 max_poc_lsb = 1 << (si->sps->log2_max_pic_order_cnt_lsb);
@@ -9585,7 +9681,7 @@ static const struct {
 static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 layer_id, u32 *vui_flag_pos)
 {
 	s32 vps_id, sps_id = -1;
-	u32 i, nb_CTUs, depth;
+	u32 i, nb_CTUs, depth, coded_width, coded_height;
 	HEVC_SPS *sps;
 	HEVC_VPS *vps;
 	HEVC_ProfileTierLevel ptl;
@@ -9654,10 +9750,13 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 		}
 		sps->width = vps->rep_formats[sps->rep_format_idx].pic_width_luma_samples;
 		sps->height = vps->rep_formats[sps->rep_format_idx].pic_height_luma_samples;
+		coded_width = sps->width;
+		coded_height = sps->height;
 		sps->chroma_format_idc = vps->rep_formats[sps->rep_format_idx].chroma_format_idc;
 		sps->bit_depth_luma = vps->rep_formats[sps->rep_format_idx].bit_depth_luma;
 		sps->bit_depth_chroma = vps->rep_formats[sps->rep_format_idx].bit_depth_chroma;
 		sps->separate_colour_plane_flag = vps->rep_formats[sps->rep_format_idx].separate_colour_plane_flag;
+		sps->cw_flag = GF_FALSE;
 
 		//TODO this is crude ...
 		sps->ptl = vps->ext_ptl[0];
@@ -9668,6 +9767,8 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 			sps->separate_colour_plane_flag = gf_bs_read_int_log(bs, 1, "separate_colour_plane_flag");
 		sps->width = gf_bs_read_ue_log(bs, "width");
 		sps->height = gf_bs_read_ue_log(bs, "height");
+		coded_width = sps->width;
+		coded_height = sps->height;
 		if ((sps->cw_flag = gf_bs_read_int_log(bs, 1, "conformance_window_flag"))) {
 			u32 SubWidthC, SubHeightC;
 
@@ -9687,6 +9788,11 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 			sps->cw_top = gf_bs_read_ue_log(bs, "conformance_window_top");
 			sps->cw_bottom = gf_bs_read_ue_log(bs, "conformance_window_bottom");
 
+			if (((u64) sps->cw_left + sps->cw_right) * SubWidthC >= sps->width
+			    || ((u64) sps->cw_top + sps->cw_bottom) * SubHeightC >= sps->height) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid conformance window\n"));
+				HEVC_SPS_BROKEN
+			}
 			sps->width -= SubWidthC * (sps->cw_left + sps->cw_right);
 			sps->height -= SubHeightC * (sps->cw_top + sps->cw_bottom);
 		}
@@ -9736,7 +9842,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	}
 	sps->max_CU_depth = sps->log2_diff_max_min_luma_coding_block_size + depth;
 
-	nb_CTUs = ((sps->width + sps->max_CU_width - 1) / sps->max_CU_width) * ((sps->height + sps->max_CU_height - 1) / sps->max_CU_height);
+	nb_CTUs = ((coded_width + sps->max_CU_width - 1) / sps->max_CU_width) * ((coded_height + sps->max_CU_height - 1) / sps->max_CU_height);
 	sps->bitsSliceSegmentAddress = 0;
 	while (nb_CTUs > (u32)(1 << sps->bitsSliceSegmentAddress)) {
 		sps->bitsSliceSegmentAddress++;
@@ -10008,7 +10114,7 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 			HEVC_PPS_BROKEN
 		}
 		pps->num_tile_rows = 1 + gf_bs_read_ue_log(bs, "num_tile_rows_minus1");
-		if (pps->num_tile_rows > 20) {
+		if (pps->num_tile_rows > 22) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid num_tile_rows %u\n", pps->num_tile_rows));
 			HEVC_PPS_BROKEN
 		}

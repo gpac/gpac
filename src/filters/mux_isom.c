@@ -272,7 +272,7 @@ typedef struct
 {
 	//filter args
 	GF_ISOFile *file;
-	Bool m4sys, dref;
+	Bool m4sys, dref, strack;
 	GF_Fraction dur;
 	u32 pack3gp;
 	GF_MP4MuxCompositionOffsetMode ctmode;
@@ -310,6 +310,7 @@ typedef struct
 	Bool trun_inter;
 	Bool truns_first;
 	char *boxpatch;
+	Bool rmhdr;
 	Bool fcomp, otyp;
 	Bool deps;
 	Bool mvex;
@@ -441,6 +442,19 @@ typedef struct
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust);
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw);
+
+static GF_Err mp4_mux_remove_hdr(GF_MP4MuxCtx *ctx, Bool for_fragments)
+{
+	GF_Err e = gf_isom_apply_box_patch(ctx->file, 0,
+		"<?xml version=\"1.0\"?><GPACBOXES>"
+		"<Box path=\"*.mdcv\"/><Box path=\"*.clli\"/>"
+		"<Box path=\"traf.*.mdcv\"/><Box path=\"traf.*.clli\"/>"
+		"</GPACBOXES>", for_fragments);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to remove HDR boxes: %s\n", gf_error_to_string(e)));
+	}
+	return e;
+}
 
 static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 {
@@ -4052,7 +4066,8 @@ sample_entry_done:
 				gf_isom_set_ambient_viewing_environment(ctx->file, tkw->track_num, tkw->stsd_idx, ambient_illuminance, ambient_light_x, ambient_light_y);
 			}
 
-			p = (codec_id==GF_CODECID_HEVC) ? gf_filter_pid_get_property_str(pid, "hevc_split") : NULL;
+			p = (codec_id==GF_CODECID_HEVC) ? gf_filter_pid_get_property_str(pid, "hevc_split")
+				: ((codec_id==GF_CODECID_AV1) ? gf_filter_pid_get_property_str(pid, "av1_split") : NULL);
 			if (p && p->value.boolean) {
 				p = gf_filter_pid_get_property(pid, GF_PROP_PID_CROP_POS);
 				p2 = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_SIZE);
@@ -4075,8 +4090,6 @@ sample_entry_done:
 					memset(mx, 0, sizeof(s32)*9);
 					mx[0] = mx[4] = 0x00010000;
 					mx[8] = 0x40000000;
-					mx[6] = 65536*p->value.vec2i.x;
-					mx[7] = 65536*p->value.vec2i.y;
 					gf_isom_set_track_matrix(ctx->file, tkw->track_num, mx);
 				}
 			}
@@ -6571,6 +6584,11 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		ctx->box_patched = GF_TRUE;
 	}
 
+	if (ctx->rmhdr) {
+		e = mp4_mux_remove_hdr(ctx, GF_FALSE);
+		if (e) return e;
+	}
+
 	e = gf_isom_finalize_for_fragment(ctx->file, ctx->dash_mode ? 1 : 0, ctx->mvex);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to finalize moov for fragmentation: %s\n", gf_error_to_string(e) ));
@@ -6800,7 +6818,7 @@ static GF_Err mp4_mux_flush_fragmented(GF_MP4MuxCtx *ctx)
 	return GF_OK;
 }
 
-static void mp4mx_frag_box_patch(GF_MP4MuxCtx *ctx)
+static GF_Err mp4mx_frag_box_patch(GF_MP4MuxCtx *ctx)
 {
 	GF_Err e;
 	u32 i, count = gf_list_count(ctx->tracks);
@@ -6828,6 +6846,7 @@ static void mp4mx_frag_box_patch(GF_MP4MuxCtx *ctx)
 		}
 		ctx->box_patched = GF_TRUE;
 	}
+	return ctx->rmhdr ? mp4_mux_remove_hdr(ctx, GF_TRUE) : GF_OK;
 }
 #endif // GPAC_DISABLE_ISOM_FRAGMENTS
 
@@ -7462,7 +7481,8 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 		}
 		ctx->adjusted_next_frag_start = ctx->next_frag_start;
 
-		mp4mx_frag_box_patch(ctx);
+		e = mp4mx_frag_box_patch(ctx);
+		if (e) return e;
 
 		//end of DASH segment
 		if (ctx->dash_mode && (ctx->flush_seg || is_eos) ) {
@@ -8386,8 +8406,9 @@ void mp4_mux_progress_cbk(void *udta, u64 done, u64 total)
 static GF_Err mp4_mux_initialize(GF_Filter *filter)
 {
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
-	gf_filter_set_max_extra_input_pids(filter, -1);
 	ctx->filter = filter;
+	if (!ctx->strack)
+		gf_filter_set_max_extra_input_pids(filter, -1);
 	time_t current_time =time(NULL);
 	if (ctx->sfrag_tolerance)
 		ctx->store = MP4MX_MODE_SFRAG;
@@ -8879,6 +8900,11 @@ static GF_Err mp4_mux_done(GF_MP4MuxCtx *ctx, Bool is_final)
 	}
 
 
+	if (ctx->rmhdr) {
+		e = mp4_mux_remove_hdr(ctx, GF_FALSE);
+		if (e) return e;
+	}
+
 	if (ctx->owns_mov) {
 		if (ctx->moovpad)
 			gf_isom_set_inplace_padding(ctx->file, ctx->moovpad);
@@ -8983,6 +9009,7 @@ static const GF_FilterCapability MP4MuxCaps[] =
 static const GF_FilterArgs MP4MuxArgs[] =
 {
 	{ OFFS(m4sys), "force MPEG-4 Systems signaling of tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(strack), "force single-track file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dref), "only reference data from source file - not compatible with all media sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ctmode), "set composition offset mode for video tracks\n"
 	"- auto: if fragmenting an ISOBMFF source, use source settings otherwise resolve to `edit`\n"
@@ -9099,6 +9126,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(truns_first), "store track runs before sample group description and sample encryption information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(boxpatch), "apply box patch before writing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(rmhdr), "remove all mdcv and clli boxes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(deps), "add samples dependencies information", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mfra), "enable movie fragment random access when fragmenting (ignored when dashing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(forcesync), "force all SAP types to be considered sync samples (might produce non-compliant files)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -9179,6 +9207,10 @@ GF_FilterRegister MP4MuxRegister = {
 	"  \n"
 	"The box patch is applied before writing the initial `moov box in fragmented mode, or when writing the complete file otherwise.\n"
 	"The box patch can either be a filename or the full XML string.\n"
+	"In a box path, `*` matches zero or more box levels and edits every match. Empty `Box` elements with paths `trak.*.mdcv` and `trak.*.clli` remove HDR metadata regardless of the sample entry type.\n"
+	"Wildcard paths without matches are ignored. Paths starting with `trak` or `traf` apply to all tracks unless a track ID is specified.\n"
+	"The [-rmhdr]() option removes all `mdcv` and `clli` boxes after applying box patches.\n"
+	"EX gpac -i source.mp4 -o mux.mp4:rmhdr\n"
 	"  \n"
 	"# Tagging\n"
 	"When tagging is enabled, the filter will watch the property `CoverArt` and all custom properties on incoming PID.\n"

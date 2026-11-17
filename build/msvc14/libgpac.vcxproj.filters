@@ -1610,6 +1610,12 @@
     <ClCompile Include="..\..\src\filters\reframe_flac.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\av1merge.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\av1split.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\hevcmerge.c">
       <Filter>filters</Filter>
     </ClCompile>

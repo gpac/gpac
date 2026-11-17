@@ -486,7 +486,7 @@ typedef struct
 	Bool loop_filter_across_tiles_enabled_flag;
 	s32 pic_init_qp_minus26;
 	u32 num_tile_columns, num_tile_rows;
-	u32 column_width[22], row_height[20];
+	u32 column_width[22], row_height[22];
 
 	Bool sign_data_hiding_flag, constrained_intra_pred_flag, transform_skip_enabled_flag, cu_qp_delta_enabled_flag, transquant_bypass_enable_flag;
 	u32 diff_cu_qp_delta_depth, pic_cb_qp_offset, pic_cr_qp_offset;
@@ -653,6 +653,7 @@ GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, u8 *sps_data, u32 
 /*parses HEVC SEI and fill state accordingly*/
 void gf_hevc_parse_sei(char* buffer, u32 nal_size, HEVCState *hevc);
 u32 gf_hevc_reformat_sei(char* buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter);
+GF_Err gf_hevc_filter_suffix_hash(char *data, u32 *nal_length, Bool keep_hash);
 
 
 
@@ -957,6 +958,16 @@ typedef struct
 
 #define AV1_NUM_REF_FRAMES	8
 
+//optional syntax positions needed for tile header rewriting:
+//bit positions are absolute, tile boundaries are in superblocks
+typedef struct
+{
+	u64 sequence_size, frame_size, render_size, tile_info, tile_info_end, header_end;
+	u32 col_start[AV1_MAX_TILE_COLS+1], row_start[AV1_MAX_TILE_ROWS+1];
+	u32 tile_group_start;
+	s32 frame_size_ref; //reference slot supplying frame/render size, or -1
+} AV1ParseOffsets;
+
 typedef struct
 {
 	s32 coefs[AV1_NUM_REF_FRAMES][6];
@@ -1044,6 +1055,7 @@ typedef struct
 
 	/*frame parsing state*/
 	AV1StateFrame frame_state;
+	AV1ParseOffsets *parse_offsets;
 
 	/*layer sizes for AVIF a1lx*/
 	u32 layer_size[4];
@@ -1096,6 +1108,22 @@ u64 gf_av1_leb128_read(GF_BitStream *bs, u8 *opt_Leb128Bytes);
 u32 gf_av1_leb128_size(u64 value);
 u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value);
 GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id);
+
+
+typedef struct{
+	u32 size, type, spatial_id, temporal_id;
+} BSAV1OBU;
+
+/*! inspect low-overhead OBU input buffer to a BSAV1OBU struct
+    note: framed AV1 use the low-overhead OBU format with a size field OBU so we only
+          inspect the framing (enh layers dont need to be decodable without their deps)
+\param data pointer to the input buffer
+\param size size of the input buffer
+\param obu pointer to the BSAV1OBU structure to fill
+\return GF_OK on success, GF_NON_COMPLIANT_BITSTREAM on failure
+*/
+GF_Err bs_av1_obu_inspect(const u8 *data, u32 size, BSAV1OBU *obu);
+
 
 typedef struct
 {

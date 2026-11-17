@@ -1283,32 +1283,6 @@ enable intermediate copy of data in nghttp2 (default is disabled but may report 
 set HTTP2 maximum frame size
 .br
 .TP
-.B \-h3-ack-threshold (int, default: 2)
-.br
-QUIC ack threshhold (cf ngtcp2_settings.ack_thresh)
-.br
-.TP
-.B \-h3-algo (string, default: cubic, values: cubic|bbr|reno)
-.br
-congestion control algorithm for QUIC
-.br
-* cubic: CUBIC
-.br
-* bbr: BBR v2
-.br
-* reno: Reno
-.br
-.TP
-.B \-h3-mwnd (int, default: 0)
-.br
-set QUIC/HTTP3 maximum window size (cf ngtcp2_settings.max_window)
-.br
-.TP
-.B \-h3-st-mwnd (int, default: 0)
-.br
-set QUIC/HTTP3 maximum stream window size (cf ngtcp2_settings.max_stream)
-.br
-.TP
 .B \-hx-max-st (int, default: 100)
 .br
 set maximum number of HTTP2 or QUIC/HTTP3 concurrent streams
@@ -1340,11 +1314,6 @@ set HTTP/3 mode
 * auto: connect using HTTP 1 or 2 and use HTTP/3 for next request(s) if announced
 .br
 * only: only use HTTP/3
-.br
-.TP
-.B \-h3-trace
-.br
-trace QUIC and HTTP3
 .br
 .TP
 .B \-dbg-edges
@@ -3317,6 +3286,11 @@ Decoder configuration data
 Decoder configuration data of the enhancement layer(s). Also used by 3GPP/Apple text streams to give the full sample description table used in SDP.
 .br
 .TP
+.B Preselection (PRES,mem,  )
+.br
+Serialized preselection configuration
+.br
+.TP
 .B DSISuperset (DCFS,bool,  )
 .br
 Decoder config is a superset of previous decoder config
@@ -4192,12 +4166,22 @@ Indicate new period start (only set on first packets of non-first periods)
 .TP
 .B HLSKey (HLSK,str,  )
 .br
-URI, KEYFORMAT and KEYFORMATVERSIONS for HLS full segment encryption creation, Key URI otherwise ( decoding and sample-AES)
+URI, KEYFORMAT and KEYFORMATVERSIONS for HLS full segment encryption creation, Key URI otherwise (decoding and sample-AES)
 .br
 .TP
 .B HLSIV (HLSI,mem,  )
 .br
 Init Vector for HLS decode
+.br
+.TP
+.B LAUrl (LAUR,str,  )
+.br
+URLs for License Acquisition server, formatted as a comma-separated list of (System)URL
+.br
+.TP
+.B CertUrl (CEUR,str,  )
+.br
+Certificate URLs, formatted as a comma-separated list of (System)URL
 .br
 .TP
 .B CKUrl (CCKU,str,  )
@@ -4581,7 +4565,7 @@ Main streamtype of the PID before mux, only used for ROUTE/MABR setup
 .TP
 .B CodecMerge (PCMB,uint,D )
 .br
-Indicate the PID can be merged with other streams with same value for single decoding  (HEVC only for now)
+Indicate the PID can be merged with other streams with same value for single decoding (HEVC and AV1 only for now)
 .br
 .TP
 .B RelativePath (FNRL,bool,DP)

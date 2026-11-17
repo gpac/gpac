@@ -62,7 +62,7 @@ clean:
 	$(MAKE) -C applications clean
 	$(MAKE) -C modules clean
 
-distclean:
+distclean: unit_tests_clean
 	$(MAKE) -C src distclean
 	$(MAKE) -C applications distclean
 	$(MAKE) -C modules distclean

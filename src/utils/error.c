@@ -1607,6 +1607,9 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_FLIST
 	                       "GPAC_DISABLE_FLIST "
 #endif
+#ifdef GPAC_DISABLE_AV1MERGE
+	                       "GPAC_DISABLE_AV1MERGE "
+#endif
 #ifdef GPAC_DISABLE_HEVCMERGE
 	                       "GPAC_DISABLE_HEVCMERGE "
 #endif
