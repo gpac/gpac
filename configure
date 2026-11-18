@@ -1146,11 +1146,7 @@ dolog() {
 }
 
 docc() {
- if test -n "$cc_naked" ; then
-     $cc_naked $CFLAGS -o $TMPO $TMPC $@  0>/dev/null 2>$TMPL
- else
-     $cc -o $TMPO $TMPC $@ 0>/dev/null 2>$TMPL
- fi
+ $cc -o $TMPO $TMPC $@ 0>/dev/null 2>$TMPL
  dolog $@
 }
 
@@ -1158,11 +1154,7 @@ docc() {
 docxx() {
  #for logs
  cat $TMPCXX > $TMPC
- if test -n "$cxx_naked" ; then
-     $cxx_naked $CXXFLAGS -o $TMPO $TMPCXX $@ 0>/dev/null 2>$TMPL
- else
-     $cxx -o $TMPO $TMPCXX $@ 0>/dev/null 2>$TMPL
- fi
+ $cxx -o $TMPO $TMPCXX $@ 0>/dev/null 2>$TMPL
  dolog $@
 }
 

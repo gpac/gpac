@@ -301,7 +301,13 @@ static nghttp3_ssize ngh3_data_source_read_callback(
   uint32_t *pflags, void *conn_user_data, void *stream_user_data)
 {
 	GF_DownloadSession *sess = stream_user_data;
-	GF_QuicDataRead *qr = sess->hmux_priv;
+	GF_QuicDataRead *qr;
+	//session destroyed while stream still active, end the stream
+	if (!sess || !sess->hmux_priv) {
+		*pflags |= NGHTTP3_DATA_FLAG_EOF;
+		return 0;
+	}
+	qr = sess->hmux_priv;
 
 	if (!sess->hmux_is_eos && !sess->local_buf_len && !qr->second_local_buf_len
 	) {
@@ -336,6 +342,15 @@ static nghttp3_ssize ngh3_data_source_read_callback(
 static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 {
 	if (is_destroy) {
+
+		//the nghttp3 stream may outlive the session (stream close happens once the peer ACKs the final data),
+		//detach the session so that later stream callbacks do not use a freed session
+		if ((sess->hmux_stream_id >= 0) && sess->hmux_sess && sess->hmux_sess->hmux_udta) {
+			GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
+			if (qc->http_conn)
+				nghttp3_conn_set_stream_user_data(qc->http_conn, sess->hmux_stream_id, NULL);
+		}
+
 		if (sess->hmux_priv) {
 			GF_QuicDataRead *qr = sess->hmux_priv;
 			if (qr->second_local_buf) gf_free(qr->second_local_buf);
@@ -555,6 +570,10 @@ static int ngh3_end_stream(nghttp3_conn *conn, int64_t stream_id, void *conn_use
 	if ((!sess->server_mode || qr->is_put) && !sess->hmux_data_done)
 		sess->hmux_is_eos = 1;
 
+	//server: request body is empty, total_size cannot signal the end, mark data done as done in HTTP/2
+	if (sess->server_mode && qr->is_put && !sess->bytes_done && !sess->hmux_buf.size)
+		sess->hmux_data_done = 1;
+
 	return 0;
 }
 
@@ -627,7 +646,11 @@ static int ngh3_acked_stream_data(nghttp3_conn *conn, int64_t stream_id, uint64_
 {
 	GF_QuicConnection *qc = (GF_QuicConnection *)conn_user_data;
 	GF_DownloadSession *sess = stream_user_data;
-	GF_QuicDataRead *qr = sess->hmux_priv;
+	GF_QuicDataRead *qr;
+	//session detached or reassigned to another stream
+	if (!sess || (sess->hmux_stream_id != stream_id) || !sess->hmux_priv)
+		return 0;
+	qr = sess->hmux_priv;
 
 	ngtcp2_conn_info ci;
 	ngtcp2_conn_get_conn_info(qc->conn, &ci);
