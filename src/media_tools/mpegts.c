@@ -2976,12 +2976,13 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 	/*sync input data*/
 	pos = gf_m2ts_sync(ts, data, data_size, is_align);
 	if (pos==data_size) {
-		if (is_align && data_size) {
+		if (is_align) {
 			if (ts->alloc_size<data_size) {
 				ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*data_size);
 				ts->alloc_size = data_size;
 			}
-			memcpy(ts->buffer, data, sizeof(char)*data_size);
+			if (data_size)
+				memcpy(ts->buffer, data, sizeof(char)*data_size);
 			ts->buffer_size = data_size;
 		}
 		return GF_OK;
