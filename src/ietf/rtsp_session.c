@@ -802,7 +802,7 @@ GF_Err gf_rstp_do_read_sock(GF_RTSPSession *sess, GF_Socket *sock, u8 *data, u32
 #ifndef GPAC_HAS_GNUTLS //openssl
 
 		//empty and no pending bytes in SSL, network empty
-		if ((e==GF_IP_NETWORK_EMPTY) && !SSL_pending(sess->ssl_c->ssl))
+		if ((e==GF_IP_NETWORK_EMPTY) && !SSL_pending(ssl_sock))
 			return GF_IP_NETWORK_EMPTY;
 
 		int size = SSL_read(ssl_sock, data, data_size);
@@ -904,20 +904,21 @@ static GF_Err rstp_do_write_sock(GF_RTSPSession *sess, GF_Socket *sock, const u8
 
 #else //gnutls
 
-        ssize_t ret = gnutls_record_send(ssl_sock, buffer, size);
-
-        if (ret < 0) {
-            if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED)
-                return GF_IP_NETWORK_EMPTY;
-
-            GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error %s\n", gnutls_strerror((int)ret)));
-            return GF_IP_NETWORK_FAILURE;
+        u32 done = 0;
+        while (done < size) {
+            ssize_t ret = gnutls_record_send(ssl_sock, buffer + done, size - done);
+            if (ret < 0) {
+                if (ret == GNUTLS_E_INTERRUPTED) continue;
+                if (written) *written = done;
+                if (ret == GNUTLS_E_AGAIN)
+                    return GF_IP_NETWORK_EMPTY;
+                GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error %s\n", gnutls_strerror((int)ret)));
+                return GF_IP_NETWORK_FAILURE;
+            }
+            done += (u32) ret;
         }
-
-        if (written)
-            *written = (u32)ret;
-
-        return (ret == (ssize_t)size) ? GF_OK : GF_IP_NETWORK_EMPTY;
+        if (written) *written = done;
+        return GF_OK;
 
 #endif
 
@@ -980,13 +981,14 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 
 	if (sess->tunnel_state == 1) {
 		//	2. wait for "HTTP/1.0 200 OK"
-		e = gf_rstp_do_read_sock(sess, sess->connection, buffer, GF_RTSP_DEFAULT_BUFFER, &size);
+		e = gf_rstp_do_read_sock(sess, sess->connection, buffer, GF_RTSP_DEFAULT_BUFFER-1, &size);
 		if (e) {
 			if ((e==GF_IP_NETWORK_EMPTY) && (sess->timeout_in < gf_sys_clock()))
 				e = GF_IP_CONNECTION_FAILURE;
 			return e;
 		}
 		gf_assert(size);
+		buffer[size] = 0;
 		sess->tunnel_state = 2;
 		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPTunnel] Got reply %s", buffer));
 

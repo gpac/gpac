@@ -904,22 +904,21 @@ GF_Err gf_ssl_write(GF_DownloadSession *sess, const u8 *buffer, u32 size, u32 *w
 #else
 
 	*written = 0;
-	ssize_t ret = gnutls_record_send(sess->ssl, buffer, size);
-
-	if (ret < 0) {
-		if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED) {
-			return GF_IP_NETWORK_EMPTY;
+	while (*written < size) {
+		ssize_t ret = gnutls_record_send(sess->ssl, buffer + *written, size - *written);
+		if (ret < 0) {
+			if ((ret == GNUTLS_E_AGAIN) || (ret == GNUTLS_E_INTERRUPTED)) {
+				// non-blocking: caller keeps the remainder and retries from buffer + *written, which is what GnuTLS requires after E_AGAIN
+				if (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
+					return GF_IP_NETWORK_EMPTY;
+				if (ret == GNUTLS_E_AGAIN)
+					gf_sk_select(sess->sock, GF_SK_SELECT_WRITE);
+				continue;
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error %s\n", gnutls_strerror((int)ret)));
+			return GF_IP_NETWORK_FAILURE;
 		}
-
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error %s\n", gnutls_strerror((int)ret)));
-		return GF_IP_NETWORK_FAILURE;
-	}
-
-	*written = (u32)ret;
-
-	if ((u32)ret < size) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[SSL] gf_ssl_write meant to send %d bytes but sent %d\n", size, ret));
-		return GF_IP_NETWORK_EMPTY;
+		*written += (u32)ret;
 	}
 
 #endif
@@ -978,9 +977,18 @@ GF_Err gf_ssl_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32
 			return GF_IP_NETWORK_EMPTY;
 		}
 
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot read, error %s\n", gnutls_strerror((int)size)));
-		return GF_IO_ERR;
-	}
+		if (!gnutls_error_is_fatal(size)) {
+			// warning alert or similar, session still usable
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] Non-fatal read error %s\n", gnutls_strerror(size)));
+			return GF_IP_NETWORK_EMPTY;
+		}
+		// peer closed (with or without close_notify, e.g. GNUTLS_E_PREMATURE_TERMINATION): probe like the OpenSSL path
+		e = gf_sk_probe(sess->sock);
+		if (!e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot read, error %s\n", gnutls_strerror(size)));
+			e = (size == GNUTLS_E_PREMATURE_TERMINATION) ? GF_IP_CONNECTION_CLOSED : GF_IO_ERR;
+		}
+    }
 
 #endif
 
@@ -1089,8 +1097,11 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 		}
 
 		if (ret < 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] gnutls_init server session failed: %s\n", gnutls_strerror(ret)));
-			return SSL_CONNECT_RETRY;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] gnutls_init client session failed: %s\n", gnutls_strerror(ret)));
+			sess->status = GF_NETIO_STATE_ERROR;
+			SET_LAST_ERR(GF_IO_ERR)
+			gf_dm_sess_notify_state(sess, sess->status, sess->last_error);
+			return SSL_CONNECT_ERROR;
 		}
 
 		sess->ssl = session;
@@ -1138,7 +1149,7 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
             GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_crypto_gnutls_configure_client_session failed\n"));
             gnutls_deinit(sess->ssl);
             sess->ssl = NULL;
-            return SSL_CONNECT_RETRY;
+            return SSL_CONNECT_ERROR;
         }
 #endif
 		return SSL_CONNECT_RETRY;
@@ -1237,8 +1248,14 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 			return SSL_CONNECT_RETRY;
 		}
 #endif
-
-		return SSL_CONNECT_RETRY;
+		//fatal error: drop the failed TLS session instead of retrying the handshake on it
+		gnutls_deinit(sess->ssl);
+		sess->ssl = NULL;
+		gf_dm_disconnect(sess, HTTP_RESET_CONN);
+		sess->status = GF_NETIO_STATE_ERROR;
+		SET_LAST_ERR(GF_SERVICE_ERROR)
+		gf_dm_sess_notify_state(sess, sess->status, sess->last_error);
+		return SSL_CONNECT_ERROR;
 	}
 
 

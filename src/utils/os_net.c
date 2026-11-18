@@ -2340,7 +2340,12 @@ GF_Err gf_sk_connect_ex(GF_Socket *sock, const char *PeerName, u16 PortNumber, c
 					return GF_IP_NETWORK_EMPTY;
 				}
 			}
-			if (err != EAFNOSUPPORT) { // for quic: prevents closing pre-bound socket
+#if defined(WIN32) || defined(_WIN32_WCE)
+			if (err != WSAEAFNOSUPPORT)
+#else
+			if (err != EAFNOSUPPORT) // for quic: prevents closing pre-bound socket
+#endif
+			{
 				sock_close(sock);
 			}
 

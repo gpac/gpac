@@ -569,7 +569,8 @@ typedef enum
 {
 	SSL_CONNECT_OK=0,
 	SSL_CONNECT_WAIT,
-	SSL_CONNECT_RETRY
+	SSL_CONNECT_RETRY,
+	SSL_CONNECT_ERROR
 } SSLConnectStatus;
 SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy);
 

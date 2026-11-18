@@ -26,7 +26,7 @@
 
 #include <gpac/internal/crypt_dev.h>
 
-#ifdef GPAC_HAS_SSL
+#if defined(GPAC_HAS_SSL) && !defined(GPAC_HAS_GNUTLS)
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 #include <openssl/modes.h>
