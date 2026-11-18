@@ -362,7 +362,7 @@ void gpac_rmt_client_on_data(void *udta, const u8* payload, u64 size, Bool is_bi
 		return;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("gpac_rmt_client_on_data binary %d size %llu: %.*s\n", is_binary, size, size, payload));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("gpac_rmt_client_on_data binary %d size "LLU": %.*s\n", is_binary, size, payload));
 
 	napi_value arg;
 	// napi_status status; //TODO: check status

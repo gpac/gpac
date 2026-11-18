@@ -1403,6 +1403,7 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CROP_POS, NULL);
 		//TODO, we might want to compute a cumulate of these properties on the output ?
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ORIG_SIZE, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TILE_ID, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_RATE, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_BYTES, NULL);

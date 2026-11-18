@@ -207,7 +207,7 @@ PulseAudio_GetAudioDelay (GF_AudioOutput * dr)
 		return 0;
 	}
 	ms_delay = (u32) (delay / 1000);
-	GF_LOG (GF_LOG_DEBUG, GF_LOG_MMIO, ("[PulseAudio] Audio delay: %llu us.\n",
+	GF_LOG (GF_LOG_DEBUG, GF_LOG_MMIO, ("[PulseAudio] Audio delay: %u us.\n",
 	                                    delay));
 	return ms_delay;
 }

@@ -589,7 +589,7 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
 
     if (payload_size > gf_bs_available(bs)) {
         u64 extra_size = payload_size - gf_bs_available(bs) ;
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("buffer too small for payload_size %llu bs_pos %u bs_size %u => extra_size %llu\n", payload_size, gf_bs_get_position(bs), gf_bs_get_size(bs), extra_size));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("buffer too small for payload_size "LLU" bs_pos %u bs_size %u => extra_size "LLU"\n", payload_size, gf_bs_get_position(bs), gf_bs_get_size(bs), extra_size));
         extra_payload = gf_malloc( sizeof(u8) * extra_size );
 
         e = GF_OK;
