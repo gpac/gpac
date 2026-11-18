@@ -507,7 +507,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 		//even if not filtering, parse to check for AU delim
 		if (pos+1 < pck_size)
-			skip_nal = nalumx_is_nal_skip(ctx, data, pos, nal_size, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr, &delim_flags, &is_sap);
+			skip_nal = nalumx_is_nal_skip(ctx, data, pos, nal_size, &is_nalu_delim, &temporal_id, &layer_id, &avc_hdr, &delim_flags, &is_sap);
 		if (!ctx->extract) {
 			skip_nal = GF_FALSE;
 		}
@@ -625,7 +625,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 		if (!nal_size) continue;
 
 		if (pos+1 < pck_size)
-			skip_nal = nalumx_is_nal_skip(ctx, data, pos, 0, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr, NULL, &has_sap);
+			skip_nal = nalumx_is_nal_skip(ctx, data, pos, 0, &is_nalu_delim, &temporal_id, &layer_id, &avc_hdr, NULL, &has_sap);
 		if (!ctx->extract) {
 			skip_nal = GF_FALSE;
 		}

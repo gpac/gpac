@@ -152,6 +152,9 @@ static GF_Err av1split_config_tile(GF_AV1SplitCtx *ctx, AV1SplitTile *tile, u32 
 	char name[64];
 	sprintf(name, "tile%u", id);
 	gf_filter_pid_copy_properties(tile->pid, ctx->ipid);
+	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_TRANS_X, NULL);
+	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_TRANS_Y, NULL);
+	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_ISOM_TRACK_MATRIX, NULL);
 	gf_filter_pid_set_name(tile->pid, name);
 	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size));
 	gf_filter_pid_set_property(tile->pid, GF_PROP_PID_ID, &PROP_UINT(id));

@@ -93,6 +93,16 @@ static GF_Err av1split_test_middle_configure(GF_Filter *filter, GF_FilterPid *pi
 	av1split_test.middle_in = pid;
 	if (!av1split_test.middle_out) av1split_test.middle_out = gf_filter_pid_new(filter);
 	gf_filter_pid_copy_properties(av1split_test.middle_out, pid);
+	if (av1split_test.mode == 1) {
+		s32 matrix[9] = {0, 65536, 0, -65536, 0, 0, 64*65536, 64*65536, 0x40000000};
+		GF_PropertyValue prop = {0};
+		prop.type = GF_PROP_SINT_LIST;
+		prop.value.sint_list.nb_items = 9;
+		prop.value.sint_list.vals = matrix;
+		gf_filter_pid_set_property(av1split_test.middle_out, GF_PROP_PID_ISOM_TRACK_MATRIX, &prop);
+		gf_filter_pid_set_property(av1split_test.middle_out, GF_PROP_PID_TRANS_X, &PROP_SINT(64));
+		gf_filter_pid_set_property(av1split_test.middle_out, GF_PROP_PID_TRANS_Y, &PROP_SINT(64));
+	}
 	if (av1split_test.mode == 6)
 		gf_filter_pid_set_property(av1split_test.middle_out, GF_PROP_PID_DECODER_CONFIG, NULL);
 	return GF_OK;
@@ -179,7 +189,7 @@ static GF_Err av1split_test_middle_process(GF_Filter *filter)
 static GF_Err av1split_test_sink_configure(GF_Filter *filter, GF_FilterPid *pid, Bool remove)
 {
 	if (!remove) assert_true(!gf_filter_pid_get_property(pid, GF_PROP_PID_SRD_MAP));
-	const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_TILE_ID);
+	const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	assert_true(p && p->value.uint && p->value.uint <= 6);
 	if (!p || !p->value.uint || p->value.uint > 6) return GF_BAD_PARAM;
 	u32 id = p->value.uint-1;
@@ -194,6 +204,11 @@ static GF_Err av1split_test_sink_configure(GF_Filter *filter, GF_FilterPid *pid,
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_SIZE);
 	assert_equal(p->value.vec2i.x, (s32) (128*av1split_test.cols), "%d");
 	assert_equal(p->value.vec2i.y, (s32) (64*av1split_test.rows), "%d");
+	if (av1split_test.mode == 1) {
+		assert_true(!gf_filter_pid_get_property(pid, GF_PROP_PID_TRANS_X));
+		assert_true(!gf_filter_pid_get_property(pid, GF_PROP_PID_TRANS_Y));
+		assert_true(!gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_MATRIX));
+	}
 	GF_FilterEvent evt;
 	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 	gf_filter_pid_send_event(pid, &evt);

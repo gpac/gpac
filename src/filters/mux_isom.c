@@ -4090,8 +4090,6 @@ sample_entry_done:
 					memset(mx, 0, sizeof(s32)*9);
 					mx[0] = mx[4] = 0x00010000;
 					mx[8] = 0x40000000;
-					mx[6] = 65536*p->value.vec2i.x;
-					mx[7] = 65536*p->value.vec2i.y;
 					gf_isom_set_track_matrix(ctx->file, tkw->track_num, mx);
 				}
 			}

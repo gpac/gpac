@@ -1086,8 +1086,12 @@ static GF_Err av1merge_rewrite_pck(GF_AV1MergeCtx *ctx)
 static void av1merge_copy_output_properties(GF_AV1MergeCtx *ctx, GF_FilterPid *pid)
 {
 	gf_filter_pid_copy_properties(ctx->opid, pid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TRANS_X, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TRANS_Y, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ISOM_TRACK_MATRIX, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CROP_POS, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ORIG_SIZE, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TILE_ID, NULL);
 	gf_filter_pid_set_property_str(ctx->opid, "av1_split", NULL);
 	//The track template and spatial user data describe an individual input tile.
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ISOM_TRACK_TEMPLATE, NULL);
@@ -1834,19 +1838,17 @@ GF_FilterRegister AV1MergeRegister = {
 		"## Implicit Positioning\n"
 		"In implicit positioning, results may vary based on the order of input PIDs declaration. Equal-size inputs retain connection order in raster order.\n"
 		"In this mode, no input shall have `CropOrigin`. Inputs are grouped by width into columns and by height into common rows, with partial superblock sizes at the final edges.\n"
-		"The filter tries complete grids starting with the square root of the input count rounded up, then nearby row counts (fewer rows first on ties).\n"
 		"[-rows]() and [-cols]() constrain implicit packing. If no complete grid satisfies the dimensions and constraints, merging is refused; use explicit positions to select another valid arrangement.\n"
 		"EX gpac -i top.obu -i bottom.obu av1merge:cols=1 @ -o merged.mp4\n"
 		"## Explicit Positioning\n"
 		"In explicit positioning, the `CropOrigin` property on input PIDs is used to setup the tile grid. If `CropOrigin` is used, it shall be set on all input sources.\n"
 		"If nonnegative coordinates are used, they specify absolute positioning in pixels of the tiles. Coordinates must align to superblocks and are not rounded.\n"
-		"Absolute positioning allows gaps: input rectangle boundaries define the rows and columns, including empty cells. Only populated contiguous tile ranges are emitted, using separate frame-header and tile-group OBUs. No filler is encoded.\n"
+		"Absolute positioning allows gaps (including empty cells). Only populated contiguous tile ranges are emitted, using separate frame-header and tile-group OBUs. No filler is encoded.\n"
 		"While the bitstream syntax can represent omitted tiles, decoders may refuse such streams: libaom and dav1d reject discontinuous tile groups. Successful decoding and gap rendering are not guaranteed.\n"
 		"If negative coordinates are used, they specify relative column and row indices: `-1x0` places an input to the right of `0x0`, and `0x-1` places it below.\n"
 		"Both axes must be zero or negative in relative positioning; mixing relative and absolute positions is not supported. Relative grids must be complete with contiguous indices; pixel offsets are computed from the column widths and row heights.\n"
 		"Rows, columns and input order are derived from these positions. [-rows]() and [-cols](), when set, must match the layout; they do not rearrange explicitly positioned inputs.\n"
-		"Widths must match within each column and heights within each row; columns and rows may have different sizes. Only the final column and row may have non-superblock-aligned sizes. Frame dimensions must match the input PID dimensions; superresolution is not supported.\n"
-		"Render widths must also match within columns and render heights within rows. Empty columns or rows use their coded size; custom render scaling on the corresponding axis is rejected when an empty axis size cannot be inferred.\n"
+		"Widths must match within each column and heights within each row. Only the final column and row may have non-superblock-aligned sizes. Frame dimensions must match the input PID dimensions; superresolution is not supported.\n"
 		"The minimum horizontal and vertical positions become the output origin. Inputs are ordered left-right, top-down; `TileID` is not used for placement.\n"
 		"- Gaps are supported only with absolute positioning.\n"
 		"- Overlaps and input tiles spanning multiple grid cells are not supported.\n"

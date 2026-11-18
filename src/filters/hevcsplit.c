@@ -37,12 +37,13 @@ typedef struct
 {
 	GF_FilterPid *opid;
 	u32 width, height, orig_x, orig_y;
+	u32 coded_width, coded_height, crop_left, crop_right, crop_top, crop_bottom;
 	GF_FilterPacket *cur_pck;
 } HEVCTilePid;
 
 typedef struct
 {
-	Bool minl;
+	Bool minl, sei_hash;
 	GF_FilterPid *ipid;
 	GF_List *outputs;
 	u32 num_tiles, got_p;
@@ -77,9 +78,16 @@ static u32 hevcsplit_get_slice_tile_index(HEVCState *hevc)
 
 	HEVCSliceInfo si = hevc->s_info;
 	u32 i, tbX = 0, tbY = 0, slX, slY, PicWidthInCtbsY, PicHeightInCtbsX;
+	u32 coded_width = si.sps->width, coded_height = si.sps->height;
 
-	PicWidthInCtbsY = (si.sps->width + si.sps->max_CU_width - 1) / si.sps->max_CU_width;
-	PicHeightInCtbsX = (si.sps->height + si.sps->max_CU_height - 1) / si.sps->max_CU_height;
+	if (si.sps->cw_flag) {
+		u32 sub_width = (si.sps->chroma_format_idc == 1 || si.sps->chroma_format_idc == 2) ? 2 : 1;
+		u32 sub_height = (si.sps->chroma_format_idc == 1) ? 2 : 1;
+		coded_width += sub_width * (si.sps->cw_left + si.sps->cw_right);
+		coded_height += sub_height * (si.sps->cw_top + si.sps->cw_bottom);
+	}
+	PicWidthInCtbsY = (coded_width + si.sps->max_CU_width - 1) / si.sps->max_CU_width;
+	PicHeightInCtbsX = (coded_height + si.sps->max_CU_height - 1) / si.sps->max_CU_height;
 
 	slY = si.slice_segment_address % PicWidthInCtbsY;
 	slX = si.slice_segment_address / PicWidthInCtbsY;
@@ -145,23 +153,36 @@ static u32 hevcsplit_get_slice_tile_index(HEVCState *hevc)
 }
 
 //get the width and the height of the tile in pixel
-static void hevcsplit_get_tile_pixel_coords(HEVCState *hevc, u32 index_row, u32 index_col, u32 pps_id, u32 *width, u32 *height, u32 *tx, u32 *ty)
+static GF_Err hevcsplit_get_tile_pixel_coords(HEVCState *hevc, u32 index_row, u32 index_col, u32 pps_id, HEVCTilePid *tile)
 {
 	u32 i, sps_id, tbX = 0, tbY = 0, PicWidthInCtbsY, PicHeightInCtbsX, max_CU_width, max_CU_height;
+	u32 coded_width, coded_height, left, top, right, bottom, sub_width, sub_height;
+	u32 *width = &tile->coded_width, *height = &tile->coded_height;
+	u32 *tx = &tile->orig_x, *ty = &tile->orig_y;
+	HEVC_SPS *sps;
 
 	sps_id = hevc->pps[pps_id].sps_id;
+	sps = &hevc->sps[sps_id];
+	sub_width = (sps->chroma_format_idc == 1 || sps->chroma_format_idc == 2) ? 2 : 1;
+	sub_height = (sps->chroma_format_idc == 1) ? 2 : 1;
+	left = sps->cw_flag ? sps->cw_left * sub_width : 0;
+	right = sps->cw_flag ? sps->cw_right * sub_width : 0;
+	top = sps->cw_flag ? sps->cw_top * sub_height : 0;
+	bottom = sps->cw_flag ? sps->cw_bottom * sub_height : 0;
+	coded_width = sps->width + left + right;
+	coded_height = sps->height + top + bottom;
 	max_CU_width = hevc->sps[sps_id].max_CU_width;
 	max_CU_height = hevc->sps[sps_id].max_CU_height;
-	PicWidthInCtbsY = (hevc->sps[sps_id].width + max_CU_width - 1) / max_CU_width;
-	PicHeightInCtbsX = (hevc->sps[sps_id].height + max_CU_height - 1) / max_CU_height;
+	PicWidthInCtbsY = (coded_width + max_CU_width - 1) / max_CU_width;
+	PicHeightInCtbsX = (coded_height + max_CU_height - 1) / max_CU_height;
 
 	*tx = 0;
 	*ty = 0;
 
 	if (!hevc->pps[pps_id].tiles_enabled_flag) {
- 		*width = hevc->sps[sps_id].width;
- 		*height = hevc->sps[sps_id].height;
- 		return;
+		*width = coded_width;
+		*height = coded_height;
+		goto crop;
 	}
 
 	if (hevc->pps[pps_id].uniform_spacing_flag) {
@@ -215,10 +236,26 @@ static void hevcsplit_get_tile_pixel_coords(HEVCState *hevc, u32 index_row, u32 
 	*ty = tbX * max_CU_height;
 	*tx = tbY * max_CU_width;
 
-	if (*tx + *width > hevc->sps[sps_id].width)
-		*width = hevc->sps[sps_id].width - *tx;
-	if (*ty + *height > hevc->sps[sps_id].height)
-		*height = hevc->sps[sps_id].height - *ty;
+	if (*tx + *width > coded_width)
+		*width = coded_width - *tx;
+	if (*ty + *height > coded_height)
+		*height = coded_height - *ty;
+
+crop:
+	if ((*tx >= coded_width - right) || (*ty >= coded_height - bottom)
+	    || (*tx + *width <= left) || (*ty + *height <= top)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCTileSplit] Tile is entirely outside the conformance window\n"));
+		return GF_NOT_SUPPORTED;
+	}
+	tile->crop_left = (*tx < left) ? (left - *tx) / sub_width : 0;
+	tile->crop_top = (*ty < top) ? (top - *ty) / sub_height : 0;
+	tile->crop_right = (*tx + *width > coded_width - right) ? (*tx + *width - coded_width + right) / sub_width : 0;
+	tile->crop_bottom = (*ty + *height > coded_height - bottom) ? (*ty + *height - coded_height + bottom) / sub_height : 0;
+	tile->width = *width - sub_width * (tile->crop_left + tile->crop_right);
+	tile->height = *height - sub_height * (tile->crop_top + tile->crop_bottom);
+	*tx = (*tx > left) ? *tx - left : 0;
+	*ty = (*ty > top) ? *ty - top : 0;
+	return GF_OK;
 }
 
 //HEVC Annex A Table A.8 "General tier and level limits": returns the general_level_idc
@@ -324,7 +361,7 @@ static void hevc_write_profile_tier_level(GF_BitStream *bs_in, GF_BitStream *bs_
 }
 
 //also used by HEVCmerge, don't use context bitstream objects
-void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, u32 max_tile_cols, u32 max_tile_rows, char **out_SPS, u32 *out_SPS_length, Bool use_min_level, u8 *out_level_idc)
+void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, u32 crop_left, u32 crop_right, u32 crop_top, u32 crop_bottom, u32 max_tile_cols, u32 max_tile_rows, char **out_SPS, u32 *out_SPS_length, Bool use_min_level, u8 *out_level_idc)
 {
 	GF_BitStream *bs_in, *bs_out;
 	u64 length_no_use = 4096;
@@ -387,18 +424,21 @@ void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, u3
 		gf_bs_write_ue(bs_out, width);
 		gf_bs_write_ue(bs_out, height);
 
-		//Get rid of the bit conformance_window_flag
 		conformance_window_flag = gf_bs_read_int(bs_in, 1);
-		//put the new conformance flag to zero
-		gf_bs_write_int(bs_out, 0, 1);
-
-		//Skip the bits related to conformance_window_offset
 		if (conformance_window_flag)
 		{
 			gf_bs_read_ue(bs_in);
 			gf_bs_read_ue(bs_in);
 			gf_bs_read_ue(bs_in);
 			gf_bs_read_ue(bs_in);
+		}
+		conformance_window_flag = crop_left || crop_right || crop_top || crop_bottom;
+		gf_bs_write_int(bs_out, conformance_window_flag, 1);
+		if (conformance_window_flag) {
+			gf_bs_write_ue(bs_out, crop_left);
+			gf_bs_write_ue(bs_out, crop_right);
+			gf_bs_write_ue(bs_out, crop_top);
+			gf_bs_write_ue(bs_out, crop_bottom);
 		}
 	}
 
@@ -515,10 +555,37 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, u8 *in_slice, u3
 	HEVC_PPS *pps;
 	HEVC_SPS *sps;
 	u32 al, slice_size, slice_offset_orig, slice_offset_dst;
-	u32 first_slice_segment_in_pic_flag;
-	//u32 dependent_slice_segment_flag;
+	u32 first_slice_segment_in_pic_flag, dependent_slice_segment_flag = 0;
+	u32 tile_index, tile_addr, tile_width_ctbs, tile_height_ctbs, picture_width_ctbs, bits;
+	u32 sub_width, sub_height, tile_x, tile_y;
+	HEVCTilePid tile;
 	u8 nal_unit_type;
 	HEVCState *hevc = &ctx->hevc_state;
+
+	memset(&tile, 0, sizeof(tile));
+	tile_index = hevcsplit_get_slice_tile_index(hevc);
+	pps = hevc->s_info.pps;
+	sps = hevc->s_info.sps;
+	if (hevcsplit_get_tile_pixel_coords(hevc, tile_index / pps->num_tile_columns,
+	                                  tile_index % pps->num_tile_columns, pps->id, &tile))
+		return 0;
+	tile_width_ctbs = (tile.coded_width + sps->max_CU_width - 1) / sps->max_CU_width;
+	tile_height_ctbs = (tile.coded_height + sps->max_CU_height - 1) / sps->max_CU_height;
+	sub_width = (sps->chroma_format_idc == 1 || sps->chroma_format_idc == 2) ? 2 : 1;
+	sub_height = (sps->chroma_format_idc == 1) ? 2 : 1;
+	picture_width_ctbs = (sps->width + (sps->cw_flag ? sub_width * (sps->cw_left + sps->cw_right) : 0) + sps->max_CU_width - 1) / sps->max_CU_width;
+	tile_x = tile.orig_x + (sps->cw_flag ? sub_width * sps->cw_left : 0) - sub_width * tile.crop_left;
+	tile_y = tile.orig_y + (sps->cw_flag ? sub_height * sps->cw_top : 0) - sub_height * tile.crop_top;
+	if (hevc->s_info.slice_segment_address / picture_width_ctbs < tile_y / sps->max_CU_height ||
+	    hevc->s_info.slice_segment_address % picture_width_ctbs < tile_x / sps->max_CU_width) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCTileSplit] Invalid slice address for tile\n"));
+		return 0;
+	}
+	tile_addr = (hevc->s_info.slice_segment_address / picture_width_ctbs - tile_y / sps->max_CU_height) * tile_width_ctbs +
+	            hevc->s_info.slice_segment_address % picture_width_ctbs - tile_x / sps->max_CU_width;
+	bits = 0;
+	while ((1ULL << bits) < (u64)tile_width_ctbs * tile_height_ctbs)
+		bits++;
 
 	if (ctx->input_no_epb_alloc < in_slice_length) {
 		ctx->input_no_epb = gf_realloc(ctx->input_no_epb, in_slice_length);
@@ -546,7 +613,7 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, u8 *in_slice, u3
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 9), 9);
 
 	first_slice_segment_in_pic_flag = gf_bs_read_int(ctx->bs_nal_in, 1);    //first_slice_segment_in_pic_flag
-	gf_bs_write_int(ctx->bs_nal_out, 1, 1);
+	gf_bs_write_int(ctx->bs_nal_out, tile_addr == 0, 1);
 
 	switch (nal_unit_type) {
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
@@ -574,33 +641,32 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, u8 *in_slice, u3
 
 	//dependent_slice_segment_flag = 0;
 	if (!first_slice_segment_in_pic_flag && pps->dependent_slice_segments_enabled_flag) {
-		/*dependent_slice_segment_flag =*/ gf_bs_read_int(ctx->bs_nal_in, 1);
-//	} else {
-//		dependent_slice_segment_flag = GF_FALSE;
+		dependent_slice_segment_flag = gf_bs_read_int(ctx->bs_nal_in, 1);
 	}
 
 	if (!first_slice_segment_in_pic_flag) {
 		gf_bs_read_int(ctx->bs_nal_in, sps->bitsSliceSegmentAddress);
 	}
-	//else original slice segment address = 0
-
-	//nothing to write for slice address, we remove the address
+	if (tile_addr) {
+		if (pps->dependent_slice_segments_enabled_flag)
+			gf_bs_write_int(ctx->bs_nal_out, dependent_slice_segment_flag, 1);
+		gf_bs_write_int(ctx->bs_nal_out, tile_addr, bits);
+	}
 
 	//copy over until num_entry_points
 	while (num_entry_point_start != (gf_bs_get_position(ctx->bs_nal_in) - 1) * 8 + gf_bs_get_bit_position(ctx->bs_nal_in)) {
 		gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
 	}
 
-	//no tilin, don't write num_entry_points
-
-	//write slice extension to 0
-	if (pps->slice_segment_header_extension_present_flag)
-		gf_bs_write_int(ctx->bs_nal_out, 0, 1);
-
-	//we may have unparsed data in the source bitstream (slice header) due to entry points or slice segment extensions
-	//TODO: we might want to copy over the slice extension header bits
-	while (header_end != (gf_bs_get_position(ctx->bs_nal_in) - 1) * 8 + gf_bs_get_bit_position(ctx->bs_nal_in))
-		gf_bs_read_int(ctx->bs_nal_in, 1);
+	if (pps->entropy_coding_sync_enabled_flag) {
+		while (header_end != (gf_bs_get_position(ctx->bs_nal_in) - 1) * 8 + gf_bs_get_bit_position(ctx->bs_nal_in))
+			gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
+	} else {
+		if (pps->slice_segment_header_extension_present_flag)
+			gf_bs_write_int(ctx->bs_nal_out, 0, 1);
+		while (header_end != (gf_bs_get_position(ctx->bs_nal_in) - 1) * 8 + gf_bs_get_bit_position(ctx->bs_nal_in))
+			gf_bs_read_int(ctx->bs_nal_in, 1);
+	}
 
 	//read byte_alignment() is bit=1 + x bit=0
 	al = gf_bs_read_int(ctx->bs_nal_in, 1);
@@ -666,6 +732,8 @@ static char *hevcsplit_rewrite_nal(GF_Filter *filter, GF_HEVCSplitCtx *ctx, char
 	case GF_HEVC_NALU_SLICE_CRA:
 		*out_tile_index = hevcsplit_get_slice_tile_index(hevc);
 		buf_size = hevcsplit_remove_slice_address(ctx, in_nal, in_nal_size);
+		if (!buf_size)
+			return NULL;
 		*out_nal_size = buf_size;
 		return ctx->buffer_nal;
 	//non-vcl, write to bitstream
@@ -676,7 +744,7 @@ static char *hevcsplit_rewrite_nal(GF_Filter *filter, GF_HEVCSplitCtx *ctx, char
 	return NULL;
 }
 
-static GF_Err hevcsplit_rewrite_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *data, u32 size, u32 new_width, u32 new_height)
+static GF_Err hevcsplit_rewrite_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, char *data, u32 size, HEVCTilePid *tile)
 {
 	u32 i, j;
 	u8 max_level_idc = 0;
@@ -696,7 +764,9 @@ static GF_Err hevcsplit_rewrite_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, ch
 				char *outSPS=NULL;
 				u32 outSize=0;
 				u8 sps_level_idc = 0;
-				hevc_rewrite_sps(sl->data, sl->size, new_width, new_height, 1, 1, &outSPS, &outSize, ctx->minl, &sps_level_idc);
+				hevc_rewrite_sps(sl->data, sl->size, tile->coded_width, tile->coded_height,
+					tile->crop_left, tile->crop_right, tile->crop_top, tile->crop_bottom,
+					1, 1, &outSPS, &outSize, ctx->minl, &sps_level_idc);
 				if (sps_level_idc > max_level_idc) max_level_idc = sps_level_idc;
 				gf_free(sl->data);
 				sl->data = outSPS;
@@ -766,13 +836,17 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			HEVCTilePid  *tpid;
 			opid = gf_filter_get_opid(filter, i);
 			tpid = gf_filter_pid_get_udta(opid);
-			if (tpid) gf_free(tpid);
+			if (tpid) {
+				gf_list_del_item(ctx->outputs, tpid);
+				gf_free(tpid);
+			}
 			if (opid) {
 				gf_filter_pid_set_udta(opid, NULL);
 				gf_filter_pid_remove(opid);
 			}
 		}
 		ctx->ipid = NULL;
+		ctx->cfg_crc = 0;
 		return GF_OK;
 	}
 	// checks if input pid matchs its destination filter.
@@ -871,8 +945,12 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 				gf_filter_pid_set_udta(tpid->opid, tpid);
 			}
 
-			hevcsplit_get_tile_pixel_coords(&ctx->hevc_state, i, j, pps_id, &tpid->width, &tpid->height, &tpid->orig_x, &tpid->orig_y);
+			e = hevcsplit_get_tile_pixel_coords(&ctx->hevc_state, i, j, pps_id, tpid);
+			if (e) return e;
 			gf_filter_pid_copy_properties(tpid->opid, ctx->ipid);
+			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_TRANS_X, NULL);
+			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_TRANS_Y, NULL);
+			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_ISOM_TRACK_MATRIX, NULL);
 			// for each output pid, set decoder_config, width and height.
 			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_WIDTH, &PROP_UINT(tpid->width));
 			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(tpid->height));
@@ -880,7 +958,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(o_width, o_height));
 			gf_filter_pid_set_property_str(tpid->opid, "hevc_split", &PROP_BOOL(GF_TRUE));
 			// rewrite the decoder config
-			e = hevcsplit_rewrite_dsi(ctx, tpid->opid, dsi->value.data.ptr, dsi->value.data.size, tpid->width, tpid->height);
+			e = hevcsplit_rewrite_dsi(ctx, tpid->opid, dsi->value.data.ptr, dsi->value.data.size, tpid);
 			if (e) return e;
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[HEVCTileSplit] output pid %dx%d (position was %dx%d)\n", tpid->width, tpid->height, tpid->orig_x, tpid->orig_y));
@@ -891,9 +969,9 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 static GF_Err hevcsplit_process(GF_Filter *filter)
 {
-	u32 hevc_nalu_size_length;
+	u32 hevc_nalu_size_length, i;
 	u32 data_size, nal_length, opid_idx = 0;
-	u8 temporal_id, layer_id, nal_unit_type, i;
+	u8 temporal_id, layer_id, nal_unit_type;
 	u8 *data;
 	u8 *output_nal;
 	u32 out_nal_size;
@@ -949,7 +1027,22 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 		// todo: might need to rewrite crypto info
 
 		rewritten_nal = hevcsplit_rewrite_nal(filter, ctx, data+pos, nal_length, &opid_idx, &out_nal_size);
-		if (!rewritten_nal) continue;
+		if (!rewritten_nal) return GF_NON_COMPLIANT_BITSTREAM;
+
+		if ((nal_unit_type == GF_HEVC_NALU_SEI_SUFFIX) && !ctx->sei_hash) {
+			GF_Err e;
+			if (ctx->buffer_nal_alloc < out_nal_size) {
+				u8 *buf = gf_realloc(ctx->buffer_nal, out_nal_size);
+				if (!buf) return GF_OUT_OF_MEM;
+				ctx->buffer_nal = buf;
+				ctx->buffer_nal_alloc = out_nal_size;
+			}
+			memcpy(ctx->buffer_nal, rewritten_nal, out_nal_size);
+			e = gf_hevc_filter_suffix_hash((char *)ctx->buffer_nal, &out_nal_size, GF_FALSE);
+			if (e) return e;
+			if (!out_nal_size) continue;
+			rewritten_nal = ctx->buffer_nal;
+		}
 
 		hevc_nalu_size_length = ctx->hevc_nalu_size_length;
 		//non-vcl NAL, forward to all outputs
@@ -1052,6 +1145,7 @@ static const GF_FilterCapability HEVCSplitCaps[] =
 static const GF_FilterArgs HEVCSplitArgs[] =
 {
 	{ OFFS(minl), "rewrite level to minimum value acceptable for each stream", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sei_hash), "preserve input decoded-picture hash SEIs, which may be invalid after splitting", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

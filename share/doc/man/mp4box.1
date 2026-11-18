@@ -288,6 +288,16 @@ set kind for the track or for all tracks using all=schemeURI=value
 remove kind if given schemeID for the track or for all tracks with all=schemeURI=value
 .br
 .TP
+.B \-ctlc tkID=content_type[:flags]
+.br
+set Content Type for Loudness Control metadata for the track or for all tracks using all=content_type[:flags]. flags default to 0 and may use bits 0 (advertisement) and 1 (immersive audio)
+.br
+.TP
+.B \-ctlc-rem tkID
+.br
+remove Content Type for Loudness Control metadata from the track or from all tracks using all
+.br
+.TP
 .B \-name tkID=NAME
 .br
 set track handler name to NAME (UTF-8 string)
@@ -2002,6 +2012,11 @@ S set the Dolby Vision profile on imported track
 .B dvmdc (int)
 .br
 S set the Dolby Vision metadata compression (valid value: 0, 1, 3. default = 0)
+.br
+.TP
+.B dvflags (int)
+.br
+S Set Dolby Vision feature flags for the content (valid value: 0, 0x200 (for Dolby Vision 2 experience). default = 0)
 .br
 .TP
 .B fullrange (string)

@@ -8887,6 +8887,39 @@ u32 gf_hevc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Fi
 	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, GF_TRUE, sei_filter);
 }
 
+GF_NOT_EXPORTED GF_Err gf_hevc_filter_suffix_hash(char *data, u32 *nal_length, Bool keep_hash)
+{
+	if (*nal_length < 3)
+		return GF_NON_COMPLIANT_BITSTREAM;
+
+	if (!keep_hash) {
+		u32 hash_type = 132;
+		SEI_Filter sei_filter = {0};
+		char *check;
+		u32 check_size;
+
+		sei_filter.seis.vals = &hash_type;
+		sei_filter.seis.nb_items = 1;
+		*nal_length = gf_hevc_reformat_sei(data, *nal_length, GF_TRUE, &sei_filter);
+
+		/* The helper can retain the original NAL on parse failure. */
+		if (*nal_length) {
+			check = gf_malloc(*nal_length);
+			if (!check) return GF_OUT_OF_MEM;
+			memcpy(check, data, *nal_length);
+			sei_filter.is_whitelist = GF_TRUE;
+			check_size = gf_hevc_reformat_sei(check, *nal_length, GF_TRUE, &sei_filter);
+			gf_free(check);
+			if (check_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA,
+					("[HEVC] Cannot safely remove decoded picture hash SEI\n"));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+		}
+	}
+	return GF_OK;
+}
+
 static void hevc_compute_poc(HEVCSliceInfo *si)
 {
 	u32 max_poc_lsb = 1 << (si->sps->log2_max_pic_order_cnt_lsb);
@@ -9650,7 +9683,7 @@ static const struct {
 static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 layer_id, u32 *vui_flag_pos)
 {
 	s32 vps_id, sps_id = -1;
-	u32 i, nb_CTUs, depth;
+	u32 i, nb_CTUs, depth, coded_width, coded_height;
 	HEVC_SPS *sps;
 	HEVC_VPS *vps;
 	HEVC_ProfileTierLevel ptl;
@@ -9719,10 +9752,13 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 		}
 		sps->width = vps->rep_formats[sps->rep_format_idx].pic_width_luma_samples;
 		sps->height = vps->rep_formats[sps->rep_format_idx].pic_height_luma_samples;
+		coded_width = sps->width;
+		coded_height = sps->height;
 		sps->chroma_format_idc = vps->rep_formats[sps->rep_format_idx].chroma_format_idc;
 		sps->bit_depth_luma = vps->rep_formats[sps->rep_format_idx].bit_depth_luma;
 		sps->bit_depth_chroma = vps->rep_formats[sps->rep_format_idx].bit_depth_chroma;
 		sps->separate_colour_plane_flag = vps->rep_formats[sps->rep_format_idx].separate_colour_plane_flag;
+		sps->cw_flag = GF_FALSE;
 
 		//TODO this is crude ...
 		sps->ptl = vps->ext_ptl[0];
@@ -9733,6 +9769,8 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 			sps->separate_colour_plane_flag = gf_bs_read_int_log(bs, 1, "separate_colour_plane_flag");
 		sps->width = gf_bs_read_ue_log(bs, "width");
 		sps->height = gf_bs_read_ue_log(bs, "height");
+		coded_width = sps->width;
+		coded_height = sps->height;
 		if ((sps->cw_flag = gf_bs_read_int_log(bs, 1, "conformance_window_flag"))) {
 			u32 SubWidthC, SubHeightC;
 
@@ -9752,6 +9790,11 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 			sps->cw_top = gf_bs_read_ue_log(bs, "conformance_window_top");
 			sps->cw_bottom = gf_bs_read_ue_log(bs, "conformance_window_bottom");
 
+			if (((u64) sps->cw_left + sps->cw_right) * SubWidthC >= sps->width
+			    || ((u64) sps->cw_top + sps->cw_bottom) * SubHeightC >= sps->height) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid conformance window\n"));
+				HEVC_SPS_BROKEN
+			}
 			sps->width -= SubWidthC * (sps->cw_left + sps->cw_right);
 			sps->height -= SubHeightC * (sps->cw_top + sps->cw_bottom);
 		}
@@ -9801,7 +9844,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	}
 	sps->max_CU_depth = sps->log2_diff_max_min_luma_coding_block_size + depth;
 
-	nb_CTUs = ((sps->width + sps->max_CU_width - 1) / sps->max_CU_width) * ((sps->height + sps->max_CU_height - 1) / sps->max_CU_height);
+	nb_CTUs = ((coded_width + sps->max_CU_width - 1) / sps->max_CU_width) * ((coded_height + sps->max_CU_height - 1) / sps->max_CU_height);
 	sps->bitsSliceSegmentAddress = 0;
 	while (nb_CTUs > (u32)(1 << sps->bitsSliceSegmentAddress)) {
 		sps->bitsSliceSegmentAddress++;
@@ -10073,7 +10116,7 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 			HEVC_PPS_BROKEN
 		}
 		pps->num_tile_rows = 1 + gf_bs_read_ue_log(bs, "num_tile_rows_minus1");
-		if (pps->num_tile_rows > 20) {
+		if (pps->num_tile_rows > 22) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid num_tile_rows %u\n", pps->num_tile_rows));
 			HEVC_PPS_BROKEN
 		}
