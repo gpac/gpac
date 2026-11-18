@@ -480,7 +480,7 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 
     method = SSLv23_server_method();
 
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 	if (for_quic) {
 		method = TLS_server_method();
 	}

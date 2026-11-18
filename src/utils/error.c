@@ -1434,6 +1434,9 @@ static const char *gf_enabled_features()
 #ifdef GPAC_HAS_NGTCP2
 	                       "GPAC_HAS_NGTCP2 "
 #endif
+#ifdef GPAC_HAS_PICOQUIC
+	                       "GPAC_HAS_PICOQUIC "
+#endif
 
 #if defined(_WIN32_WCE)
 #ifdef GPAC_USE_IGPP

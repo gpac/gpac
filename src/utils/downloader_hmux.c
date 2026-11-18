@@ -30,8 +30,9 @@
 #ifdef GPAC_HTTPMUX
 
 //detach session from parent h2 / h3 session - the session mutex SHALL be grabbed before calling this
-void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
+GF_NOT_EXPORTED void hmux_detach_session_ex(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess, Bool defer_mx_release)
 {
+	Bool retain_mx = GF_FALSE;
 	if (!hmux_sess || !sess) return;
 	gf_assert(sess->hmux_sess == hmux_sess);
 	gf_assert(sess->mx);
@@ -54,8 +55,14 @@ void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
 			hmux_sess->destroy(hmux_sess);
 
 		gf_list_del(hmux_sess->sessions);
-		gf_mx_v(hmux_sess->mx);
-		gf_mx_del(sess->mx);
+		if (hmux_sess->shared_mx && defer_mx_release) {
+			retain_mx = GF_TRUE;
+		} else if (!hmux_sess->shared_mx && (gf_mx_get_num_locks(sess->mx) > 1)) {
+			retain_mx = GF_TRUE;
+		} else {
+			gf_mx_v(hmux_sess->mx);
+			gf_mx_del(sess->mx);
+		}
 		gf_free(hmux_sess);
 	} else {
 		GF_DownloadSession *asess = gf_list_get(hmux_sess->sessions, 0);
@@ -75,7 +82,15 @@ void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
 #ifdef GPAC_HAS_SSL
 		sess->ssl = NULL;
 #endif
-		gf_mx_v(sess->mx);
+		if (hmux_sess->shared_mx) {
+			if (defer_mx_release) retain_mx = GF_TRUE;
+			else {
+				gf_mx_v(sess->mx);
+				gf_mx_del(sess->mx);
+			}
+		} else {
+			gf_mx_v(sess->mx);
+		}
 	}
 
 	if (sess->hmux_buf.data) {
@@ -83,9 +98,12 @@ void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
 		memset(&sess->hmux_buf, 0, sizeof(hmux_reagg_buffer));
 	}
 	sess->hmux_sess = NULL;
-	sess->mx = NULL;
+	if (!retain_mx) sess->mx = NULL;
 }
-
+GF_NOT_EXPORTED void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
+{
+	hmux_detach_session_ex(hmux_sess, sess, GF_FALSE);
+}
 
 GF_DownloadSession *hmux_get_session(void *user_data, s64 stream_id, Bool can_reassign)
 {
@@ -262,6 +280,7 @@ GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, s64 stre
 	sub_sess->hmux_sess = sess->hmux_sess;
 	if (sub_sess->mx) gf_mx_del(sub_sess->mx);
 	sub_sess->mx = sess->hmux_sess->mx;
+	if (sess->hmux_sess->shared_mx) gf_mx_ref(sub_sess->mx);
 	sub_sess->hmux_stream_id = stream_id;
 	sub_sess->status = GF_NETIO_CONNECTED;
 

@@ -256,7 +256,7 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 	return e;
 }
 
-void gf_dm_sess_clear_headers(GF_DownloadSession *sess)
+GF_NOT_EXPORTED void gf_dm_sess_clear_headers(GF_DownloadSession *sess)
 {
 	while (gf_list_count(sess->headers)) {
 		GF_HTTPHeader *hdr = (GF_HTTPHeader*)gf_list_last(sess->headers);
@@ -397,11 +397,17 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	sess->creds = NULL;
 
 #ifdef GPAC_HTTPMUX
-	if (sess->hmux_sess) {
-		sess->hmux_sess->setup_session(sess, GF_TRUE);
-		gf_mx_p(sess->mx);
-		hmux_detach_session(sess->hmux_sess, sess);
-		gf_mx_v(sess->mx);
+	{
+		GF_Mutex *mx = sess->mx;
+		Bool detached = GF_FALSE;
+		gf_mx_p(mx);
+		if (sess->hmux_sess) {
+			sess->hmux_sess->setup_session(sess, GF_TRUE);
+			hmux_detach_session(sess->hmux_sess, sess);
+			detached = GF_TRUE;
+		}
+		if (!detached) gf_mx_v(mx);
+		else if (sess->mx) gf_mx_v(sess->mx);
 	}
 #endif
 
@@ -1486,7 +1492,7 @@ resetup_socket:
 		if ((sess->flags & GF_NETIO_SESSION_NO_BLOCK) && !sess->start_time)
 			sess->start_time = now;
 
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 		if (sess->flags & GF_NETIO_SESSION_USE_QUIC) {
 			e = http3_connect(sess, (char *) proxy, proxy_port);
 			if (sess->num_retry && (e==GF_IP_CONNECTION_FAILURE) ) {
@@ -1919,7 +1925,7 @@ GF_DownloadManager *gf_dm_new(GF_FilterSession *fsess)
 #endif
 
 	dm->disable_http2 = gf_opts_get_bool("core", "no-h2");
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 	opt = gf_opts_get_key("core", "h3");
 	if (!opt || !strcmp(opt, "auto")) dm->h3_mode = H3_MODE_AUTO;
 	else if (!strcmp(opt, "first")) dm->h3_mode = H3_MODE_FIRST;
@@ -3504,7 +3510,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 
 	while (1) {
 		Bool probe = (!bytesRead || (sess->flags & GF_NETIO_SESSION_NO_BLOCK) ) ? GF_TRUE : GF_FALSE;
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 		if (sess->server_mode && sess->hmux_sess && (sess->hmux_sess->net_sess->flags & GF_NETIO_SESSION_USE_QUIC)) {
 			GF_Err h3_check_sess(GF_DownloadSession *sess);
 			probe = GF_FALSE;

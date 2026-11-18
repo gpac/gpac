@@ -1594,9 +1594,16 @@ GF_GPACArg GPAC_Args[] = {
 		"cubic", "cubic|bbr|reno", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 	GF_DEF_ARG("h3-mwnd", NULL, "set QUIC/HTTP3 maximum window size (cf `ngtcp2_settings.max_window`)", "0", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 	GF_DEF_ARG("h3-st-mwnd", NULL, "set QUIC/HTTP3 maximum stream window size (cf `ngtcp2_settings.max_stream`)", "0", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+#elif defined(GPAC_HAS_PICOQUIC)
+	GF_DEF_ARG("h3-algo", NULL, "congestion control algorithm for QUIC (default is Picoquic's default, currently NewReno)\n"
+			"- cubic: CUBIC\n"
+			"- bbr: BBR (version may differ from ngtcp2)\n"
+			"- reno: NewReno",
+		NULL, "cubic|bbr|reno", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+	GF_DEF_ARG("h3-qlog", NULL, "write Picoquic qlogs to an existing directory (up to 32 simultaneous connections; file creation failures may be silent)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 #endif
 
-#if defined(GPAC_HAS_NGTCP2) || defined(GPAC_HAS_HTTP2)
+#if defined(GPAC_HAS_NGTCP2) || defined(GPAC_HAS_PICOQUIC) || defined(GPAC_HAS_HTTP2)
 	GF_DEF_ARG("hx-max-st", NULL, "set maximum number of HTTP2 or QUIC/HTTP3 concurrent streams", "100", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 	GF_DEF_ARG("hx-iwnd", NULL, "set initial HTTP2 or QUIC/HTTP3 connection window size", "64m", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 	GF_DEF_ARG("hx-st-iwnd", NULL, "set initial HTTP2 or QUIC/HTTP3 stream window size", "32m", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
@@ -1606,7 +1613,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("curl", NULL, "use CURL instead of GPAC HTTP stack", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 #endif
 
-#if defined(GPAC_HAS_NGTCP2) || defined(GPAC_HAS_CURL)
+#if defined(GPAC_HAS_NGTCP2) || defined(GPAC_HAS_PICOQUIC) || defined(GPAC_HAS_CURL)
  GF_DEF_ARG("h3", NULL, "set HTTP/3 mode\n"
 			"- no: disable HTTP/3\n"
 			"- first: force trying first with HTTP/3\n"
@@ -1614,8 +1621,8 @@ GF_GPACArg GPAC_Args[] = {
 			"- only: only use HTTP/3", "auto", "no|first|auto|only", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 #endif
 
-#ifdef GPAC_HAS_NGTCP2
- GF_DEF_ARG("h3-trace", NULL, "trace QUIC and HTTP3", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+#if defined(GPAC_HAS_NGTCP2) || defined(GPAC_HAS_PICOQUIC)
+ GF_DEF_ARG("h3-trace", NULL, "trace QUIC and HTTP3 to stderr (Picoquic traces QUIC)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 #endif
 
 
