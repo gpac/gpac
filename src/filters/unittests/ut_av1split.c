@@ -260,8 +260,8 @@ static GF_Err av1split_test_sink_process(GF_Filter *filter)
 			assert_equal(j, t->size, "%u");
 		}
 		assert_equal(frames, 1, "%u");
-		assert_equal(gf_filter_pck_get_dts(pck), (u64)1000*av1split_test.received[id], "%llu");
-		assert_equal(gf_filter_pck_get_cts(pck), (u64)1000*av1split_test.received[id]+10, "%llu");
+		assert_equal(gf_filter_pck_get_dts(pck), (u64)1000*av1split_test.received[id], LLU);
+		assert_equal(gf_filter_pck_get_cts(pck), (u64)1000*av1split_test.received[id]+10, LLU);
 		assert_equal(gf_filter_pck_get_duration(pck), 1000, "%u");
 		assert_equal(gf_filter_pck_get_sap(pck), GF_FILTER_SAP_1, "%u");
 		av1split_test.received[id]++;

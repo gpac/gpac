@@ -95,7 +95,7 @@ unittest(av1_annexb_partial_temporal_unit)
 		assert_equal(e, GF_BUFFER_TOO_SMALL, "%d");
 		assert_equal_mem(state, snapshot, sizeof(*state));
 		assert_equal(state->config->chroma_subsampling_x, 0, "%u");
-		assert_equal(gf_bs_get_position(state->bs), (u64) 0, "%llu");
+		assert_equal(gf_bs_get_position(state->bs), (u64) 0, LLU);
 		if (e != GF_BUFFER_TOO_SMALL || memcmp(state, snapshot, sizeof(*state))) break;
 	}
 	gf_bs_reassign_buffer(bs, data, size);
@@ -103,14 +103,14 @@ unittest(av1_annexb_partial_temporal_unit)
 	//runs when demonstrating the regression against the unpatched build
 	gf_av1_reset_state(state, GF_FALSE);
 	assert_equal(aom_av1_parse_temporal_unit_from_annexb(bs, state), GF_OK, "%d");
-	assert_equal(gf_bs_get_position(bs), (u64) size, "%llu");
+	assert_equal(gf_bs_get_position(bs), (u64) size, LLU);
 	assert_equal(state->width, 128, "%u");
 	assert_equal(state->height, 64, "%u");
 	assert_equal(state->frame_state.nb_tiles_in_obu, 1, "%u");
 	assert_equal(state->frame_state.tiles[0].size, tile_size, "%u");
 	assert_equal(state->RefUpscaledWidth[0], 128, "%u");
 	assert_equal(state->RefFrameHeight[0], 64, "%u");
-	assert_greater(gf_bs_get_position(state->bs), (u64) 0, "%llu");
+	assert_greater(gf_bs_get_position(state->bs), (u64) 0, LLU);
 
 	gf_av1_reset_state(state, GF_TRUE);
 	gf_odf_av1_cfg_del(state->config);
