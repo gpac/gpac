@@ -428,7 +428,7 @@ ifeq ($(UNIT_TESTS),yes)
 	$(CC) $(CFLAGS) $(caption_cflags) -Wno-unused-variable -Wno-unused-function -I.. -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H  \
 		-o ../bin/gcc/unittests \
 		../bin/gcc/unittests.c \
-		$(shell find $(SRC_PATH) -path "*/unittests/*.c" | grep -v bin | sort) \
+		$(shell find -H $(SRC_PATH) -path "*/unittests/*.c" | grep -v bin | sort) \
 		-Wl,-rpath,$(realpath ../bin/gcc) -lm -L../bin/gcc -lgpac
 endif
 

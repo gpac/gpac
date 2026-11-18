@@ -1091,6 +1091,7 @@ static void av1merge_copy_output_properties(GF_AV1MergeCtx *ctx, GF_FilterPid *p
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ISOM_TRACK_MATRIX, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CROP_POS, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ORIG_SIZE, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TILE_ID, NULL);
 	gf_filter_pid_set_property_str(ctx->opid, "av1_split", NULL);
 	//The track template and spatial user data describe an individual input tile.
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ISOM_TRACK_TEMPLATE, NULL);
