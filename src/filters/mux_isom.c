@@ -6367,6 +6367,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		const GF_PropertyValue *p;
 
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CONSTANT_DURATION);
 
 		if (tkw->fake_track) {
 			if (def_fake_scale) {
@@ -6376,6 +6377,10 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			} else {
 				def_pck_dur = 0;
 			}
+		}
+		//check if we have a default constant duration set, if so use it
+		else if (p && p->value.uint) {
+			def_pck_dur = p ? p->value.uint : 0;
 		} else {
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
 			//can be null if eos
