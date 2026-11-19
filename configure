@@ -994,7 +994,8 @@ EOF
         ;;
 
     Darwin)
-        CFLAGS_DIR="-I$prefix/include"
+        #use -isystem so that forced package paths (--use-xxx=PATH) passed as -I always take precedence
+        CFLAGS_DIR="-isystem $prefix/include"
         if test "$static_bin" = "yes" ; then
             LDFLAGS="-L$prefix/$libdir"
         else
@@ -1008,7 +1009,7 @@ EOF
                 alt_macosx_dir="/opt/local"
             fi
             if test "$alt_macosx_dir" != "" ; then
-                CFLAGS_DIR="$CFLAGS_DIR -I$alt_macosx_dir -I$alt_macosx_dir/include"
+                CFLAGS_DIR="$CFLAGS_DIR -isystem $alt_macosx_dir -isystem $alt_macosx_dir/include"
                 LDFLAGS="$LDFLAGS -L$alt_macosx_dir -L$alt_macosx_dir/lib"
             fi
         fi
@@ -1435,7 +1436,8 @@ config_package_test ()
     if test "$forced" != "local" -a "$custom" != "yes" ; then
         if test "$cross_prefix" = "" -a "$is_port" != "yes" -a "$pkg_config" != "no" -a "$pkg_cfg_name" != ""; then
             if $pkg_config --exists $pkg_cfg_name ; then
-                pck_cflags=`$pkg_config --cflags $pkg_cfg_name`
+                #keep package cflags first so forced paths (e.g. custom ssl) take precedence over pkg-config ones
+                pck_cflags="$package_cflags "`$pkg_config --cflags $pkg_cfg_name`
                 pck_ldflags=`$pkg_config --libs $pkg_cfg_name`
 
                 if test "$pck_cxx" = "yes" ; then
@@ -1811,7 +1813,7 @@ int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); retu
 if test "$has_gnutls" != "no" ; then
 OLD_CFLAGS="$CFLAGS"
 CFLAGS="$cflags_gnutls $CFLAGS"
-config_package ngtcp2 "libngtcp2 libngtcp2_crypto_gnutls" "" "$ldflags_gnutls -lngtcp2 -lngtcp2_crypto_gnutls" "" '#include <stdio.h>
+config_package ngtcp2 "libngtcp2 libngtcp2_crypto_gnutls" "$cflags_gnutls" "$ldflags_gnutls -lngtcp2 -lngtcp2_crypto_gnutls" "" '#include <stdio.h>
 #include <ngtcp2/ngtcp2.h>
 #include <ngtcp2/ngtcp2_crypto_gnutls.h>
 int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); ngtcp2_ccerr ccerr; (void)ccerr; return 0; }'
@@ -1822,7 +1824,7 @@ fi
 if [ "$has_ngtcp2" = "no" ] && [ "$has_ssl" != "no" ] ; then
 OLD_CFLAGS="$CFLAGS"
 CFLAGS="$orig_cflags_ssl $CFLAGS"
-config_package ngtcp2 "libngtcp2 libngtcp2_crypto_ossl" "" "$orig_ldflags_ssl -lngtcp2 -lngtcp2_crypto_ossl" "" '#include <stdio.h>
+config_package ngtcp2 "libngtcp2 libngtcp2_crypto_ossl" "$orig_cflags_ssl" "$orig_ldflags_ssl -lngtcp2 -lngtcp2_crypto_ossl" "" '#include <stdio.h>
 #include <openssl/opensslv.h>
 #if OPENSSL_VERSION_NUMBER < 0x30500000L
 #error OpenSSL 3.5.0 or newer is required for the ngtcp2 OpenSSL backend
