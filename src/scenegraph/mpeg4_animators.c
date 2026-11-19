@@ -345,7 +345,7 @@ static void PA_Update(M_PositionAnimator *pa, AnimatorStack *stack)
 	/*if empty key and default anim switch to linear*/
 	if (!pa->key.count && !stack->anim_type) stack->anim_type = ANIM_LINEAR;
 
-	if (stack->anim_type == ANIM_PACED) {
+	if ((stack->anim_type == ANIM_PACED) && pa->keyValue.count) {
 		stack->length = 0;
 		for (i=0; i<pa->keyValue.count-1; i++) {
 			d.x = pa->keyValue.vals[i+1].x - pa->keyValue.vals[i].x;
@@ -404,6 +404,8 @@ static void PA_SetFraction(GF_Node *node, GF_Route *route)
 			frac = (frac - INT2FIX(i) / (nbVals-1) ) * (nbVals-1);
 			break;
 		case ANIM_PACED:
+			if (!pa->keyValue.count) return;
+
 			/*at cst speed, this is the length done*/
 			dist = gf_mulfix(frac, stack->length);
 			/*then figure out in which seg we are*/
