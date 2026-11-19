@@ -75,7 +75,9 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_FD
 
 #ifdef _WIN64
-#define GPAC_HAS_GNUTLS
+//default config uses openssl
+#define GPAC_HAS_SSL
+//#define GPAC_HAS_GNUTLS
 #define GPAC_HAS_NGTCP2
 #endif
 

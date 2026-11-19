@@ -34,6 +34,8 @@
 
 #include <gpac/download.h>
 
+#if !defined(GPAC_DISABLE_NETWORK) || !defined(GPAC_CONFIG_EMSCRIPTEN)
+
 //socket and SSL context ownership is transfered to the download session object
 GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, Bool async, GF_Err *e);
 GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, s64 stream_id, void *usr_cbk, GF_Err *e);
@@ -94,5 +96,7 @@ void gf_dm_sess_set_callback(GF_DownloadSession *sess, gf_dm_user_io user_io, vo
 /* Return the next wake delay in microseconds, or -1 if none is requested. */
 s32 gf_dm_quic_next_wake(GF_QuicServer *qs);
 #endif
+
+#endif // GPAC_CONFIG_EMSCRIPTEN || GPAC_DISABLE_NETWORK
 
 #endif //_DOWNLOADER_EXP_H_

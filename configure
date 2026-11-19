@@ -745,6 +745,7 @@ for opt do
             ;;
         --emscripten) is_em="yes"
             disable_network="yes"
+            no_stack_prot="yes"
             ;;
         --em-type=*) em_type=`echo $opt | cut -d '=' -f 2`
             ;;
