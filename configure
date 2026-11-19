@@ -2686,14 +2686,6 @@ else
 if test "$enable_sanitizer" = "yes" ; then
     CFLAGS="$CFLAGS -fsanitize=address,undefined,float-cast-overflow,bounds -fno-sanitize-recover -g -fno-omit-frame-pointer -fno-stack-protector -U_FORTIFY_SOURCE -DASAN_ENABLED"
     LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
-    #on macOS sdl2-compat locates libSDL3 through its own rpath, but ASan's dlopen interceptor makes
-    #dyld resolve the lookup against the main executable rpaths instead - add the SDL lib dir to them
-    if test "$targetos" = "Darwin" -a "$has_sdl" = "yes" -a "$sdl_static" != "yes" ; then
-        sdl_libdir=`$sdl_config --prefix 2>>$logs`/lib
-        if test -d "$sdl_libdir" ; then
-            LDFLAGS="$LDFLAGS -Wl,-rpath,$sdl_libdir"
-        fi
-    fi
 fi
 
 fi

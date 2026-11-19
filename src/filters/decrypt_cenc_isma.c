@@ -142,7 +142,6 @@ typedef struct
 
 
 	u32 rep_crc, per_crc, as_id;
-	Bool pending_seg_switch;
 } GF_CENCDecStream;
 
 
@@ -2385,25 +2384,6 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 }
 
 
-static void cenc_dec_flush_seg_switch(GF_CENCDecCtx *ctx)
-{
-	GF_FilterEvent evt;
-	u32 i, count = gf_list_count(ctx->streams);
-	//tile tracks depend on the base track: wait until every stream's queued packets are out, not only the one that got the hint
-	for (i=0; i<count; i++) {
-		GF_CENCDecStream *cstr = gf_list_get(ctx->streams, i);
-		if (gf_filter_pid_get_packet_count(cstr->ipid)) return;
-	}
-	for (i=0; i<count; i++) {
-		GF_CENCDecStream *cstr = gf_list_get(ctx->streams, i);
-		if (!cstr->pending_seg_switch) continue;
-		cstr->pending_seg_switch = GF_FALSE;
-		GF_FEVT_INIT(evt, GF_FEVT_PLAY_HINT, cstr->opid);
-		evt.play.forced_dash_segment_switch = GF_TRUE;
-		gf_filter_pid_send_event(cstr->opid, &evt);
-	}
-}
-
 static Bool cenc_dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_FilterPid *ipid;
@@ -2419,15 +2399,6 @@ static Bool cenc_dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		is_play = GF_TRUE;
-		break;
-	case GF_FEVT_PLAY_HINT:
-		//dashin's end-of-segment hint must not overtake the segment packets still queued here, or tileagg flushes incomplete frames
-		if (evt->play.forced_dash_segment_switch) {
-			cstr->pending_seg_switch = GF_TRUE;
-			cenc_dec_flush_seg_switch(ctx);
-			return GF_TRUE;
-		}
-		break;
 	case GF_FEVT_STOP:
 		if (cstr->is_cenc || cstr->is_cbc) {
 			cenc_dec_access_cenc(ctx, cstr, is_play);
@@ -2461,7 +2432,6 @@ static GF_Err cenc_dec_process(GF_Filter *filter)
 		GF_CENCDecStream *cstr = gf_list_get(ctx->streams, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(cstr->ipid);
 		if (!pck) {
-			cenc_dec_flush_seg_switch(ctx);
 			if (gf_filter_pid_is_eos(cstr->ipid)) {
 				nb_eos++;
 				gf_filter_pid_set_eos(cstr->opid);
@@ -2487,7 +2457,6 @@ static GF_Err cenc_dec_process(GF_Filter *filter)
 		}
 		gf_filter_pid_drop_packet(cstr->ipid);
 		if (e) return e;
-		cenc_dec_flush_seg_switch(ctx);
 	}
 	if (nb_eos && (nb_eos==count)) return GF_EOS;
 	return GF_OK;

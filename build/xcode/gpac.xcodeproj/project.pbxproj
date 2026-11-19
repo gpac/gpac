@@ -10,6 +10,7 @@
 		3F04FCBC2C9CB179002BC889 /* xml_bin_custom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F04FCBB2C9CB179002BC889 /* xml_bin_custom.c */; };
 		3F5F3F1F2C7EAC5D00C58257 /* id3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F5F3F1E2C7EAC5D00C58257 /* id3.c */; };
 		3FCB22563074195C004E3903 /* av1merge.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FCB22553074195C004E3903 /* av1merge.c */; };
+		A11A51173000000000000001 /* av1split.c in Sources */ = {isa = PBXBuildFile; fileRef = A11A51173000000000000002 /* av1split.c */; };
 		3FDEA5B92D402C0B006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5B82D402C0B006F0673 /* enc_cc.c */; };
 		920100B018D5A444003D1ACA /* arith_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8A18D5A444003D1ACA /* arith_decoder.c */; };
 		920100B118D5A444003D1ACA /* bifs_codec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8B18D5A444003D1ACA /* bifs_codec.c */; };
@@ -563,7 +564,6 @@
 		92F930831A5ADB870072A85C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930811A5ADB870072A85C /* os_file.c */; };
 		92FA79432076687100AE005F /* rewind.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA79422076687100AE005F /* rewind.c */; };
 		92FE596D2088E52900CF0C5A /* dasher.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FE596C2088E52900CF0C5A /* dasher.c */; };
-		A11A51173000000000000001 /* av1split.c in Sources */ = {isa = PBXBuildFile; fileRef = A11A51173000000000000002 /* av1split.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -662,6 +662,7 @@
 		3F04FCBB2C9CB179002BC889 /* xml_bin_custom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = xml_bin_custom.c; sourceTree = "<group>"; };
 		3F5F3F1E2C7EAC5D00C58257 /* id3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id3.c; sourceTree = "<group>"; };
 		3FCB22553074195C004E3903 /* av1merge.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = av1merge.c; path = filters/av1merge.c; sourceTree = "<group>"; };
+		A11A51173000000000000002 /* av1split.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = av1split.c; path = filters/av1split.c; sourceTree = "<group>"; };
 		3FDEA5B82D402C0B006F0673 /* enc_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = filters/enc_cc.c; sourceTree = "<group>"; };
 		9201000018D5A444003D1ACA /* isom_intern.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_intern.c; sourceTree = "<group>"; };
 		9201000118D5A444003D1ACA /* isom_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_read.c; sourceTree = "<group>"; };
@@ -1222,7 +1223,6 @@
 		92F930811A5ADB870072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 		92FA79422076687100AE005F /* rewind.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewind.c; path = filters/rewind.c; sourceTree = "<group>"; };
 		92FE596C2088E52900CF0C5A /* dasher.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dasher.c; path = filters/dasher.c; sourceTree = "<group>"; };
-		A11A51173000000000000002 /* av1split.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = av1split.c; path = filters/av1split.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -3292,7 +3292,9 @@
 					"-lXext",
 					"-lvvenc",
 					"-lcurl",
+					"-lngtcp2_crypto_quictls",
 					"-lnghttp3",
+					"-lngtcp2",
 					"-lcaca",
 				);
 				PRODUCT_NAME = gpac;
@@ -3441,7 +3443,9 @@
 					"-lXext",
 					"-lvvenc",
 					"-lcurl",
+					"-lngtcp2_crypto_quictls",
 					"-lnghttp3",
+					"-lngtcp2",
 					"-lcaca",
 				);
 				PRODUCT_NAME = gpac;
@@ -3590,11 +3594,6 @@
 				);
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				LD_RUNPATH_SEARCH_PATHS = (
-					/usr/local/lib,
-					/opt/local/lib,
-					/opt/homebrew/lib,
-				);
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
@@ -3627,11 +3626,6 @@
 				GCC_PREPROCESSOR_DEFINITIONS = GPAC_CONFIG_DARWIN;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				LD_RUNPATH_SEARCH_PATHS = (
-					/usr/local/lib,
-					/opt/local/lib,
-					/opt/homebrew/lib,
-				);
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -3838,11 +3832,6 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../include;
 				INSTALL_PATH = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					/usr/local/lib,
-					/opt/local/lib,
-					/opt/homebrew/lib,
-				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				OBJROOT = build;
 				ONLY_ACTIVE_ARCH = YES;
@@ -3871,11 +3860,6 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../include;
 				INSTALL_PATH = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					/usr/local/lib,
-					/opt/local/lib,
-					/opt/homebrew/lib,
-				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				OBJROOT = build;
 				ONLY_ACTIVE_ARCH = YES;
