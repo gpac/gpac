@@ -131,9 +131,16 @@ static void anurbs_init(anim_nurbs *nurbs, u32 type, u32 nCtrl, u32 nKnots, Fixe
 	if ((nurbs->p<=0) || (nurbs->p >= nurbs->nknots -1)
 	        || ((nurbs->nweights>0) && (nurbs->npoints != nurbs->nweights)) ) {
 		nurbs->valid = 0;
-	} else {
-		nurbs->valid = 1;
+		return;
 	}
+	u32 i;
+	for (i=1; i<nurbs->nknots; i++) {
+		if (nurbs->knots[i-1]>nurbs->knots[i]) {
+			nurbs->valid = 0;
+			return;
+		}
+	}
+	nurbs->valid = 1;
 }
 
 static void anurbs_basis(anim_nurbs *nurbs, s32 span, Fixed t)
@@ -173,6 +180,7 @@ static s32 anurbs_find_span(anim_nurbs *nurbs, Fixed u)
 	return span;
 #else
 	s32 low, high, mid;
+	u32 iter=0;
 	if (u == nurbs->knots[nurbs->npoints]) return nurbs->npoints - 1;
 	low = nurbs->p;
 	high = nurbs->npoints;
@@ -182,6 +190,8 @@ static s32 anurbs_find_span(anim_nurbs *nurbs, Fixed u)
 		if (u < nurbs->knots[mid]) high = mid;
 		else low = mid;
 		mid = (low + high)/2;
+		iter++;
+		if (iter>nurbs->nknots) break;
 	}
 	return (mid);
 
