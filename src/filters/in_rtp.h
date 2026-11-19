@@ -62,7 +62,7 @@ typedef struct
 {
 	//opts
 	char *src;
-	u32 firstport, ttl, satip_port;
+	u32 firstport, ttl, satip_port, idelay;
 	const char *ifce, *force_mcast, *user_agent, *languages;
 	Bool use_client_ports;
 	u32 bandwidth, reorder_len, reorder_delay, nat_keepalive, block_size;
@@ -80,6 +80,7 @@ typedef struct
 
 	GF_Filter *filter;
 
+	u32 start_time;
 	/*the service we're responsible for*/
 	GF_FilterPid *ipid;
 	u32 sdp_url_crc;

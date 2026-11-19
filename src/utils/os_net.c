@@ -537,7 +537,12 @@ static struct addrinfo *gf_sk_get_ipv6_addr(const char *PeerName, u16 PortNumber
 		node[MAX_PEER_NAME_LEN - 1] = 0;
 		dest = (char *) node;
 	}
-	if (getaddrinfo((const char *)dest, (const char *)service, &hints, &res) != 0) return NULL;
+	int e = getaddrinfo((const char *)dest, (const char *)service, &hints, &res);
+	if (e != 0) {
+		if (res)
+			freeaddrinfo(res);
+		return NULL;
+	}
 	return res;
 }
 
@@ -2335,7 +2340,15 @@ GF_Err gf_sk_connect_ex(GF_Socket *sock, const char *PeerName, u16 PortNumber, c
 					return GF_IP_NETWORK_EMPTY;
 				}
 			}
-			sock_close(sock);
+#if defined(WIN32) || defined(_WIN32_WCE)
+			if (err != WSAEAFNOSUPPORT)
+#else
+			if (err != EAFNOSUPPORT) // for quic: prevents closing pre-bound socket
+#endif
+			{
+				sock_close(sock);
+			}
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Sock_IPV6] Failed to connect to host %s: %s (%d) - retrying with next host address\n", PeerName, gf_errno_str(err), err ));
 			continue;
 		}
@@ -2657,13 +2670,20 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 #endif
 		{
 			ret = bind(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
+			int err = LASTSOCKERROR; // save it here as sock_close() might reset it (windows)
+#ifdef WIN32
+			int err_EADDRINUSE = WSAEADDRINUSE;
+#else
+			int err_EADDRINUSE = EADDRINUSE;
+#endif
 			if (ret == SOCKET_ERROR) {
 				if (dst_sock_addr && *dst_sock_addr) {
 					gf_free(*dst_sock_addr);
 					*dst_sock_addr = NULL;
 				}
 				sock_close(sock);
-				if (!(options & GF_SOCK_REUSE_PORT) && (LASTSOCKERROR == EADDRINUSE)) {
+				if (!(options & GF_SOCK_REUSE_PORT) && (err == err_EADDRINUSE)) {
+					freeaddrinfo(res);
 					return GF_IP_CONNECTION_FAILURE;
 				}
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] bind failed: %s\n", gf_errno_str(LASTSOCKERROR) ));
@@ -2756,8 +2776,14 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 #endif
 	{
 		ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, (int) addrlen);
+		int err = LASTSOCKERROR;
+#ifdef WIN32
+		int err_EADDRINUSE = WSAEADDRINUSE;
+#else
+		int err_EADDRINUSE = EADDRINUSE;
+#endif
 		if (ret == SOCKET_ERROR) {
-			if (!(options & GF_SOCK_REUSE_PORT) && (LASTSOCKERROR == EADDRINUSE)) {
+			if (!(options & GF_SOCK_REUSE_PORT) && (err == err_EADDRINUSE)) {
 				if (src_sock_addr && *src_sock_addr) {
 					gf_free(*src_sock_addr);
 					*src_sock_addr = NULL;
@@ -4444,22 +4470,15 @@ GF_Err gf_sk_probe(GF_Socket *sock)
 	//peek message
 	res = (s32) recv(sock->socket, buffer, 1, MSG_PEEK);
 	if (res > 0) return GF_OK;
-#if 0
-	res = LASTSOCKERROR;
-	switch (res) {
-	case 0:
-	case EAGAIN:
-	case EINTR:
-		return GF_IP_NETWORK_EMPTY;
-	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] probe error: %s\n", gf_errno_str(res)));
-		return GF_IP_CONNECTION_CLOSED;
-	}
-#else
-	return GF_IP_CONNECTION_CLOSED;
+
+#ifdef WIN32
+	/* UDP recv(MSG_PEEK) with 1-byte buffer returns WSAEMSGSIZE for any
+	   datagram > 1 byte — data IS available, not a connection error */
+	if (LASTSOCKERROR == WSAEMSGSIZE) return GF_OK;
 #endif
 
-	return GF_OK;
+	return GF_IP_CONNECTION_CLOSED;
+
 }
 
 

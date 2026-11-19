@@ -88,12 +88,26 @@ LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegra
 LIBGPAC_CRYPTO=
 ifeq ($(DISABLE_CRYPTO),no)
 LIBGPAC_CRYPTO+=crypto/g_crypt.o
-ifeq ($(HAS_OPENSSL), no)
-LIBGPAC_CRYPTO+=crypto/g_crypt_tinyaes.o crypto/tiny_aes.o
-else
+
+## openssl
+ifneq ($(HAS_OPENSSL), no)
 LIBGPAC_CRYPTO+=crypto/g_crypt_openssl.o
 endif
+
+## gnutls
+ifneq ($(HAS_GNUTLS), no)
+LIBGPAC_CRYPTO+=crypto/g_crypt_gnutls.o
 endif
+
+# neither => tinyaes
+ifeq ($(HAS_OPENSSL), no)
+ifeq ($(HAS_GNUTLS), no)
+LIBGPAC_CRYPTO+=crypto/g_crypt_tinyaes.o crypto/tiny_aes.o
+endif
+endif
+
+endif
+
 
 LIBGPAC_EVG=evg/ftgrays.o evg/raster3d.o evg/raster_565.o evg/raster_argb.o evg/raster_rgb.o evg/raster_yuv.o evg/stencil.o evg/surface.o
 
@@ -374,6 +388,12 @@ media_tools/img.o: CFLAGS += $(jpeg_cflags) $(zlib_cflags) $(png_cflags)
 media_tools/img.o: media_tools/img.c
 .deps/media_tools/img.dep: CFLAGS += $(jpeg_cflags) $(zlib_cflags) $(png_cflags)
 
+
+ietf/rtsp_session.o: CFLAGS += $(ssl_cflags)
+ietf/rtsp_session.o: ietf/rtsp_session.c
+.deps/ietf/rtsp_session.dep: CFLAGS += $(ssl_cflags)
+
+
 ifeq ($(CONFIG_DARWIN),yes)
 
 downloader: CFLAGS := $(ngtcp2_cflags) $(nghttp3_cflags) $(nghttp2_cflags) $(ssl_cflags) $(CFLAGS)
@@ -392,6 +412,9 @@ crypto/g_crypt_openssl.o: CFLAGS += $(ssl_cflags)
 crypto/g_crypt_openssl.o: crypto/g_crypt_openssl.c
 .deps/crypto/g_crypt_openssl.dep: CFLAGS += $(ssl_cflags)
 
+crypto/g_crypt_gnutls.o: CFLAGS += $(ssl_cflags)
+crypto/g_crypt_gnutls.o: crypto/g_crypt_gnutls.c
+.deps/crypto/g_crypt_gnutls.dep: CFLAGS += $(ssl_cflags)
 
 ../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) downloader compositor scenegraph media_tools crypto filters filters_ffmpeg filters_libcaption filters_mpeghdec filters_ohevc jsmods $(OBJS)
 #	@echo "OBJS $(OBJS)"

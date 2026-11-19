@@ -53,7 +53,11 @@ struct _gf_crypt_context
 };
 
 #ifdef GPAC_HAS_SSL
+#ifdef GPAC_HAS_GNUTLS
+GF_Err gf_crypt_open_gnutls(GF_Crypt* td, GF_CRYPTO_MODE mode);
+#else
 GF_Err gf_crypt_open_open_openssl(GF_Crypt* td, GF_CRYPTO_MODE mode);
+#endif
 #else
 GF_Err gf_crypt_open_open_tinyaes(GF_Crypt* td, GF_CRYPTO_MODE mode);
 #endif

@@ -26,7 +26,7 @@
 
 #include <gpac/internal/crypt_dev.h>
 
-#ifdef GPAC_HAS_SSL
+#if defined(GPAC_HAS_SSL) && !defined(GPAC_HAS_GNUTLS)
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 #include <openssl/modes.h>
@@ -57,7 +57,7 @@ GF_Err gf_crypt_init_openssl_cbc(GF_Crypt* td, void *key, const void *iv)
 		ctx->use_evp = gf_opts_get_bool("core", "no-evp") ? GF_FALSE : GF_TRUE;
 		td->context = ctx;
 	}
-	
+
 	if (iv != NULL) {
 		memcpy(ctx->previous_ciphertext, iv, AES_BLOCK_SIZE);
 	}
@@ -472,4 +472,3 @@ GF_Err gf_crypt_open_open_openssl(GF_Crypt* td, GF_CRYPTO_MODE mode)
 }
 
 #endif
-

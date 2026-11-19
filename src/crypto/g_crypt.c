@@ -35,7 +35,11 @@ GF_Crypt *gf_crypt_open(GF_CRYPTO_ALGO algorithm, GF_CRYPTO_MODE mode)
 	if (td == NULL) return NULL;
 
 #ifdef GPAC_HAS_SSL
+#ifdef GPAC_HAS_GNUTLS
+	e = gf_crypt_open_gnutls(td, mode);
+#else
 	e = gf_crypt_open_open_openssl(td, mode);
+#endif
 #else
 	e = gf_crypt_open_open_tinyaes(td, mode);
 #endif
