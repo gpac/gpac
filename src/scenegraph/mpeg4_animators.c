@@ -188,7 +188,7 @@ static s32 anurbs_find_span(anim_nurbs *nurbs, Fixed u)
 #endif
 }
 
-static SFVec3f anurbs_get_vec3f(anim_nurbs *nurbs, s32 span, SFVec3f *pts)
+static SFVec3f anurbs_get_vec3f(anim_nurbs *nurbs, s32 span, SFVec3f *pts, u32 nb_pts)
 {
 	SFVec3f res, tmp;
 	Fixed w, wi;
@@ -197,6 +197,9 @@ static SFVec3f anurbs_get_vec3f(anim_nurbs *nurbs, s32 span, SFVec3f *pts)
 	res = tmp;
 	w=0;
 	for(i=0; i<=nurbs->p; i++) {
+		u32 idx = span - nurbs->p + i;
+		if (idx>=nb_pts)
+			break;
 		tmp = pts[span - nurbs->p + i];
 		if (nurbs->nweights>0) {
 			wi = nurbs->weights[span - nurbs->p + i];
@@ -448,7 +451,7 @@ static void PA_SetFraction(GF_Node *node, GF_Route *route)
 		/*evaluate*/
 		i = anurbs_find_span(&stack->anurbs, frac);
 		anurbs_basis(&stack->anurbs, i, frac);
-		pa->value_changed = anurbs_get_vec3f(&stack->anurbs, i, pa->keyValue.vals);
+		pa->value_changed = anurbs_get_vec3f(&stack->anurbs, i, pa->keyValue.vals, pa->keyValue.count);
 		break;
 	/*not supported*/
 	case ANIM_SPLINE:
