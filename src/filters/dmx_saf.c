@@ -153,16 +153,32 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 					gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 					gf_filter_pid_set_property(st->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
 				}
+				gf_list_add(ctx->streams, st);
 
 				/*bufferSizeDB = */gf_bs_read_u16(bs);
+				if (au_size<7) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SAF] Invalid SAF AU"));
+					gf_bs_del(bs);
+					return;
+				}
 				au_size -= 7;
 				if ((oti == 0xFF) && (stype == 0xFF) ) {
 					u16 mimeLen = gf_bs_read_u16(bs);
+					if (au_size <  (u32) mimeLen + 2) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SAF] Invalid SAF AU"));
+						gf_bs_del(bs);
+						return;
+					}
 					gf_bs_skip_bytes(bs, mimeLen);
 					au_size -= mimeLen+2;
 				}
 				if (type==7) {
 					u16 urlLen = gf_bs_read_u16(bs);
+					if (au_size < (u32) urlLen + 2) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SAF] Invalid SAF AU"));
+						gf_bs_del(bs);
+						return;
+					}
 					char *url_string = (char*)gf_malloc(sizeof(char)*(urlLen+1));
 					gf_bs_read_data(bs, url_string, urlLen);
 					url_string[urlLen] = 0;
@@ -174,7 +190,6 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 					gf_bs_read_data(bs, dsi, au_size);
 					gf_filter_pid_set_property(st->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, au_size) );
 				}
-				gf_list_add(ctx->streams, st);
 			}
 			break;
 		case 4:
