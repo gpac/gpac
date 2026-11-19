@@ -9612,7 +9612,7 @@ void txtc_box_del(GF_Box *s)
 GF_Err txtc_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TextConfigBox *ptr = (GF_TextConfigBox*)s;
-	if ((u32)ptr->size >= (u32)0xFFFFFFFF) {
+	if (ptr->size >= (u32)0xFFFFFFFF) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size "LLU" in txtc box\n", ptr->size));
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -14938,7 +14938,7 @@ void svhd_box_del(GF_Box *s)
 GF_Err svhd_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SphericalVideoInfoBox *ptr = (GF_SphericalVideoInfoBox *)s;
-	if ((u32)ptr->size >= (u32)0xFFFFFFFF) {
+	if (ptr->size >= GF_UINT_MAX) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size "LLU" in svhd box\n", ptr->size));
 		return GF_ISOM_INVALID_FILE;
 	}
