@@ -1718,7 +1718,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 							// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.10 b_presentation_channel_coded indicates if the presentation is channel-based (1) or object-based (0)
 							if (p->b_presentation_channel_coded == 1) {
 								ds->ac4_content_type = AC4_CHANNEL_BASED_CONTENT;
-								if (p->dsi_presentation_ch_mode == 15 ||
+								if (p->immersive_audio_indicator || p->dsi_presentation_ch_mode == 15 ||
 									(p->dsi_presentation_ch_mode >= 11 && p->dsi_presentation_ch_mode <= 14 && p->pres_top_channel_pairs > 0)) {
 									ds->ac4_content_type = AC4_CHANNEL_BASED_IMMERSIVE_CONTENT;
 								}

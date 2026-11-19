@@ -1748,7 +1748,6 @@ typedef struct {
 	GF_AC4BedChannelAssignment u_bed_dyn_obj;
 	// ac4_substream_info_chan
 	u32 ch_mode;
-	u32 channel_mode;
 	// ac4_substream_info_obj & substream_info_ajoc
 	u32 n_objs;
 	u32 obj_types[GF_AC4_MAX_NUM_OBJECTS];
