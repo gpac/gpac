@@ -79,7 +79,7 @@ Bool gf_ssl_check_cert(void * ssl, const char *server_name);
 
 #endif
 
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 
 typedef struct __gf_quic_server GF_QuicServer;
 GF_Err gf_dm_quic_server_new(GF_DownloadManager *dm, void *ssl_ctx, GF_QuicServer **oq, const char *ip, u32 port, const char *netcap_id,
@@ -91,6 +91,8 @@ GF_Socket *gf_dm_quic_get_socket(GF_QuicServer *qs);
 GF_Err gf_dm_quic_process(GF_QuicServer *qs);
 GF_Err gf_dm_quic_verify(GF_QuicServer *qs);
 void gf_dm_sess_set_callback(GF_DownloadSession *sess, gf_dm_user_io user_io, void *usr_cbk);
+/* Return the next wake delay in microseconds, or -1 if none is requested. */
+s32 gf_dm_quic_next_wake(GF_QuicServer *qs);
 #endif
 
 #endif //_DOWNLOADER_EXP_H_

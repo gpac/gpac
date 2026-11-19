@@ -2347,6 +2347,12 @@ GF_Err gf_dm_quic_verify(GF_QuicServer *qs)
 	return e;
 }
 
+s32 gf_dm_quic_next_wake(GF_QuicServer *qs)
+{
+	(void) qs;
+	return -1;
+}
+
 GF_Err h3_check_sess(GF_DownloadSession *sess)
 {
 	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;

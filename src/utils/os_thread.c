@@ -513,6 +513,7 @@ struct __tag_mutex
 	ONCE the mutex. Holder is the current ThreadID of the mutex holder*/
 	volatile u32 Holder;
 	u32 HolderCount;
+	volatile s32 ref_count;
 #ifndef GPAC_DISABLE_LOG
 	char *log_name;
 	Bool nolog;
@@ -531,6 +532,7 @@ GF_Mutex *gf_mx_new(const char *name)
 	GF_Mutex *tmp = (GF_Mutex*)gf_malloc(sizeof(GF_Mutex));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_Mutex));
+	tmp->ref_count = 1;
 
 #ifdef WIN32
 	tmp->hMutex = CreateMutex(NULL, FALSE, NULL);
@@ -561,12 +563,19 @@ GF_Mutex *gf_mx_new(const char *name)
 
 
 GF_EXPORT
+void gf_mx_ref(GF_Mutex *mx)
+{
+	if (mx) safe_int_inc(&mx->ref_count);
+}
+
+GF_EXPORT
 void gf_mx_del(GF_Mutex *mx)
 {
 #ifndef WIN32
 	int err;
 #endif
 	if (!mx) return;
+	if (safe_int_dec(&mx->ref_count) != 0) return;
 #ifndef GPAC_DISABLE_LOG
 	if (mx->Holder && (gf_th_id() != mx->Holder) && mx->log_name) {
 		char szName1[100], szName2[100];

@@ -335,6 +335,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mx_p) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mx_try_lock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mx_get_num_locks) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mx_ref) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_notify) )

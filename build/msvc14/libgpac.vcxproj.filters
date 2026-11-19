@@ -1034,6 +1034,9 @@
     <ClCompile Include="..\..\src\utils\downloader_ngtcp2.c">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_picoquic.c">
+      <Filter>utils</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\utils\downloader_ssl.c">
       <Filter>utils</Filter>
     </ClCompile>

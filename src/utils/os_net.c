@@ -2277,10 +2277,8 @@ GF_Err gf_sk_connect_ex(GF_Socket *sock, const char *PeerName, u16 PortNumber, c
 			if (SOCKET_INVALID(sock->socket)) {
 				continue;
 			}
-			if (sock->flags & GF_SOCK_IS_TCP) {
-				if (sock->flags & GF_SOCK_NON_BLOCKING)
-					gf_sk_set_block_mode(sock, GF_TRUE);
-			}
+			if (sock->flags & GF_SOCK_NON_BLOCKING)
+				gf_sk_set_block_mode(sock, GF_TRUE);
 
 			if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 			else sock->flags &= ~GF_SOCK_IS_IPV6;

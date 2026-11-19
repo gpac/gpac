@@ -586,6 +586,7 @@
     <ClCompile Include="..\..\src\utils\downloader_hmux.c" />
     <ClCompile Include="..\..\src\utils\downloader_nghttp2.c" />
     <ClCompile Include="..\..\src\utils\downloader_ngtcp2.c" />
+    <ClCompile Include="..\..\src\utils\downloader_picoquic.c" />
     <ClCompile Include="..\..\src\utils\downloader_ssl.c" />
     <ClCompile Include="..\..\src\utils\error.c" />
     <ClCompile Include="..\..\src\utils\gltools.c" />

@@ -101,8 +101,7 @@ typedef SSIZE_T ssize_t;
 #define GF_DOWNLOAD_BUFFER_SIZE		50000
 #define GF_DOWNLOAD_BUFFER_SIZE_LIMIT_RATE		GF_DOWNLOAD_BUFFER_SIZE/20
 
-
-#if defined(GPAC_HAS_HTTP2) || defined(GPAC_HAS_NGTCP2)
+#if defined(GPAC_HAS_HTTP2) || defined(GPAC_HAS_QUIC)
 #define GPAC_HTTPMUX
 #endif
 
@@ -129,6 +128,7 @@ typedef struct _http_mux_session
 	GF_List *sessions;
 	GF_DownloadSession *net_sess;
 	GF_Mutex *mx;
+	Bool shared_mx; /* true when the transport and its sessions share mutex ownership (picoquic) */
 	Bool copy;
 	Bool connected;
 
@@ -532,6 +532,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess);
 #ifdef GPAC_HTTPMUX
 GF_DownloadSession *hmux_get_session(void *user_data, s64 stream_id, Bool can_reassign);
 void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess);
+void hmux_detach_session_ex(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess, Bool defer_shared_mx);
 //get data from hmux session
 void hmux_fetch_data(GF_DownloadSession *sess, u8 *obuffer, u32 size, u32 *nb_bytes);
 //call gf_dm_data_received with local hmux buffer and set it to 0
@@ -547,7 +548,7 @@ void http2_set_upgrade_headers(GF_DownloadSession *sess);
 GF_Err http2_do_upgrade(GF_DownloadSession *sess, const char *body, u32 body_len);
 #endif
 
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 GF_Err http3_connect(GF_DownloadSession *sess, char *server, u32 server_port);
 #endif
 
