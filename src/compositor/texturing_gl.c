@@ -199,10 +199,13 @@ void gf_sc_texture_cleanup_hw(GF_Compositor *compositor)
 
 GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {
+	//always mark raster (2D) and hw (3D) load as pending, otherwise the 2D raster stencil
+	//would keep a dangling pointer to the previous data (cf gf_sc_texture_push_image)
+	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
+
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	u8 *data=NULL;
 	GF_FilterFrameInterface *fifce = txh->frame_ifce;
-	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
 
 	data = txh->data;
 	//10->8 bit conversion
