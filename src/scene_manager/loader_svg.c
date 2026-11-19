@@ -366,7 +366,8 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 		/* if now we have a target, create the xlink:href attribute on the animation element and set it to the found target */
 		if (anim->target) {
 			XMLRI *iri;
-			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_XLINK_ATT_href, GF_TRUE, GF_FALSE, &info);
+			if (gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_XLINK_ATT_href, GF_TRUE, GF_FALSE, &info))
+				return GF_FALSE;
 			iri = (XMLRI *)info.far_ptr;
 			iri->type = XMLRI_ELEMENTID;
 			iri->target = anim->target;
@@ -376,7 +377,8 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 		tag = gf_node_get_tag((GF_Node *)anim->animation_elt);
 		/* get the attribute name attribute if specified */
 		if (anim->type && (tag== TAG_SVG_animateTransform) ) {
-			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_transform_type, GF_TRUE, GF_FALSE, &info);
+			if (gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_transform_type, GF_TRUE, GF_FALSE, &info))
+				return GF_FALSE;
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->type, 0);
 			switch(*(SVG_TransformType *) info.far_ptr) {
 			case SVG_TRANSFORM_TRANSLATE:
@@ -449,7 +451,8 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 
 		if (anim->to) {
 			/* now that we have a target, if there is a to value to parse, create the attribute and parse it */
-			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_to, GF_TRUE, GF_FALSE, &info);
+			if (gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_to, GF_TRUE, GF_FALSE, &info))
+				return GF_FALSE;
 			if (!info.name) info.name = "to";
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->to, anim_value_type);
 			if (anim_value_type==XMLRI_datatype) {
@@ -458,7 +461,8 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 		}
 		if (anim->from) {
 			/* now that we have a target, if there is a from value to parse, create the attribute and parse it */
-			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_from, GF_TRUE, GF_FALSE, &info);
+			if (gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_from, GF_TRUE, GF_FALSE, &info))
+				return GF_FALSE;
 			if (!info.name) info.name = "from";
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->from, anim_value_type);
 			if (anim_value_type==XMLRI_datatype)
@@ -466,7 +470,8 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 		}
 		if (anim->by) {
 			/* now that we have a target, if there is a by value to parse, create the attribute and parse it */
-			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_by, GF_TRUE, GF_FALSE, &info);
+			if (gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_by, GF_TRUE, GF_FALSE, &info))
+				return GF_FALSE;
 			if (!info.name) info.name = "by";
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->by, anim_value_type);
 			if (anim_value_type==XMLRI_datatype)
@@ -474,7 +479,8 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 		}
 		if (anim->values) {
 			/* now that we have a target, if there is a 'values' value to parse, create the attribute and parse it */
-			gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_values, GF_TRUE, GF_FALSE, &info);
+			if (gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_values, GF_TRUE, GF_FALSE, &info))
+				return GF_FALSE;
 			if (!info.name) info.name = "values";
 			gf_svg_parse_attribute((GF_Node *)anim->animation_elt, &info, anim->values, anim_value_type);
 			if (anim_value_type==XMLRI_datatype) {
@@ -494,7 +500,8 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 	if (anim->resolve_stage == 1) {
 		/* Stage 1: parsing the begin values
 					we go into the next stage only if at least one begin value is resolved */
-		gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_begin, GF_TRUE, GF_FALSE, &info);
+		if (gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_begin, GF_TRUE, GF_FALSE, &info))
+			return GF_FALSE;
 		if (gf_svg_resolve_smil_times((GF_Node *)anim->animation_elt, anim->target, *(GF_List **)info.far_ptr, GF_FALSE, nodeID)) {
 			anim->resolve_stage = 2;
 		} else if (force_type!=2) {
@@ -502,7 +509,8 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 		}
 	}
 
-	gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_end, GF_TRUE, GF_FALSE, &info);
+	if (gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_end, GF_TRUE, GF_FALSE, &info))
+		return GF_FALSE;
 	if (!gf_svg_resolve_smil_times((GF_Node *)anim->animation_elt, anim->target, *(GF_List **)info.far_ptr, GF_TRUE, nodeID)) {
 		if (force_type!=2) return GF_FALSE;
 	}
