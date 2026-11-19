@@ -69,6 +69,7 @@ enum
 Fixed do_bisection(Fixed t, SFVec2f a, SFVec2f b, SFVec2f c, SFVec2f d)
 {
 	Fixed left, right, usearch, tsearch, limit;
+	u32 iter = 0;
 	left = 0;
 	right = FIX_ONE;
 	limit = FIX_ONE/1000;
@@ -78,6 +79,8 @@ Fixed do_bisection(Fixed t, SFVec2f a, SFVec2f b, SFVec2f c, SFVec2f d)
 		tsearch = gf_mulfix(usearch, c.x + gf_mulfix(usearch, b.x + gf_mulfix(usearch, a.x))) + d.x;
 		if (t < tsearch + limit) right = usearch;
 		else left = usearch;
+		/*the interval halves each pass so 32 iterations exhaust the arithmetic precision - bail out with the best estimate*/
+		if (++iter > 32) break;
 	} while ((t > tsearch + limit) || (t<tsearch - limit));
 	return gf_mulfix(usearch, c.y + gf_mulfix(usearch, b.y + gf_mulfix(usearch , a.y))) + d.y;
 }
@@ -302,6 +305,7 @@ static void Anim_Destroy(GF_Node *node, void *rs, Bool is_destroy)
 static void Animator_Update(AnimatorStack *stack, u32 keyValueType, u32 nCtrl, MFVec2f *keySpline, u32 nWeight, Fixed *weights)
 {
 	if (stack->anim_type==ANIM_SPLINE) {
+		if (!keySpline->count) return;
 		stack->a.x = (keySpline->vals[0].x - keySpline->vals[1].x)*3 + FIX_ONE;
 		stack->a.y = (keySpline->vals[0].y - keySpline->vals[1].y)*3 + FIX_ONE;
 		stack->b.x = (keySpline->vals[1].x - 2*keySpline->vals[0].x)*3;
@@ -430,6 +434,7 @@ static void PA_SetFraction(GF_Node *node, GF_Route *route)
 		default:
 			return;
 		}
+		if (i+1>=pa->keyValue.count) return;
 		/*interpolate*/
 		pa->value_changed.x = Interpolate(pa->keyValue.vals[i].x, pa->keyValue.vals[i+1].x, frac);
 		pa->value_changed.y = Interpolate(pa->keyValue.vals[i].y, pa->keyValue.vals[i+1].y, frac);
