@@ -6228,6 +6228,9 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 	if (ctx->dash_mode) {
 		//send event on first track only
 		tkw = gf_list_get(ctx->tracks, 0);
+		//may happend if we got a pid_delete
+		if (!tkw) return;
+
 		GF_FEVT_INIT(evt, GF_FEVT_SEGMENT_SIZE, tkw->ipid);
 		evt.seg_size.seg_url = NULL;
 		evt.seg_size.is_init = is_init ? 1 : 0;
@@ -8209,6 +8212,8 @@ static GF_Err mp4_mux_on_data_patch(void *cbk, u8 *data, u32 block_size, u64 fil
 {
 	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) cbk;
 	u8 *output;
+	if (!ctx->opid)
+		return GF_IO_ERR;
 
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, block_size, &output);
 	if (!pck) return GF_OUT_OF_MEM;
@@ -8271,6 +8276,8 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) cbk;
 	u8 *output;
 	u32 src_pck_dur=0;
+	if (!ctx->opid)
+		return GF_IO_ERR;
 
 	ctx->total_bytes_out += block_size;
 
