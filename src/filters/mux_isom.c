@@ -6308,7 +6308,12 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		const GF_PropertyValue *p;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		GF_FilterPacket *pck;
-		if (tkw->fake_track) continue;
+		if (tkw->fake_track) {
+			//fake tracks (tile tracks declared in the tile base init) never get packets here: write their protected sample entry now
+			if (tkw->cenc_state==CENC_NEED_SETUP)
+				mp4_mux_cenc_update(ctx, tkw, NULL, CENC_CONFIG, 0, 0);
+			continue;
+		}
 
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		if (!pck) {
