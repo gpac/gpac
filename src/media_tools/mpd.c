@@ -5377,7 +5377,8 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 	GF_MPD_ProgramInfo *info;
 	char *text;
 
-	if (mpd_skip_serialization(mpd))
+	//when writing the context, serialize all periods even if nothing is ready for a client yet
+	if (!mpd->write_context && mpd_skip_serialization(mpd))
 		return GF_NOT_READY;
 
 	if (!mpd->xml_namespace) {
