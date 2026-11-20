@@ -94,6 +94,7 @@ libgpac_cflags=""
 libgpac_extralibs=""
 static_build="no"
 static_bin="no"
+allow_dyn="no"
 unit_tests="no"
 static_modules="no"
 lm_lib=""
@@ -403,7 +404,8 @@ GPAC build options:
   --enable-afl-clang       enable instrumentation for American Fuzzy Lop using afl-clang(++)
   --disable-opt            disable GCC optimizations
   --static-build           link statically against libgpac but still allow dependencies to shared libraries (enable --static-modules)
-  --static-bin             enable static linking of MP4Box and gpac only (will enable --static-build), disable all libraries not linkable statically.
+  --static-bin             enable static linking of MP4Box and gpac only (will enable --static-build), auto-disable all libraries not linkable statically.
+  --allow-dyn              with --static-bin, keep libraries not linkable statically as dynamic dependencies rather than disabling them [default=no]
   --unittests              enable unit tests [default=no]
   --sdl-cfg=SDL_PATH       specify path to sdl-config for local install [$sdl_path]
   --enable-sdl-static      use static SDL linking [default=no]
@@ -672,6 +674,8 @@ for opt do
             ;;
         --static-bin) static_bin="yes"
             ;;
+        --allow-dyn) allow_dyn="yes"
+            ;;
         --static-mp4box) echo "$opt deprecated, use --static-bin instead"
             static_bin="yes"
             ;;
@@ -921,12 +925,19 @@ fi
 
 if test "$static_bin" = "yes" ; then
 pkg_config="${pkg_config} --static"
-if test "$darwin" != "yes" ; then
+#with --allow-dyn we cannot use a global -static link since some dependencies may stay dynamic,
+#static linking is then enforced per-package through resolve_static_ldflags
+if test "$darwin" != "yes" -a "$allow_dyn" != "yes" ; then
   LDFLAGS="-static $LDFLAGS"
 fi
 else
+if test "$allow_dyn" = "yes" ; then
+  echo "--allow-dyn only makes sense with --static-bin, ignoring"
+  allow_dyn="no"
+fi
 pkg_config="${pkg_config}"
 fi
+
 
 #check pkg_config
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
@@ -1118,6 +1129,15 @@ EOF
     *) ;;
 esac
 
+#platforms or modes where the global -static flag is not used: static linking of packages is
+#checked and enforced by resolving each library to its static archive at detection time
+static_resolve_pkgs="no"
+if test "$static_bin" = "yes" ; then
+ if test "$darwin" = "yes" -o "$allow_dyn" = "yes" ; then
+  static_resolve_pkgs="yes"
+ fi
+fi
+
 
 
 
@@ -1171,9 +1191,23 @@ dolog() {
  return $rv;
 }
 
+#with -static on glibc, calls like getaddrinfo or dlopen link fine but emit a warning
+#and will fail at runtime if the shared glibc is absent - treat this as a link failure
+check_static_runtime_warn() {
+ if test "$static_bin" = "yes" ; then
+  if grep -q "requires at runtime the shared libraries" $TMPL 2>/dev/null ; then
+   echo "*** Static link check failed: binary would require shared libraries at runtime">>$logs
+   echo "">>$logs
+   return 1
+  fi
+ fi
+ return 0
+}
+
 docc() {
  $cc -o $TMPO $TMPC $@ 0>/dev/null 2>$TMPL
- dolog $@
+ dolog $@ || return 1
+ check_static_runtime_warn
 }
 
 
@@ -1181,7 +1215,67 @@ docxx() {
  #for logs
  cat $TMPCXX > $TMPC
  $cxx -o $TMPO $TMPCXX $@ 0>/dev/null 2>$TMPL
- dolog $@
+ dolog $@ || return 1
+ check_static_runtime_warn
+}
+
+#On platforms where -static cannot be used (OSX), the linker always prefers dynamic libraries,
+#so a successful link test says nothing about static linkability.
+#Rewrite each -lfoo located in an explicit -L dir (ie non-system library) to the full path of
+#its static archive libfoo.a. If such a library only exists in dynamic form, fail.
+#Libraries not present in any explicit -L dir are system ones and are kept as is.
+#sets static_resolve_ok (yes/no) and static_resolved_ldflags
+resolve_static_ldflags ()
+{
+    static_resolve_ok="yes"
+    static_resolved_ldflags=""
+    srl_dirs="$prefix/$libdir"
+    for srl_f in "$@" ; do
+        case "$srl_f" in
+        -L*) srl_dirs="$srl_dirs ${srl_f#-L}" ;;
+        esac
+    done
+    srl_skip_next="no"
+    for srl_f in "$@" ; do
+        if test "$srl_skip_next" = "yes" ; then
+            srl_skip_next="no"
+            static_resolved_ldflags="$static_resolved_ldflags $srl_f"
+            continue
+        fi
+        case "$srl_f" in
+        -framework)
+            srl_skip_next="yes"
+            static_resolved_ldflags="$static_resolved_ldflags $srl_f"
+            ;;
+        -l*)
+            srl_name=${srl_f#-l}
+            srl_static=""
+            srl_dyn=""
+            for srl_d in $srl_dirs ; do
+                if test -f "$srl_d/lib$srl_name.a" ; then
+                    srl_static="$srl_d/lib$srl_name.a"
+                    break
+                fi
+                if test "$srl_dyn" = "" ; then
+                    if test -f "$srl_d/lib$srl_name.dylib" -o -f "$srl_d/lib$srl_name.so" ; then
+                        srl_dyn="$srl_d"
+                    fi
+                fi
+            done
+            if test "$srl_static" != "" ; then
+                static_resolved_ldflags="$static_resolved_ldflags $srl_static"
+            elif test "$srl_dyn" != "" ; then
+                echo "*** Static link check: lib$srl_name only available as dynamic library in $srl_dyn">>$logs
+                static_resolve_ok="no"
+                static_resolved_ldflags="$static_resolved_ldflags $srl_f"
+            else
+                #not in any explicit dir: system library, keep as is
+                static_resolved_ldflags="$static_resolved_ldflags $srl_f"
+            fi
+            ;;
+        *) static_resolved_ldflags="$static_resolved_ldflags $srl_f" ;;
+        esac
+    done
 }
 
 #check GCC flags support
@@ -1587,6 +1681,35 @@ config_package ()
         echo "error: $pname requested with --use-$pname=$forced but not found"
         exit 1
     fi
+
+    #static bin without global -static flag: check the package is available as static archives
+    #and relink using them, otherwise disable the package (or keep it dynamic with --allow-dyn)
+    if test "$has_pck" != "no" -a "$has_pck" != "force-no" -a "$static_resolve_pkgs" = "yes" ; then
+        resolve_static_ldflags $pck_ldflags
+        if test "$static_resolve_ok" = "yes" -a "$static_resolved_ldflags" != " $pck_ldflags" ; then
+            if test "$pck_cxx" = "yes" ; then
+                echo "$6" > $TMPCXX
+                docxx $pck_cflags $static_resolved_ldflags $LDFLAGS || static_resolve_ok="no"
+            else
+                echo "$6" > $TMPC
+                docc $pck_cflags $static_resolved_ldflags $LDFLAGS || static_resolve_ok="no"
+            fi
+            if test "$static_resolve_ok" = "yes" ; then
+                pck_ldflags="$static_resolved_ldflags"
+            fi
+        fi
+        if test "$static_resolve_ok" != "yes" ; then
+            if test "$allow_dyn" = "yes" ; then
+                echo "*** Keeping $pname as dynamic library (--allow-dyn)">>$logs
+                echo "$pname not available as static library, keeping dynamic version"
+            else
+                echo "*** Disabling $pname for static binary: no usable static archives">>$logs
+                echo "$pname not available as static library, disabling"
+                has_pck="no"
+            fi
+        fi
+    fi
+
     if test "$has_pck" != "no" ; then
         eval "cflags_$pname=\"$pck_cflags\""
         eval "ldflags_$pname=\"$pck_ldflags\""
@@ -1611,7 +1734,19 @@ check_has_lib ()
     done
 
     echo "$3" > $TMPC
-    if docc $LDFLAGS $2 ; then
+    chl_ldflags="$2"
+    #static bin without global -static flag: refuse dynamic-only non-system libraries unless --allow-dyn
+    if test "$static_resolve_pkgs" = "yes" ; then
+        resolve_static_ldflags $chl_ldflags
+        if test "$static_resolve_ok" = "yes" ; then
+            chl_ldflags="$static_resolved_ldflags"
+        elif test "$allow_dyn" != "yes" ; then
+            echo "*** Disabling $tmpv for static binary: no usable static archives">>$logs
+            eval "has_$tmpv=\"no\""
+            return
+        fi
+    fi
+    if docc $LDFLAGS $chl_ldflags ; then
         has_pck="yes"
     fi
 
@@ -1632,17 +1767,10 @@ if test "$static_bin" = "yes"; then
     static_modules="yes"
     static_build="yes"
 
-    #we cannot use these to produce a static bin, no static lib on most distributions
-    append disabled_packages "openjpeg ffmpeg theora vorbis openhevc freenect platinum"
-
-    #we cannot use openssl vanilla since it is usually built with DSO and requires dlopen
-    append disabled_packages "ssl gnutls nettle"
-    # these need ssl
-    append disabled_packages "nghttp3 ngtcp2 picoquic"
-    #we cannot use ipv6 due to getaddrinfo not being present
-    append disabled_packages "ipv6"
-
-    append disabled_packages "lzma vtb sdl oss alsa jack pulseaudio directfb x11 dvb4linux directx"
+    #no hardcoded package disabling here: each package detection runs its link test with
+    #-static in LDFLAGS (non-darwin), or goes through resolve_static_ldflags (darwin),
+    #so packages not available as static libraries are automatically disabled.
+    #Use --use-PKG=no to manually disable a package.
 fi
 
 if test "$disable_parsers" = "yes" ; then
@@ -2130,8 +2258,9 @@ EOF
 
 fi
 
-#we cannot use openGL to produce a static bin
-if test "$disable_3d" = "no" -a "$static_bin" = "no" ; then
+#on static builds, OpenGL libs are checked like any other: system frameworks on darwin are
+#always dynamic (unavoidable), and the -static link test self-disables GL elsewhere
+if test "$disable_3d" = "no" ; then
     if test "$win32" = "yes" ; then
         if test "$cygwin" = "yes" ; then
             LINK3D="-lw32api/opengl32 -lw32api/glu32"
@@ -2276,6 +2405,32 @@ fi
 esac
 #end SDL check
 
+#static bin without global -static flag: relink SDL from static archives, disable it if not
+#statically available (or keep dynamic with --allow-dyn)
+if test "$has_sdl" = "yes" -a "$static_resolve_pkgs" = "yes" ; then
+    resolve_static_ldflags $sdl_lib_flags
+    if test "$static_resolve_ok" = "yes" ; then
+        cat > $TMPC << EOF
+#include <SDL.h>
+#undef main
+int main( void ) { return SDL_Init (SDL_INIT_VIDEO); }
+EOF
+        if docc $sdl_cflags $LDFLAGS $static_resolved_ldflags ; then
+            sdl_lib_flags="$static_resolved_ldflags"
+        else
+            static_resolve_ok="no"
+        fi
+    fi
+    if test "$static_resolve_ok" != "yes" ; then
+        if test "$allow_dyn" = "yes" ; then
+            echo "SDL not available as static library, keeping dynamic version"
+        else
+            echo "SDL not available as static library, disabling"
+            has_sdl="no"
+        fi
+    fi
+fi
+
 
 #look at endianess
 if test -z "$cross_prefix" -a "$is_em" != "yes" ; then
@@ -2415,7 +2570,11 @@ echo "Unit Tests: $unit_tests ('make unit_tests')"
 echo "#define GF_STATIC static" >> $TMPH
 echo "#define GF_NOT_EXPORTED" >> $TMPH
 if test "$static_bin" = "yes" ; then
-    echo "Static binaries enabled"
+    if test "$allow_dyn" = "yes" ; then
+        echo "Static binaries enabled (dynamic libraries allowed for non-static packages)"
+    else
+        echo "Static binaries enabled"
+    fi
     echo "#define GPAC_STATIC_BIN" >> $TMPH
     echo "#define GPAC_STATIC_BUILD" >> $TMPH
 elif test "$static_build" = "yes" ; then
