@@ -4331,7 +4331,7 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 	return GF_OK;
 }
 
-GF_NOT_EXPORTED void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx)
+void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx)
 {
 	if (!routedmx) return;
 	u32 i, j, count = gf_list_count(routedmx->services);

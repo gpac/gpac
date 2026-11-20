@@ -2,7 +2,10 @@
 #include <gpac/filters.h>
 #include <gpac/isomedia.h>
 
-#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_CRYPTO)
+#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_CRYPTO) \
+    && !defined(GPAC_DISABLE_CDCRYPT) && !defined(GPAC_DISABLE_CECRYPT) \
+    && !defined(GPAC_DISABLE_MP4DMX) && !defined(GPAC_DISABLE_MP4MX)
+
 #define UT_CDCRYPT
 
 #define CENC_NB_SAMPLES 4
@@ -125,5 +128,7 @@ unittest(cdcrypt_kids_keys)
 	gf_file_delete(enc);
 	gf_file_delete(dec);
 	gf_file_delete(cfile);
+#else
+	test_skip("CENC pipeline disabled");
 #endif
 }

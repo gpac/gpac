@@ -3140,4 +3140,3 @@ GF_Err gf_odf_preselection_cfg_del(GF_List *cfg_list)
 
 	return GF_OK;
 }
-

@@ -48,5 +48,7 @@ unittest(piff_default_key_info)
 	assert_equal_mem(returned_key_info, &key_info, sizeof(key_info));
 exit:
 	gf_isom_delete(file);
+#else
+	test_skip("ISO media writing disabled");
 #endif
 }

@@ -30,7 +30,7 @@
 #ifdef GPAC_HTTPMUX
 
 //detach session from parent h2 / h3 session - the session mutex SHALL be grabbed before calling this
-GF_NOT_EXPORTED void hmux_detach_session_ex(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess, Bool defer_mx_release)
+void hmux_detach_session_ex(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess, Bool defer_mx_release)
 {
 	Bool retain_mx = GF_FALSE;
 	if (!hmux_sess || !sess) return;
@@ -103,7 +103,7 @@ GF_NOT_EXPORTED void hmux_detach_session_ex(GF_HMUX_Session *hmux_sess, GF_Downl
 	sess->hmux_sess = NULL;
 	if (!retain_mx) sess->mx = NULL;
 }
-GF_NOT_EXPORTED void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
+void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
 {
 	hmux_detach_session_ex(hmux_sess, sess, GF_FALSE);
 }

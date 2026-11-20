@@ -1,4 +1,7 @@
 #include "tests.h"
+
+#if !defined(GPAC_DISABLE_ISOM)
+
 #include <gpac/internal/isomedia_dev.h>
 
 GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack);
@@ -51,3 +54,8 @@ unittest(stbl_append_size_keeps_valid_packed_sizes)
 		gf_free(stsz.sizes);
 	}
 }
+
+#else
+unittest_disabled(stbl_append_size_rejects_cumulative_overflow, "ISO media disabled")
+unittest_disabled(stbl_append_size_keeps_valid_packed_sizes, "ISO media disabled")
+#endif // !defined(GPAC_DISABLE_ISOM)

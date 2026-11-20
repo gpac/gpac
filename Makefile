@@ -57,7 +57,7 @@ depend:
 	$(MAKE) -C applications dep
 	$(MAKE) -C modules dep
 
-clean: unit_tests_clean
+clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C applications clean
 	$(MAKE) -C modules clean
@@ -81,55 +81,21 @@ man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
 
 
-UT_CFG_PATH:=unittests/build/config
+.PHONY: unit_tests unit_tests_build unit_tests_clean
 
-unit_tests:
+unit_tests_build: version
 ifeq ($(UNIT_TESTS),yes)
-	@echo "Unit Tests:"
-	@echo "- configuring"
-	@mkdir -p unittests/build/bin/gcc
+	$(MAKE) -C src unit_tests
+endif
 
-	@cp config.mak unittests/build/
-	@sed 's|BUILD_PATH=$(BUILD_PATH)|BUILD_PATH=$(BUILD_PATH)/unittests/build|g' config.mak | \
-		sed 's|-I"$(BUILD_PATH)"|-I"$(BUILD_PATH)/unittests/build"|g' > $(UT_CFG_PATH).mak.new
-	@if [ -e $(UT_CFG_PATH).mak ]; then \
-		if ! diff -q $(UT_CFG_PATH).mak $(UT_CFG_PATH).mak.new >/dev/null ; then \
-			mv $(UT_CFG_PATH).mak.new $(UT_CFG_PATH).mak; \
-		fi; \
-	else \
-		mv $(UT_CFG_PATH).mak.new $(UT_CFG_PATH).mak; \
-	fi
-
-	@sed 's/GF_STATIC static/GF_STATIC GF_EXPORT/' config.h > $(UT_CFG_PATH).h.new.tmp
-	@sed 's/GF_NOT_EXPORTED/GF_NOT_EXPORTED GF_EXPORT/' $(UT_CFG_PATH).h.new.tmp > $(UT_CFG_PATH).h.new
-	@rm $(UT_CFG_PATH).h.new.tmp
-	@if [ -e $(UT_CFG_PATH).h ]; then \
-		if ! diff -q $(UT_CFG_PATH).h $(UT_CFG_PATH).h.new >/dev/null ; then \
-			mv $(UT_CFG_PATH).h.new $(UT_CFG_PATH).h; \
-		else \
-			rm $(UT_CFG_PATH).h.new; \
-		fi; \
-	else \
-		mv $(UT_CFG_PATH).h.new $(UT_CFG_PATH).h; \
-	fi
-
-	@$(SRC_PATH)/unittests/build.sh > unittests/build/bin/gcc/unittests.c
-
-	@echo "- building"
-	@cd unittests/build && $(MAKE) -C src && $(MAKE) -C src unit_tests
-
-	@echo "- executing"
-	$(SRC_PATH)/unittests/launch.sh
-
-	@echo "- done"
+unit_tests: unit_tests_build
+ifeq ($(UNIT_TESTS),yes)
+	$(SRC_PATH)/unittests/selftest.sh "$(BUILD_PATH)/bin/gcc/unittests-selftest$(EXE_SUFFIX)"
+	GPAC_UNITTEST_BINARY="$(BUILD_PATH)/bin/gcc/unittests$(EXE_SUFFIX)" $(SRC_PATH)/unittests/launch.sh $(TEST_ARGS)
 endif
 
 unit_tests_clean:
-ifeq ($(UNIT_TESTS),yes)
-	@echo "Cleaning unit tests artifacts"
-	@rm -rf unittests/build/bin
-	@cd unittests/build && $(MAKE) -C src clean
-endif
+	$(MAKE) -C src unit_tests_clean
 
 test_suite:
 	@cd $(SRC_PATH)/testsuite && ./make_tests.sh -precommit -p=0

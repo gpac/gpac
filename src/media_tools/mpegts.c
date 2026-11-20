@@ -2065,7 +2065,7 @@ u64 gf_m2ts_get_pts(unsigned char *data)
 	return pts;
 }
 
-GF_NOT_EXPORTED void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
+void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
 {
 	u32 has_pts, has_dts;
 	u32 len_check;

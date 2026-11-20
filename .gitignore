@@ -89,6 +89,7 @@ extra_lib/
 config.mak
 configure-stamp
 gpac.pc
+unittests/build/
 tests/external_media/
 tests/results/
 tests/hash_refs/

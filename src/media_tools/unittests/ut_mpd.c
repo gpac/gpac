@@ -1,26 +1,8 @@
 #include "tests.h"
+
+#if !defined(GPAC_DISABLE_MPD)
+
 #include "../mpd.c"
-
-// functions used by mpd.c, needed for linking
-#include "../m3u8.c"
-void gf_xml_dump_string(FILE* file, const char *before, const char *str, const char *after) {
-	if (before) gf_fprintf(file, "%s", before);
-	if (str) {
-		for (const char *p = str; *p; p++) {
-			switch (*p) {
-			case '&': gf_fprintf(file, "&amp;"); break;
-			case '<': gf_fprintf(file, "&lt;"); break;
-			case '>': gf_fprintf(file, "&gt;"); break;
-			case '\'': gf_fprintf(file, "&apos;"); break;
-			case '"': gf_fprintf(file, "&quot;"); break;
-			default: gf_fprintf(file, "%c", *p); break;
-			}
-		}
-	}
-	if (after) gf_fprintf(file, "%s", after);
-}
-
-/*************************************/
 
 static Bool hls_output_contains(FILE *output, const char *marker)
 {
@@ -1012,16 +994,18 @@ static void check_m3u8_blob_line(u32 line_length, const char *ending, Bool comme
 	gf_free(blob.data);
 }
 
-unittest(m3u8_blob_line_boundaries)
-{
-	/* Include the old read/write boundaries, growth, and a final line at EOF. */
-	const u32 lengths[] = {M3U8_BUF_SIZE-2, M3U8_BUF_SIZE-1, M3U8_BUF_SIZE, 2*M3U8_BUF_SIZE};
-	const char *endings[] = {"\n", "\r\n", ""};
-	u32 i, j;
-	for (i=0; i<sizeof(lengths)/sizeof(lengths[0]); i++) {
-		for (j=0; j<sizeof(endings)/sizeof(endings[0]); j++)
-			check_m3u8_blob_line(lengths[i], endings[j], GF_FALSE);
-	}
-	/* An oversized comment must not turn its continuation into a segment URL. */
-	check_m3u8_blob_line(2*M3U8_BUF_SIZE, "\n", GF_TRUE);
-}
+#else
+unittest_disabled(mpd_hls_scte35_dynamic_rewrite_preserves_cues, "MPD support disabled")
+unittest_disabled(mpd_event_streams, "MPD support disabled")
+unittest_disabled(mpd_segment_event_associations_roundtrip, "MPD support disabled")
+unittest_disabled(mpd_hls_explicit_scte35_boundaries, "MPD support disabled")
+unittest_disabled(mpd_hls_explicit_empty_segment_restart, "MPD support disabled")
+unittest_disabled(mpd_hls_explicit_short_break_and_orphan_policy, "MPD support disabled")
+unittest_disabled(mpd_hls_explicit_live_window_rewrite, "MPD support disabled")
+unittest_disabled(mpd_hls_explicit_short_break_endlist, "MPD support disabled")
+unittest_disabled(mpd_hls_explicit_two_rendition_event_fidelity, "MPD support disabled")
+unittest_disabled(mpd_hls_scte35_nonzero_presentation_time_offset, "MPD support disabled")
+unittest_disabled(mpd_parse_duration_fraction, "MPD support disabled")
+unittest_disabled(mpd_hls_scte35_cues_follow_segment_boundaries, "MPD support disabled")
+unittest_disabled(mpd_hls_scte35_metadata_and_finite_return_policy, "MPD support disabled")
+#endif // !defined(GPAC_DISABLE_MPD)

@@ -2823,7 +2823,6 @@ Bool gf_media_aom_probe_annexb(GF_BitStream *bs)
 	return res;
 }
 
-GF_NOT_EXPORTED
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state)
 {
 	GF_Err e;
@@ -4610,7 +4609,6 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 }
 
 
-GF_NOT_EXPORTED
 GF_Err bs_av1_obu_inspect(const u8 *data, u32 size, BSAV1OBU *obu)
 {
 	u32 pos = 1, i;
@@ -8887,7 +8885,7 @@ u32 gf_hevc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Fi
 	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, GF_TRUE, sei_filter);
 }
 
-GF_NOT_EXPORTED GF_Err gf_hevc_filter_suffix_hash(char *data, u32 *nal_length, Bool keep_hash)
+GF_Err gf_hevc_filter_suffix_hash(char *data, u32 *nal_length, Bool keep_hash)
 {
 	if (*nal_length < 3)
 		return GF_NON_COMPLIANT_BITSTREAM;
