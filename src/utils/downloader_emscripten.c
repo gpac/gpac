@@ -793,19 +793,24 @@ GF_Err gf_dm_sess_fetch_once(GF_DownloadSession *sess)
 	if (e==GF_IP_NETWORK_EMPTY) {
 
 	} else if ((e==GF_OK) || (e==GF_EOS)) {
-		if (sess->user_io && read) {
+		if (sess->user_io) {
 			memset(&par, 0, sizeof(GF_NETIO_Parameter));
 			par.sess = sess;
-			par.error = sess->last_error;
-			if (e) {
-				par.msg_type = GF_NETIO_DATA_TRANSFERED;
-			} else {
+			sess->in_callback = GF_TRUE;
+			if (read) {
 				par.msg_type = GF_NETIO_DATA_EXCHANGE;
+				par.error = GF_OK;
 				par.data = buffer;
 				par.size = read;
+				sess->user_io(sess->usr_cbk, &par);
 			}
-			sess->in_callback = GF_FALSE;
-			sess->user_io(sess->usr_cbk, &par);
+			if (e==GF_EOS) {
+				par.msg_type = GF_NETIO_DATA_TRANSFERED;
+				par.error = GF_OK;
+				par.data = NULL;
+				par.size = 0;
+				sess->user_io(sess->usr_cbk, &par);
+			}
 			sess->in_callback = GF_FALSE;
 		}
 	} else {
