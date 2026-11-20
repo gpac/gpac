@@ -1,5 +1,6 @@
-#ifndef UT_ROUTE_HELPERS_H
-#define UT_ROUTE_HELPERS_H
+#include "tests.h"
+
+#ifndef GPAC_DISABLE_ROUTE
 
 #include <gpac/route.h>
 #include <gpac/network.h>
@@ -9,7 +10,7 @@
  * Feeds hand-built LCT packets to a non-ATSC ROUTE demuxer listening on 127.0.0.1,
  * through a local UDP socket. The service signaling (S-TSID) declares TSI 10 with the
  * file template a_$TOI$.m4s. Objects are delivered synchronously: each packet is
- * followed by a call to gf_route_dmx_process().
+ * followed by calls to gf_route_dmx_process() until the demuxer has drained the socket.
  */
 typedef struct
 {
@@ -50,7 +51,7 @@ static void ut_route_put32(u8 *b, u32 v)
 static void ut_route_send(UTRouteCtx *ctx, Bool close_flag, u32 tsi, u32 toi, u32 tol, u32 offset, const char *data, u32 size)
 {
 	u8 b[2048];
-	u32 i = 0;
+	u32 i = 0, nb_empty;
 	b[i++] = 0x12;
 	b[i++] = 0xA0 | (close_flag ? 1 : 0);
 	b[i++] = tol ? 5 : 4;
@@ -67,7 +68,20 @@ static void ut_route_send(UTRouteCtx *ctx, Bool close_flag, u32 tsi, u32 toi, u3
 	ut_route_put32(b+i, offset); i += 4;
 	memcpy(b+i, data, size);
 	gf_sk_send(ctx->peer, b, i + size);
-	gf_route_dmx_process(ctx->dmx);
+	/*
+	 * gf_route_dmx_process() selects with a 10 microseconds timeout and reads at most one
+	 * datagram per socket per call, so a single call right after the send can miss the
+	 * datagram and leave the demuxer one packet behind: retry until the socket stays empty
+	 */
+	nb_empty = 0;
+	while (nb_empty < 3) {
+		if (gf_route_dmx_process(ctx->dmx) == GF_OK) {
+			nb_empty = 0;
+		} else {
+			nb_empty++;
+			gf_sleep(1);
+		}
+	}
 }
 
 /* a complete object in one packet, with TOL */
@@ -109,6 +123,91 @@ static void ut_route_close(UTRouteCtx *ctx)
 	if (ctx->peer) gf_sk_del(ctx->peer);
 	if (ctx->dmx) gf_route_dmx_del(ctx->dmx);
 	gf_log_set_tool_level(GF_LOG_ROUTE, ctx->log_level);
+}
+
+/*
+ * gf_route_dmx_reset_all() moved each object to the reservoir while walking s->objects
+ * with gf_list_enum(), which skipped the object following each removed one: half of the
+ * objects stayed and were not dispatched again when the same TSI/TOI came back.
+ */
+unittest(route_dmx_reset_all_removes_every_object)
+{
+	UTRouteCtx ctx;
+	u32 toi;
+	assert_true(ut_route_open(&ctx));
+	if (!ctx.dmx) return;
+
+	for (toi=1; toi<=4; toi++)
+		ut_route_send_object(&ctx, toi, "old-segment");
+	assert_equal(ctx.nb_segs, 4, "%u");
+
+	gf_route_dmx_reset_all(ctx.dmx);
+	assert_equal(gf_route_dmx_get_object_count(ctx.dmx, 1), 0, "%u");
+	assert_equal(ctx.nb_deleted, 4, "%u");
+
+	//the same objects received again after the reset are new objects
+	ctx.nb_segs = 0;
+	for (toi=1; toi<=4; toi++)
+		ut_route_send_object(&ctx, toi, "new-segment");
+	assert_equal(ctx.nb_segs, 4, "%u");
+
+	ut_route_close(&ctx);
+}
+
+/*
+ * gf_route_dmx_purge_objects() moved objects to the reservoir while walking s->objects
+ * with gf_list_enum(), which skipped the object following each removed one: every other
+ * completed segment stayed and was not dispatched again on the next loop of the session.
+ */
+unittest(route_dmx_purge_objects_removes_every_object)
+{
+	UTRouteCtx ctx;
+	u32 toi;
+	assert_true(ut_route_open(&ctx));
+	if (!ctx.dmx) return;
+
+	for (toi=1; toi<=4; toi++)
+		ut_route_send_object(&ctx, toi, "old-segment");
+	assert_equal(ctx.nb_segs, 4, "%u");
+
+	gf_route_dmx_purge_objects(ctx.dmx, 1);
+	assert_equal(gf_route_dmx_get_object_count(ctx.dmx, 1), 0, "%u");
+	assert_equal(ctx.nb_deleted, 4, "%u");
+
+	//second loop of the session: the same segments are dispatched again
+	ctx.nb_segs = 0;
+	for (toi=1; toi<=4; toi++)
+		ut_route_send_object(&ctx, toi, "new-segment");
+	assert_equal(ctx.nb_segs, 4, "%u");
+
+	ut_route_close(&ctx);
+}
+
+/*
+ * An object received without the TOL extension was delivered with its total size set to
+ * the capacity of its payload buffer. Buffers are recycled from the reservoir, so the blob
+ * carried the bytes of an earlier, larger object after the received data.
+ */
+unittest(route_dmx_object_without_tol_size)
+{
+	UTRouteCtx ctx;
+	assert_true(ut_route_open(&ctx));
+	if (!ctx.dmx) return;
+
+	//a larger object, then removed: its buffer goes back to the reservoir
+	ut_route_send_object(&ctx, 1, "OLD-OBJECT-0123456789-0123456789-0123456");
+	gf_route_dmx_purge_objects(ctx.dmx, 1);
+
+	//4 bytes, close flag, no TOL; delivered when the next object starts
+	ut_route_send(&ctx, GF_TRUE, 10, 2, 0, 0, "new2", 4);
+	ut_route_send_object(&ctx, 3, "new-3");
+
+	assert_equal(ctx.nb_segs, 3, "%u");
+	assert_equal(ctx.seg_toi[1], 2, "%u");
+	assert_equal(ctx.seg_total_size[1], 4, "%u");
+	assert_equal(ctx.seg_blob_size[1], 4, "%u");
+
+	ut_route_close(&ctx);
 }
 
 #endif
