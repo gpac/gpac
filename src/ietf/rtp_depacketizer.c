@@ -364,6 +364,8 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 	/*process toc and locate start of payload data*/
 	nbFrame = 0;
 	while (1) {
+		//the TOC must end inside the payload
+		if (nbFrame + 1 >= size) return;
 		c = payload[nbFrame + 1];
 		nbFrame++;
 		if (!(c & 0x80)) break;
@@ -381,6 +383,8 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 			frame_size = (u32)GF_AMR_WB_FRAME_SIZE[type];
 		}
 
+		//frame announced by the TOC but not (fully) in the payload
+		if ((u32) (data - (char *) payload) + frame_size > size) break;
 		rtp->sl_hdr.compositionTimeStampFlag = 1;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
@@ -699,10 +703,14 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, 
 		u32 offset = 1;
 		while (offset<size) {
 			Bool send = GF_TRUE;
-			u32 nal_size = (u8) payload[offset];
+			u32 nal_size;
+			//the 16-bit size field and the NAL unit must both be in the payload
+			if (offset + 2 > size) break;
+			nal_size = (u8) payload[offset];
 			nal_size<<=8;
 			nal_size |= (u8) payload[offset+1];
 			offset += 2;
+			if (!nal_size || (nal_size > size - offset)) break;
 			if ((payload[offset] & 0x1F) == GF_AVC_NALU_IDR_SLICE) {
 				rtp->sl_hdr.randomAccessPointFlag = 1;
 				rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
