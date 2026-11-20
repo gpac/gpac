@@ -2,9 +2,8 @@
 
 ## Build and run
 
-Unit tests are enabled by default with `./configure --enable-debug`. Use
-`./configure --unittests` to enable them in other builds, or
-`./configure --unittests=no` to disable them in a debug build.
+Unit tests are disabled by default. Use `./configure --unittests` to enable
+them, including in debug builds.
 Then run `make -j2`.
 The normal build runs the tests before building applications and stops on failure.
 
