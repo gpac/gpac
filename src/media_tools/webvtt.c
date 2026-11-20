@@ -560,7 +560,7 @@ u64 gf_webvtt_sample_get_end(GF_WebVTTSample * samp)
 	return samp->end;
 }
 
-GF_NOT_EXPORTED void gf_webvtt_sample_del(GF_WebVTTSample * samp)
+void gf_webvtt_sample_del(GF_WebVTTSample * samp)
 {
 	while (gf_list_count(samp->cues)) {
 		GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(samp->cues, 0);
@@ -571,7 +571,7 @@ GF_NOT_EXPORTED void gf_webvtt_sample_del(GF_WebVTTSample * samp)
 	gf_free(samp);
 }
 
-GF_NOT_EXPORTED GF_WebVTTParser *gf_webvtt_parser_new()
+GF_WebVTTParser *gf_webvtt_parser_new()
 {
 	GF_WebVTTParser *parser;
 	GF_SAFEALLOC(parser, GF_WebVTTParser);
@@ -582,7 +582,7 @@ GF_NOT_EXPORTED GF_WebVTTParser *gf_webvtt_parser_new()
 
 extern s32 gf_text_get_utf_type(FILE *in_src);
 
-GF_NOT_EXPORTED GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE **vtt_file, s32 unicode_type, Bool is_srt,
+GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE **vtt_file, s32 unicode_type, Bool is_srt,
                              void *user, GF_Err (*report_message)(void *, GF_Err, char *, const char *),
                              void (*on_sample_parsed)(void *, GF_WebVTTSample *),
                              void (*on_header_parsed)(void *, const char *))
@@ -655,7 +655,7 @@ void gf_webvtt_parser_reset(GF_WebVTTParser *parser)
 	parser->vtt_in = NULL;
 }
 
-GF_NOT_EXPORTED void gf_webvtt_parser_del(GF_WebVTTParser *parser)
+void gf_webvtt_parser_del(GF_WebVTTParser *parser)
 {
 	if (parser) {
 		gf_webvtt_parser_reset(parser);
@@ -1247,7 +1247,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 {
 	return gf_webvtt_parser_parse_internal(parser, NULL, NULL, GF_TRUE);
 }
-GF_NOT_EXPORTED GF_Err gf_webvtt_parser_parse_ext(GF_WebVTTParser *parser, FILE *ext_file, Bool in_eos)
+GF_Err gf_webvtt_parser_parse_ext(GF_WebVTTParser *parser, FILE *ext_file, Bool in_eos)
 {
 	return gf_webvtt_parser_parse_internal(parser, NULL, ext_file, in_eos);
 }

@@ -257,7 +257,7 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 	return e;
 }
 
-GF_NOT_EXPORTED void gf_dm_sess_clear_headers(GF_DownloadSession *sess)
+void gf_dm_sess_clear_headers(GF_DownloadSession *sess)
 {
 	while (gf_list_count(sess->headers)) {
 		GF_HTTPHeader *hdr = (GF_HTTPHeader*)gf_list_last(sess->headers);
