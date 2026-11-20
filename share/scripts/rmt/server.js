@@ -1,5 +1,5 @@
 // server/server.js
-import { Sys as sys10 } from "gpaccore";
+import { Sys as sys12 } from "gpaccore";
 
 // server/JSClient/Messaging/MessageHandler.js
 import { Sys as sys } from "gpaccore";
@@ -10,7 +10,7 @@ var UPDATE_INTERVALS = {
   FILTER_STATS: 1e3,
   CPU_STATS: 500
 };
-var WS_PROTOCOL_VERSION = 1;
+var WS_PROTOCOL_VERSION = 1.1;
 var LOG_RETENTION = {
   maxHistorySize: 500,
   maxHistorySizeVerbose: 2e3,
@@ -68,6 +68,16 @@ var FILTER_SUBSCRIPTION_FIELDS = [
   "current_errors",
   "last_task_time"
 ];
+var PREVIEW = {
+  DEBUG_SHOW_FILTERS: false,
+  MAX_ACTIVE: 6,
+  RATE_WINDOW_US: 1e6,
+  MAX_REALTIME_SPEED: 1.5,
+  MAX_KEYFRAMES_PER_SEC: 10,
+  ALLOWED_KEYFRAMES_PER_SEC: [10, 30],
+  MAX_MEDIA_AHEAD_US: 3e5,
+  NO_KEYFRAME_TIMEOUT_US: 1e7
+};
 
 // server/JSClient/Cache/CacheManager.js
 function CacheManager() {
@@ -120,28 +130,34 @@ var cacheManager = new CacheManager();
 // server/history/HistoryFileReader.js
 import * as std from "std";
 import * as os from "os";
-var ALLOWED_EXACT_FILES = ["snapshot.json", "events.jsonl", "manifest.json", "logs.jsonl", "journal_index.json"];
+var ALLOWED_EXACT_FILES = ["snapshot.json", "events.jsonl", "manifest.json", "logs.jsonl", "journal_index.json", "journal_index.jsonl", "session.json", "events_index.jsonl"];
 var VALID_SESSION_ID = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$/;
 var VALID_CHUNK_FILE = /^chunks\/chunk_\d{4}\.jsonl$/;
 var VALID_LOG_CHUNK_FILE = /^logs\/logs_\d{4}\.jsonl$/;
 var VALID_CHECKPOINT_FILE = /^checkpoints\/cp_\d{4}\.json$/;
+var VALID_SEGMENT_FILE = /^segments\/\d{4}\/(chunks\/chunk_\d{4}\.jsonl|logs\/logs_\d{4}\.jsonl|checkpoints\/cp_\d{4}\.json|manifest\.json|snapshot\.json)$/;
 function HistoryFileReader(historyDir) {
-  const baseDir = historyDir || "history";
+  const baseDir = historyDir;
   this.listSessions = function() {
     const sessions = [];
+    if (!baseDir) return sessions;
     const [entries, err] = os.readdir(baseDir);
     if (err) return sessions;
     for (const entry of entries) {
       if (!VALID_SESSION_ID.test(entry)) continue;
       const dir = `${baseDir}/${entry}`;
-      const hasSnapshot = fileExists(`${dir}/snapshot.json`);
-      const hasManifest = fileExists(`${dir}/manifest.json`);
+      const hasSessionIndex = fileExists(`${dir}/session.json`);
+      const sessionIndex = hasSessionIndex ? readJson(`${dir}/session.json`) : null;
+      const firstSegment = sessionIndex && sessionIndex.segments && sessionIndex.segments[0];
+      const dataDir = firstSegment ? `${dir}/segments/${String(firstSegment.index).padStart(4, "0")}` : dir;
+      const hasSnapshot = fileExists(`${dataDir}/snapshot.json`);
+      const hasManifest = fileExists(`${dataDir}/manifest.json`);
       const hasEvents = fileExists(`${dir}/events.jsonl`);
-      if (!hasSnapshot && !hasManifest && !hasEvents) continue;
-      const hasCheckpoints = dirHasFiles(`${dir}/checkpoints`, /^cp_\d{4}\.json$/);
+      if (!hasSnapshot && !hasManifest && !hasEvents && !hasSessionIndex) continue;
+      const hasCheckpoints = dirHasFiles(`${dataDir}/checkpoints`, /^cp_\d{4}\.json$/);
       const sizeBytes = hasEvents ? fileSize(`${dir}/events.jsonl`) : 0;
-      const isComplete = fileExists(`${dir}/done`);
-      sessions.push({ sessionId: entry, hasSnapshot, hasEvents, hasManifest, hasCheckpoints, sizeBytes, isComplete });
+      const isComplete = sessionIndex ? sessionIndex.endUs !== void 0 : fileExists(`${dir}/done`);
+      sessions.push({ sessionId: entry, hasSnapshot, hasEvents, hasManifest, hasCheckpoints, sizeBytes, isComplete, hasSessionIndex });
     }
     sessions.sort((a, b) => a.sessionId < b.sessionId ? 1 : a.sessionId > b.sessionId ? -1 : 0);
     return sessions;
@@ -156,10 +172,10 @@ function HistoryFileReader(historyDir) {
     return parseAndFilterEvents(legacyResult.content, fromUs, toUs);
   };
   this.readFile = function(sessionId, fileName) {
-    if (!VALID_SESSION_ID.test(sessionId)) {
+    if (!baseDir || !VALID_SESSION_ID.test(sessionId)) {
       return { ok: false, error: "session_not_found", detail: `Invalid sessionId: ${sessionId}` };
     }
-    const isAllowed = ALLOWED_EXACT_FILES.includes(fileName) || VALID_CHUNK_FILE.test(fileName) || VALID_LOG_CHUNK_FILE.test(fileName) || VALID_CHECKPOINT_FILE.test(fileName);
+    const isAllowed = ALLOWED_EXACT_FILES.includes(fileName) || VALID_CHUNK_FILE.test(fileName) || VALID_LOG_CHUNK_FILE.test(fileName) || VALID_CHECKPOINT_FILE.test(fileName) || VALID_SEGMENT_FILE.test(fileName);
     if (!isAllowed) {
       return { ok: false, error: "file_not_allowed", detail: `File not allowed: ${fileName}` };
     }
@@ -215,6 +231,17 @@ function fileExists(path) {
   file.close();
   return true;
 }
+function readJson(path) {
+  const file = std.open(path, "r");
+  if (!file) return null;
+  try {
+    return JSON.parse(file.readAsString());
+  } catch (_e) {
+    return null;
+  } finally {
+    file.close();
+  }
+}
 function fileSize(path) {
   const [stat3, err] = os.stat(path);
   if (err) return 0;
@@ -227,7 +254,7 @@ function dirHasFiles(dir, pattern) {
 }
 
 // server/JSClient/Messaging/MessageHandler.js
-var historyReader = new HistoryFileReader(sys.get_opt("core", "rmt-log") || "history");
+var historyReader = new HistoryFileReader(sys.get_opt("core", "rmt-log"));
 function MessageHandler(client) {
   this.client = client;
   this.handleMessage = function(msg, all_clients2) {
@@ -273,8 +300,11 @@ function MessageHandler(client) {
           "update_arg": () => {
             this.client.filterManager.updateArgument(jtext["idx"], jtext["name"], jtext["argName"], jtext["newValue"]);
           },
-          "get_png": () => {
-            this.client.filterManager.addPngProbe(jtext["idx"], jtext["name"]);
+          "start_pid_preview": () => {
+            this.client.previewManager.startPreview(jtext["idx"], jtext["name"], jtext["direction"], jtext["pidIdx"], jtext["previewId"], jtext["maxKeyframesPerSec"]);
+          },
+          "stop_pid_preview": () => {
+            this.client.previewManager.stopPreview(jtext["idx"], jtext["direction"], jtext["pidIdx"]);
           },
           "subscribe_cpu_stats": () => {
             const interval = jtext["interval"] || UPDATE_INTERVALS.CPU_STATS;
@@ -359,6 +389,8 @@ function MessageHandler(client) {
               this.client.client.send(JSON.stringify({
                 command: "read_file",
                 status: "error",
+                sessionId,
+                file,
                 error: result.error,
                 detail: result.detail
               }));
@@ -374,6 +406,103 @@ function MessageHandler(client) {
       }
     }
   };
+}
+
+// server/JSClient/filterUtils.js
+function gpac_filter_to_object(f, full = false) {
+  let jsf = {};
+  for (let prop in f) {
+    if (full || FILTER_PROPS_LITE.includes(prop))
+      jsf[prop] = f[prop];
+  }
+  jsf["gpac_args"] = [];
+  if (full) {
+    let all_args = f.all_args(true);
+    for (let arg of all_args) {
+      if (arg && (full || FILTER_ARGS_LITE.includes(arg.name)))
+        jsf["gpac_args"].push(arg);
+    }
+  }
+  jsf["ipid"] = {};
+  jsf["opid"] = {};
+  for (let d = 0; d < f.nb_ipid; d++) {
+    let pidname = f.ipid_props(d, "name");
+    let jspid = {};
+    f.ipid_props(d, (name, type, val) => {
+      if (full || PID_PROPS_LITE.includes(name))
+        jspid[name] = { "type": type, "val": val };
+    });
+    jspid["buffer"] = f.ipid_props(d, "buffer");
+    jspid["buffer_total"] = f.ipid_props(d, "buffer_total");
+    jspid["source_idx"] = f.ipid_source(d).idx;
+    jsf["ipid"][pidname] = jspid;
+  }
+  for (let d = 0; d < f.nb_opid; d++) {
+    let pidname = f.opid_props(d, "name");
+    let jspid = {};
+    f.opid_props(d, (name, type, val) => {
+      if (full || PID_PROPS_LITE.includes(name))
+        jspid[name] = { "type": type, "val": val };
+    });
+    jspid["buffer"] = f.opid_props(d, "buffer");
+    jspid["buffer_total"] = f.opid_props(d, "buffer_total");
+    jsf["opid"][pidname] = jspid;
+  }
+  return jsf;
+}
+function gpac_filter_to_minimal_object(f) {
+  const minimalFilters = {
+    idx: f.idx,
+    name: f.name,
+    type: f.type,
+    status: f.status,
+    itag: f.itag || null,
+    ID: f.ID || null,
+    nb_ipid: f.nb_ipid,
+    nb_opid: f.nb_opid,
+    ipid: [],
+    opid: []
+  };
+  const hasSourceOpidIdx = typeof f.ipid_source_opid_idx === "function";
+  for (let i = 0; i < f.nb_ipid; i++) {
+    minimalFilters.ipid.push({
+      pid_index: i,
+      name: f.ipid_props(i, "name"),
+      source_idx: f.ipid_source(i).idx,
+      source_opid_idx: hasSourceOpidIdx ? f.ipid_source_opid_idx(i) : -1,
+      stream_type: f.ipid_props(i, "StreamType"),
+      codec: f.ipid_props(i, "CodecID") ?? void 0,
+      ID: f.ipid_props(i, "ID")
+    });
+  }
+  for (let o = 0; o < f.nb_opid; o++) {
+    minimalFilters.opid.push({
+      pid_index: o,
+      name: f.opid_props(o, "name"),
+      stream_type: f.opid_props(o, "StreamType"),
+      codec: f.opid_props(o, "CodecID") ?? void 0,
+      ID: f.opid_props(o, "ID")
+    });
+  }
+  return minimalFilters;
+}
+function is_hidden_filter(f) {
+  if (PREVIEW.DEBUG_SHOW_FILTERS) return false;
+  if (f.itag === "NODISPLAY") return true;
+  return typeof f.name === "string" && f.name.startsWith("PreviewSink");
+}
+function on_all_connected(cb) {
+  session.post_task(() => {
+    let all_filters_instances = [];
+    session.lock_filters(true);
+    for (let i = 0; i < session.nb_filters; i++) {
+      const f = session.get_filter(i);
+      if (!f.is_destroyed() && !is_hidden_filter(f)) all_filters_instances.push(f);
+    }
+    session.lock_filters(false);
+    cb(all_filters_instances);
+    return false;
+  });
 }
 
 // server/JSClient/Session/SessionStatsManager.js
@@ -417,6 +546,7 @@ function SessionStatsManager(client) {
       for (let i = 0; i < session.nb_filters; i++) {
         const f = session.get_filter(i);
         if (f.is_destroyed()) continue;
+        if (is_hidden_filter(f)) continue;
         filters.push(f);
         const obj = {};
         for (const field of this.fields) {
@@ -504,97 +634,17 @@ function SessionManager(client) {
   };
 }
 
-// server/JSClient/filterUtils.js
-function gpac_filter_to_object(f, full = false) {
-  let jsf = {};
-  for (let prop in f) {
-    if (full || FILTER_PROPS_LITE.includes(prop))
-      jsf[prop] = f[prop];
-  }
-  jsf["gpac_args"] = [];
-  if (full) {
-    let all_args = f.all_args(true);
-    for (let arg of all_args) {
-      if (arg && (full || FILTER_ARGS_LITE.includes(arg.name)))
-        jsf["gpac_args"].push(arg);
-    }
-  }
-  jsf["ipid"] = {};
-  jsf["opid"] = {};
-  for (let d = 0; d < f.nb_ipid; d++) {
-    let pidname = f.ipid_props(d, "name");
-    let jspid = {};
-    f.ipid_props(d, (name, type, val) => {
-      if (full || PID_PROPS_LITE.includes(name))
-        jspid[name] = { "type": type, "val": val };
-    });
-    jspid["buffer"] = f.ipid_props(d, "buffer");
-    jspid["buffer_total"] = f.ipid_props(d, "buffer_total");
-    jspid["source_idx"] = f.ipid_source(d).idx;
-    jsf["ipid"][pidname] = jspid;
-  }
-  for (let d = 0; d < f.nb_opid; d++) {
-    let pidname = f.opid_props(d, "name");
-    let jspid = {};
-    f.opid_props(d, (name, type, val) => {
-      if (full || PID_PROPS_LITE.includes(name))
-        jspid[name] = { "type": type, "val": val };
-    });
-    jspid["buffer"] = f.opid_props(d, "buffer");
-    jspid["buffer_total"] = f.opid_props(d, "buffer_total");
-    jsf["opid"][pidname] = jspid;
-  }
-  return jsf;
-}
-function gpac_filter_to_minimal_object(f) {
-  const minimalFilters = {
-    idx: f.idx,
-    name: f.name,
-    type: f.type,
-    status: f.status,
-    itag: f.itag || null,
-    ID: f.ID || null,
-    nb_ipid: f.nb_ipid,
-    nb_opid: f.nb_opid,
-    ipid: [],
-    opid: []
-  };
-  const hasSourceOpidIdx = typeof f.ipid_source_opid_idx === "function";
-  for (let i = 0; i < f.nb_ipid; i++) {
-    minimalFilters.ipid.push({
-      pid_index: i,
-      name: f.ipid_props(i, "name"),
-      source_idx: f.ipid_source(i).idx,
-      source_opid_idx: hasSourceOpidIdx ? f.ipid_source_opid_idx(i) : -1,
-      stream_type: f.ipid_props(i, "StreamType"),
-      ID: f.ipid_props(i, "ID")
-    });
-  }
-  for (let o = 0; o < f.nb_opid; o++) {
-    minimalFilters.opid.push({
-      pid_index: o,
-      name: f.opid_props(o, "name"),
-      stream_type: f.opid_props(o, "StreamType"),
-      ID: f.opid_props(o, "ID")
-    });
-  }
-  return minimalFilters;
-}
-function on_all_connected(cb) {
-  session.post_task(() => {
-    let all_filters_instances = [];
-    session.lock_filters(true);
-    for (let i = 0; i < session.nb_filters; i++) {
-      const f = session.get_filter(i);
-      if (!f.is_destroyed()) all_filters_instances.push(f);
-    }
-    session.lock_filters(false);
-    cb(all_filters_instances);
-    return false;
-  });
-}
-
 // server/JSClient/Filters/PID/PidDataCollector.js
+import { Sys as sys2 } from "gpaccore";
+function _serializePropValue(pname, pval) {
+  if (!(pval instanceof ArrayBuffer)) return pval;
+  try {
+    return sys2.base64enc(pval);
+  } catch (error) {
+    print(`[PidDataCollector] base64 encoding failed for ${pname}: ${error}`);
+    return null;
+  }
+}
 function _collectMediaProps(getProp) {
   return {
     timescale: getProp("Timescale"),
@@ -605,7 +655,8 @@ function _collectMediaProps(getProp) {
     pixelformat: getProp("PixelFormat"),
     bitrate: getProp("Bitrate"),
     samplerate: getProp("SampleRate"),
-    channels: getProp("Channels")
+    channels: getProp("NumChannels"),
+    decoderConfig: _serializePropValue("DecoderConfig", getProp("DecoderConfig"))
   };
 }
 function _collectStats(stats, filter) {
@@ -654,7 +705,7 @@ function PidDataCollector() {
       if (withPidProperties) {
         const allProps = {};
         filter.ipid_props(i, function(pname, ptype, pval) {
-          allProps[pname] = { name: pname, type: ptype, value: pval };
+          allProps[pname] = { name: pname, type: ptype, value: _serializePropValue(pname, pval) };
         });
         pid.properties = allProps;
       }
@@ -842,29 +893,29 @@ function FilterManager(client) {
 }
 
 // server/JSClient/Sys/buildCpuStatsPayload.js
-import { Sys as sys2 } from "gpaccore";
+import { Sys as sys3 } from "gpaccore";
 function buildCpuStatsPayload() {
   const stats = {
-    total_cpu_usage: sys2.total_cpu_usage,
-    process_cpu_usage: sys2.process_cpu_usage,
-    process_memory: sys2.process_memory,
-    physical_memory: sys2.physical_memory,
-    physical_memory_avail: sys2.physical_memory_avail,
-    gpac_memory: sys2.gpac_memory,
-    nb_cores: sys2.nb_cores,
-    thread_count: sys2.thread_count,
+    total_cpu_usage: sys3.total_cpu_usage,
+    process_cpu_usage: sys3.process_cpu_usage,
+    process_memory: sys3.process_memory,
+    physical_memory: sys3.physical_memory,
+    physical_memory_avail: sys3.physical_memory_avail,
+    gpac_memory: sys3.gpac_memory,
+    nb_cores: sys3.nb_cores,
+    thread_count: sys3.thread_count,
     memory_usage_percent: 0,
     process_memory_percent: 0,
     gpac_memory_percent: 0,
     cpu_efficiency: 0
   };
-  if (sys2.physical_memory > 0) {
-    stats.memory_usage_percent = (sys2.physical_memory - sys2.physical_memory_avail) / sys2.physical_memory * 100;
-    stats.process_memory_percent = sys2.process_memory / sys2.physical_memory * 100;
-    stats.gpac_memory_percent = sys2.gpac_memory / sys2.physical_memory * 100;
+  if (sys3.physical_memory > 0) {
+    stats.memory_usage_percent = (sys3.physical_memory - sys3.physical_memory_avail) / sys3.physical_memory * 100;
+    stats.process_memory_percent = sys3.process_memory / sys3.physical_memory * 100;
+    stats.gpac_memory_percent = sys3.gpac_memory / sys3.physical_memory * 100;
   }
-  if (sys2.total_cpu_usage > 0) {
-    stats.cpu_efficiency = sys2.process_cpu_usage / sys2.total_cpu_usage * 100;
+  if (sys3.total_cpu_usage > 0) {
+    stats.cpu_efficiency = sys3.process_cpu_usage / sys3.total_cpu_usage * 100;
   }
   return { stats };
 }
@@ -905,21 +956,23 @@ function CpuStatsManager(client) {
 }
 
 // server/JSClient/Sys/LogManager.js
-import { Sys as sys4 } from "gpaccore";
+import { Sys as sys5 } from "gpaccore";
 
 // server/JSClient/Sys/Utils/LogHub.js
-import { Sys as sys3 } from "gpaccore";
+import { Sys as sys4 } from "gpaccore";
 var logHub = {
   subscribers: /* @__PURE__ */ new Map(),
   originalLogConfig: null,
   activeLogLevel: null,
+  sending: false,
   add(id, manager) {
     const wasEmpty = this.subscribers.size === 0;
     this.subscribers.set(id, manager);
     if (wasEmpty) {
-      this.originalLogConfig = sys3.get_logs(true);
-      sys3.use_logx = true;
-      sys3.on_log = (tool, level, msg, tid, caller) => {
+      this.originalLogConfig = sys4.get_logs(true);
+      sys4.use_logx = true;
+      sys4.on_log = (tool, level, msg, tid, caller) => {
+        if (this.sending) return;
         for (const manager2 of this.subscribers.values()) manager2.handleLog(tool, level, msg, tid, caller);
       };
     }
@@ -935,15 +988,15 @@ var logHub = {
   },
   setLogLevel(logLevel) {
     this.activeLogLevel = logLevel;
-    sys3.set_logs(logLevel);
+    sys4.set_logs(logLevel);
     for (const manager of this.subscribers.values()) {
       manager.logLevel = logLevel;
       manager.sendToClient({ message: "log_config_changed", logLevel });
     }
   },
   _teardown() {
-    sys3.on_log = void 0;
-    if (this.originalLogConfig) sys3.set_logs(this.originalLogConfig);
+    sys4.on_log = void 0;
+    if (this.originalLogConfig) sys4.set_logs(this.originalLogConfig);
     this.originalLogConfig = null;
     this.activeLogLevel = null;
   }
@@ -991,7 +1044,7 @@ function LogManager(client) {
   };
   this.handleLog = function(tool, level, message, thread_id, caller) {
     this.pendingLogs.push({
-      timestamp: sys4.clock_us(),
+      timestamp: sys5.clock_us(),
       timestampMs: Date.now(),
       tool,
       level,
@@ -1023,7 +1076,7 @@ function LogManager(client) {
     return {
       isSubscribed: this.isSubscribed,
       logLevel: this.logLevel,
-      currentLogConfig: sys4.get_logs()
+      currentLogConfig: sys5.get_logs()
     };
   };
   this.flushPendingLogs = function() {
@@ -1031,7 +1084,12 @@ function LogManager(client) {
       this.batchTimer = null;
       return;
     }
-    this.sendToClient({ message: "log_batch", logs: this.pendingLogs });
+    logHub.sending = true;
+    try {
+      this.sendToClient({ message: "log_batch", logs: this.pendingLogs });
+    } finally {
+      logHub.sending = false;
+    }
     this.pendingLogs = [];
     this.batchTimer = null;
   };
@@ -1060,14 +1118,14 @@ function LogManager(client) {
 }
 
 // server/JSClient/CommandLineManager.js
-import { Sys as sys5 } from "gpaccore";
+import { Sys as sys6 } from "gpaccore";
 function CommandLineManager(client) {
   this.client = client;
   this.getCommandLine = function() {
     try {
-      if (typeof sys5 !== "undefined" && sys5.args) {
-        if (Array.isArray(sys5.args) && sys5.args.length > 0) {
-          const commandLine = sys5.args.join(" ");
+      if (typeof sys6 !== "undefined" && sys6.args) {
+        if (Array.isArray(sys6.args) && sys6.args.length > 0) {
+          const commandLine = sys6.args.join(" ");
           return commandLine;
         }
       }
@@ -1095,12 +1153,247 @@ function CommandLineManager(client) {
   };
 }
 
+// server/JSClient/Preview/createCompressedPreviewSink.js
+import { Sys as sys7 } from "gpaccore";
+var PVWC_MAGIC = "PVWC";
+var PVWC_HEADER_SIZE = 24;
+var PVWC_FLAG_KEYFRAME = 1;
+var PVWC_FLAG_KEYFRAMES_ONLY = 2;
+function isKeyframe(packet) {
+  return packet.sap === 1 || packet.sap === 2 || packet.sap === 3;
+}
+function createRateGate(maxKeyframesPerSec = PREVIEW.MAX_KEYFRAMES_PER_SEC) {
+  return { maxKeyframesPerSec, lastDecodeTimeUs: null, mediaElapsedUs: 0, windowStartWallUs: 0, keyframesOnly: false, lastKeyframeSentWallUs: null };
+}
+function shouldSendPacket(gate, decodeTimeUs, nowUs, isKey) {
+  if (gate.lastDecodeTimeUs === null) {
+    gate.windowStartWallUs = nowUs;
+  } else if (decodeTimeUs > gate.lastDecodeTimeUs) {
+    gate.mediaElapsedUs += decodeTimeUs - gate.lastDecodeTimeUs;
+  }
+  gate.lastDecodeTimeUs = decodeTimeUs;
+  const wallElapsedUs = nowUs - gate.windowStartWallUs;
+  if (wallElapsedUs >= PREVIEW.RATE_WINDOW_US) {
+    gate.keyframesOnly = gate.mediaElapsedUs > PREVIEW.MAX_REALTIME_SPEED * wallElapsedUs;
+    gate.mediaElapsedUs = 0;
+    gate.windowStartWallUs = nowUs;
+  } else if (gate.mediaElapsedUs > PREVIEW.MAX_REALTIME_SPEED * wallElapsedUs + PREVIEW.MAX_MEDIA_AHEAD_US) {
+    gate.keyframesOnly = true;
+  }
+  if (!gate.keyframesOnly) return true;
+  if (!isKey) return false;
+  const minKeyframeGapUs = 1e6 / gate.maxKeyframesPerSec;
+  if (gate.lastKeyframeSentWallUs !== null && nowUs - gate.lastKeyframeSentWallUs < minKeyframeGapUs) return false;
+  gate.lastKeyframeSentWallUs = nowUs;
+  return true;
+}
+function buildCompressedFrame(previewId, pidIdx, packet, ctsUs, keyframesOnly) {
+  const packetBytes = new Uint8Array(packet.data);
+  const buffer = new ArrayBuffer(PVWC_HEADER_SIZE + packetBytes.byteLength);
+  const header = new DataView(buffer);
+  for (let charIndex = 0; charIndex < 4; charIndex++) {
+    header.setUint8(charIndex, PVWC_MAGIC.charCodeAt(charIndex));
+  }
+  header.setUint32(4, previewId, true);
+  header.setUint32(8, pidIdx, true);
+  const flags = (isKeyframe(packet) ? PVWC_FLAG_KEYFRAME : 0) | (keyframesOnly ? PVWC_FLAG_KEYFRAMES_ONLY : 0);
+  header.setUint32(12, flags, true);
+  header.setFloat64(16, ctsUs, true);
+  new Uint8Array(buffer, PVWC_HEADER_SIZE).set(packetBytes);
+  return buffer;
+}
+function createCompressedPreviewSink(previewManager, filterIdx, sinkName, entry) {
+  const hideTag = PREVIEW.DEBUG_SHOW_FILTERS ? "" : ":ITAG=NODISPLAY:LT=all@quiet";
+  const sink = session.new_filter(`${sinkName}${hideTag}`);
+  let firstKeyframeSeen = false;
+  let firstPacketWallUs = null;
+  let noKeyframeReported = false;
+  const rateGate = createRateGate(entry.maxKeyframesPerSec);
+  sink.require_source_id = true;
+  sink.set_cap({ id: "StreamType", value: "Visual", in: true });
+  sink.configure_pid = function(pid) {
+    try {
+      if (entry.pid !== pid) {
+        entry.pid = pid;
+        pid.framing = true;
+        pid.send_event(new FilterEvent(GF_FEVT_PLAY));
+        session.post_task(() => {
+          if (entry.pid === pid) pid.discard = false;
+          return false;
+        });
+      }
+    } catch (error) {
+      print(`[Preview] compressed configure_pid error: ${error}`);
+      previewManager.send({ message: "preview_error", previewId: entry.previewId, error: String(error) });
+    }
+  };
+  sink.remove_pid = function(pid) {
+    if (entry.pid === pid) {
+      entry.pid = null;
+      entry.sink = null;
+      print(`[Preview] compressed pid removed idx=${filterIdx}`);
+      previewManager.send({ message: "preview_error", previewId: entry.previewId, error: "Source removed" });
+    }
+  };
+  sink.process = function() {
+    try {
+      if (!entry.pid) return;
+      while (true) {
+        const packet = entry.pid.get_packet();
+        if (!packet) return;
+        if (!firstKeyframeSeen && isKeyframe(packet)) {
+          firstKeyframeSeen = true;
+        }
+        if (!firstKeyframeSeen && !noKeyframeReported) {
+          const nowUs = sys7.clock_us();
+          if (firstPacketWallUs === null) firstPacketWallUs = nowUs;
+          if (nowUs - firstPacketWallUs >= PREVIEW.NO_KEYFRAME_TIMEOUT_US) {
+            noKeyframeReported = true;
+            const seconds = PREVIEW.NO_KEYFRAME_TIMEOUT_US / 1e6;
+            print(`[Preview] no keyframe idx=${filterIdx} after ${seconds} s, preview stopped`);
+            previewManager.send({ message: "preview_error", previewId: entry.previewId, error: `No keyframe (SAP 1-3) received after ${seconds} s` });
+          }
+        }
+        const socket = previewManager.client.client;
+        if (firstKeyframeSeen && !noKeyframeReported && socket) {
+          const ctsUs = Math.round(packet.cts * 1e6 / entry.pid.timescale);
+          const dtsUs = Math.round(packet.dts * 1e6 / entry.pid.timescale);
+          const send = shouldSendPacket(rateGate, dtsUs, sys7.clock_us(), isKeyframe(packet));
+          if (send) {
+            socket.send(buildCompressedFrame(entry.previewId, entry.pidIdx, packet, ctsUs, rateGate.keyframesOnly));
+          }
+        }
+        entry.pid.drop_packet();
+      }
+    } catch (error) {
+      print(`[Preview] compressed process error: ${error}`);
+    }
+  };
+  return sink;
+}
+
+// server/JSClient/Preview/PreviewManager.js
+function PreviewManager(client) {
+  this.client = client;
+  this.activePreviews = /* @__PURE__ */ new Map();
+  this.send = function(payload) {
+    if (!this.client.client) return;
+    this.client.client.send(JSON.stringify(payload));
+  };
+  this.postTask = function(taskFn) {
+    if (!session) {
+      print(`[Preview] postTask skipped: session is null`);
+      return;
+    }
+    try {
+      session.post_task(() => {
+        if (session.last_task) return false;
+        taskFn();
+        return false;
+      });
+    } catch (error) {
+      print(`[Preview] postTask failed: ${error}`);
+    }
+  };
+  this.previewKey = function(filterIdx, direction, pidIdx) {
+    return `${filterIdx}:${direction}:${pidIdx}`;
+  };
+  this.findPreviewTarget = function(filter, direction, pidIdx) {
+    if (direction === "output") {
+      if (pidIdx < 0 || pidIdx >= filter.nb_opid) return null;
+      if (filter.opid_props(pidIdx, "StreamType") !== "Visual") return null;
+      return { target: filter, pidIdx };
+    }
+    if (direction === "input") {
+      if (pidIdx < 0 || pidIdx >= filter.nb_ipid) return null;
+      if (filter.ipid_props(pidIdx, "StreamType") !== "Visual") return null;
+      return {
+        target: filter.ipid_source(pidIdx),
+        pidIdx: filter.ipid_source_opid_idx(pidIdx)
+      };
+    }
+    return null;
+  };
+  this.startPreview = function(filterIdx, filterName, direction, pidIdx, previewId, maxKeyframesPerSec) {
+    this.postTask(() => this.doStartPreview(filterIdx, filterName, direction, pidIdx, previewId, maxKeyframesPerSec));
+  };
+  this.doStartPreview = function(filterIdx, filterName, direction, pidIdx, previewId, maxKeyframesPerSec) {
+    const key = this.previewKey(filterIdx, direction, pidIdx);
+    if (this.activePreviews.has(key)) return;
+    if (this.activePreviews.size >= PREVIEW.MAX_ACTIVE) {
+      print(`[Preview] too many previews key=${key} max=${PREVIEW.MAX_ACTIVE}`);
+      this.send({ message: "preview_error", previewId, error: `Too many previews (max ${PREVIEW.MAX_ACTIVE})` });
+      return;
+    }
+    const filter = session.get_filter(String(filterIdx));
+    if (!filter || filter.type !== filterName) {
+      print(`[Preview] filter not found idx=${filterIdx} expected=${filterName} got=${filter ? filter.type : "null"}`);
+      this.send({ message: "preview_error", previewId, error: "filter not found" });
+      return;
+    }
+    const resolved = this.findPreviewTarget(filter, direction, pidIdx);
+    if (!resolved || resolved.pidIdx < 0) {
+      print(`[Preview] requested PID not visual idx=${filterIdx} direction=${direction} pidIdx=${pidIdx}`);
+      this.send({ message: "preview_error", previewId, error: "not a video PID" });
+      return;
+    }
+    const { target, pidIdx: resolvedPidIdx } = resolved;
+    const entry = {
+      previewId,
+      sink: null,
+      pid: null,
+      pidIdx: resolvedPidIdx,
+      maxKeyframesPerSec: PREVIEW.ALLOWED_KEYFRAMES_PER_SEC.includes(maxKeyframesPerSec) ? maxKeyframesPerSec : PREVIEW.MAX_KEYFRAMES_PER_SEC
+    };
+    this.activePreviews.set(key, entry);
+    try {
+      const sinkName = `PreviewSink_${filterIdx}_${direction}_${pidIdx}`;
+      entry.sink = createCompressedPreviewSink(this, filterIdx, sinkName, entry);
+      entry.sink.set_source(target);
+      target.reconnect(void 0, resolvedPidIdx);
+    } catch (error) {
+      print(`[Preview] doStartPreview failed idx=${filterIdx}: ${error}`);
+      this.removePreview(key);
+      this.send({ message: "preview_error", previewId, error: String(error) });
+    }
+  };
+  this.removePreview = function(key) {
+    const entry = this.activePreviews.get(key);
+    if (!entry) return;
+    this.activePreviews.delete(key);
+    entry.pid = null;
+    if (entry.sink) {
+      try {
+        session.remove_filter(entry.sink);
+      } catch (error) {
+        print(`[Preview] sink remove error: ${error}`);
+      }
+    }
+  };
+  this.stopPreview = function(filterIdx, direction, pidIdx) {
+    this.postTask(() => this.doStopPreview(filterIdx, direction, pidIdx));
+  };
+  this.doStopPreview = function(filterIdx, direction, pidIdx) {
+    const key = this.previewKey(filterIdx, direction, pidIdx);
+    const entry = this.activePreviews.get(key);
+    this.removePreview(key);
+    if (entry) this.send({ message: "preview_stopped", previewId: entry.previewId });
+  };
+  this.cleanup = function() {
+    this.postTask(() => this.doCleanup());
+  };
+  this.doCleanup = function() {
+    const keys = Array.from(this.activePreviews.keys());
+    for (const key of keys) this.removePreview(key);
+  };
+}
+
 // server/JSClient/buildMonitorConfigPayload.js
-import { Sys as sys6 } from "gpaccore";
+import { Sys as sys8 } from "gpaccore";
 function buildMonitorConfigPayload() {
   let gpac_version = null;
   try {
-    gpac_version = sys6.version_full || null;
+    gpac_version = sys8.version_full || null;
   } catch (_e) {
     gpac_version = null;
   }
@@ -1127,6 +1420,7 @@ function JSClient(id, client, all_clients2, ensureMonitoringLoop2, historyCollec
   this.cpuStatsManager = new CpuStatsManager(this);
   this.logManager = new LogManager(this);
   this.commandLineManager = new CommandLineManager(this);
+  this.previewManager = new PreviewManager(this);
   this.on_client_data = function(msg) {
     this.messageHandler.handleMessage(msg, all_clients2);
   };
@@ -1139,14 +1433,18 @@ function JSClient(id, client, all_clients2, ensureMonitoringLoop2, historyCollec
       this.sessionStatsManager.cleanup();
       this.cpuStatsManager.cleanup();
       this.filterManager.cleanup();
+      this.previewManager.cleanup();
     } catch (error) {
-      console.error(`JSClient ${this.id}: Error during cleanup:`, error);
+      print(`JSClient ${this.id}: Error during cleanup: ${error}`);
     }
   };
 }
 
 // server/history/HistoryCollector.js
-import { Sys as sys7 } from "gpaccore";
+import { Sys as sys10 } from "gpaccore";
+
+// server/history/HistorySessionWriter.js
+import * as os3 from "os";
 
 // server/history/HistoryWriter.js
 import * as std3 from "std";
@@ -1228,11 +1526,36 @@ function ChunkStream(dir, prefix, maxDuration, maxCount) {
   this._open();
 }
 
+// server/history/helpers/journalIndex.js
+function buildJournalPointer(journalTsUs, journalTypes) {
+  if (journalTsUs.length === 0) return void 0;
+  const errorCount = journalTypes.filter((type) => type === 1).length;
+  const warningCount = journalTypes.filter((type) => type === 2).length;
+  return {
+    file: "journal_index.json",
+    format: "columnar-delta-v1",
+    eventCount: journalTsUs.length,
+    errorCount,
+    warningCount
+  };
+}
+function serializeJournalIndex(journalTsUs, journalTypes) {
+  const baseTsUs = journalTsUs[0];
+  return {
+    baseTsUs,
+    tsDeltaUs: journalTsUs.map((tsUs) => tsUs - baseTsUs),
+    types: journalTypes
+  };
+}
+
 // server/config/history.config.js
 var RATE_LIMIT_US = 1e3 * 1e3;
 var CHUNK_DURATION_US = 10 * 1e3 * 1e3;
 var MAX_LOG_PER_CHUNK = 5e3;
 var MAX_LOG_MESSAGE_LENGTH = 500;
+var SEGMENT_DURATION_US = 24 * 60 * 60 * 1e3 * 1e3;
+var DEFAULT_RETENTION_MAX_SEGMENTS = 30;
+var HISTORY_RETENTION_UNLIMITED = -1;
 var MANIFEST_REFRESH_US = 2 * 1e3 * 1e3;
 
 // server/history/HistoryWriter.js
@@ -1257,7 +1580,7 @@ function formatSessionId(date) {
   return `${datePart}_${timePart}`;
 }
 function HistoryWriter(historyDir, sessionId) {
-  const baseDir = historyDir || "history";
+  const baseDir = historyDir;
   const id = sessionId || formatSessionId(/* @__PURE__ */ new Date());
   const dir = `${baseDir}/${id}`;
   const chunksDir = `${dir}/chunks`;
@@ -1320,25 +1643,13 @@ function HistoryWriter(historyDir, sessionId) {
   };
   this._writeJournalIndex = function() {
     if (this._journalTsUs.length === 0) return;
-    const baseTsUs = this._journalTsUs[0];
-    const journalIndex = {
-      baseTsUs,
-      tsDeltaUs: this._journalTsUs.map((tsUs) => tsUs - baseTsUs),
-      types: this._journalTypes
-    };
-    writeFileAtomic(`${dir}/journal_index.json`, JSON.stringify(journalIndex) + "\n");
+    writeFileAtomic(
+      `${dir}/journal_index.json`,
+      JSON.stringify(serializeJournalIndex(this._journalTsUs, this._journalTypes)) + "\n"
+    );
   };
   this._getJournalPointer = function() {
-    if (this._journalTsUs.length === 0) return void 0;
-    const errorCount = this._journalTypes.filter((type) => type === 1).length;
-    const warningCount = this._journalTypes.filter((type) => type === 2).length;
-    return {
-      file: "journal_index.json",
-      format: "columnar-delta-v1",
-      eventCount: this._journalTsUs.length,
-      errorCount,
-      warningCount
-    };
+    return buildJournalPointer(this._journalTsUs, this._journalTypes);
   };
   this._writeManifest = function() {
     const manifest = {
@@ -1415,14 +1726,266 @@ function HistoryWriter(historyDir, sessionId) {
   };
 }
 
+// server/history/helpers/AppendIndex.js
+import * as std4 from "std";
+function AppendIndex(path) {
+  this._path = path;
+  this._file = null;
+  this._failed = false;
+  this._pending = false;
+  this.append = function(entry) {
+    if (!this._file && !this._failed) {
+      this._file = std4.open(this._path, "a");
+      if (!this._file) {
+        this._failed = true;
+        print(`[AppendIndex] Failed to open ${this._path}`);
+      }
+    }
+    if (!this._file) return;
+    this._file.puts(JSON.stringify(entry) + "\n");
+    this._pending = true;
+  };
+  this.flush = function() {
+    if (!this._pending) return;
+    this._file.flush();
+    this._pending = false;
+  };
+  this.close = function() {
+    if (!this._file) return;
+    this._file.close();
+    this._file = null;
+    this._pending = false;
+  };
+}
+
+// server/history/HistorySessionWriter.js
+function removeAllInDir(subDir) {
+  const [entries, err] = os3.readdir(subDir);
+  if (err) return;
+  for (const entry of entries) {
+    if (entry === "." || entry === "..") continue;
+    os3.remove(`${subDir}/${entry}`);
+  }
+}
+function removeSegmentDir(sessionDir, segmentDir) {
+  const dir = `${sessionDir}/${segmentDir}`;
+  removeAllInDir(`${dir}/chunks`);
+  removeAllInDir(`${dir}/logs`);
+  removeAllInDir(`${dir}/checkpoints`);
+  os3.remove(`${dir}/chunks`);
+  os3.remove(`${dir}/logs`);
+  os3.remove(`${dir}/checkpoints`);
+  os3.remove(`${dir}/manifest.json`);
+  os3.remove(`${dir}/snapshot.json`);
+  os3.remove(`${dir}/done`);
+  os3.remove(dir);
+}
+function HistorySessionWriter(historyDir, sessionId, options) {
+  const baseDir = historyDir;
+  const id = sessionId || formatSessionId(/* @__PURE__ */ new Date());
+  const dir = `${baseDir}/${id}`;
+  const segmentsDir = `${dir}/segments`;
+  const retentionMaxSegments = options && options.retentionMaxSegments !== void 0 ? options.retentionMaxSegments : DEFAULT_RETENTION_MAX_SEGMENTS;
+  const buildSegmentSnapshot = options && options.buildSegmentSnapshot;
+  this.sessionId = id;
+  this.sessionDir = dir;
+  this._initialized = false;
+  this._segmentWriter = null;
+  this._segments = [];
+  this._sessionStartUs = null;
+  this._lastEventUs = null;
+  this._closed = false;
+  this._sessionJsonWritten = false;
+  this._eventsIndex = new AppendIndex(`${dir}/events_index.jsonl`);
+  this._journalIndex = new AppendIndex(`${dir}/journal_index.jsonl`);
+  this._init = function() {
+    if (this._initialized) return;
+    this._initialized = true;
+    try {
+      os3.mkdir(baseDir);
+    } catch (_e) {
+    }
+    try {
+      os3.mkdir(dir);
+    } catch (_e) {
+    }
+    try {
+      os3.mkdir(segmentsDir);
+    } catch (_e) {
+    }
+    this._segmentWriter = new HistoryWriter(segmentsDir, "0000");
+    this._segments.push({ index: 0, dir: "segments/0000", fromUs: null, toUs: null, pinned: false, done: false });
+  };
+  this._currentSegment = function() {
+    return this._segments[this._segments.length - 1];
+  };
+  this._updateTimestamps = function(tsUs) {
+    if (this._sessionStartUs === null) this._sessionStartUs = tsUs;
+    this._lastEventUs = tsUs;
+    const segment = this._currentSegment();
+    if (segment.fromUs === null) segment.fromUs = tsUs;
+  };
+  this._checkRollover = function(tsUs) {
+    const segment = this._currentSegment();
+    if (segment.fromUs !== null && tsUs - segment.fromUs >= SEGMENT_DURATION_US) {
+      this._rollover(tsUs);
+    }
+  };
+  this._rollover = function(tsUs) {
+    const segment = this._currentSegment();
+    this._segmentWriter.close();
+    segment.toUs = tsUs;
+    segment.done = true;
+    const nextIndex = segment.index + 1;
+    const padded = String(nextIndex).padStart(4, "0");
+    this._segmentWriter = new HistoryWriter(segmentsDir, padded);
+    this._segments.push({ index: nextIndex, dir: `segments/${padded}`, fromUs: tsUs, toUs: null, pinned: false, done: false });
+    if (buildSegmentSnapshot) {
+      const snapshot = buildSegmentSnapshot(tsUs);
+      if (snapshot) this._segmentWriter.writeSnapshot(snapshot);
+    }
+    this._purgeRetention();
+    this.writeSessionIndex();
+  };
+  this._purgeRetention = function() {
+    if (retentionMaxSegments === HISTORY_RETENTION_UNLIMITED) return;
+    while (this._segments.filter((segment) => !segment.pinned).length > retentionMaxSegments) {
+      const targetIndex = this._segments.findIndex((segment) => !segment.pinned);
+      if (targetIndex === -1) break;
+      const [target] = this._segments.splice(targetIndex, 1);
+      removeSegmentDir(dir, target.dir);
+    }
+  };
+  this.writeSessionIndex = function() {
+    this._writeSessionJson();
+  };
+  this._flushIndexes = function() {
+    this._eventsIndex.flush();
+    this._journalIndex.flush();
+  };
+  this._writeSessionJson = function() {
+    const lastIndex = this._segments.length - 1;
+    const sessionIndex = {
+      version: 1,
+      startUs: this._sessionStartUs,
+      segmentDurationUs: SEGMENT_DURATION_US,
+      retentionMaxSegments,
+      segments: this._segments.map((segment, index) => {
+        const entry = { index: segment.index, fromUs: segment.fromUs };
+        if (this._closed && index === lastIndex) entry.toUs = segment.toUs;
+        return entry;
+      })
+    };
+    if (this._closed) sessionIndex.endUs = this._lastEventUs;
+    writeFileAtomic(`${dir}/session.json`, JSON.stringify(sessionIndex) + "\n");
+    this._sessionJsonWritten = true;
+  };
+  this._ensureSessionJson = function() {
+    if (!this._sessionJsonWritten) this._writeSessionJson();
+  };
+  this.writeSnapshot = function(obj) {
+    this._init();
+    this._segmentWriter.writeSnapshot(obj);
+  };
+  this.writeLog = function(jsonString, tsUs) {
+    this._init();
+    this._updateTimestamps(tsUs);
+    this._segmentWriter.writeLog(jsonString, tsUs);
+    this._checkRollover(tsUs);
+    this._ensureSessionJson();
+    this._flushIndexes();
+  };
+  this.writeEvent = function(jsonString, tsUs) {
+    this._init();
+    this._updateTimestamps(tsUs);
+    const rotated = this._segmentWriter.writeEvent(jsonString, tsUs);
+    this._checkRollover(tsUs);
+    this._ensureSessionJson();
+    this._flushIndexes();
+    return rotated;
+  };
+  this.writeCheckpoint = function(chunkIndex, obj) {
+    this._init();
+    this._segmentWriter.writeCheckpoint(chunkIndex, obj);
+  };
+  this.getCurrentChunkIndex = function() {
+    this._init();
+    return this._segmentWriter.getCurrentChunkIndex();
+  };
+  this.getCurrentLogChunkIndex = function() {
+    this._init();
+    return this._segmentWriter.getCurrentLogChunkIndex();
+  };
+  this.addEventIndex = function(tsUs, type, metadata) {
+    if (!Number.isFinite(tsUs)) return;
+    this._init();
+    this._eventsIndex.append(metadata ? { ts_us: tsUs, type, ...metadata } : { ts_us: tsUs, type });
+  };
+  this.recordJournalFact = function(tsUs, type) {
+    if (!Number.isFinite(tsUs)) return;
+    this._init();
+    this._journalIndex.append({ ts_us: tsUs, type });
+  };
+  this.close = function() {
+    this._init();
+    this._segmentWriter.close();
+    const segment = this._currentSegment();
+    segment.toUs = this._lastEventUs;
+    segment.done = true;
+    this._closed = true;
+    this._eventsIndex.close();
+    this._journalIndex.close();
+    this.writeSessionIndex();
+  };
+}
+
+// server/history/SnapshotBuilder.js
+import { Sys as sys9 } from "gpaccore";
+function SnapshotBuilder() {
+  this.pidCollector = new PidDataCollector();
+  this.buildFilterEntry = function(f) {
+    const entry = gpac_filter_to_object(f, true);
+    delete entry.ipid;
+    delete entry.opid;
+    const minimal = gpac_filter_to_minimal_object(f);
+    entry.ipids = minimal.ipid;
+    entry.opids = minimal.opid;
+    entry.properties = {
+      ipids: this.pidCollector.collectInputPids(f, true),
+      opids: this.pidCollector.collectOutputPids(f)
+    };
+    return entry;
+  };
+  this.build = function(graphVersion, commandLine) {
+    const filters = [];
+    session.lock_filters(true);
+    for (let i = 0; i < session.nb_filters; i++) {
+      const f = session.get_filter(i);
+      if (!f.is_destroyed()) filters.push(this.buildFilterEntry(f));
+    }
+    session.lock_filters(false);
+    return {
+      version: 1,
+      ts_us: sys9.clock_us(),
+      command_line: commandLine,
+      graph_v: graphVersion,
+      filters,
+      session_metrics: session.session_metrics || null
+    };
+  };
+}
+
 // server/history/HistoryCollector.js
-var EVENT_VERSION = 1;
 var LOG_ID = "_hist_";
 var LOG_LEVEL_ERROR = 1;
 var LOG_LEVEL_WARNING = 2;
 function HistoryCollector(historyDir) {
+  this.snapshotBuilder = new SnapshotBuilder();
+  this._graphVersion = null;
   this.enabled = !!historyDir;
-  this.writer = new HistoryWriter(historyDir);
+  this.writer = new HistorySessionWriter(historyDir, void 0, {
+    buildSegmentSnapshot: (rolloverTsUs) => this._buildRolloverSnapshot(rolloverTsUs)
+  });
   this.pidCollector = new PidDataCollector();
   this.snapshotWritten = false;
   this.lastRecordUs = 0;
@@ -1442,7 +2005,6 @@ function HistoryCollector(historyDir) {
       return;
     }
     const checkpoint = {
-      version: this._latestStructural.version,
       ts_us: tsUs,
       graph_v: this._latestStructural.graph_v,
       filters: this._latestStructural.filters,
@@ -1461,7 +2023,7 @@ function HistoryCollector(historyDir) {
     this._writeCheckpointIfNeeded(newChunkIndex, this._lastEventTsUs);
   };
   this.startLogCapture = function() {
-    this.initialLogConfig = sys7.get_logs(true);
+    this.initialLogConfig = sys10.get_logs(true);
     logHub.add(LOG_ID, this);
   };
   this.writeSnapshot = function(data) {
@@ -1470,7 +2032,18 @@ function HistoryCollector(historyDir) {
     this.writer.writeSnapshot(data);
     this.snapshotWritten = true;
   };
+  this._buildRolloverSnapshot = function(rolloverTsUs) {
+    let commandLine = null;
+    try {
+      commandLine = sys10.args ? sys10.args.join(" ") : null;
+    } catch (_e) {
+    }
+    const snapshot = this.snapshotBuilder.build(this._graphVersion, commandLine);
+    snapshot.ts_us = rolloverTsUs;
+    return snapshot;
+  };
   this.recordGraph = function(filters, filterInstances, graphVersion) {
+    this._graphVersion = graphVersion;
     const pidCollector2 = new PidDataCollector();
     const eventFilters = filters.map((filter, index) => {
       const { ipid, opid, gpac_args, ...rest } = filter;
@@ -1499,11 +2072,10 @@ function HistoryCollector(historyDir) {
         properties: { ...filter.properties, ipids: strippedIpids }
       };
     });
-    const filtersTsUs = sys7.clock_us();
+    const filtersTsUs = sys10.clock_us();
     this.writer.addEventIndex(filtersTsUs, "graph-change");
     if (!this.snapshotWritten) {
       this.writeSnapshot({
-        version: EVENT_VERSION,
         ts_us: filtersTsUs,
         command_line: null,
         graph_v: graphVersion,
@@ -1511,7 +2083,6 @@ function HistoryCollector(historyDir) {
       });
     }
     const rotated = this.writer.writeEvent(JSON.stringify({
-      version: EVENT_VERSION,
       message: "filters",
       ts_us: filtersTsUs,
       graph_v: graphVersion,
@@ -1519,7 +2090,6 @@ function HistoryCollector(historyDir) {
     }), filtersTsUs);
     this._lastEventTsUs = filtersTsUs;
     this._latestStructural = {
-      version: EVENT_VERSION,
       graph_v: graphVersion,
       filters: checkpointFilters
     };
@@ -1536,7 +2106,7 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(filtersTsUs);
   };
   this.recordSessionStats = function(payload, force) {
-    const ts_us = sys7.clock_us();
+    const ts_us = sys10.clock_us();
     if (!force && ts_us - this.lastRecordUs < RATE_LIMIT_US) return;
     this.lastRecordUs = ts_us;
     const filterMap = {};
@@ -1555,7 +2125,6 @@ function HistoryCollector(historyDir) {
     });
     session.lock_filters(false);
     const rotated = this.writer.writeEvent(JSON.stringify({
-      version: EVENT_VERSION,
       message: "session_stats",
       ts_us,
       all_packets_done: payload.all_packets_done,
@@ -1565,11 +2134,10 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(ts_us);
   };
   this.recordCpuStats = function(payload) {
-    const cpuTsUs = sys7.clock_us();
+    const cpuTsUs = sys10.clock_us();
     if (cpuTsUs - this.lastCpuRecordUs < RATE_LIMIT_US) return;
     this.lastCpuRecordUs = cpuTsUs;
     const rotated = this.writer.writeEvent(JSON.stringify({
-      version: EVENT_VERSION,
       message: "cpu_stats",
       ts_us: cpuTsUs,
       ...payload
@@ -1578,7 +2146,7 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(cpuTsUs);
   };
   this.recordPidReconfigured = function(indexes, pidsByFilter) {
-    const tsUs = sys7.clock_us();
+    const tsUs = sys10.clock_us();
     this.writer.addEventIndex(tsUs, "pid-reconfig");
     if (!this._currentPidState) {
       this._currentPidState = {};
@@ -1596,7 +2164,6 @@ function HistoryCollector(historyDir) {
       this._chunkNeedsCheckpoint = true;
     }
     const rotated = this.writer.writeEvent(JSON.stringify({
-      version: EVENT_VERSION,
       message: "filter_pid_reconfigured",
       ts_us: tsUs,
       indexes,
@@ -1606,7 +2173,7 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(tsUs);
   };
   this.recordArgUpdated = function(indexes, argsByFilter) {
-    const tsUs = sys7.clock_us();
+    const tsUs = sys10.clock_us();
     this.writer.addEventIndex(tsUs, "args-change");
     for (const idx of indexes) {
       if (argsByFilter[idx]) {
@@ -1617,7 +2184,6 @@ function HistoryCollector(historyDir) {
       this._chunkNeedsCheckpoint = true;
     }
     const rotated = this.writer.writeEvent(JSON.stringify({
-      version: EVENT_VERSION,
       message: "filter_arg_updated",
       ts_us: tsUs,
       indexes,
@@ -1627,9 +2193,8 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(tsUs);
   };
   this.recordFilterArgsUpdate = function(filterIdx, argName, newValue) {
-    const argsTsUs = sys7.clock_us();
+    const argsTsUs = sys10.clock_us();
     const rotated = this.writer.writeEvent(JSON.stringify({
-      version: EVENT_VERSION,
       message: "filter_args_update",
       ts_us: argsTsUs,
       payload: { filter_idx: filterIdx, arg_name: argName, value: newValue }
@@ -1638,9 +2203,8 @@ function HistoryCollector(historyDir) {
     if (rotated) this._onChunkRotated(argsTsUs);
   };
   this.recordLogConfigChanged = function(logLevel) {
-    const tsUs = sys7.clock_us();
+    const tsUs = sys10.clock_us();
     this.writer.writeLog(JSON.stringify({
-      version: EVENT_VERSION,
       message: "log_config_changed",
       ts_us: tsUs,
       logLevel
@@ -1648,7 +2212,7 @@ function HistoryCollector(historyDir) {
   };
   this.handleLog = function(tool, level, message, thread_id, caller) {
     this.pendingLogs.push({
-      timestamp: sys7.clock_us(),
+      timestamp: sys10.clock_us(),
       tool,
       level,
       message: message?.length > MAX_LOG_MESSAGE_LENGTH ? message.substring(0, MAX_LOG_MESSAGE_LENGTH) + "..." : message,
@@ -1665,9 +2229,8 @@ function HistoryCollector(historyDir) {
   };
   this.flushLogs = function() {
     if (this.pendingLogs.length) {
-      const tsUs = sys7.clock_us();
+      const tsUs = sys10.clock_us();
       this.writer.writeLog(JSON.stringify({
-        version: EVENT_VERSION,
         message: "log_batch",
         ts_us: tsUs,
         logs: this.pendingLogs
@@ -1700,45 +2263,7 @@ function HistoryCollector(historyDir) {
 }
 
 // server/GraphManager.js
-import { Sys as sys9 } from "gpaccore";
-
-// server/history/SnapshotBuilder.js
-import { Sys as sys8 } from "gpaccore";
-function SnapshotBuilder() {
-  this.pidCollector = new PidDataCollector();
-  this.buildFilterEntry = function(f) {
-    const entry = gpac_filter_to_object(f, true);
-    delete entry.ipid;
-    delete entry.opid;
-    const minimal = gpac_filter_to_minimal_object(f);
-    entry.ipids = minimal.ipid;
-    entry.opids = minimal.opid;
-    entry.properties = {
-      ipids: this.pidCollector.collectInputPids(f, true),
-      opids: this.pidCollector.collectOutputPids(f)
-    };
-    return entry;
-  };
-  this.build = function(graphVersion, commandLine) {
-    const filters = [];
-    session.lock_filters(true);
-    for (let i = 0; i < session.nb_filters; i++) {
-      const f = session.get_filter(i);
-      if (!f.is_destroyed()) filters.push(this.buildFilterEntry(f));
-    }
-    session.lock_filters(false);
-    return {
-      version: 1,
-      ts_us: sys8.clock_us(),
-      command_line: commandLine,
-      graph_v: graphVersion,
-      filters,
-      session_metrics: session.session_metrics || null
-    };
-  };
-}
-
-// server/GraphManager.js
+import { Sys as sys11 } from "gpaccore";
 var GRAPH_DEBOUNCE_US = 500 * 1e3;
 var GRAPH_MAX_WAIT_US = 3e3 * 1e3;
 function GraphManager(deps) {
@@ -1753,7 +2278,7 @@ function GraphManager(deps) {
     return graphVersion;
   };
   this.onGraphEvent = function() {
-    const now = sys9.clock_us();
+    const now = sys11.clock_us();
     graphDirty = true;
     lastGraphEventTime = now;
     if (!graphBuildStartTime) graphBuildStartTime = now;
@@ -1761,7 +2286,7 @@ function GraphManager(deps) {
     if (debounceRunning) return;
     debounceRunning = true;
     session.post_task(() => {
-      const now2 = sys9.clock_us();
+      const now2 = sys11.clock_us();
       const sinceLast = now2 - lastGraphEventTime;
       const sinceBuildStart = now2 - graphBuildStartTime;
       const graphStable = sinceLast >= GRAPH_DEBOUNCE_US;
@@ -1785,7 +2310,7 @@ function GraphManager(deps) {
       if (!historyCollector2.snapshotWritten) {
         let commandLine = null;
         try {
-          commandLine = sys9.args ? sys9.args.join(" ") : null;
+          commandLine = sys11.args ? sys11.args.join(" ") : null;
         } catch (_e) {
         }
         const snapshot = snapshotBuilder.build(graphVersion, commandLine);
@@ -1847,9 +2372,8 @@ function buildSessionStatsPayload(session2, fields) {
 }
 
 // server/server.js
-var recordPath = sys10.get_opt("core", "rmt-log");
+var recordPath = sys12.get_opt("core", "rmt-log");
 var historyCollector = new HistoryCollector(recordPath);
-print(recordPath ? `[History] Recording enabled -> ${recordPath}` : "[History] Recording disabled (no -rmt-log)");
 var all_clients = [];
 var cid = 0;
 var filter_uid = 0;
@@ -1864,7 +2388,7 @@ function ensureMonitoringLoop() {
   if (monitoringRunning) return;
   monitoringRunning = true;
   session.post_task(() => {
-    const now = sys10.clock_us();
+    const now = sys12.clock_us();
     if (session.last_task) {
       for (const client of all_clients) client.sessionManager.handleSessionEnd(now);
       historyCollector.recordSessionStats(buildSessionStatsPayload(session), true);
@@ -1901,18 +2425,19 @@ session.set_new_filter_fun((f) => {
   f.idx = filter_uid++;
   f.iname = "" + f.idx;
   all_filters.push(f);
-  if (f.itag == "NODISPLAY") return;
+  if (is_hidden_filter(f)) return;
   graphManager.onGraphEvent();
 });
 session.set_del_filter_fun((f) => {
   let idx = all_filters.indexOf(f);
   if (idx >= 0) all_filters.splice(idx, 1);
-  if (f.itag == "NODISPLAY") return;
+  if (is_hidden_filter(f)) return;
   graphManager.onGraphEvent();
 });
 var pidCollector = new PidDataCollector();
 var pidReconfigured = /* @__PURE__ */ new Set();
 session.set_filter_pid_modified_fun((f) => {
+  if (is_hidden_filter(f)) return;
   pidReconfigured.add(f.idx);
   if (pidReconfigured.size > 1) return;
   session.post_task(() => {
@@ -1947,7 +2472,7 @@ session.set_filter_arg_updated_fun((f) => {
     return false;
   });
 });
-sys10.rmt_on_new_client = function(client) {
+sys12.rmt_on_new_client = function(client) {
   let js_client = new JSClient(++cid, client, all_clients, ensureMonitoringLoop, historyCollector);
   all_clients.push(js_client);
   js_client.sendMonitorConfig();
