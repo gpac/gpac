@@ -244,10 +244,10 @@ void gf_rtsp_reset_aggregation(GF_RTSPSession *sess)
 
 	if (sess->RTSP_State == GF_RTSP_STATE_WAIT_FOR_CONTROL) {
 		gf_strcpy(sess->RTSPLastRequest, "RESET");
-		//skip all we haven't received
-		sess->CSeq += sess->NbPending;
-		sess->NbPending = 0;
 	}
+	//skip all we haven't received, even in wait_for_control state - cf #4064
+	sess->CSeq += sess->NbPending;
+	sess->NbPending = 0;
 	sess->RTSP_State = GF_RTSP_STATE_INIT;
 }
 
