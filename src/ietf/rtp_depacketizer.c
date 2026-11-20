@@ -702,10 +702,14 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, 
 		u32 offset = 1;
 		while (offset<size) {
 			Bool send = GF_TRUE;
-			u32 nal_size = (u8) payload[offset];
+			u32 nal_size;
+			//the 16-bit size field and the NAL unit must both be in the payload
+			if (offset + 2 > size) break;
+			nal_size = (u8) payload[offset];
 			nal_size<<=8;
 			nal_size |= (u8) payload[offset+1];
 			offset += 2;
+			if (!nal_size || (nal_size > size - offset)) break;
 			if ((payload[offset] & 0x1F) == GF_AVC_NALU_IDR_SLICE) {
 				rtp->sl_hdr.randomAccessPointFlag = 1;
 				rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
