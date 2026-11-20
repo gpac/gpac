@@ -453,7 +453,7 @@ ifeq ($(UNIT_TESTS),yes)
 	$(CC) $(CFLAGS) $(caption_cflags) $(picoquic_cflags) $(ssl_cflags) -Wno-unused-variable -Wno-unused-function -I.. -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H  \
 		-o ../bin/gcc/unittests \
 		../bin/gcc/unittests.c \
-		$(shell find -H $(SRC_PATH) -path "*/unittests/*.c" | grep -v bin | sort) \
+		$(shell find -H $(SRC_PATH) -path "$(SRC_PATH)/unittests/build" -prune -o -path "*/unittests/*.c" -print | grep -v bin | sort) \
 		-L../bin/gcc $(UNIT_LDFLAGS) -Wl,-rpath,$(realpath ../bin/gcc) -lm -lgpac $(picoquic_ldflags)
 endif
 

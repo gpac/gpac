@@ -1081,7 +1081,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 	}
 	fdt_obj->payload[fdt_obj->total_length]=0;
 
-	GF_Err e = gf_xml_dom_parse_string(routedmx->dom, fdt_obj->payload);
+	GF_Err e = gf_xml_dom_parse_string_len(routedmx->dom, fdt_obj->payload, fdt_obj->total_length);
 	GF_XMLNode *root = gf_xml_dom_get_root(routedmx->dom);
 	if (!root || strcmp(root->name, "FDT-Instance") || e) {
 		// Error: Couldn't find start or end tags
@@ -1426,7 +1426,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 	}
 	object->payload[object->total_length]=0;
 
-	GF_Err e = gf_xml_dom_parse_string(routedmx->dom, object->payload);
+	GF_Err e = gf_xml_dom_parse_string_len(routedmx->dom, object->payload, object->total_length);
 	GF_XMLNode *root = gf_xml_dom_get_root(routedmx->dom);
 	if (!root || strcmp(root->name, "MulticastGatewayConfiguration") || e) {
 		// Error: Couldn't find start or end tags
@@ -2381,14 +2381,14 @@ static GF_Err gf_route_service_setup_dash(GF_ROUTEDmx *routedmx, GF_ROUTEService
 	return GF_OK;
 }
 
-static GF_Err gf_route_service_parse_mbms_enveloppe(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, char *content, char *content_location, u32 *stsid_version, u32 *mpd_version)
+static GF_Err gf_route_service_parse_mbms_enveloppe(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, char *content, u32 content_len, char *content_location, u32 *stsid_version, u32 *mpd_version)
 {
 	u32 i, j;
 	GF_Err e;
 	GF_XMLAttribute *att;
 	GF_XMLNode *it, *root;
 
-	e = gf_xml_dom_parse_string(routedmx->dom, content);
+	e = gf_xml_dom_parse_string_len(routedmx->dom, content, content_len);
 	root = gf_xml_dom_get_root(routedmx->dom);
 	if (e || !root) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to parse S-TSID: %s - %s\n", s->log_name, gf_error_to_string(e), gf_xml_dom_get_error(routedmx->dom) ));
@@ -2420,7 +2420,7 @@ static GF_Err gf_route_service_parse_mbms_enveloppe(GF_ROUTEDmx *routedmx, GF_RO
 
 Bool gf_mpd_check_print_format(const char *print_fmt);
 
-static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, char *content, char *content_location)
+static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, char *content, u32 content_len, char *content_location)
 {
 	GF_Err e;
 	GF_XMLAttribute *att;
@@ -2429,7 +2429,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	GF_List *remove_sessions = NULL;
 	GF_List *remove_channels = NULL;
 
-	crc = gf_crc_32(content, (u32) strlen(content) );
+	crc = gf_crc_32(content, content_len);
 	if (!s->stsid_crc) {
 		s->stsid_crc = crc;
 	} else if (s->stsid_crc != crc) {
@@ -2449,7 +2449,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 		return GF_OK;
 	}
 
-	e = gf_xml_dom_parse_string(routedmx->dom, content);
+	e = gf_xml_dom_parse_string_len(routedmx->dom, content, content_len);
 	root = gf_xml_dom_get_root(routedmx->dom);
 	if (e || !root) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to parse S-TSID: %s - %s\n", s->log_name, gf_error_to_string(e), gf_xml_dom_get_error(routedmx->dom)));
@@ -2936,6 +2936,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 	//extract all content
 	while (1) {
 		char *content;
+		u32 content_size;
 		//multipart, check for start and end
 		if (boundary) {
 			sep = strstr(payload, boundary);
@@ -2979,6 +2980,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		payload += 4;
 		content = boundary ? strstr(payload, "\r\n--") : strstr(payload, "\r\n\r\n");
 		if (content) {
+			content_size = (u32) (content - payload);
 			content[0] = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Package type %s location %s content:\n%s\n", s->log_name, szContentType, szContentLocation, payload ));
 		} else {
@@ -2989,7 +2991,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		}
 
 		if (!strcmp(szContentType, "application/mbms-envelope+xml")) {
-			e = gf_route_service_parse_mbms_enveloppe(routedmx, s, payload, szContentLocation, &stsid_version, &mpd_version);
+			e = gf_route_service_parse_mbms_enveloppe(routedmx, s, payload, content_size, szContentLocation, &stsid_version, &mpd_version);
 
 			if (e || !stsid_version || !mpd_version) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] MBMS envelope error %s, S-TSID version %d MPD version %d\n", s->log_name, gf_error_to_string(e), stsid_version, mpd_version ));
@@ -3017,7 +3019,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		else if (!strcmp(szContentType, "application/s-tsid") || !strcmp(szContentType, "application/route-s-tsid+xml")) {
 			if (!s->stsid_version || (stsid_version && (stsid_version+1 != s->stsid_version))) {
 				s->stsid_version = stsid_version+1;
-				e = gf_route_service_setup_stsid(routedmx, s, payload, szContentLocation);
+				e = gf_route_service_setup_stsid(routedmx, s, payload, content_size, szContentLocation);
 				if (e) {
 					gf_free(boundary);
 					return e;
@@ -3533,7 +3535,7 @@ static GF_Err gf_route_dmx_process_lls(GF_ROUTEDmx *routedmx)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ATSC] %s table - payload:\n%s\n", name, routedmx->unz_buffer));
 
 
-	e = gf_xml_dom_parse_string(routedmx->dom, routedmx->unz_buffer);
+	e = gf_xml_dom_parse_string_len(routedmx->dom, routedmx->unz_buffer, raw_size);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ATSC] Failed to parse SLT XML: %s - %s\n", gf_error_to_string(e), gf_xml_dom_get_error(routedmx->dom) ));
 		return e;

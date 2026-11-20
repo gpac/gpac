@@ -2075,29 +2075,16 @@ static void gf_sm_svg_flush_state(GF_SVG_Parser *parser)
 	}
 }
 
-static GF_Err gf_sm_load_initialize_svg(GF_SceneLoader *load, const char *str_data, Bool is_fragment)
+static GF_Err gf_sm_load_initialize_svg(GF_SceneLoader *load, const char *str_data, u32 byte_len, Bool is_fragment)
 {
 	GF_Err e;
 	GF_SVG_Parser *parser;
 
 	if (str_data) {
-		char BOM[6];
-		BOM[0] = str_data[0];
-		BOM[1] = str_data[1];
-		BOM[2] = str_data[2];
-		BOM[3] = str_data[3];
-		BOM[4] = BOM[5] = 0;
 		parser = svg_new_parser(load);
 		if (!parser) return GF_BAD_PARAM;
 
 		if (is_fragment) parser->has_root = 2;
-		e = gf_xml_sax_init(parser->sax_parser, (unsigned char*)BOM);
-		if (e) {
-			svg_report(parser, e, "Error initializing SAX parser: %s", gf_xml_sax_get_error(parser->sax_parser) );
-			return e;
-		}
-		str_data += 4;
-
 	} else if (load->fileName) {
 		parser = svg_new_parser(load);
 		if (!parser) return GF_BAD_PARAM;
@@ -2129,8 +2116,13 @@ static GF_Err gf_sm_load_initialize_svg(GF_SceneLoader *load, const char *str_da
 		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[Parser] %s Scene Parsing: %s\n", ((load->type==GF_SM_LOAD_SVG) ? "SVG" : ((load->type==GF_SM_LOAD_XSR) ? "LASeR" : "DIMS")), load->fileName));
 	}
 
-	if (str_data)
-		return gf_xml_sax_parse(parser->sax_parser, str_data);
+	if (str_data) {
+		e = gf_xml_sax_init_len(parser->sax_parser, (const unsigned char *)str_data, byte_len);
+		if (e) {
+			svg_report(parser, e, "Error initializing SAX parser: %s", gf_xml_sax_get_error(parser->sax_parser));
+			return e;
+		}
+	}
 
 	return GF_OK;
 }
@@ -2143,7 +2135,7 @@ GF_Err load_svg_run(GF_SceneLoader *load)
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)load->loader_priv;
 
 	if (!parser) {
-		e = gf_sm_load_initialize_svg(load, NULL, GF_FALSE);
+		e = gf_sm_load_initialize_svg(load, NULL, 0, GF_FALSE);
 		if (e) return e;
 		parser = (GF_SVG_Parser *)load->loader_priv;
 	}
@@ -2189,16 +2181,19 @@ static void load_svg_done(GF_SceneLoader *load)
 	load->loader_priv = NULL;
 }
 
-GF_Err load_svg_parse_string(GF_SceneLoader *load, const char *str)
+GF_Err load_svg_parse_string(GF_SceneLoader *load, const char *str, u32 byte_len)
 {
 	GF_Err e;
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)load->loader_priv;
 
+	if (!str && byte_len) return GF_BAD_PARAM;
+	if (!byte_len) return GF_OK;
+
 	if (!parser) {
-		e = gf_sm_load_initialize_svg(load, str, GF_FALSE);
+		e = gf_sm_load_initialize_svg(load, str, byte_len, GF_FALSE);
 		parser = (GF_SVG_Parser *)load->loader_priv;
 	} else {
-		e = gf_xml_sax_parse(parser->sax_parser, str);
+		e = gf_xml_sax_parse_len(parser->sax_parser, str, byte_len);
 	}
 	if (e<0) svg_report(parser, e, "Unable to parse chunk: %s", parser ? gf_xml_sax_get_error(parser->sax_parser) : "no parser");
 	else e = parser->last_error;
@@ -2237,11 +2232,15 @@ GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *in_scene, char *node_str)
 	GF_SVG_Parser *parser;
 	GF_Node *node;
 	GF_SceneLoader ctx;
+	size_t node_len;
+	if (!node_str) return NULL;
+	node_len = strlen(node_str);
+	if (node_len > 0xFFFFFFFFU) return NULL;
 	memset(&ctx, 0, sizeof(GF_SceneLoader));
 	ctx.scene_graph = in_scene;
 	ctx.type = GF_SM_LOAD_SVG;
 
-	e = gf_sm_load_initialize_svg(&ctx, node_str, GF_TRUE);
+	e = gf_sm_load_initialize_svg(&ctx, node_str, (u32)node_len, GF_TRUE);
 
 	parser = (GF_SVG_Parser *)ctx.loader_priv;
 

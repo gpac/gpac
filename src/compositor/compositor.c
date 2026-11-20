@@ -5062,7 +5062,7 @@ GF_Err gf_sc_scene_update(GF_Compositor *compositor, char *type, char *com)
 	}
 
 	e = gf_sm_load_init(&load);
-	if (!e) e = gf_sm_load_string(&load, com, 1);
+	if (!e) e = gf_sm_load_string(&load, com, 0, 1);
 	gf_sm_load_done(&load);
 	if (!e) {
 		u32 j, au_count, st_count;

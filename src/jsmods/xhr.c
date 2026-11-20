@@ -793,8 +793,8 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (parameter->data && parameter->size) {
 			if (ctx->sax) {
 				GF_Err e;
-				if (!ctx->size) e = gf_xml_sax_init(ctx->sax, (unsigned char *) parameter->data);
-				else e = gf_xml_sax_parse(ctx->sax, parameter->data);
+				if (!ctx->size) e = gf_xml_sax_init_len(ctx->sax, (const unsigned char *) parameter->data, parameter->size);
+				else e = gf_xml_sax_parse_len(ctx->sax, parameter->data, parameter->size);
 				if (e) {
 					gf_xml_sax_del(ctx->sax);
 					ctx->sax = NULL;
@@ -1126,7 +1126,7 @@ static GF_Err xml_http_load_dom(XMLHTTPContext *ctx)
 {
 	GF_Err e;
 	GF_DOMParser *parser = gf_xml_dom_new();
-	e = gf_xml_dom_parse_string(parser, ctx->data);
+	e = gf_xml_dom_parse_string_len(parser, ctx->data, ctx->size);
 	if (!e) {
 		e = gf_sg_init_from_xml_node(ctx->document, gf_xml_dom_get_root(parser));
 	}

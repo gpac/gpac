@@ -6012,6 +6012,7 @@ static void dasher_forward_mpd(GF_DasherCtx *ctx, const char *manifest)
 	GF_MPD *mpd = gf_mpd_new();
 	GF_List *recompute_sets = NULL;
 	GF_DOMParser *dom = gf_xml_dom_new();
+	//only UTF8 allowed (comes from gpac GF_PropString)
 	GF_Err e = gf_xml_dom_parse_string(dom, (char *)manifest);
 	if (e) goto err_exit;
 
