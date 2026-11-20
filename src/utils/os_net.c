@@ -2163,7 +2163,7 @@ void gf_sk_reset(GF_Socket *sock)
 {
 	if (!sock || (sock->flags & GF_SOCK_IS_TCP)) return;
 	u8 drain[1500];
-	u32 retry=100;
+	u32 retry=10;
 	u32 flags = 0;
 #ifndef WIN32
 	flags = MSG_DONTWAIT;

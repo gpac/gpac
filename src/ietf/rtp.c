@@ -126,8 +126,7 @@ GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, c
 GF_EXPORT
 void gf_rtp_reset_buffers(GF_RTPChannel *ch)
 {
-	if (ch->rtp) gf_sk_reset(ch->rtp);
-	if (ch->rtcp) gf_sk_reset(ch->rtcp);
+	//we don't want to reset the sockets since we could already have usefull data in the socket
 	if (ch->po) gf_rtp_reorderer_reset(ch->po);
 	ch->first_SR = 1;
 }
