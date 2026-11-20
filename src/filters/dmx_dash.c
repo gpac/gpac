@@ -3034,16 +3034,6 @@ fetch_next:
 		if (!group->current_group_dep && !group->next_dependent_rep_idx) {
 			gf_dash_group_discard_segment(ctx->dash, group->idx);
 
-			//special case for group dependencies (tiling): signal segment switch
-			//so that tileagg may detect losses
-			if (group->nb_group_deps) {
-				GF_FilterPid *opid = dashdmx_opid_from_group(ctx, group);
-				if (opid) {
-					GF_FEVT_INIT(evt, GF_FEVT_PLAY_HINT, opid);
-					evt.play.forced_dash_segment_switch = GF_TRUE;
-					gf_filter_pid_send_event(opid, &evt);
-				}
-			}
 			if (group->seg_discard_state==1)
 				group->seg_discard_state = 2;
 		}
