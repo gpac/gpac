@@ -6375,7 +6375,6 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		const GF_PropertyValue *p;
 
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
-		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CONSTANT_DURATION);
 
 		if (tkw->fake_track) {
 			if (def_fake_scale) {
@@ -6386,17 +6385,20 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 				def_pck_dur = 0;
 			}
 		}
-		//check if we have a default constant duration set, if so use it
-		else if (p && p->value.uint) {
+		//otherwise setup fragmentation, using first sample desc as default idx
+		else {
+			//check if we have a default constant duration set, if so use it
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CONSTANT_DURATION);
 			def_pck_dur = p ? p->value.uint : 0;
-		} else {
+
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
 			//can be null if eos
 			if (pck) {
 				u32 tscale;
-				//otherwise setup fragmentation, using first sample desc as default idx
-				//first pck dur as default
-				def_pck_dur = gf_filter_pck_get_duration(pck);
+
+				//first pck dur as default if none signaled
+				if (!def_pck_dur)
+					def_pck_dur = gf_filter_pck_get_duration(pck);
 
 				dts = gf_filter_pck_get_dts(pck);
 				if (dts == GF_FILTER_NO_TS)
