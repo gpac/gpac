@@ -2170,7 +2170,7 @@ void gf_sk_reset(GF_Socket *sock)
 #else
 	if (!(sock->flags & GF_SOCK_NON_BLOCKING)) {
 		u32 nblock = 1;
-		ioctlsocket(sock, FIONBIO, &nblock);
+		ioctlsocket(sock->socket, FIONBIO, &nblock);
 	}
 #endif
 	while (1) {
@@ -2192,7 +2192,7 @@ void gf_sk_reset(GF_Socket *sock)
 #ifdef WIN32
 	if (!(sock->flags & GF_SOCK_NON_BLOCKING)) {
 		u32 block = 0;
-		ioctlsocket(sock, FIONBIO, &block);
+		ioctlsocket(sock->socket, FIONBIO, &block);
 	}
 #endif
 }
