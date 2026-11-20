@@ -3909,6 +3909,8 @@ void gf_route_dmx_purge_objects(GF_ROUTEDmx *routedmx, u32 service_id)
 		if (obj->status <= GF_LCT_OBJ_RECEPTION) continue;
 		//trash
 		gf_route_obj_to_reservoir(routedmx, s, obj);
+		//the object was removed from s->objects, the next one is now at index i-1
+		i--;
 	}
 }
 
