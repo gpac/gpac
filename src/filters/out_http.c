@@ -42,7 +42,7 @@
 #include "../scenegraph/qjs_common.h"
 #endif
 
-#include "../utils/downloader.h"
+#include "../utils/downloader_exp.h"
 
 GF_OPT_ENUM (GF_HTTPOutFilterOperationMode,
 	MODE_DEFAULT=0,
@@ -95,7 +95,7 @@ typedef struct
 	GF_Socket *server_sock;
 	GF_Socket *server_sock_alt;
 	GF_Socket *server_sock_h3;
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 	u32 quic_port;
 	GF_QuicServer *quic_sock;
 	void *ssl_ctx_quic;
@@ -210,6 +210,8 @@ typedef struct __httpout_input
 	char *llhas_url;
 
 	Bool flush_close, flush_close_llhas, flush_open, flush_llhas_open;
+	//start of current packet already processed (file opened), postponed while waiting for LLHAS close
+	Bool start_done;
 } GF_HTTPOutInput;
 
 typedef struct
@@ -348,7 +350,7 @@ static u32 httpio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
 	if (!buffer || !bytes) return 0;
 	GF_HTTPFileIO *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx || ioctx->parent) return 0;
+	if (!ioctx || ioctx->parent || !buffer) return 0;
 
 	ioctx->data = gf_realloc(ioctx->data, sizeof(u8)*((size_t)ioctx->size+bytes));
 	if (!ioctx->data) return 0;
@@ -2186,7 +2188,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 	if (cors_origin) gf_free(cors_origin);
 
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 	if ((sess->http_type!=GF_SESS_TYPE_HTTP3) && sess->ctx->quic_sock) {
 		char szTmp[100];
 		sprintf(szTmp, "h3=\":%u\"", sess->ctx->quic_port);
@@ -2462,7 +2464,7 @@ exit:
 			gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Headers", "*");
 		}
 	}
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 	if ((sess->http_type!=GF_SESS_TYPE_HTTP3) && sess->ctx->quic_sock) {
 		char szTmp[100];
 		sprintf(szTmp, "h3=\":%u\"", sess->ctx->quic_port);
@@ -2975,7 +2977,7 @@ static Bool httpout_accept_connection(GF_HTTPOutCtx *ctx, const char *peer_addre
 }
 
 
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 static Bool on_h3_accept(void *udta, GF_DownloadSession *http_sess, const char *address, u32 port)
 {
 	GF_HTTPOutSession *sess;
@@ -3270,7 +3272,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		gf_filter_get_download_manager(ctx->filter);
 
 	Bool use_tcp = GF_TRUE;
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 	Bool use_h3 = GF_TRUE;
 	const char *opt = gf_opts_get_key("core", "h3");
 	if (opt && !strcmp(opt, "no")) use_h3 = GF_FALSE;
@@ -3556,7 +3558,7 @@ static void httpout_finalize(GF_Filter *filter)
 	gf_list_del(ctx->inputs);
 	if (ctx->server_sock) gf_sk_del(ctx->server_sock);
 	if (ctx->server_sock_alt) gf_sk_del(ctx->server_sock_alt);
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 	if (ctx->quic_sock) {
 		gf_dm_quic_server_del(ctx->quic_sock);
 	}
@@ -3570,7 +3572,7 @@ static void httpout_finalize(GF_Filter *filter)
 	if (ctx->ssl_ctx) {
 		gf_ssl_server_context_del(ctx->ssl_ctx);
 	}
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 	if (ctx->ssl_ctx_quic) {
 		gf_ssl_server_context_del(ctx->ssl_ctx_quic);
 	}
@@ -4911,6 +4913,7 @@ static void httpout_prune_files(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 static void httpout_input_drop(GF_HTTPOutInput *in, GF_FilterPacket *pck)
 {
+	in->start_done = GF_FALSE;
 	if (pck==in->no_cte_llhas_cache) {
 		in->no_cte_llhas_cache_size = 0;
 		in->no_cte_flush_pending = GF_FALSE;
@@ -5128,6 +5131,10 @@ next_pck:
 		if (in->is_open && in->write_not_ready)
 			skip_start = GF_TRUE;
 
+		//open already done for this packet, we were waiting for LLHAS close
+		if (in->start_done)
+			skip_start = GF_TRUE;
+
 		if ((start && !skip_start) || no_cte_fake_open) {
 			Bool is_static = in->is_manifest;
 			Bool is_init = GF_FALSE;
@@ -5272,8 +5279,11 @@ next_pck:
 				} else {
 					//close llhas file - if cannot be done sync, abort (we will resume here at next call)
 					httpout_close_input_llhas(ctx, in);
-					if (in->flush_close_llhas)
+					if (in->flush_close_llhas) {
+						in->start_done = GF_TRUE;
 						continue;
+					}
+					in->start_done = GF_FALSE;
 
 					char *llhas_chunkname = gf_mpd_resolve_subnumber(in->llhas_template, in->path, p->value.uint);
 					httpout_open_input_llhas(ctx, in, llhas_chunkname);
@@ -5484,7 +5494,7 @@ static GF_Err httpout_process(GF_Filter *filter)
 			httpout_check_new_session(ctx, ctx->server_sock_alt);
 		}
 
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 		if (ctx->server_sock_h3 && gf_sk_group_sock_is_set(ctx->sg, ctx->server_sock_h3, GF_SK_SELECT_READ)) {
 			gf_dm_quic_process(ctx->quic_sock);
 		}
@@ -5537,7 +5547,7 @@ static GF_Err httpout_process(GF_Filter *filter)
 	} else if ((e==GF_IP_NETWORK_EMPTY) && gf_list_count(ctx->active_sessions)) {
 		ctx->next_wake_us = 1;
 	}
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 	if (gf_dm_quic_verify(ctx->quic_sock)==GF_OK)
 		ctx->next_wake_us = 1;
 #endif
@@ -5583,6 +5593,13 @@ static GF_Err httpout_process(GF_Filter *filter)
 		ctx->next_wake_us = 50000;
 	}
 
+#ifdef GPAC_HAS_QUIC
+	{
+		s32 quic_wake = gf_dm_quic_next_wake(ctx->quic_sock);
+		if (quic_wake > 0 && (ctx->next_wake_us <= 0 || quic_wake < ctx->next_wake_us))
+			ctx->next_wake_us = quic_wake;
+	}
+#endif
 	if (ctx->next_wake_us>0) {
 		gf_filter_ask_rt_reschedule(filter, (u32) ctx->next_wake_us);
 	}

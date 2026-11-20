@@ -50,9 +50,9 @@ static void gf_rtp_parse_pass_through(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr
 
 static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
-	u32 aux_size, first_idx, au_hdr_size, num_au;
+	u32 aux_size, first_idx, num_au;
 	u64 pay_start, au_size;
-	s32 au_idx;
+	s32 au_idx, au_hdr_size;
 	GF_BitStream *hdr_bs, *aux_bs;
 
 	hdr_bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
@@ -219,7 +219,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *p
 			Bool is_rap = GF_FALSE;
 			unsigned char *pay = (unsigned char *) payload + pay_start;
 			i=0;
-			while (i<au_size-4) {
+			while (i+4 < au_size) {
 				if (!pay[i] && !pay[i+1] && (pay[i+2]==1) && (pay[i+3]==0xB6)) {
 					is_rap = ((pay[i+4] & 0xC0)==0) ? GF_TRUE : GF_FALSE;
 					break;
@@ -235,7 +235,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *p
 
 		if (rtp->flags & GF_RTP_HAS_ISMACRYP) rtp->sl_hdr.isma_BSO += au_size;
 
-		if (au_hdr_size < rtp->sl_map.auh_min_len) break;
+		if (au_hdr_size < (s32) rtp->sl_map.auh_min_len) break;
 		pay_start += au_size;
 		if (pay_start >= size) break;
 		num_au ++;
@@ -364,6 +364,8 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 	/*process toc and locate start of payload data*/
 	nbFrame = 0;
 	while (1) {
+		//the TOC must end inside the payload
+		if (nbFrame + 1 >= size) return;
 		c = payload[nbFrame + 1];
 		nbFrame++;
 		if (!(c & 0x80)) break;
@@ -381,6 +383,8 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 			frame_size = (u32)GF_AMR_WB_FRAME_SIZE[type];
 		}
 
+		//frame announced by the TOC but not (fully) in the payload
+		if ((u32) (data - (char *) payload) + frame_size > size) break;
 		rtp->sl_hdr.compositionTimeStampFlag = 1;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
@@ -651,7 +655,8 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, 
 	nal_type = payload[0] & 0x1F;
 
 	/*set start*/
-	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp) {
+	if ((rtp->flags & GF_RTP_NEW_AU) || (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp)) {
+		rtp->flags &= ~GF_RTP_NEW_AU;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
@@ -698,10 +703,14 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, 
 		u32 offset = 1;
 		while (offset<size) {
 			Bool send = GF_TRUE;
-			u32 nal_size = (u8) payload[offset];
+			u32 nal_size;
+			//the 16-bit size field and the NAL unit must both be in the payload
+			if (offset + 2 > size) break;
+			nal_size = (u8) payload[offset];
 			nal_size<<=8;
 			nal_size |= (u8) payload[offset+1];
 			offset += 2;
+			if (!nal_size || (nal_size > size - offset)) break;
 			if ((payload[offset] & 0x1F) == GF_AVC_NALU_IDR_SLICE) {
 				rtp->sl_hdr.randomAccessPointFlag = 1;
 				rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
@@ -805,7 +814,8 @@ static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pa
 	nal_type = (payload[0] & 0x7E) >> 1;
 
 	/*set start*/
-	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp) {
+	if ((rtp->flags & GF_RTP_NEW_AU) || (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp)) {
+		rtp->flags &= ~GF_RTP_NEW_AU;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
@@ -913,7 +923,8 @@ static void gf_rtp_parse_vvc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 	nal_type = payload[1] >> 3;
 
 	/*set start*/
-	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp) {
+	if ((rtp->flags & GF_RTP_NEW_AU) || (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp)) {
+		rtp->flags &= ~GF_RTP_NEW_AU;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
@@ -2013,6 +2024,8 @@ void gf_rtp_depacketizer_reset(GF_RTPDepacketizer *rtp, Bool full_reset)
 {
 	if (rtp) {
 		if (rtp->inter_bs) gf_bs_del(rtp->inter_bs);
+		/*reset 3GPP text reassembler state*/
+		rtp->nb_txt_frag = rtp->cur_txt_frag = rtp->sidx = rtp->txt_len = rtp->nb_mod_frag = 0;
 		rtp->inter_bs = NULL;
 		rtp->flags |= GF_RTP_NEW_AU;
 		if (full_reset) {

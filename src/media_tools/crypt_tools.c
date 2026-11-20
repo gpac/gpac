@@ -373,6 +373,7 @@ static GF_Err cryptinfo_load_cpix(const char *file, GF_CryptInfo **out_info)
 		goto exit;
 	}
 
+	key_node = NULL;
 	count = 0;
 	for (i=0; i<gf_list_count(key_list->content); i++) {
 		GF_XMLNode *child = (GF_XMLNode *) gf_list_get(key_list->content, i);
@@ -381,7 +382,7 @@ static GF_Err cryptinfo_load_cpix(const char *file, GF_CryptInfo **out_info)
 			count++;
 		}
 	}
-	if (count != 1) {
+	if ((count != 1) || !key_node) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CPIX] Exactly one ContentKey is currently supported by GPAC (found %u)\n", count));
 		e = GF_NOT_SUPPORTED;
 		goto exit;

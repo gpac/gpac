@@ -313,7 +313,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 	char *pck_alloc=NULL, *ttml_doc;
 	u64 cts;
 	u32 obj_time, dur;
-	u32 pck_size;
+	u32 pck_size, ttml_doc_size;
 	JSValue fun_val;
 	JSValue global;
 	JSContext *c;
@@ -399,6 +399,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 	subs = gf_filter_pck_get_property(pck, GF_PROP_PCK_SUBS);
 
 	ttml_doc = (char *) pck_data;
+	ttml_doc_size = pck_size;
 	if (subs) {
 		Bool first = GF_TRUE;
 		gf_bs_reassign_buffer(ctx->subs_bs, subs->value.data.ptr, subs->value.data.size);
@@ -421,6 +422,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 				pck_alloc[subs_size] = 0;
 				pck_alloc[subs_size+1] = 0;
 				ttml_doc = pck_alloc;
+				ttml_doc_size = subs_size;
 			}
 		}
 	} else {
@@ -433,7 +435,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 	}
 
 	GF_DOMParser *dom = gf_xml_dom_new();
-	gf_xml_dom_parse_string(dom, ttml_doc);
+	gf_xml_dom_parse_string_len(dom, ttml_doc, ttml_doc_size);
 
 
 	gf_js_lock(c, GF_TRUE);

@@ -3654,26 +3654,13 @@ static GF_Err xmt_restore_context(GF_SceneLoader *load)
 }
 
 
-static GF_Err load_xmt_initialize(GF_SceneLoader *load, const char *str_data)
+static GF_Err load_xmt_initialize(GF_SceneLoader *load, const char *str_data, u32 byte_len)
 {
 	GF_Err e;
 	GF_XMTParser *parser;
 
 	if (str_data) {
-		char BOM[5];
-		if (strlen(str_data)<4) return GF_BAD_PARAM;
-		BOM[0] = str_data[0];
-		BOM[1] = str_data[1];
-		BOM[2] = str_data[2];
-		BOM[3] = str_data[3];
-		BOM[4] = 0;
 		parser = xmt_new_parser(load);
-		e = gf_xml_sax_init(parser->sax_parser, (unsigned char*)BOM);
-		if (e) {
-			xmt_report(parser, e, "Error initializing SAX parser");
-			return e;
-		}
-		str_data += 4;
 	} else if (load->fileName) {
 		parser = xmt_new_parser(load);
 	} else {
@@ -3692,7 +3679,11 @@ static GF_Err load_xmt_initialize(GF_SceneLoader *load, const char *str_data)
 	}
 
 	if (str_data) {
-		return gf_xml_sax_parse(parser->sax_parser, str_data);
+		e = gf_xml_sax_init_len(parser->sax_parser, (const unsigned char *)str_data, byte_len);
+		if (e) {
+			xmt_report(parser, e, "Error initializing SAX parser");
+			return e;
+		}
 	}
 	return GF_OK;
 }
@@ -3703,7 +3694,7 @@ static GF_Err load_xmt_run(GF_SceneLoader *load)
 	GF_Err e;
 	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
 	if (!parser) {
-		e = load_xmt_initialize(load, NULL);
+		e = load_xmt_initialize(load, NULL, 0);
 		if (e) return e;
 		parser = (GF_XMTParser *)load->loader_priv;
 		if (!parser) return GF_OUT_OF_MEM;
@@ -3747,14 +3738,16 @@ static GF_Err load_xmt_run(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-static GF_Err load_xmt_parse_string(GF_SceneLoader *load, const char *str)
+static GF_Err load_xmt_parse_string(GF_SceneLoader *load, const char *str, u32 byte_len)
 {
 	GF_Err e;
 	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
+	if (!str && byte_len) return GF_BAD_PARAM;
+	if (!byte_len) return GF_OK;
 	if (!parser) {
-		return load_xmt_initialize(load, str);
+		return load_xmt_initialize(load, str, byte_len);
 	}
-	e = gf_xml_sax_parse(parser->sax_parser, str);
+	e = gf_xml_sax_parse_len(parser->sax_parser, str, byte_len);
 	if (e==GF_OK) e = parser->last_error;
 
 	xmt_resolve_routes(parser);
@@ -3868,7 +3861,7 @@ GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load)
 	load->done = load_xmt_done;
 	load->parse_string = load_xmt_parse_string;
 	load->suspend = load_xmt_suspend;
-	if (load->fileName) return load_xmt_initialize(load, NULL);
+	if (load->fileName) return load_xmt_initialize(load, NULL, 0);
 	return GF_OK;
 }
 

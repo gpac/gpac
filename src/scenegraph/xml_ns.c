@@ -931,6 +931,8 @@ GF_EXPORT
 GF_Err gf_node_get_attribute_by_tag(GF_Node *node, u32 attribute_tag, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field)
 {
 	SVG_Element *elt = (SVG_Element *)node;
+	if (node->sgprivate->tag<=GF_NODE_RANGE_LAST_VRML)
+		return GF_BAD_PARAM;
 	SVGAttribute *att = elt->attributes;
 	SVGAttribute *last_att = NULL;
 

@@ -2182,6 +2182,8 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 		while ((p=gf_list_enum(ctx->mpd->periods, &i))) {
 			u32 j=0;
 			GF_MPD_AdaptationSet *as;
+			//period may have been hidden from manifest when all its segments expired
+			p->skip_serialize = GF_FALSE;
 			while ((as=gf_list_enum(p->adaptation_sets, &j))) {
 				u32 k=0;
 				if (as->segment_template) as->segment_template->tsb_first_entry = 0;
@@ -5490,6 +5492,18 @@ static void send_file_delete(GF_DasherCtx *ctx, GF_DashStream *ds, const char *f
 	gf_filter_pid_send_event(ds->opid, &anevt);
 }
 
+static void dasher_set_tsb_first_entry(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *owned_set, u32 state_idx)
+{
+	rep->tsb_first_entry = state_idx;
+	if (rep->segment_template) rep->segment_template->tsb_first_entry = state_idx;
+	if (rep->segment_list) rep->segment_list->tsb_first_entry = state_idx;
+
+	if (owned_set) {
+		if (owned_set->segment_template) owned_set->segment_template->tsb_first_entry = state_idx;
+		if (owned_set->segment_list) owned_set->segment_list->tsb_first_entry = state_idx;
+	}
+}
+
 static void dasher_purge_rep(GF_DasherCtx *ctx, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *owned_set, u32 mpd_timescale, Double max_ptime, GF_DashStream *active_ds)
 {
 	//get a target for file delete events
@@ -5497,35 +5511,37 @@ static void dasher_purge_rep(GF_DasherCtx *ctx, GF_MPD_Representation *rep, GF_M
 	if (!target_ds)
 		target_ds = gf_list_get(ctx->current_period->streams, 0);
 
-	rep->tsb_first_entry = 0;
+	dasher_set_tsb_first_entry(rep, owned_set, 0);
 	u32 state_idx=0;
 	while (1) {
-		Double time, dur;
+		Double time=0, dur=0;
 		Bool seg_url_found = GF_FALSE;
 		Bool has_seg_list = GF_FALSE;
+		Bool keep_seg = GF_FALSE;
 		GF_DASH_SegmentContext *sctx = gf_list_get(rep->state_seg_list, state_idx);
-		if (!sctx) break;
+		if (!sctx) {
+			keep_seg = GF_TRUE;
+		}
 		/*not yet flushed*/
-		if (active_ds && gf_list_find(active_ds->pending_segment_states, sctx)>=0) break;
-		time = (Double) sctx->time;
-		time /= mpd_timescale;
-		dur = (Double) sctx->dur;
-		dur /= mpd_timescale;
-		if (time + dur >= max_ptime) {
-			if (ctx->keep_segs) {
-				rep->tsb_first_entry = state_idx;
-
-				if (rep->segment_template) rep->segment_template->tsb_first_entry = state_idx;
-				if (rep->segment_list) rep->segment_list->tsb_first_entry = state_idx;
-
-				if (owned_set) {
-					if (owned_set->segment_template) owned_set->segment_template->tsb_first_entry = state_idx;
-					if (owned_set->segment_list) owned_set->segment_list->tsb_first_entry = state_idx;
-				}
-			}
+		else if (active_ds && gf_list_find(active_ds->pending_segment_states, sctx)>=0) {
+			keep_seg = GF_TRUE;
+		} else {
+			time = (Double) sctx->time;
+			time /= mpd_timescale;
+			dur = (Double) sctx->dur;
+			dur /= mpd_timescale;
+			if (time + dur >= max_ptime)
+				keep_seg = GF_TRUE;
+		}
+		//end of list or first segment to keep: remember the first entry still in the timeshift buffer
+		//this must also be done when all segments have expired (end of list), otherwise the manifest
+		//would re-advertise all expired segments with keep_segs - cf #4004
+		if (keep_seg) {
+			if (ctx->keep_segs)
+				dasher_set_tsb_first_entry(rep, owned_set, state_idx);
 			break;
 		}
-		//we found our first segment
+		//segment expired but we keep segments: hide it from manifest serialization and check next one
 
 		if (ctx->keep_segs) {
 			state_idx++;
@@ -5667,7 +5683,8 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 
 				dasher_purge_rep(ctx, rep, set, mpd_timescale, max_ptime, NULL);
 
-				if (gf_list_count(rep->state_seg_list))
+				//with keep_segs, expired segment contexts are kept in the list but are no longer serializable
+				if (gf_list_count(rep->state_seg_list) > (ctx->keep_segs ? rep->tsb_first_entry : 0))
 					period_empty = GF_FALSE;
 			}
 		}
@@ -5995,6 +6012,7 @@ static void dasher_forward_mpd(GF_DasherCtx *ctx, const char *manifest)
 	GF_MPD *mpd = gf_mpd_new();
 	GF_List *recompute_sets = NULL;
 	GF_DOMParser *dom = gf_xml_dom_new();
+	//only UTF8 allowed (comes from gpac GF_PropString)
 	GF_Err e = gf_xml_dom_parse_string(dom, (char *)manifest);
 	if (e) goto err_exit;
 

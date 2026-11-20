@@ -312,7 +312,7 @@ typedef struct __scene_loader
 	void *loader_priv;
 	GF_Err (*process)(struct __scene_loader *loader);
 	void (*done)(struct __scene_loader *loader);
-	GF_Err (*parse_string)(struct __scene_loader *loader, const char *str);
+	GF_Err (*parse_string)(struct __scene_loader *loader, const char *str, u32 byte_len);
 	GF_Err (*suspend)(struct __scene_loader *loader, Bool suspend);
 //! @endcond
 
@@ -337,11 +337,12 @@ void gf_sm_load_done(GF_SceneLoader *sload);
 \warning LOADER TYPE MUST BE ASSIGNED (BT/WRL/XMT/X3D/SVG only)
 
 \param sload the target scene loader
-\param str the string to load; MUST be at least 4 bytes long in order to detect BOM (unicode encoding); can be either UTF-8 or UTF-16 data
+\param str the data to load; can be UTF-8 or UTF-16 and need not be NUL-terminated when byte_len is nonzero
+\param byte_len payload size in bytes; a trailing NUL can be included. If zero, str must be NUL-terminated
 \param clean_at_end if GF_TRUE, associated parser is terminated. Otherwise, a call to gf_sm_load_done must be done to clean resources (needed for SAX progressive loading)
 \return error if any
 */
-GF_Err gf_sm_load_string(GF_SceneLoader *sload, const char *str, Bool clean_at_end);
+GF_Err gf_sm_load_string(GF_SceneLoader *sload, const char *str, u32 byte_len, Bool clean_at_end);
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 

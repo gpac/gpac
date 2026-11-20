@@ -1351,7 +1351,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] WebVTT parser init error %s\n", gf_error_to_string(e) ));
 	}
 	//get the header
-	e = gf_webvtt_parser_parse_ext(ctx->vttparser, ctx->src, GF_TRUE);
+	e = gf_webvtt_parser_parse_ext(ctx->vttparser, ctx->src, ctx->file_name ? GF_TRUE : ctx->in_over);
 
 	if (!ctx->pid_framed)
 		txtin_probe_duration(ctx);
@@ -4812,6 +4812,7 @@ GF_FilterRegister TXTInRegister = {
 	"- TTML: https://www.w3.org/TR/ttml2/\n"
 	"- SUB: one subtitle per line formatted as `{start_frame}{end_frame}text`\n"
 	"- SSA (Substation Alpha): basic parsing support for common files\n"
+	"For progressive WebVTT input, header fields such as `X-TIMESTAMP-MAP` are collected through the blank-line header terminator. Input chunks may split the header across packets.\n"
 	"\n"
 	"Input files must be in UTF-8 or UTF-16 format, with or without BOM. The internal frame format is: \n"
 	"- WebVTT (and srt if desired): ISO/IEC 14496-30 VTT cues\n"

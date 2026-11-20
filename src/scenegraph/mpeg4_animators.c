@@ -69,6 +69,7 @@ enum
 Fixed do_bisection(Fixed t, SFVec2f a, SFVec2f b, SFVec2f c, SFVec2f d)
 {
 	Fixed left, right, usearch, tsearch, limit;
+	u32 iter = 0;
 	left = 0;
 	right = FIX_ONE;
 	limit = FIX_ONE/1000;
@@ -78,6 +79,8 @@ Fixed do_bisection(Fixed t, SFVec2f a, SFVec2f b, SFVec2f c, SFVec2f d)
 		tsearch = gf_mulfix(usearch, c.x + gf_mulfix(usearch, b.x + gf_mulfix(usearch, a.x))) + d.x;
 		if (t < tsearch + limit) right = usearch;
 		else left = usearch;
+		/*the interval halves each pass so 32 iterations exhaust the arithmetic precision - bail out with the best estimate*/
+		if (++iter > 32) break;
 	} while ((t > tsearch + limit) || (t<tsearch - limit));
 	return gf_mulfix(usearch, c.y + gf_mulfix(usearch, b.y + gf_mulfix(usearch , a.y))) + d.y;
 }
@@ -131,9 +134,16 @@ static void anurbs_init(anim_nurbs *nurbs, u32 type, u32 nCtrl, u32 nKnots, Fixe
 	if ((nurbs->p<=0) || (nurbs->p >= nurbs->nknots -1)
 	        || ((nurbs->nweights>0) && (nurbs->npoints != nurbs->nweights)) ) {
 		nurbs->valid = 0;
-	} else {
-		nurbs->valid = 1;
+		return;
 	}
+	u32 i;
+	for (i=1; i<nurbs->nknots; i++) {
+		if (nurbs->knots[i-1]>nurbs->knots[i]) {
+			nurbs->valid = 0;
+			return;
+		}
+	}
+	nurbs->valid = 1;
 }
 
 static void anurbs_basis(anim_nurbs *nurbs, s32 span, Fixed t)
@@ -173,6 +183,7 @@ static s32 anurbs_find_span(anim_nurbs *nurbs, Fixed u)
 	return span;
 #else
 	s32 low, high, mid;
+	u32 iter=0;
 	if (u == nurbs->knots[nurbs->npoints]) return nurbs->npoints - 1;
 	low = nurbs->p;
 	high = nurbs->npoints;
@@ -182,13 +193,15 @@ static s32 anurbs_find_span(anim_nurbs *nurbs, Fixed u)
 		if (u < nurbs->knots[mid]) high = mid;
 		else low = mid;
 		mid = (low + high)/2;
+		iter++;
+		if (iter>nurbs->nknots) break;
 	}
 	return (mid);
 
 #endif
 }
 
-static SFVec3f anurbs_get_vec3f(anim_nurbs *nurbs, s32 span, SFVec3f *pts)
+static SFVec3f anurbs_get_vec3f(anim_nurbs *nurbs, s32 span, SFVec3f *pts, u32 nb_pts)
 {
 	SFVec3f res, tmp;
 	Fixed w, wi;
@@ -197,6 +210,9 @@ static SFVec3f anurbs_get_vec3f(anim_nurbs *nurbs, s32 span, SFVec3f *pts)
 	res = tmp;
 	w=0;
 	for(i=0; i<=nurbs->p; i++) {
+		u32 idx = span - nurbs->p + i;
+		if (idx>=nb_pts)
+			break;
 		tmp = pts[span - nurbs->p + i];
 		if (nurbs->nweights>0) {
 			wi = nurbs->weights[span - nurbs->p + i];
@@ -289,6 +305,7 @@ static void Anim_Destroy(GF_Node *node, void *rs, Bool is_destroy)
 static void Animator_Update(AnimatorStack *stack, u32 keyValueType, u32 nCtrl, MFVec2f *keySpline, u32 nWeight, Fixed *weights)
 {
 	if (stack->anim_type==ANIM_SPLINE) {
+		if (!keySpline->count) return;
 		stack->a.x = (keySpline->vals[0].x - keySpline->vals[1].x)*3 + FIX_ONE;
 		stack->a.y = (keySpline->vals[0].y - keySpline->vals[1].y)*3 + FIX_ONE;
 		stack->b.x = (keySpline->vals[1].x - 2*keySpline->vals[0].x)*3;
@@ -332,7 +349,7 @@ static void PA_Update(M_PositionAnimator *pa, AnimatorStack *stack)
 	/*if empty key and default anim switch to linear*/
 	if (!pa->key.count && !stack->anim_type) stack->anim_type = ANIM_LINEAR;
 
-	if (stack->anim_type == ANIM_PACED) {
+	if ((stack->anim_type == ANIM_PACED) && pa->keyValue.count) {
 		stack->length = 0;
 		for (i=0; i<pa->keyValue.count-1; i++) {
 			d.x = pa->keyValue.vals[i+1].x - pa->keyValue.vals[i].x;
@@ -391,6 +408,8 @@ static void PA_SetFraction(GF_Node *node, GF_Route *route)
 			frac = (frac - INT2FIX(i) / (nbVals-1) ) * (nbVals-1);
 			break;
 		case ANIM_PACED:
+			if (!pa->keyValue.count) return;
+
 			/*at cst speed, this is the length done*/
 			dist = gf_mulfix(frac, stack->length);
 			/*then figure out in which seg we are*/
@@ -415,6 +434,7 @@ static void PA_SetFraction(GF_Node *node, GF_Route *route)
 		default:
 			return;
 		}
+		if (i+1>=pa->keyValue.count) return;
 		/*interpolate*/
 		pa->value_changed.x = Interpolate(pa->keyValue.vals[i].x, pa->keyValue.vals[i+1].x, frac);
 		pa->value_changed.y = Interpolate(pa->keyValue.vals[i].y, pa->keyValue.vals[i+1].y, frac);
@@ -448,7 +468,7 @@ static void PA_SetFraction(GF_Node *node, GF_Route *route)
 		/*evaluate*/
 		i = anurbs_find_span(&stack->anurbs, frac);
 		anurbs_basis(&stack->anurbs, i, frac);
-		pa->value_changed = anurbs_get_vec3f(&stack->anurbs, i, pa->keyValue.vals);
+		pa->value_changed = anurbs_get_vec3f(&stack->anurbs, i, pa->keyValue.vals, pa->keyValue.count);
 		break;
 	/*not supported*/
 	case ANIM_SPLINE:

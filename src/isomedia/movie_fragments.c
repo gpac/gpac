@@ -2390,7 +2390,8 @@ exit:
 			if (out_seg_size)
 				*out_seg_size += 8;
 		}
-		gf_bs_seek(movie->editFileMap->bs, 0);
+		if (movie->editFileMap)
+			gf_bs_seek(movie->editFileMap->bs, 0);
 	}
 	return e;
 }

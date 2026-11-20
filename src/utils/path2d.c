@@ -1224,7 +1224,7 @@ Bool gf_path_iterator_get_transform(GF_PathIterator *path, Fixed offset, Bool fo
 	Fixed res, angle, angleNext;
 	u32 i;
 	Fixed curLen = 0;
-	if (!path) return GF_FALSE;
+	if (!path || !path->num_seg) return GF_FALSE;
 
 	for (i=0; i<path->num_seg; i++) {
 		if (curLen + path->seg[i].len >= offset) goto found;
