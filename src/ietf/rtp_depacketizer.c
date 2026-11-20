@@ -651,7 +651,8 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, 
 	nal_type = payload[0] & 0x1F;
 
 	/*set start*/
-	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp) {
+	if ((rtp->flags & GF_RTP_NEW_AU) || (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp)) {
+		rtp->flags &= ~GF_RTP_NEW_AU;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
@@ -805,7 +806,8 @@ static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pa
 	nal_type = (payload[0] & 0x7E) >> 1;
 
 	/*set start*/
-	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp) {
+	if ((rtp->flags & GF_RTP_NEW_AU) || (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp)) {
+		rtp->flags &= ~GF_RTP_NEW_AU;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
@@ -913,7 +915,8 @@ static void gf_rtp_parse_vvc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 	nal_type = payload[1] >> 3;
 
 	/*set start*/
-	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp) {
+	if ((rtp->flags & GF_RTP_NEW_AU) || (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp)) {
+		rtp->flags &= ~GF_RTP_NEW_AU;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
@@ -2013,6 +2016,8 @@ void gf_rtp_depacketizer_reset(GF_RTPDepacketizer *rtp, Bool full_reset)
 {
 	if (rtp) {
 		if (rtp->inter_bs) gf_bs_del(rtp->inter_bs);
+		/*reset 3GPP text reassembler state*/
+		rtp->nb_txt_frag = rtp->cur_txt_frag = rtp->sidx = rtp->txt_len = rtp->nb_mod_frag = 0;
 		rtp->inter_bs = NULL;
 		rtp->flags |= GF_RTP_NEW_AU;
 		if (full_reset) {
