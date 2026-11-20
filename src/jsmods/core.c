@@ -2292,7 +2292,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 	if (argc<1) return GF_JS_EXCEPTION(ctx);
 	size_t ab_size;
 	const char *data = JS_GetArrayBuffer(ctx, &ab_size, argv[0]);
-	if (!data || !gf_utf8_is_legal(data, (u32) ab_size)) {
+	if (!data || (ab_size > 0xFFFFFFFFU) || !gf_utf8_is_legal(data, (u32) ab_size)) {
 		return JS_NULL;
 	}
 	char *str = gf_malloc(sizeof(char)*(ab_size+1));
@@ -2448,7 +2448,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 		return JS_NULL;
 	}
 	GF_DOMParser *parser = gf_xml_dom_new();
-	GF_Err e = gf_xml_dom_parse_string(parser, str);
+	GF_Err e = gf_xml_dom_parse_string_len(parser, str, (u32) ab_size);
 	if (e) {
 		gf_xml_dom_del(parser);
 		gf_free(str);

@@ -9380,6 +9380,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 #endif
 	dom = gf_xml_dom_new();
 	if (strstr(box_patch_filename, "<?xml")) {
+		//only UTF8 allowed
 		e = gf_xml_dom_parse_string(dom, (char *) box_patch_filename);
 	} else {
 		e = gf_xml_dom_parse(dom, box_patch_filename, NULL, NULL);

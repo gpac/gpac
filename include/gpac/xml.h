@@ -159,18 +159,32 @@ GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start,
 \param parser the SAX parser to destroy
 */
 void gf_xml_sax_del(GF_SAXParser *parser);
-/*! Inits the parser with string containing BOM, if any. BOM must be 4 char string with 0 terminaison. If BOM is NULL, parsing will assume UTF-8 compatible coding
+/*! Initializes the parser with a null-terminated UTF-8 initial buffer. UTF-16 input is not supported by this function; use gf_xml_sax_init_len.
 \param parser the SAX parser to init
-\param BOM the 4 character with 0 terminaison BOM or NULL
+\param BOM the initial buffer, including a BOM if present, or NULL to initialize as UTF-8 without parsing data
 \return error code if any
 */
 GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM);
-/*! Parses input string data. string data MUST be terminated by the 0 character (eg 2 0s for UTF-16)
+/*! Initializes the parser with an initial payload of byte_len bytes. A BOM, if present, is included in the payload. One trailing NUL terminator may be included and is ignored; for UTF-16 it must be an aligned 0x0000 code unit. Embedded NULs are invalid. A BOM split across calls is detected before parsing continues.
+\param parser the SAX parser to init
+\param data the initial payload
+\param byte_len payload size in bytes
+\return error code if any
+*/
+GF_Err gf_xml_sax_init_len(GF_SAXParser *parser, const unsigned char *data, u32 byte_len);
+/*! Parses a null-terminated UTF-8 input string. UTF-16 input is not supported by this function; use gf_xml_sax_parse_len.
 \param parser the SAX parser to use
 \param string_bytes the string to parse
 \return error code if any
 */
 GF_Err gf_xml_sax_parse(GF_SAXParser *parser, const void *string_bytes);
+/*! Parses an input payload of byte_len bytes using the encoding selected at initialization. One trailing NUL terminator may be included and is ignored; for UTF-16 it must be an aligned 0x0000 code unit. Embedded NULs are invalid. UTF-16 code units and surrogate pairs split across calls are buffered.
+\param parser the SAX parser to use
+\param data the input payload
+\param byte_len payload size in bytes
+\return error code if any
+*/
+GF_Err gf_xml_sax_parse_len(GF_SAXParser *parser, const void *data, u32 byte_len);
 /*! Suspends or resumes SAX parsing.
 	When resuming on file, the function will run until suspended/end of file/error
 	When resuming on steram, the function will simply return
@@ -268,12 +282,19 @@ void gf_xml_dom_del(GF_DOMParser *parser);
 \return error code if any
 */
 GF_Err gf_xml_dom_parse(GF_DOMParser *parser, const char *file, gf_xml_sax_progress OnProgress, void *cbk);
-/*! Parses an XML document or fragment contained in memory
+/*! Parses a null-terminated UTF-8 XML document or fragment contained in memory. UTF-16 input is not supported by this function; use gf_xml_dom_parse_string_len.
 \param parser the DOM parser to use
 \param string the string to parse
 \return error code if any
 */
 GF_Err gf_xml_dom_parse_string(GF_DOMParser *parser, char *string);
+/*! Parses an XML document or fragment contained in a byte payload. byte_len is the available payload size in bytes; it may include one trailing NUL terminator, which is ignored. For UTF-16, the terminator must be an aligned 0x0000 code unit. A BOM, if present, must be included in the payload. UTF-8, UTF-16LE and UTF-16BE are supported.
+\param parser the DOM parser to use
+\param data the input payload
+\param byte_len available payload size in bytes
+\return error code if any
+*/
+GF_Err gf_xml_dom_parse_string_len(GF_DOMParser *parser, const void *data, u32 byte_len);
 /*! Gets the last error that happened during the parsing. The parser aborts at the first error found within a SAX callback
 \param parser the DOM parser to use
 \return last error code if any

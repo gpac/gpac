@@ -600,11 +600,22 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load);
 
 
 GF_EXPORT
-GF_Err gf_sm_load_string(GF_SceneLoader *load, const char *str, Bool do_clean)
+GF_Err gf_sm_load_string(GF_SceneLoader *load, const char *str, u32 byte_len, Bool do_clean)
 {
 	GF_Err e;
-	if (!load->type) e = GF_BAD_PARAM;
-	else if (load->parse_string) e = load->parse_string(load, str);
+	if (!load->type || !str)
+		e = GF_BAD_PARAM;
+	else if (load->parse_string) {
+		if (!byte_len) {
+			size_t str_len = strlen(str);
+			if (str_len > 0xFFFFFFFFU)
+				e = GF_OUT_OF_MEM;
+			else
+				e = load->parse_string(load, str, (u32) str_len);
+		} else {
+			e = load->parse_string(load, str, byte_len);
+		}
+	}
 	else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] string parsing not supported by loader\n"));
 		e = GF_NOT_SUPPORTED;

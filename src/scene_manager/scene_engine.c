@@ -675,7 +675,7 @@ GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, u16 ESID, Bool disable_a
 		gf_seng_create_new_au(sc, 0);
 	}
 
-	e = gf_sm_load_string(&seng->loader, auString, 0);
+	e = gf_sm_load_string(&seng->loader, auString, 0, 0);
 	if (e) goto exit;
 
 	i = 0;
@@ -1062,7 +1062,7 @@ GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputConte
 			seng->loader.type = GF_SM_LOAD_BT;
 		}
 	}
-	e = gf_sm_load_string(&seng->loader, inputContext, 0);
+	e = gf_sm_load_string(&seng->loader, inputContext, 0, 0);
 
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] cannot load context from %s (error %s)\n", inputContext, gf_error_to_string(e)));
