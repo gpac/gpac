@@ -2161,10 +2161,40 @@ void gf_sk_del(GF_Socket *sock)
 GF_EXPORT
 void gf_sk_reset(GF_Socket *sock)
 {
-	if (sock) {
-		u32 clear=0;
-		setsockopt(sock->socket, SOL_SOCKET, SO_ERROR, (char *) &clear, sizeof(u32) );
+	if (!sock || (sock->flags & GF_SOCK_IS_TCP)) return;
+	u8 drain[1500];
+	u32 retry=100;
+	u32 flags = 0;
+#ifndef WIN32
+	flags = MSG_DONTWAIT;
+#else
+	if (!(sock->flags & GF_SOCK_NON_BLOCKING)) {
+		u32 nblock = 1;
+		ioctlsocket(sock, FIONBIO, &nblock);
 	}
+#endif
+	while (1) {
+		s32 res = recv(sock->socket, drain, sizeof(drain), flags);
+		if (res < 0) {
+			res = LASTSOCKERROR;
+			if (res == EAGAIN || res == EWOULDBLOCK) {
+				break;
+			}
+#ifdef WIN32
+			if (res == WSAEMSGSIZE) {}
+			else
+#endif
+			break;
+		}
+		retry--;
+		if (!retry) break;
+	}
+#ifdef WIN32
+	if (!(sock->flags & GF_SOCK_NON_BLOCKING)) {
+		u32 block = 0;
+		ioctlsocket(sock, FIONBIO, &block);
+	}
+#endif
 }
 
 GF_EXPORT
