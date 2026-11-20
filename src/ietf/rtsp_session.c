@@ -264,6 +264,7 @@ void RemoveTCPChannels(GF_RTSPSession *sess)
 GF_EXPORT
 u32 gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 {
+	Bool is_retry;
 	sess->last_session_id = NULL;
 	sess->NeedConnection = 1;
 
@@ -291,13 +292,18 @@ u32 gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 	}
 
 	sess->RTSP_State = GF_RTSP_STATE_INIT;
+	//CSeq 1 is for regular rtsp -> rtsps switch, 0 is for rtsph->rtsph+tls
+	is_retry = (sess->CSeq<=1) && !((sess->CSeq==1) && !sess->NbPending);
+	//skip all requests still waiting for a reply
+	sess->CSeq += sess->NbPending;
+	sess->NbPending = 0;
 	sess->InterID = (u8) -1;
 	sess->pck_start = sess->payloadSize = 0;
 	sess->CurrentPos = sess->CurrentSize = 0;
 	gf_strcpy(sess->RTSPLastRequest, "");
 	RemoveTCPChannels(sess);
-	//CSeq 1 is for regular rtsp -> rtsps switch, 0 is for rtsph->rtsph+tls
-	if (sess->CSeq<=1) {
+
+	if (is_retry) {
 		sess->nb_retry++;
 
 #ifdef GPAC_HAS_SSL
