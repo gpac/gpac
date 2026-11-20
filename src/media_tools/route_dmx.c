@@ -4326,7 +4326,7 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 	return GF_OK;
 }
 
-void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx)
+GF_NOT_EXPORTED void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx)
 {
 	if (!routedmx) return;
 	u32 i, j, count = gf_list_count(routedmx->services);
@@ -4338,6 +4338,8 @@ void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx)
 		while ((obj=gf_list_enum(s->objects, &j))) {
 			obj->status = GF_LCT_OBJ_DONE_ERR;
 			gf_route_obj_to_reservoir(routedmx, s, obj);
+			//the object was removed from s->objects, the next one is now at index j-1
+			j--;
 		}
 	}
 }
