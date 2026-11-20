@@ -364,6 +364,8 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 	/*process toc and locate start of payload data*/
 	nbFrame = 0;
 	while (1) {
+		//the TOC must end inside the payload
+		if (nbFrame + 1 >= size) return;
 		c = payload[nbFrame + 1];
 		nbFrame++;
 		if (!(c & 0x80)) break;
@@ -381,6 +383,8 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 			frame_size = (u32)GF_AMR_WB_FRAME_SIZE[type];
 		}
 
+		//frame announced by the TOC but not (fully) in the payload
+		if ((u32) (data - (char *) payload) + frame_size > size) break;
 		rtp->sl_hdr.compositionTimeStampFlag = 1;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
