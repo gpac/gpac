@@ -682,6 +682,17 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 			gf_fatal_assert(sess->CurrentPos <= sess->CurrentSize);
 		}
 	}
+	/*no interleaved packet in progress and the data does not start one: skip to the next '$' or RTSP/HTTP message - cf #4070*/
+	else if (!sess->payloadSize) {
+		u32 skip = 1;
+		while (skip < Size) {
+			if (buffer[skip] == '$') break;
+			if ((Size - skip >= 4) && (!strncmp(buffer+skip, "RTSP", 4) || !strncmp(buffer+skip, "HTTP", 4))) break;
+			skip++;
+		}
+		sess->CurrentPos += skip;
+		gf_fatal_assert(sess->CurrentPos <= sess->CurrentSize);
+	}
 	/*end of packet*/
 	else if (sess->payloadSize - sess->pck_start <= Size) {
 //		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP over RTSP] Missed beginning of packet (%d bytes) in stream %d\n", Size, sess->InterID));
