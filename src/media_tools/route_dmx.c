@@ -1002,8 +1002,9 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
         gf_mx_p(obj->blob.mx);
 		obj->blob.data = obj->payload;
 		if (final_push) {
+			//no TOL: use the end of the last received fragment, not the capacity of the (recycled) payload buffer
 			if (!obj->total_length)
-				obj->total_length = obj->alloc_size;
+				obj->total_length = obj->nb_frags ? obj->frags[obj->nb_frags-1].offset + obj->frags[obj->nb_frags-1].size : 0;
 			obj->blob.size = (u32) obj->total_length;
 		} else {
 			obj->blob.size = (u32) bytes_done;
