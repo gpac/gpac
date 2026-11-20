@@ -50,9 +50,9 @@ static void gf_rtp_parse_pass_through(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr
 
 static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
-	u32 aux_size, first_idx, au_hdr_size, num_au;
+	u32 aux_size, first_idx, num_au;
 	u64 pay_start, au_size;
-	s32 au_idx;
+	s32 au_idx, au_hdr_size;
 	GF_BitStream *hdr_bs, *aux_bs;
 
 	hdr_bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
@@ -219,7 +219,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *p
 			Bool is_rap = GF_FALSE;
 			unsigned char *pay = (unsigned char *) payload + pay_start;
 			i=0;
-			while (i<au_size-4) {
+			while (i+4 < au_size) {
 				if (!pay[i] && !pay[i+1] && (pay[i+2]==1) && (pay[i+3]==0xB6)) {
 					is_rap = ((pay[i+4] & 0xC0)==0) ? GF_TRUE : GF_FALSE;
 					break;
@@ -235,7 +235,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *p
 
 		if (rtp->flags & GF_RTP_HAS_ISMACRYP) rtp->sl_hdr.isma_BSO += au_size;
 
-		if (au_hdr_size < rtp->sl_map.auh_min_len) break;
+		if (au_hdr_size < (s32) rtp->sl_map.auh_min_len) break;
 		pay_start += au_size;
 		if (pay_start >= size) break;
 		num_au ++;
