@@ -75,6 +75,10 @@ void gf_sg_command_del(GF_Command *com)
 
 			switch (inf->fieldType) {
 			case GF_SG_VRML_SFNODE:
+				if (inf->new_node && inf->new_node->sgprivate
+						&& inf->new_node->sgprivate->referencing_commands)
+					gf_list_del_item(inf->new_node->sgprivate->referencing_commands,
+							&inf->new_node);
 				if (inf->new_node) gf_node_try_destroy(com->in_scene, inf->new_node, NULL);
 				break;
 			case GF_SG_VRML_MFNODE:
@@ -83,6 +87,10 @@ void gf_sg_command_del(GF_Command *com)
 					child = inf->node_list;
 					while (child) {
 						GF_ChildNodeItem *cur = child;
+						if (child->node && child->node->sgprivate
+								&& child->node->sgprivate->referencing_commands)
+							gf_list_del_item(child->node->sgprivate->referencing_commands,
+									&child->node);
 						gf_node_try_destroy(com->in_scene, child->node, NULL);
 						child = child->next;
 						gf_free(cur);
@@ -93,6 +101,10 @@ void gf_sg_command_del(GF_Command *com)
 				if (inf->field_ptr && inf->field_ptr != (void *)&inf->new_node 	&& inf->field_ptr != (void *)&inf->node_list) {
 					gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
 				}
+				if (inf->new_node && inf->new_node->sgprivate
+						&& inf->new_node->sgprivate->referencing_commands)
+					gf_list_del_item(inf->new_node->sgprivate->referencing_commands,
+							&inf->new_node);
 				if (inf->new_node) gf_node_try_destroy(com->in_scene, inf->new_node, NULL);
 				break;
 			}
@@ -105,13 +117,21 @@ void gf_sg_command_del(GF_Command *com)
 			GF_CommandField *inf = (GF_CommandField *)gf_list_get(com->command_fields, 0);
 			gf_list_rem(com->command_fields, 0);
 
-			if (inf->new_node)
+			if (inf->new_node) {
+				if (inf->new_node->sgprivate
+						&& inf->new_node->sgprivate->referencing_commands)
+					gf_list_del_item(inf->new_node->sgprivate->referencing_commands,
+							&inf->new_node);
 				gf_node_try_destroy(com->in_scene, inf->new_node, NULL);
-			else if (inf->node_list) {
+			} else if (inf->node_list) {
 				GF_ChildNodeItem *child;
 				child = inf->node_list;
 				while (child) {
 					GF_ChildNodeItem *cur = child;
+					if (child->node && child->node->sgprivate
+							&& child->node->sgprivate->referencing_commands)
+						gf_list_del_item(child->node->sgprivate->referencing_commands,
+								&child->node);
 					gf_node_try_destroy(com->in_scene, child->node, NULL);
 					child = child->next;
 					gf_free(cur);
@@ -982,6 +1002,23 @@ void gf_sg_command_set_node(GF_Command *com, GF_Node *node)
 	}
 }
 
+GF_EXPORT
+void gf_sg_command_field_set_node(GF_CommandField *inf, GF_Node *node)
+{
+	if (inf->new_node && inf->new_node->sgprivate
+			&& inf->new_node->sgprivate->referencing_commands)
+		gf_list_del_item(inf->new_node->sgprivate->referencing_commands,
+				&inf->new_node);
+
+	inf->new_node = node;
+
+	if (node && node->sgprivate) {
+		if (!node->sgprivate->referencing_commands)
+			node->sgprivate->referencing_commands = gf_list_new();
+		gf_list_add(node->sgprivate->referencing_commands, &inf->new_node);
+	}
+}
+
 
 GF_EXPORT
 GF_Err gf_sg_command_apply_list(GF_SceneGraph *graph, GF_List *comList, Double time_offset)
@@ -1053,7 +1090,7 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 			if (force_clone) {
 				fd->new_node = gf_node_clone(inGraph, fo->new_node, dest->node, "", 0);
 			} else {
-				fd->new_node = fo->new_node;
+				gf_sg_command_field_set_node(fd, fo->new_node);
 				gf_node_register(fd->new_node, NULL);
 			}
 			fd->field_ptr = &fd->new_node;

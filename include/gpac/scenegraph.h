@@ -1013,6 +1013,14 @@ node so that gf_node_free can null the pointer, preventing UAF if the node is fo
 by gf_sg_reset before the command is deleted */
 void gf_sg_command_set_node(GF_Command *com, GF_Node *node);
 
+/*! sets the new_node of a command field and registers &inf->new_node in the
+node's referencing_commands list, mirroring gf_sg_command_set_node for com->node.
+When the node is force-freed by gf_sg_reset, gf_node_free NULLs inf->new_node
+through the back-reference, preventing a dangling pointer in gf_sg_command_del.
+\param inf the command field
+\param node the node to assign (may be NULL to clear) */
+void gf_sg_command_field_set_node(GF_CommandField *inf, GF_Node *node);
+
 
 /*! XML node from DOM parser */
 typedef struct _xml_node *GF_DOMXMLNODE;
