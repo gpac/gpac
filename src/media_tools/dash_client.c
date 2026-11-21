@@ -7161,6 +7161,10 @@ retry_pending_rep:
 				}
 			}
 			if (!found) {
+				if (srd->srd_nb_cols >= 22) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]Too many SRD cols (%u) / rows (%u), max 22 for each - Cannot play\n", srd->srd_nb_cols, srd->srd_nb_rows));
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
 				cols[srd->srd_nb_cols] = group->srd_x;
 				group->srd_col_idx = srd->srd_nb_cols;
 				srd->srd_nb_cols++;
@@ -7179,6 +7183,10 @@ retry_pending_rep:
 				}
 			}
 			if (!found) {
+				if (srd->srd_nb_rows >= 22) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]Too many SRD cols (%u) / rows (%u), max 22 for each - Cannot play\n", srd->srd_nb_cols, srd->srd_nb_rows));
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
 				rows[srd->srd_nb_rows] = group->srd_y;
 				group->srd_row_idx = srd->srd_nb_rows;
 				srd->srd_nb_rows++;
@@ -7186,12 +7194,6 @@ retry_pending_rep:
 			} else {
 				group->srd_row_idx = k;
 			}
-			
-			if ((srd->srd_nb_cols>22) || (srd->srd_nb_rows>22)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]Too many SRD rows (%u) / cols (%u), max 22 for each - Cannot play\n", srd->srd_nb_cols, srd->srd_nb_rows));
-				return GF_NON_COMPLIANT_BITSTREAM;
-			}
- 
 		}
 		gf_dash_set_tiles_quality(dash, srd, GF_TRUE);
 	}

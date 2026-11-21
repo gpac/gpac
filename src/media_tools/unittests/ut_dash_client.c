@@ -367,3 +367,65 @@ unittest(dash_multicast_template_literals)
 	gf_list_del(mpd.periods);
 #endif /* GPAC_DISABLE_DASHIN */
 }
+
+#ifndef GPAC_DISABLE_DASHIN
+// static MPD with one AdaptationSet per tile of a nb_cols x nb_rows SRD grid
+static void write_mpd_srd_grid(const char *path, u32 nb_cols, u32 nb_rows)
+{
+	u32 x, y, id=0;
+	FILE *f = gf_fopen(path, "w");
+	gf_fprintf(f, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" type=\"static\" profiles=\"urn:mpeg:dash:profile:full:2011\" "
+		"mediaPresentationDuration=\"PT10S\" minBufferTime=\"PT1S\"><Period id=\"0\" duration=\"PT10S\">");
+	for (y=0; y<nb_rows; y++) {
+		for (x=0; x<nb_cols; x++) {
+			id++;
+			gf_fprintf(f, "<AdaptationSet id=\"%u\" mimeType=\"video/mp4\" codecs=\"avc1.42c01e\" maxWidth=\"64\" maxHeight=\"64\">"
+				"<EssentialProperty schemeIdUri=\"urn:mpeg:dash:srd:2014\" value=\"0,%u,%u,1,1\"/>"
+				"<SegmentTemplate media=\"$RepresentationID$_$Number$.m4s\" timescale=\"1\" duration=\"1\" startNumber=\"1\"/>"
+				"<Representation id=\"r%u\" width=\"64\" height=\"64\" bandwidth=\"100000\"/></AdaptationSet>", id, x, y, id);
+		}
+	}
+	gf_fprintf(f, "</Period></MPD>");
+	gf_fclose(f);
+}
+#endif
+
+/* #4056 / #4083: SRD grids are capped at 22 columns and 22 rows, with no store past the arrays */
+unittest(dash_srd_grid_bounds)
+{
+#ifndef GPAC_DISABLE_DASHIN
+	const char *path = "ut-dash-srd.mpd";
+	const struct { u32 cols, rows; Bool reject; } cases[] = {
+		{ 22, 22, GF_FALSE },	// full grid on both axes is accepted
+		{ 23, 1,  GF_TRUE },	// 23rd column rejected before the store
+		{ 1,  23, GF_TRUE },	// 23rd row rejected before the store
+		{ 30, 1,  GF_TRUE },
+		{ 1,  30, GF_TRUE },
+	};
+	GF_DASHFileIO io = {0};
+	u32 i;
+	io.on_dash_event = dash_event;
+
+	for (i=0; i<sizeof(cases)/sizeof(cases[0]); i++) {
+		GF_DashClient *dash = gf_dash_new(&io, 0, 0, GF_FALSE, GF_FALSE, GF_DASH_SELECT_QUALITY_LOWEST, 0);
+		write_mpd_srd_grid(path, cases[i].cols, cases[i].rows);
+		assert_equal(gf_dash_open(dash, path), GF_OK, "%d");
+		GF_Err e = gf_dash_setup_period(dash);
+		if (cases[i].reject)
+			assert_equal(e, GF_NON_COMPLIANT_BITSTREAM, "%d");
+		else
+			assert_true(e != GF_NON_COMPLIANT_BITSTREAM);
+
+		// the counters index cols[22] / rows[22]: they must never pass 22, even on rejection
+		struct _dash_srd_desc *srd = gf_list_get(dash->SRDs, 0);
+		assert_true(srd != NULL);
+		if (srd) {
+			assert_true(srd->srd_nb_cols <= 22);
+			assert_true(srd->srd_nb_rows <= 22);
+		}
+		gf_dash_close(dash);
+		gf_dash_del(dash);
+	}
+	gf_file_delete(path);
+#endif
+}
