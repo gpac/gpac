@@ -433,7 +433,7 @@ typedef struct
 
 	//id3 sequence
 	u32 id3_id_sequence;
-	const GF_PropertyValue *last_id3_processed;
+	u32 last_id3_crc;
 
 	//SCTE-35 events, ordered by presentation time
 	GF_List *scte35_pending_events;
@@ -7214,13 +7214,14 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 			//"id3" packet properties to be pushed at fragment-level 'emsg' box
 			const GF_PropertyValue *id3 = gf_filter_pck_get_property_str(pck, "id3");
 			if (id3 && (id3->type == GF_PROP_DATA) && id3->value.ptr) {
-				if (id3 != ctx->last_id3_processed) {
+				u32 id3_crc = gf_crc_32(id3->value.data.ptr, id3->value.data.size);
+				if (id3_crc != ctx->last_id3_crc) {
 					e = mp4_process_id3(ctx->file->moof, id3, ctx->id3_id_sequence);
 					if (e) return e;
 					ctx->id3_id_sequence = ctx->id3_id_sequence + 1;
 				}
 
-				ctx->last_id3_processed = id3;
+				ctx->last_id3_crc = id3_crc;
 			}
 
 			if (ctx->scte35 == SCTE35_INBAND || ctx->scte35 == SCTE35_ALL) {
