@@ -2066,7 +2066,7 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn)
 {
 	s32 res;
 #ifdef WIN32
-	long val = NonBlockingOn;
+	u_long val = NonBlockingOn;
 	if (!SOCKET_INVALID(sock->socket)) {
 		res = ioctlsocket(sock->socket, FIONBIO, &val);
 		if (res) return GF_SERVICE_ERROR;
@@ -2169,7 +2169,7 @@ void gf_sk_reset(GF_Socket *sock)
 	flags = MSG_DONTWAIT;
 #else
 	if (!(sock->flags & GF_SOCK_NON_BLOCKING)) {
-		u32 nblock = 1;
+		u_long nblock = 1;
 		ioctlsocket(sock->socket, FIONBIO, &nblock);
 	}
 #endif
@@ -2191,7 +2191,7 @@ void gf_sk_reset(GF_Socket *sock)
 	}
 #ifdef WIN32
 	if (!(sock->flags & GF_SOCK_NON_BLOCKING)) {
-		u32 block = 0;
+		u_long block = 0;
 		ioctlsocket(sock->socket, FIONBIO, &block);
 	}
 #endif
