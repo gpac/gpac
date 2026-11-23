@@ -2317,7 +2317,10 @@ static JSValue array_getElement(JSContext *c, JSValueConst obj, JSAtom atom, JSV
 			if (!f_ptr) {
 				ret = GF_JS_EXCEPTION(c);
 			} else if (f_ptr->field.fieldType==GF_SG_VRML_MFNODE) {
-				ret = JS_NewInt32(c, gf_node_list_get_count(*(GF_ChildNodeItem **)f_ptr->field.far_ptr) );
+				if (!f_ptr->field.far_ptr)
+					ret = GF_JS_EXCEPTION(c);
+				else
+					ret = JS_NewInt32(c, gf_node_list_get_count(*(GF_ChildNodeItem **)f_ptr->field.far_ptr) );
 			} else {
 				ret = JS_NewInt32(c, f_ptr->mfvals_count);
 			}

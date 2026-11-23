@@ -3771,7 +3771,7 @@ GF_Err load_bt_run(GF_SceneLoader *load)
 }
 
 
-GF_Err load_bt_parse_string(GF_SceneLoader *load, const char *str)
+GF_Err load_bt_parse_string(GF_SceneLoader *load, const char *str, u32 byte_len)
 {
 	GF_Err e;
 	char *dup_str;

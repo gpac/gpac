@@ -456,6 +456,14 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		ctx->notif_error = GF_OK;
 		return e;
 	}
+	if (ctx->start_time) {
+		u32 diff = gf_sys_clock() - ctx->start_time;
+		if (diff < ctx->idelay) {
+			gf_filter_ask_rt_reschedule(filter, 1000*diff);
+			return GF_OK;
+		}
+		ctx->start_time=0;
+	}
 
 	if (ctx->ipid) {
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -795,6 +803,10 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 	//prevent blocking so that we are always called even if output is full
 	gf_filter_prevent_blocking(filter, GF_TRUE);
 
+	if (ctx->idelay) {
+		ctx->start_time = gf_sys_clock();
+	}
+
 	//sdp mode, we will have a configure_pid
 	if (!ctx->src) return GF_OK;
 
@@ -974,6 +986,7 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(forceagg), "force RTSP control aggregation (patch for buggy servers)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ssm), "list of IP to include for source-specific multicast", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ssmx), "list of IP to exclude for source-specific multicast", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(idelay), "delay first request by the given number of ms", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

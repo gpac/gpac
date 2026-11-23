@@ -508,7 +508,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 					break;
 				}
 
-				e = gf_sm_load_string(&priv->load, file_buf, GF_FALSE);
+				e = gf_sm_load_string(&priv->load, file_buf, nb_read, GF_FALSE);
 				priv->file_pos += nb_read;
 				if (e) break;
 				diff = gf_sys_clock() - entry_time;

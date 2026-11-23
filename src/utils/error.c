@@ -1360,7 +1360,11 @@ static const char *gf_enabled_features()
 	                       "GPAC_HAS_IPV6 "
 #endif
 #ifdef GPAC_HAS_SSL
-	                       "GPAC_HAS_SSL "
+# ifdef GPAC_HAS_GNUTLS
+	                       "GPAC_HAS_GNUTLS "
+# else
+	                       "GPAC_HAS_OPENSSL "
+# endif
 #endif
 #ifdef GPAC_HAS_SOCK_UN
 	                       "GPAC_HAS_SOCK_UN "
@@ -1433,6 +1437,9 @@ static const char *gf_enabled_features()
 #endif
 #ifdef GPAC_HAS_NGTCP2
 	                       "GPAC_HAS_NGTCP2 "
+#endif
+#ifdef GPAC_HAS_PICOQUIC
+	                       "GPAC_HAS_PICOQUIC "
 #endif
 
 #if defined(_WIN32_WCE)

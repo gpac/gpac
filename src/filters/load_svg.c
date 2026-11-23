@@ -92,7 +92,7 @@ GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len, Bool is_d
 			}
 
 			svg_data[d_stream.total_out - done] = 0;
-			e = gf_sm_load_string(&svgin->loader, svg_data, GF_FALSE);
+			e = gf_sm_load_string(&svgin->loader, svg_data, d_stream.total_out - done, GF_FALSE);
 			if (e || (err== Z_STREAM_END)) break;
 			done = (u32) d_stream.total_out;
 			d_stream.avail_out = 2048;
@@ -157,7 +157,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 			return GF_OK;
 		}
 		data = gf_filter_pck_get_data(pck, &size);
-		e = gf_sm_load_string(&svgin->loader, data, GF_FALSE);
+		e = size ? gf_sm_load_string(&svgin->loader, data, size, GF_FALSE) : GF_OK;
 		gf_filter_pid_drop_packet(svgin->in_pid);
 		break;
 
@@ -204,14 +204,22 @@ static GF_Err svgin_process(GF_Filter *filter)
 		e = GF_OK;
 		while (gf_bs_available(bs)) {
 			pos = gf_bs_get_position(bs);
+			if (gf_bs_available(bs) < 2) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
 			size = gf_bs_read_u16(bs);
 			nb_bytes = 2;
 			/*GPAC internal hack*/
 			if (!size) {
+				if (gf_bs_available(bs) < 4) {
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					break;
+				}
 				size = gf_bs_read_u32(bs);
 				nb_bytes = 6;
 			}
-			if (pos+nb_bytes+size > pck_size) {
+			if (!size || (pos+nb_bytes+size > pck_size)) {
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				break;
 			}
@@ -222,7 +230,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 			if (dims_hdr & GF_DIMS_UNIT_C) {
 				e = svgin_deflate(svgin, buf2 + pos + nb_bytes + 1, size - 1, GF_TRUE);
 			} else {
-				e = gf_sm_load_string(&svgin->loader, buf2 + pos + nb_bytes + 1, GF_FALSE);
+				e = gf_sm_load_string(&svgin->loader, buf2 + pos + nb_bytes + 1, size, GF_FALSE);
 			}
 			buf2[pos + nb_bytes + size] = prev;
 			gf_bs_skip_bytes(bs, size-1);
@@ -283,7 +291,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 
 				file_buf[nb_read] = file_buf[nb_read+1] = 0;
 
-				e = gf_sm_load_string(&svgin->loader, file_buf, GF_FALSE);
+				e = gf_sm_load_string(&svgin->loader, file_buf, nb_read, GF_FALSE);
 				svgin->file_pos += nb_read;
 
 

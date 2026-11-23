@@ -4663,7 +4663,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	if (!delta_update && (as->starts_with_sap<GF_FILTER_SAP_3))
 		gf_fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n");
 
-	if (mpd->m3u8_time && rep->timescale_mpd && (mpd->type == GF_MPD_TYPE_DYNAMIC)) {
+	if (sctx && mpd->m3u8_time && rep->timescale_mpd && (mpd->type == GF_MPD_TYPE_DYNAMIC)) {
 		u64 seg_ast = mpd->availabilityStartTime;
 		seg_ast += (sctx->time * 1000) / rep->timescale_mpd;
 		gf_fprintf(out, "#EXT-X-PROGRAM-DATE-TIME:");
@@ -5187,10 +5187,12 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 
 				// Couldn't find the same representation, continue with the current one
 				if (!prev_rep) break;
+				if (prev_period->skip_serialize) break;
 
-				// Check if we still have segments in this representations
+				// Check if we still have serializable segments in this representation - with keep_segs,
+				// expired segment contexts are kept in the list but hidden from the manifest (cf #4004)
 				u32 segment_cnt = gf_list_count(prev_rep->state_seg_list);
-				if (segment_cnt == 0) break;
+				if (segment_cnt <= prev_rep->tsb_first_entry) break;
 
 				// It's safe to use this period
 				start_period_idx = --m;
@@ -5375,7 +5377,8 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 	GF_MPD_ProgramInfo *info;
 	char *text;
 
-	if (mpd_skip_serialization(mpd))
+	//when writing the context, serialize all periods even if nothing is ready for a client yet
+	if (!mpd->write_context && mpd_skip_serialization(mpd))
 		return GF_NOT_READY;
 
 	if (!mpd->xml_namespace) {
@@ -5535,8 +5538,9 @@ print_periods:
 	for (i=0; i<count; i++) {
 		Bool is_dynamic;
 		GF_MPD_Period *period = (GF_MPD_Period *)gf_list_get(mpd->periods, i);
-		//do not serialize this period and following ones as we are missing segment timeline entry
-		if (period->skip_serialize) break;
+		//do not serialize this period: all its segments are out of the timeshift buffer (keep_segs) or we are missing segment timeline entry
+		//always serialize when storing the dasher context, otherwise the state would lose the period
+		if (period->skip_serialize && !mpd->write_context) continue;
 
 		is_dynamic = (mpd->type==GF_MPD_TYPE_DYNAMIC) ? GF_TRUE : GF_FALSE;
 		//hack for backward compat with old arch, forces print period@start if 0

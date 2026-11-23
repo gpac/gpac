@@ -424,6 +424,7 @@ void gf_sdp_info_reset(GF_SDPInfo *sdp)
 		sdp->c_connection = NULL;
 	}
 	sdp->a_SendReceive = 0;
+	sdp->Version = 0;
 }
 
 GF_EXPORT
@@ -522,6 +523,10 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 	timing = NULL;
 
 	if (!sdp) return GF_BAD_PARAM;
+
+	//Clean SDP info
+	gf_sdp_info_reset(sdp);
+
 	if (!gf_utf8_is_legal(sdp_text, text_size))
 		return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -531,9 +536,6 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 		SDP_MakeSeconds("30m");
 	}
 #endif
-
-	//Clean SDP info
-	gf_sdp_info_reset(sdp);
 
 	LinePos = 0;
 	while (1) {
@@ -611,7 +613,10 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 				if (pos > 0) {
 					conn->TTL = atoi(comp);
 					//multiple address indication is only valid for media
-					pos = gf_token_get(LineBuf, pos, "/\r\n", comp, SDP_MAX_LINE);
+					s32 check_pos = gf_token_get(LineBuf, pos, "/\r\n", comp, SDP_MAX_LINE);
+					if (check_pos>0) return GF_NON_COMPLIANT_BITSTREAM;
+					pos = 0;
+
 				}
 				if (pos > 0) {
 					if (!media) {

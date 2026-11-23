@@ -6228,6 +6228,9 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 	if (ctx->dash_mode) {
 		//send event on first track only
 		tkw = gf_list_get(ctx->tracks, 0);
+		//may happend if we got a pid_delete
+		if (!tkw) return;
+
 		GF_FEVT_INIT(evt, GF_FEVT_SEGMENT_SIZE, tkw->ipid);
 		evt.seg_size.seg_url = NULL;
 		evt.seg_size.is_init = is_init ? 1 : 0;
@@ -6305,7 +6308,12 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		const GF_PropertyValue *p;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		GF_FilterPacket *pck;
-		if (tkw->fake_track) continue;
+		if (tkw->fake_track) {
+			//fake tracks (tile tracks declared in the tile base init) never get packets here: write their protected sample entry now
+			if (tkw->cenc_state==CENC_NEED_SETUP)
+				mp4_mux_cenc_update(ctx, tkw, NULL, CENC_CONFIG, 0, 0);
+			continue;
+		}
 
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		if (!pck) {
@@ -6376,14 +6384,21 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			} else {
 				def_pck_dur = 0;
 			}
-		} else {
+		}
+		//otherwise setup fragmentation, using first sample desc as default idx
+		else {
+			//check if we have a default constant duration set, if so use it
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CONSTANT_DURATION);
+			def_pck_dur = p ? p->value.uint : 0;
+
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
 			//can be null if eos
 			if (pck) {
 				u32 tscale;
-				//otherwise setup fragmentation, using first sample desc as default idx
-				//first pck dur as default
-				def_pck_dur = gf_filter_pck_get_duration(pck);
+
+				//first pck dur as default if none signaled
+				if (!def_pck_dur)
+					def_pck_dur = gf_filter_pck_get_duration(pck);
 
 				dts = gf_filter_pck_get_dts(pck);
 				if (dts == GF_FILTER_NO_TS)
@@ -8204,6 +8219,8 @@ static GF_Err mp4_mux_on_data_patch(void *cbk, u8 *data, u32 block_size, u64 fil
 {
 	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) cbk;
 	u8 *output;
+	if (!ctx->opid)
+		return GF_IO_ERR;
 
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, block_size, &output);
 	if (!pck) return GF_OUT_OF_MEM;
@@ -8266,6 +8283,8 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) cbk;
 	u8 *output;
 	u32 src_pck_dur=0;
+	if (!ctx->opid)
+		return GF_IO_ERR;
 
 	ctx->total_bytes_out += block_size;
 

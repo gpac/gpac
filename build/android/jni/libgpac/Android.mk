@@ -420,6 +420,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/downloader_hmux.c \
 	../../../../src/utils/downloader_nghttp2.c \
 	../../../../src/utils/downloader_ngtcp2.c \
+	../../../../src/utils/downloader_picoquic.c \
 	../../../../src/utils/downloader_ssl.c \
 	../../../../src/utils/error.c \
 	../../../../src/utils/gltools.c \

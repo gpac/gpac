@@ -7106,7 +7106,7 @@ retry_pending_rep:
 
 	//setup SRDs
 	for (as_i = 0; as_i<gf_list_count(dash->SRDs); as_i++) {
-		u32 cols[10], rows[10], nb_srd_it=0;
+		u32 cols[22], rows[22], nb_srd_it=0;
 		struct _dash_srd_desc *srd = gf_list_get(dash->SRDs, as_i);
 
 		srd->srd_nb_rows = srd->srd_nb_cols = 0;
@@ -7186,7 +7186,12 @@ retry_pending_rep:
 			} else {
 				group->srd_row_idx = k;
 			}
-
+			
+			if ((srd->srd_nb_cols>22) || (srd->srd_nb_rows>22)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]Too many SRD rows (%u) / cols (%u), max 22 for each - Cannot play\n", srd->srd_nb_cols, srd->srd_nb_rows));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+ 
 		}
 		gf_dash_set_tiles_quality(dash, srd, GF_TRUE);
 	}

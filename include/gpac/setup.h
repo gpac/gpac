@@ -187,6 +187,17 @@ typedef unsigned int size_t;
 #endif
 #endif
 
+#if defined(_MSC_VER) && !defined(_SSIZE_T_DEFINED)
+#define _SSIZE_T_DEFINED
+#if defined(_WIN64)
+typedef signed long ssize_t;
+#else
+typedef signed int ssize_t;
+#endif
+#endif
+
+
+
 #endif	/*END WIN32 non win-ce*/
 /*end WIN32 config*/
 
@@ -640,6 +651,9 @@ typedef struct {
 #define GPAC_USE_DOWNLOADER
 #endif
 
+#if defined(GPAC_HAS_NGTCP2) || defined(GPAC_HAS_PICOQUIC)
+#define GPAC_HAS_QUIC
+#endif
 
 #ifdef GPAC_DISABLE_ZLIB
 # define GPAC_DISABLE_LOADER_BT

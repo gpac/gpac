@@ -20,6 +20,8 @@ LDFLAGS+=-pg
 endif
 endif
 
+UNIT_LDFLAGS:=$(LDFLAGS)
+
 ## libgpac objects gathering: src/utils
 LIBGPAC_UTILS=utils/os_divers.o utils/os_file.o utils/list.o utils/bitstream.o utils/constants.o utils/error.o utils/alloc.o utils/url.o utils/configfile.o utils/gltools.o utils/gzio.o utils/xml_parser.o utils/xml_bin_custom.o
 LIBGPAC_UTILS+=utils/sha1.o utils/sha256.o utils/md5.o utils/base_encoding.o utils/math.o utils/os_net.o utils/os_thread.o utils/os_config_init.o utils/utf.o utils/token.o utils/color.o utils/rmt_ws.o
@@ -28,7 +30,7 @@ LIBGPAC_DOWNLOADER=
 ifeq ($(CONFIG_EMSCRIPTEN),yes)
 LIBGPAC_DOWNLOADER+=utils/downloader_emscripten.o
 else
-LIBGPAC_DOWNLOADER+=utils/downloader.o utils/downloader_cache.o utils/downloader_curl.o utils/downloader_hmux.o utils/downloader_nghttp2.o utils/downloader_ngtcp2.o utils/downloader_ssl.o
+LIBGPAC_DOWNLOADER+=utils/downloader.o utils/downloader_cache.o utils/downloader_curl.o utils/downloader_hmux.o utils/downloader_nghttp2.o utils/downloader_ssl.o utils/downloader_ngtcp2.o utils/downloader_picoquic.o
 endif
 
 # ifeq ($(DISABLE_PLAYER),no)
@@ -88,12 +90,26 @@ LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegra
 LIBGPAC_CRYPTO=
 ifeq ($(DISABLE_CRYPTO),no)
 LIBGPAC_CRYPTO+=crypto/g_crypt.o
-ifeq ($(HAS_OPENSSL), no)
-LIBGPAC_CRYPTO+=crypto/g_crypt_tinyaes.o crypto/tiny_aes.o
-else
+
+## openssl
+ifneq ($(HAS_OPENSSL), no)
 LIBGPAC_CRYPTO+=crypto/g_crypt_openssl.o
 endif
+
+## gnutls
+ifneq ($(HAS_GNUTLS), no)
+LIBGPAC_CRYPTO+=crypto/g_crypt_gnutls.o
 endif
+
+# neither => tinyaes
+ifeq ($(HAS_OPENSSL), no)
+ifeq ($(HAS_GNUTLS), no)
+LIBGPAC_CRYPTO+=crypto/g_crypt_tinyaes.o crypto/tiny_aes.o
+endif
+endif
+
+endif
+
 
 LIBGPAC_EVG=evg/ftgrays.o evg/raster3d.o evg/raster_565.o evg/raster_argb.o evg/raster_rgb.o evg/raster_yuv.o evg/stencil.o evg/surface.o
 
@@ -238,7 +254,7 @@ endif
 OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_DOWNLOADER) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_EVG) $(LIBGPAC_FILTERS) $(LIBGPAC_FILTERS_FFMPEG) $(LIBGPAC_FILTERS_LIBCAPTION) $(LIBGPAC_FILTERS_MPEGHDEC) $(LIBGPAC_FILTERS_OHEVC) $(LIBGPAC_QUICKJS) $(LIBGPAC_JSMODS)
 
 ##to improve - we move ngtcp2 first because we likely have a custom SSL
-EXTRALIBS:=$(ngtcp2_ldflags) $(nghttp3_ldflags) $(EXTRALIBS)
+EXTRALIBS:=$(picoquic_ldflags) $(ngtcp2_ldflags) $(nghttp3_ldflags) $(EXTRALIBS)
 
 ##include static modules and other deps for libgpac
 include ../static.mak
@@ -374,17 +390,23 @@ media_tools/img.o: CFLAGS += $(jpeg_cflags) $(zlib_cflags) $(png_cflags)
 media_tools/img.o: media_tools/img.c
 .deps/media_tools/img.dep: CFLAGS += $(jpeg_cflags) $(zlib_cflags) $(png_cflags)
 
+
+ietf/rtsp_session.o: CFLAGS += $(ssl_cflags)
+ietf/rtsp_session.o: ietf/rtsp_session.c
+.deps/ietf/rtsp_session.dep: CFLAGS += $(ssl_cflags)
+
+
 ifeq ($(CONFIG_DARWIN),yes)
 
-downloader: CFLAGS := $(ngtcp2_cflags) $(nghttp3_cflags) $(nghttp2_cflags) $(ssl_cflags) $(CFLAGS)
+downloader: CFLAGS := $(picoquic_cflags) $(ngtcp2_cflags) $(nghttp3_cflags) $(nghttp2_cflags) $(ssl_cflags) $(CFLAGS)
 downloader: $(LIBGPAC_DOWNLOADER)
-.deps/utils/%: CFLAGS := $(ngtcp2_cflags) $(nghttp3_cflags) $(nghttp2_cflags) $(ssl_cflags) $(CFLAGS)
+.deps/utils/%: CFLAGS := $(picoquic_cflags) $(ngtcp2_cflags) $(nghttp3_cflags) $(nghttp2_cflags) $(ssl_cflags) $(CFLAGS)
 
 else
 
-downloader: CFLAGS += $(nghttp2_cflags) $(ngtcp2_cflags) $(nghttp3_cflags) $(ssl_cflags)
+downloader: CFLAGS += $(nghttp2_cflags) $(picoquic_cflags) $(ngtcp2_cflags) $(nghttp3_cflags) $(ssl_cflags)
 downloader: $(LIBGPAC_DOWNLOADER)
-.deps/utils/%: CFLAGS += $(nghttp2_cflags) $(ngtcp2_cflags) $(nghttp3_cflags) $(ssl_cflags)
+.deps/utils/%: CFLAGS += $(nghttp2_cflags) $(picoquic_cflags) $(ngtcp2_cflags) $(nghttp3_cflags) $(ssl_cflags)
 
 endif
 
@@ -392,6 +414,9 @@ crypto/g_crypt_openssl.o: CFLAGS += $(ssl_cflags)
 crypto/g_crypt_openssl.o: crypto/g_crypt_openssl.c
 .deps/crypto/g_crypt_openssl.dep: CFLAGS += $(ssl_cflags)
 
+crypto/g_crypt_gnutls.o: CFLAGS += $(ssl_cflags)
+crypto/g_crypt_gnutls.o: crypto/g_crypt_gnutls.c
+.deps/crypto/g_crypt_gnutls.dep: CFLAGS += $(ssl_cflags)
 
 ../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) downloader compositor scenegraph media_tools crypto filters filters_ffmpeg filters_libcaption filters_mpeghdec filters_ohevc jsmods $(OBJS)
 #	@echo "OBJS $(OBJS)"
@@ -425,11 +450,11 @@ endif
 
 unit_tests:
 ifeq ($(UNIT_TESTS),yes)
-	$(CC) $(CFLAGS) $(caption_cflags) -Wno-unused-variable -Wno-unused-function -I.. -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H  \
+	$(CC) $(CFLAGS) $(caption_cflags) $(picoquic_cflags) $(ssl_cflags) -Wno-unused-variable -Wno-unused-function -I.. -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H  \
 		-o ../bin/gcc/unittests \
 		../bin/gcc/unittests.c \
-		$(shell find -H $(SRC_PATH) -path "*/unittests/*.c" | grep -v bin | sort) \
-		-Wl,-rpath,$(realpath ../bin/gcc) -lm -L../bin/gcc -lgpac
+		$(shell find -H $(SRC_PATH) -path "$(SRC_PATH)/unittests/build" -prune -o -path "*/unittests/*.c" -print | grep -v bin | sort) \
+		-L../bin/gcc $(UNIT_LDFLAGS) -Wl,-rpath,$(realpath ../bin/gcc) -lm -lgpac $(picoquic_ldflags)
 endif
 
 

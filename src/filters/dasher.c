@@ -507,6 +507,8 @@ typedef struct _dash_stream
 	u64 seek_to_pck;
 	u64 ts_offset;
 	u32 nb_repeat;
+	//set when reloading context with keep_ts, triggers a strict timeline continuity check on the first packet
+	Bool ts_check_reload;
 
 	Bool splitable;
 	u32 loop_state;
@@ -2182,6 +2184,8 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 		while ((p=gf_list_enum(ctx->mpd->periods, &i))) {
 			u32 j=0;
 			GF_MPD_AdaptationSet *as;
+			//period may have been hidden from manifest when all its segments expired
+			p->skip_serialize = GF_FALSE;
 			while ((as=gf_list_enum(p->adaptation_sets, &j))) {
 				u32 k=0;
 				if (as->segment_template) as->segment_template->tsb_first_entry = 0;
@@ -5490,6 +5494,18 @@ static void send_file_delete(GF_DasherCtx *ctx, GF_DashStream *ds, const char *f
 	gf_filter_pid_send_event(ds->opid, &anevt);
 }
 
+static void dasher_set_tsb_first_entry(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *owned_set, u32 state_idx)
+{
+	rep->tsb_first_entry = state_idx;
+	if (rep->segment_template) rep->segment_template->tsb_first_entry = state_idx;
+	if (rep->segment_list) rep->segment_list->tsb_first_entry = state_idx;
+
+	if (owned_set) {
+		if (owned_set->segment_template) owned_set->segment_template->tsb_first_entry = state_idx;
+		if (owned_set->segment_list) owned_set->segment_list->tsb_first_entry = state_idx;
+	}
+}
+
 static void dasher_purge_rep(GF_DasherCtx *ctx, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *owned_set, u32 mpd_timescale, Double max_ptime, GF_DashStream *active_ds)
 {
 	//get a target for file delete events
@@ -5497,35 +5513,37 @@ static void dasher_purge_rep(GF_DasherCtx *ctx, GF_MPD_Representation *rep, GF_M
 	if (!target_ds)
 		target_ds = gf_list_get(ctx->current_period->streams, 0);
 
-	rep->tsb_first_entry = 0;
+	dasher_set_tsb_first_entry(rep, owned_set, 0);
 	u32 state_idx=0;
 	while (1) {
-		Double time, dur;
+		Double time=0, dur=0;
 		Bool seg_url_found = GF_FALSE;
 		Bool has_seg_list = GF_FALSE;
+		Bool keep_seg = GF_FALSE;
 		GF_DASH_SegmentContext *sctx = gf_list_get(rep->state_seg_list, state_idx);
-		if (!sctx) break;
+		if (!sctx) {
+			keep_seg = GF_TRUE;
+		}
 		/*not yet flushed*/
-		if (active_ds && gf_list_find(active_ds->pending_segment_states, sctx)>=0) break;
-		time = (Double) sctx->time;
-		time /= mpd_timescale;
-		dur = (Double) sctx->dur;
-		dur /= mpd_timescale;
-		if (time + dur >= max_ptime) {
-			if (ctx->keep_segs) {
-				rep->tsb_first_entry = state_idx;
-
-				if (rep->segment_template) rep->segment_template->tsb_first_entry = state_idx;
-				if (rep->segment_list) rep->segment_list->tsb_first_entry = state_idx;
-
-				if (owned_set) {
-					if (owned_set->segment_template) owned_set->segment_template->tsb_first_entry = state_idx;
-					if (owned_set->segment_list) owned_set->segment_list->tsb_first_entry = state_idx;
-				}
-			}
+		else if (active_ds && gf_list_find(active_ds->pending_segment_states, sctx)>=0) {
+			keep_seg = GF_TRUE;
+		} else {
+			time = (Double) sctx->time;
+			time /= mpd_timescale;
+			dur = (Double) sctx->dur;
+			dur /= mpd_timescale;
+			if (time + dur >= max_ptime)
+				keep_seg = GF_TRUE;
+		}
+		//end of list or first segment to keep: remember the first entry still in the timeshift buffer
+		//this must also be done when all segments have expired (end of list), otherwise the manifest
+		//would re-advertise all expired segments with keep_segs - cf #4004
+		if (keep_seg) {
+			if (ctx->keep_segs)
+				dasher_set_tsb_first_entry(rep, owned_set, state_idx);
 			break;
 		}
-		//we found our first segment
+		//segment expired but we keep segments: hide it from manifest serialization and check next one
 
 		if (ctx->keep_segs) {
 			state_idx++;
@@ -5667,7 +5685,8 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 
 				dasher_purge_rep(ctx, rep, set, mpd_timescale, max_ptime, NULL);
 
-				if (gf_list_count(rep->state_seg_list))
+				//with keep_segs, expired segment contexts are kept in the list but are no longer serializable
+				if (gf_list_count(rep->state_seg_list) > (ctx->keep_segs ? rep->tsb_first_entry : 0))
 					period_empty = GF_FALSE;
 			}
 		}
@@ -5703,10 +5722,13 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 		if (max_rem_dur < ds->dur_purged*1000) max_rem_dur = (u64) (ds->dur_purged * 1000);
 		//final flush to static of live session: update start number
 		if (ctx->dmode!=GF_MPD_TYPE_DYNAMIC) {
+			//don't update an unset start number ((u32)-1), it would wrap around and be serialized
 			if (ds->owns_set && ds->set && ds->set->segment_template) {
-				ds->set->segment_template->start_number += ds->nb_segments_purged;
+				if (ds->set->segment_template->start_number != (u32) -1)
+					ds->set->segment_template->start_number += ds->nb_segments_purged;
 			} else if (ds->rep && ds->rep->segment_template) {
-				ds->rep->segment_template->start_number += ds->nb_segments_purged;
+				if (ds->rep->segment_template->start_number != (u32) -1)
+					ds->rep->segment_template->start_number += ds->nb_segments_purged;
 			}
 			ds->nb_segments_purged = 0;
 		}
@@ -5995,6 +6017,7 @@ static void dasher_forward_mpd(GF_DasherCtx *ctx, const char *manifest)
 	GF_MPD *mpd = gf_mpd_new();
 	GF_List *recompute_sets = NULL;
 	GF_DOMParser *dom = gf_xml_dom_new();
+	//only UTF8 allowed (comes from gpac GF_PropString)
 	GF_Err e = gf_xml_dom_parse_string(dom, (char *)manifest);
 	if (e) goto err_exit;
 
@@ -6742,6 +6765,7 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 	ds->moof_sn = 0;
 	ds->seg_done = 0;
 	ds->last_dts = 0;
+	ds->ts_check_reload = GF_FALSE;
 	ds->subdur_done = 0;
 	if (ds->packet_queue) {
 		while (gf_list_count(ds->packet_queue)) {
@@ -7141,9 +7165,21 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			ds->first_dts = rep->dasher_ctx->first_dts;
 			ds->ts_offset = rep->dasher_ctx->ts_offset;
 			ds->est_next_dts = rep->dasher_ctx->est_next_dts;
+			//with keep_ts, timestamps are trusted to continue the previous timeline: seed last_dts with the
+			//estimated next DTS so that time discontinuity detection (cf td_detect) also operates across context
+			//reloads, and flag a strict continuity check on the first packet - any backward DTS means the new
+			//input overlaps the already published timeline
+			if (ctx->keep_ts && ctx->td_detect && ds->est_next_dts) {
+				ds->last_dts = ds->est_next_dts;
+				ds->ts_check_reload = GF_TRUE;
+			}
 			ds->mpd_timescale = rep->dasher_ctx->mpd_timescale;
 			ds->cumulated_dur = (u64) (rep->dasher_ctx->cumulated_dur * ds->timescale);
 			ds->cumulated_subdur = rep->dasher_ctx->cumulated_subdur;
+			//seed max period duration with the reloaded timeline end, otherwise the period duration collapses
+			//to 0 if the period ends before any new packet is processed (e.g. period switch at first packet)
+			if (ds->est_next_dts && ds->timescale)
+				ds->max_period_dur = ds->current_max_period_dur = gf_timestamp_rescale(ds->est_next_dts, ds->timescale, 1000);
 			ds->rep_init = GF_TRUE;
 			ds->subdur_done = rep->dasher_ctx->subdur_forced ? GF_TRUE : GF_FALSE;
 			ds->subdur_forced_use_period_dur = 0;
@@ -11157,11 +11193,19 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//check time discontinuities not explicitely signaled
 			if (ds->last_dts && ctx->td_detect) {
 				Bool is_disc = GF_FALSE;
+				Bool strict_check = ds->ts_check_reload;
+				ds->ts_check_reload = GF_FALSE;
 				s64 diff = gf_timestamp_rescale_signed((s64) dts - (s64) ds->last_dts, ds->timescale, 1000);
 				if (diff<0) {
 					//some sources could have unreliable DTS assigned from CTS, checking for neg is not enough
 					if (-diff > 1000*ctx->td_detect)
 						is_disc = GF_TRUE;
+					//first packet after a context reload with keep_ts: last_dts is the estimated next DTS,
+					//any backward DTS means the new input overlaps the previously published timeline
+					else if (strict_check) {
+						is_disc = GF_TRUE;
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] PID %s: `keep_ts` set but new input does not continue the previous timeline (DTS "LLU" vs expected "LLU") - forcing new period\n", gf_filter_pid_get_name(ds->ipid), dts, ds->last_dts));
+					}
 				} else if (ctx->td_detect) {
 					if  (diff > 1000*ctx->td_detect) {
 						//stream is AV, introduce a time discontinuity
@@ -13005,7 +13049,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(base64), "embed init segments in manifests as base64", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(td_limit), "number of seconds below which a time discontinuity is considered normal (eg loss) - 0 disables checking", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(td_detect), "number of seconds between DTS above which a discontinuity is triggered - 0 disables checking", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(td_detect), "number of seconds between DTS above which a discontinuity is triggered - 0 disables checking (may produce non-compliant streams)", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sigfo), "use fragment offsets if available when generating index (implicit if sigfrag is used)", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
@@ -13266,6 +13310,8 @@ GF_FilterRegister DasherRegister = {
 "This will generate all dash segments for `SRC` without looping/closing the period at end of input. Timestamps in the second call will be rewritten to be contiguous with timestamp at end of first call.\n"
 "EX gpac -i SRC1 -o dash.mpd:segdur=2:state=CTX:sflush=end:keep_ts && gpac -i SRC2 -o dash.mpd:segdur=2:state=CTX:sflush=end:keep_ts\n"
 "This will generate all dash segments for `SRC1` without looping/closing the period at end of input, then for `SRC2`. Timestamps of the sources will not be rewritten.\n"
+"\n"
+"If [-keep_ts]() is set but the new input does not continue the previous timeline, timestamps are not rewritten and a new period is created, as for in-session time discontinuities. Setting [-td_detect]() to 0 disables this detection.\n"
 "\n"
 "Note: The default behaviour of MP4Box `-dash-ctx` option is to set the [-loop]() to true.\n"
 "\n"

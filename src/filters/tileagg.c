@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / tile aggregrator filter
@@ -31,10 +31,15 @@
 
 #ifndef GPAC_DISABLE_TILEAGG
 
+#define TEST_DROP_RECOVER	0
+
 typedef struct
 {
 	GF_FilterPid *pid;
 	u32 id;
+#if TEST_DROP_RECOVER
+	u32 drop_tile;
+#endif
 } GF_TileAggInput;
 
 typedef struct
@@ -49,18 +54,21 @@ typedef struct
 	u32 nalu_size_length;
 	u32 base_id, dash_grp_id;
 	GF_List *ipids;
+#ifndef GPAC_DISABLE_LOG
+	GF_List *missed_pids;
+#endif
 
 	GF_BitStream *bs_r;
 
-	u32 flush_packets;
 	const GF_PropertyValue *sabt;
 
 	Bool check_connections;
 	GF_Err in_error;
-	u32 wait_start, wait_pid, force_flush;
+	u32 wait_start, wait_pid;
 	Bool is_playing;
 	GF_FEVT_Play play_evt;
 
+	Bool init_done;
 } GF_TileAggCtx;
 
 #define TILEAGG_CFG_ERR(_msg) {\
@@ -141,6 +149,10 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		pctx->pid = pid;
 		gf_filter_pid_set_udta(pid, pctx);
 		gf_list_add(ctx->ipids, pctx);
+
+#if TEST_DROP_RECOVER
+		pctx->drop_tile = 1 + (gf_rand() % TEST_DROP_RECOVER);
+#endif
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	pctx->id = p ? p->value.uint : 0;
@@ -259,7 +271,6 @@ restart:
 
 	base_pck = gf_filter_pid_get_packet(ctx->base_ipid);
 	if (!base_pck) {
-		ctx->flush_packets = 0;
 		if (gf_filter_pid_is_eos(ctx->base_ipid)) {
 			return tileagg_set_eos(filter, ctx);
 		}
@@ -268,7 +279,7 @@ restart:
 			ctx->wait_start = gf_sys_clock();
 			ctx->wait_pid = ctx->base_id;
 			return GF_OK;
-		} else if (!ctx->ttimeout || (!ctx->force_flush && (gf_sys_clock() - ctx->wait_start < ctx->ttimeout))) {
+		} else if (!ctx->ttimeout || ( (gf_sys_clock() - ctx->wait_start < ctx->ttimeout))) {
 			//if not playing don't reschedule
 			if (ctx->is_playing)
 				gf_filter_ask_rt_reschedule(filter, 1000);
@@ -276,7 +287,6 @@ restart:
 		}
 		ctx->wait_pid = 0;
 		ctx->wait_start = 0;
-		ctx->force_flush = GF_FALSE;
 		count = gf_list_count(ctx->ipids);
 		u32 nb_drop=0;
 		for (i=0; i<count; i++) {
@@ -296,10 +306,26 @@ restart:
 		return GF_OK;
 	}
 
+#if TEST_DROP_RECOVER
+	GF_TileAggInput *base = gf_filter_pid_get_udta(ctx->base_ipid);
+	if (base && base->drop_tile) {
+		if (base->drop_tile==1) {
+			gf_filter_pid_drop_packet(ctx->base_ipid);
+			base->drop_tile = 0;
+			return GF_OK;
+		}
+		base->drop_tile--;
+	}
+#endif
+
 	min_cts = gf_filter_pck_get_cts(base_pck);
 	gf_filter_pck_get_data(base_pck, &pck_size);
 	size = pck_size;
 
+#ifndef GPAC_DISABLE_LOG
+	gf_list_reset(ctx->missed_pids),
+#endif
+	nb_ready = 0;
 	count = gf_list_count(ctx->ipids);
 	for (i=0; i<count; i++) {
 		GF_FilterPacket *pck;
@@ -315,22 +341,30 @@ restart:
 				}
 				//if we are flushing a segment (ctx->flush_packets>0), consider the PID discarded if no packet
 				//otherwise wait for packet
-				if (! ctx->flush_packets) {
-					if (ctx->wait_pid != pctx->id) {
-						if (!ctx->wait_pid)
-							ctx->wait_start = gf_sys_clock();
-						ctx->wait_pid = pctx->id;
-						return GF_OK;
-					} else if (!ctx->ttimeout || (!ctx->force_flush && (gf_sys_clock() - ctx->wait_start < ctx->ttimeout))) {
-						gf_filter_ask_rt_reschedule(filter, 1000);
-						return GF_OK;
-					} else {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileAgg] No frames on tiled pid %s after %d ms, reaggregating with lost tiles\n", gf_filter_pid_get_name(pctx->pid), gf_sys_clock() - ctx->wait_start ));
-						break;
-					}
+				if (ctx->wait_pid != pctx->id) {
+					if (!ctx->wait_pid)
+						ctx->wait_start = gf_sys_clock();
+					ctx->wait_pid = pctx->id;
+					return GF_OK;
+				} else if (!ctx->ttimeout || (gf_sys_clock() - ctx->wait_start < ctx->ttimeout)) {
+					gf_filter_ask_rt_reschedule(filter, 1000);
+					return GF_OK;
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileAgg] No frames on tiled pid %s after %d ms, reaggregating with lost tiles\n", gf_filter_pid_get_name(pctx->pid), gf_sys_clock() - ctx->wait_start ));
+					break;
 				}
 				break;
 			}
+#if TEST_DROP_RECOVER
+			if (pctx && pctx->drop_tile) {
+				if (pctx->drop_tile==1) {
+					gf_filter_pid_drop_packet(pctx->pid);
+					pctx->drop_tile = 0;
+					return GF_OK;
+				}
+				pctx->drop_tile--;
+			}
+#endif
 
 			cts = gf_filter_pck_get_cts(pck);
 			if (cts < min_cts) {
@@ -341,9 +375,12 @@ restart:
 			}
 		}
 
-		if (!pck) continue;
-
-		if (cts > min_cts) continue;
+		if (!pck || (cts > min_cts)) {
+#ifndef GPAC_DISABLE_LOG
+			gf_list_add(ctx->missed_pids, pctx);
+#endif
+			continue;
+		}
 
 		for (j=0; j<ctx->tiledrop.nb_items; j++) {
 			if (ctx->tiledrop.vals[j] == i)
@@ -351,6 +388,9 @@ restart:
 		}
 		if (do_drop) {
 			gf_filter_pid_drop_packet(pctx->pid);
+#ifndef GPAC_DISABLE_LOG
+			gf_list_add(ctx->missed_pids, pctx);
+#endif
 			continue;
 		}
 
@@ -359,11 +399,22 @@ restart:
 		nb_ready++;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[TileAgg] reaggregating CTS "LLU" %d ready %d pids (nb flush pck %d)\n", min_cts, nb_ready+1, count, ctx->flush_packets));
-	if (ctx->flush_packets) {
-		ctx->flush_packets--;
-		if (!ctx->flush_packets) ctx->force_flush = GF_FALSE;
+	if (nb_ready+1==count) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[TileAgg] reaggregating CTS "LLU"\n", min_cts));
 	}
+#ifndef GPAC_DISABLE_LOG
+	else {
+		char *szPIDs = NULL, szFMT[20];
+		for (i=0; i<gf_list_count(ctx->missed_pids); i++) {
+			GF_TileAggInput *pctx = gf_list_get(ctx->missed_pids, i);
+			sprintf(szFMT, "%u", pctx->id);
+			gf_dynstrcat(&szPIDs, szFMT, " ");
+		}
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileAgg] reaggregating CTS "LLU" with only %u/%u ready pids, missed %s\n", min_cts, nb_ready+1, count, szPIDs));
+		gf_free(szPIDs);
+	}
+#endif
+
 	if (ctx->wait_pid) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[TileAgg] reaggregating CTS "LLU" ready after %d ms wait\n", min_cts, gf_sys_clock()-ctx->wait_start));
 		ctx->wait_pid = 0;
@@ -472,6 +523,9 @@ static GF_Err tileagg_initialize(GF_Filter *filter)
 	GF_TileAggCtx *ctx = (GF_TileAggCtx *) gf_filter_get_udta(filter);
 	ctx->bs_r = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
 	ctx->ipids = gf_list_new();
+#ifndef GPAC_DISABLE_LOG
+	ctx->missed_pids = gf_list_new();
+#endif
 	return GF_OK;
 }
 
@@ -484,6 +538,9 @@ static void tileagg_finalize(GF_Filter *filter)
 		gf_free(pctx);
 	}
 	gf_list_del(ctx->ipids);
+#ifndef GPAC_DISABLE_LOG
+	gf_list_del(ctx->missed_pids);
+#endif
 }
 
 static Bool tileagg_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -508,24 +565,6 @@ static Bool tileagg_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 	}
 		return GF_FALSE;
-	case GF_FEVT_PLAY_HINT:
-		if (evt->play.forced_dash_segment_switch) {
-			//this assumes the dashin module performs regulation of output in case of losses
-			//otherwise it may dispatch more than one segment in the input buffer
-			if (!ctx->flush_packets) {
-				gf_filter_pid_get_buffer_occupancy(ctx->base_ipid, NULL, &ctx->flush_packets, NULL, NULL);
-				//we already flushed everything, don't force flush
-				if (!ctx->flush_packets) {
-					ctx->wait_pid = 0;
-					ctx->force_flush = GF_FALSE;
-					return GF_TRUE;
-				}
-			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileAgg] Something is wrong in demuxer, received segment flush event but previous segment is not yet flushed !\n" ));
-			}
-			ctx->force_flush = GF_TRUE;
-		}
-		return GF_TRUE;
 	default:
 		break;
 	}

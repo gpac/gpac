@@ -45,6 +45,7 @@ void dm_sess_sk_del(GF_DownloadSession *sess)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] closing socket\n"));
 		if (sess->sock_group) gf_sk_group_unregister(sess->sock_group, sock);
 		gf_sk_del(sock);
+		sess->sock = NULL;
 #ifdef GPAC_HAS_HTTP2
 		sess->h2_upgrade_state = 0;
 #endif
@@ -61,7 +62,7 @@ static void sess_connection_closed(GF_DownloadSession *sess)
 #endif
 }
 
-GF_Err dm_sess_write(GF_DownloadSession *session, const u8 *buffer, u32 size)
+GF_Err gf_dm_sess_write(GF_DownloadSession *session, const u8 *buffer, u32 size)
 {
 	GF_Err e;
 	u32 written=0;
@@ -251,12 +252,12 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 		memcpy(rsp_buf+count, response_body, body_len);
 		count+=body_len;
 	}
-	e = dm_sess_write(sess, rsp_buf, count);
+	e = gf_dm_sess_write(sess, rsp_buf, count);
 	gf_free(rsp_buf);
 	return e;
 }
 
-void gf_dm_sess_clear_headers(GF_DownloadSession *sess)
+GF_NOT_EXPORTED void gf_dm_sess_clear_headers(GF_DownloadSession *sess)
 {
 	while (gf_list_count(sess->headers)) {
 		GF_HTTPHeader *hdr = (GF_HTTPHeader*)gf_list_last(sess->headers);
@@ -330,8 +331,11 @@ void gf_dm_disconnect(GF_DownloadSession *sess, HTTPCloseType close_type)
 
 #ifdef GPAC_HAS_SSL
 			if (sess->ssl) {
-				SSL_shutdown(sess->ssl);
-				SSL_free(sess->ssl);
+				// SSL_shutdown(sess->ssl);
+				// SSL_free(sess->ssl);
+				// gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
+				// gnutls_deinit(sess->ssl);
+				gf_ssl_shutdown(sess->ssl);
 				sess->ssl = NULL;
 			}
 #endif
@@ -397,11 +401,17 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	sess->creds = NULL;
 
 #ifdef GPAC_HTTPMUX
-	if (sess->hmux_sess) {
-		sess->hmux_sess->setup_session(sess, GF_TRUE);
-		gf_mx_p(sess->mx);
-		hmux_detach_session(sess->hmux_sess, sess);
-		gf_mx_v(sess->mx);
+	{
+		GF_Mutex *mx = sess->mx;
+		Bool detached = GF_FALSE;
+		gf_mx_p(mx);
+		if (sess->hmux_sess) {
+			sess->hmux_sess->setup_session(sess, GF_TRUE);
+			hmux_detach_session(sess->hmux_sess, sess);
+			detached = GF_TRUE;
+		}
+		if (!detached) gf_mx_v(mx);
+		else if (sess->mx) gf_mx_v(sess->mx);
 	}
 #endif
 
@@ -422,8 +432,11 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	//in server mode SSL context is managed by caller
 	if (sess->ssl) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] shut down SSL context\n"));
-		SSL_shutdown(sess->ssl);
-		SSL_free(sess->ssl);
+		// SSL_shutdown(sess->ssl);
+		// SSL_free(sess->ssl);
+		// gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
+		// gnutls_deinit(sess->ssl);
+		gf_ssl_shutdown(sess->ssl);
 		sess->ssl = NULL;
 	}
 #endif
@@ -885,8 +898,11 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 		sess->start_time = 0;
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
-			SSL_shutdown(sess->ssl);
-			SSL_free(sess->ssl);
+			// SSL_shutdown(sess->ssl);
+			// SSL_free(sess->ssl);
+			// gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
+			// gnutls_deinit(sess->ssl);
+			gf_ssl_shutdown(sess->ssl);
 			sess->ssl = NULL;
 		}
 #endif
@@ -1193,7 +1209,7 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 }
 
 
-GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read)
+GF_Err gf_dm_sess_read(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read)
 {
 	GF_Err e;
 
@@ -1419,7 +1435,7 @@ resetup_socket:
 		sess->sock = gf_sk_new_ex(sock_type, sess->netcap_id);
 
 		if (sess->sock && (sess->flags & GF_NETIO_SESSION_NO_BLOCK))
-			gf_sk_set_block_mode(sess->sock, GF_TRUE);
+		    gf_sk_set_block_mode(sess->sock, GF_TRUE);
 
 		if (sess->sock_group) register_sock = GF_TRUE;
 	}
@@ -1486,7 +1502,7 @@ resetup_socket:
 		if ((sess->flags & GF_NETIO_SESSION_NO_BLOCK) && !sess->start_time)
 			sess->start_time = now;
 
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 		if (sess->flags & GF_NETIO_SESSION_USE_QUIC) {
 			e = http3_connect(sess, (char *) proxy, proxy_port);
 			if (sess->num_retry && (e==GF_IP_CONNECTION_FAILURE) ) {
@@ -1729,7 +1745,7 @@ static void gf_dm_sess_flush_input(GF_DownloadSession *sess)
 {
 	u32 res;
 	sess->http_buf[0] = 0;
-	GF_Err e = gf_dm_read_data(sess, sess->http_buf, sess->http_buf_size, &res);
+	GF_Err e = gf_dm_sess_read(sess, sess->http_buf, sess->http_buf_size, &res);
 	switch (e) {
 	case GF_IP_NETWORK_EMPTY:
 	case GF_OK:
@@ -1919,7 +1935,7 @@ GF_DownloadManager *gf_dm_new(GF_FilterSession *fsess)
 #endif
 
 	dm->disable_http2 = gf_opts_get_bool("core", "no-h2");
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 	opt = gf_opts_get_key("core", "h3");
 	if (!opt || !strcmp(opt, "auto")) dm->h3_mode = H3_MODE_AUTO;
 	else if (!strcmp(opt, "first")) dm->h3_mode = H3_MODE_FIRST;
@@ -2087,7 +2103,9 @@ void gf_dm_del(GF_DownloadManager *dm)
 #endif
 
 #ifdef GPAC_HAS_SSL
-	if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
+	// if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
+	//if (dm->ssl_ctx) gnutls_certificate_free_credentials(dm->ssl_ctx);
+	gf_ssl_server_context_del(dm->ssl_ctx);
 #endif
 	/* Stored elsewhere, no need to free */
 	gf_mx_v( dm->cache_mx );
@@ -2650,7 +2668,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			} else if (nb_read >= buffer_size) {
 				break;
 			}
-			e = gf_dm_read_data(sess, buffer + nb_read + sess->remaining_data_size, buffer_size - sess->remaining_data_size - nb_read, &single_read);
+			e = gf_dm_sess_read(sess, buffer + nb_read + sess->remaining_data_size, buffer_size - sess->remaining_data_size - nb_read, &single_read);
 			if (e<0) {
 				gf_assert(single_read==0);
 				break;
@@ -2689,7 +2707,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 #endif
 
 		*read_size = nb_read;
-		//we had data but last call to gf_dm_read_data may have returned network empty
+		//we had data but last call to gf_dm_sess_read may have returned network empty
 		if (nb_read && (e<0))
 			e = GF_OK;
 
@@ -2720,8 +2738,10 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 					return GF_IP_NETWORK_EMPTY;
 			} else
 #endif
-			if (sess->sock)
-				e = gf_sk_probe(sess->sock);
+			{
+				if (sess->sock)
+					e = gf_sk_probe(sess->sock);
+			}
 
 			if ((e==GF_IP_CONNECTION_CLOSED)
 				|| (sess->request_timeout && (gf_sys_clock_high_res() - sess->last_fetch_time > 1000 * sess->request_timeout))
@@ -3224,7 +3244,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
 		sess->req_hdr_size = len+par.size;
 
-		e = dm_sess_write(sess, tmp_buf, len+par.size);
+		e = gf_dm_sess_write(sess, tmp_buf, len+par.size);
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[%s] Sending request to %s %s\n\n", sess->log_name, sess->server_name, tmp_buf));
 		gf_free(tmp_buf);
@@ -3234,7 +3254,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
 		sess->req_hdr_size = len;
 
-		e = dm_sess_write(sess, sHTTP, len);
+		e = gf_dm_sess_write(sess, sHTTP, len);
 
 #ifndef GPAC_DISABLE_LOG
 		if (e) {
@@ -3306,7 +3326,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess)
 			}
 			memcpy(sess->http_buf, sess->remaining_data, sess->remaining_data_size);
 		}
-		e = gf_dm_read_data(sess, sess->http_buf + sess->remaining_data_size, sess->http_buf_size - sess->remaining_data_size, &size);
+		e = gf_dm_sess_read(sess, sess->http_buf + sess->remaining_data_size, sess->http_buf_size - sess->remaining_data_size, &size);
 #ifdef GPAC_HTTPMUX
 		//flush even if this read got nothing: another session's read may have received (and closed) our stream
 		if (sess->hmux_sess) {
@@ -3504,14 +3524,14 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 
 	while (1) {
 		Bool probe = (!bytesRead || (sess->flags & GF_NETIO_SESSION_NO_BLOCK) ) ? GF_TRUE : GF_FALSE;
-#ifdef GPAC_HAS_NGTCP2
+#ifdef GPAC_HAS_QUIC
 		if (sess->server_mode && sess->hmux_sess && (sess->hmux_sess->net_sess->flags & GF_NETIO_SESSION_USE_QUIC)) {
 			GF_Err h3_check_sess(GF_DownloadSession *sess);
 			probe = GF_FALSE;
 			e = h3_check_sess(sess);
 		} else
 #endif
-			e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
+			e = gf_dm_sess_read(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 
 #ifdef GPAC_HTTPMUX
 		/* break as soon as we have a header frame*/
@@ -4042,7 +4062,7 @@ process_reply:
 	) {
 		u32 start = gf_sys_clock();
 		while (BodyStart + ContentLength > (u32) bytesRead) {
-			e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
+			e = gf_dm_sess_read(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 			switch (e) {
 			case GF_IP_NETWORK_EMPTY:
 				break;
@@ -4229,6 +4249,7 @@ process_reply:
 		gf_dm_sess_user_io(sess, &par);
 		sess->status = GF_NETIO_DATA_EXCHANGE;
 		e = GF_EOS;
+		//e = GF_OK;
 		break;
 	}
 	case 401:
@@ -4800,7 +4821,7 @@ static GF_Err gf_dm_sess_flush_async_close(GF_DownloadSession *sess, Bool no_sel
 #endif
 
 	if (sess->async_buf_size) {
-		GF_Err e = dm_sess_write(sess, sess->async_buf, sess->async_buf_size);
+		GF_Err e = gf_dm_sess_write(sess, sess->async_buf, sess->async_buf_size);
 		if (e) return e;
 		if (sess->async_buf_size) return GF_IP_NETWORK_EMPTY;
 	}
@@ -4847,7 +4868,7 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 		return GF_OK;
 	}
 
-	e = dm_sess_write(sess, data, size);
+	e = gf_dm_sess_write(sess, data, size);
 
 	if (e==GF_IP_CONNECTION_CLOSED) {
 		sess_connection_closed(sess);

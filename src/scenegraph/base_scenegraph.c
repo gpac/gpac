@@ -2323,7 +2323,7 @@ static u32 gf_node_activate_ex(GF_Node *node, u32 depth)
 			SVGTimedAnimBaseElement *timed = (SVGTimedAnimBaseElement*)node;
 			gf_list_add(node->sgprivate->scenegraph->smil_timed_elements, timed->timingp->runtime);
 			node->sgprivate->flags &= ~GF_NODE_IS_DEACTIVATED;
-			if (timed->timingp->runtime->evaluate) {
+			if (timed->timingp && timed->timingp->runtime->evaluate) {
 				timed->timingp->runtime->evaluate(timed->timingp->runtime, 0, SMIL_TIMING_EVAL_ACTIVATE);
 			}
 		}
