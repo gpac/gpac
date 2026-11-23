@@ -56,6 +56,12 @@ GF_OPT_ENUM (GF_HTTPOutCORSMode,
 	CORS_ON,
 );
 
+GF_OPT_ENUM (GF_HTTPOutCTEMode,
+	CTE_OFF=0,
+	CTE_ON,
+	CTE_FRAG
+);
+
 enum
 {
 	SKIP_RES_NO=0,
@@ -82,7 +88,8 @@ typedef struct
 	char *js;
 #endif
 	GF_PropStringList rdirs;
-	Bool close, hold, quit, post, dlist, ice, reopen, blockio, cte, norange;
+	Bool close, hold, quit, post, dlist, ice, reopen, blockio, norange;
+	GF_HTTPOutCTEMode cte;
 	u32 block_size, maxc, maxp, timeout, sutc, max_client_errors, max_async_buf, ka, zmax, maxs;
 	GF_HTTPOutFilterOperationMode hmode;
 	GF_HTTPOutCORSMode cors;
@@ -2919,8 +2926,8 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_set_udta(pid, pctx);
 		gf_list_add(ctx->inputs, pctx);
 
-		//disable chunked transfer-encoding
-		pctx->use_cte = ctx->cte;
+		//configure chunked transfer encoding for this input
+		pctx->use_cte = (ctx->cte != CTE_OFF);
 
 		gf_filter_pid_init_play_event(pid, &evt, 0.0, 1.0, "HTTPOut");
 		gf_filter_pid_send_event(pid, &evt);
@@ -4925,6 +4932,23 @@ static void httpout_input_drop(GF_HTTPOutInput *in, GF_FilterPacket *pck)
 	}
 }
 
+static GF_Err httpout_cache_append(GF_FilterPacket *cache, u32 *cache_size, GF_FilterPacket *pck)
+{
+	u32 size;
+	u8 *new_range;
+	const u8 *data = gf_filter_pck_get_data(pck, &size);
+	GF_Err e;
+	if (!size)
+		return GF_OK;
+	if (!data)
+		return GF_BAD_PARAM;
+	e = gf_filter_pck_expand(cache, size, NULL, &new_range, cache_size);
+	if (e) 
+		return e;
+	memcpy(new_range, data, size);
+	return GF_OK;
+}
+
 static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 {
 	Bool keep_alive=GF_FALSE;
@@ -4938,8 +4962,10 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		Bool no_cte_fake_open;
 		Bool no_cte_no_llhas;
 		Bool no_cte_frag_push;
+		Bool cte_frag;
 		GF_FilterPacket *pck;
 		GF_HTTPOutInput *in = gf_list_get(ctx->inputs, i);
+		cte_frag = (ctx->cte == CTE_FRAG) && in->upload;
 
 		//prune files (does nothing if waiting for reply
 		httpout_prune_files(ctx, in);
@@ -4974,7 +5000,16 @@ next_pck:
 			continue;
 		}
 
-		pck = gf_filter_pid_get_packet(in->ipid);
+		pck = (cte_frag && in->no_cte_flush_pending && in->no_cte_llhas_cache_size)
+			? in->no_cte_llhas_cache : gf_filter_pid_get_packet(in->ipid);
+		if (!pck && cte_frag && in->no_cte_llhas_cache_size && gf_filter_pid_is_eos(in->ipid) && !gf_filter_pid_is_flush_eos(in->ipid)) {
+			Bool cache_start;
+			//flush any final bytes even if the producer did not mark the last fragment
+			pck = in->no_cte_llhas_cache;
+			gf_filter_pck_get_framing(pck, &cache_start, NULL);
+			gf_filter_pck_set_framing(pck, cache_start, GF_TRUE);
+			in->no_cte_flush_pending = GF_TRUE;
+		}
 		if (!pck && (in->use_cte || !in->no_cte_flush_pending)) {
 			//check end of PID state
 			if (gf_filter_pid_is_eos(in->ipid) && !gf_filter_pid_is_flush_eos(in->ipid)) {
@@ -5010,6 +5045,55 @@ next_pck:
 			start = no_cte_flush;
 			end = GF_FALSE;
 		}
+
+		//reuse the LL-HAS packet cache for CTE fragments:
+		//- its first packet carries the segment and part properties;
+		//- the end flag is set when the producer signals a completed fragment.
+		p = cte_frag ? gf_filter_pid_get_property_str(in->ipid, "isom:frag_end") : NULL;
+		if (cte_frag && (pck != in->no_cte_llhas_cache)) {
+			const GF_PropertyValue *frag_end, *eods;
+			Bool has_markers = p && (p->type == GF_PROP_BOOL) && p->value.boolean;
+			u32 size;
+			GF_Err e;
+
+			eods = gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS);
+			if (in->no_cte_llhas_cache_size && (!has_markers || start || (eods && eods->value.boolean))) {
+				in->no_cte_flush_pending = GF_TRUE;
+				ctx->next_wake_us = 1;
+				goto next_pck;
+			}
+			if (!has_markers) goto cte_frag_done;
+			frag_end = gf_filter_pck_get_property_str(pck, "isom:frag_end");
+			gf_filter_pck_get_data(pck, &size);
+			if (!size && !in->no_cte_llhas_cache_size) goto cte_frag_done;
+			if (!in->no_cte_llhas_cache_size) {
+				if (in->no_cte_llhas_cache) gf_filter_pck_discard(in->no_cte_llhas_cache);
+				in->no_cte_llhas_cache = gf_filter_pck_dangling_clone(pck, NULL);
+				if (!in->no_cte_llhas_cache) {
+					gf_filter_setup_failure(ctx->filter, GF_OUT_OF_MEM);
+					in->in_error = GF_TRUE;
+					continue;
+				}
+				in->no_cte_llhas_cache_size = size;
+			} else {
+				e = httpout_cache_append(in->no_cte_llhas_cache, &in->no_cte_llhas_cache_size, pck);
+				if (e) {
+					gf_filter_setup_failure(ctx->filter, e);
+					in->in_error = GF_TRUE;
+					continue;
+				}
+			}
+			if (end || (frag_end && frag_end->value.boolean)) {
+				Bool cache_start;
+				gf_filter_pck_get_framing(in->no_cte_llhas_cache, &cache_start, NULL);
+				gf_filter_pck_set_framing(in->no_cte_llhas_cache, cache_start, end);
+				in->no_cte_flush_pending = GF_TRUE;
+			}
+			gf_filter_pid_drop_packet(in->ipid);
+			ctx->next_wake_us = 1;
+			goto next_pck;
+		}
+cte_frag_done:
 
 		//CTE disabled, we need to reaggregate full packet on one hand and LLHAS fragments on the other
 		//in CTE mode, the input is open on first packet of segment, and if needed opened for LLHAS
@@ -5054,26 +5138,38 @@ next_pck:
 				if (start) {
 					gf_assert(in->no_cte_cache_size==0);
 					in->no_cte_cache = gf_filter_pck_dangling_clone(pck, in->no_cte_cache);
+					if (!in->no_cte_cache) {
+						gf_filter_setup_failure(ctx->filter, GF_OUT_OF_MEM);
+						in->in_error = GF_TRUE;
+						continue;
+					}
 					gf_filter_pck_get_data(pck, &in->no_cte_cache_size);
 				} else {
-					u32 data_size;
-					u8 *new_range;
-					const u8 *data = gf_filter_pck_get_data(pck, &data_size);
-					gf_filter_pck_expand(in->no_cte_cache, data_size, NULL, &new_range, &in->no_cte_cache_size);
-					memcpy(new_range, data, data_size);
+					GF_Err e = httpout_cache_append(in->no_cte_cache, &in->no_cte_cache_size, pck);
+					if (e) {
+						gf_filter_setup_failure(ctx->filter, e);
+						in->in_error = GF_TRUE;
+						continue;
+					}
 				}
 
 				//also aggregate LLHAS
 				if (p) {
 					gf_assert(in->no_cte_llhas_cache_size==0);
 					in->no_cte_llhas_cache = gf_filter_pck_dangling_clone(pck, in->no_cte_llhas_cache);
+					if (!in->no_cte_llhas_cache) {
+						gf_filter_setup_failure(ctx->filter, GF_OUT_OF_MEM);
+						in->in_error = GF_TRUE;
+						continue;
+					}
 					gf_filter_pck_get_data(pck, &in->no_cte_llhas_cache_size);
 				} else if (in->no_cte_llhas_cache_size) {
-					u32 data_size;
-					u8 *new_range;
-					const u8 *data = gf_filter_pck_get_data(pck, &data_size);
-					gf_filter_pck_expand(in->no_cte_llhas_cache, data_size, NULL, &new_range, &in->no_cte_llhas_cache_size);
-					memcpy(new_range, data, data_size);
+					GF_Err e = httpout_cache_append(in->no_cte_llhas_cache, &in->no_cte_llhas_cache_size, pck);
+					if (e) {
+						gf_filter_setup_failure(ctx->filter, e);
+						in->in_error = GF_TRUE;
+						continue;
+					}
 				}
 
 				gf_filter_pid_drop_packet(in->ipid);
@@ -5112,9 +5208,11 @@ next_pck:
 				in->is_open = GF_FALSE;
 				//if ignoring error, consider the flush open is done
 				if (!ctx->ka) continue;
-				//we might reset here ....
-				pck = gf_filter_pid_get_packet(in->ipid);
-				if (!pck) continue;
+				//a cached fragment is not the packet currently on the input PID
+				if (!cte_frag || (pck != in->no_cte_llhas_cache)) {
+					pck = gf_filter_pid_get_packet(in->ipid);
+					if (!pck) continue;
+				}
 			}
 			in->flush_open = GF_FALSE;
 			//disable start since this setup for this output is already done done
@@ -5721,7 +5819,10 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(js), "javascript logic for server", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 #endif
 	{ OFFS(zmax), "maximum uncompressed size allowed for gzip or deflate compression for text files (only enabled if client indicates it), 0 will disable compression", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(cte), "use chunked transfer-encoding mode when possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cte), "chunked transfer-encoding mode\n"
+		"- true: use chunked transfer-encoding when possible\n"
+		"- false: disable chunked transfer-encoding\n"
+		"- frag: in push mode, buffer complete live DASH MP4 fragments and send each as one HTTP/1.1 chunk", GF_PROP_UINT, "true", "false|true|frag", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(maxs), "maximum upload size allowed in bytes", GF_PROP_UINT, "50M", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(norange), "disable byte range support in GET (reply 200 on partial requests)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
@@ -5831,6 +5932,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"The filter uses no read or write directories in this mode.\n"
 		"EX gpac -i SOURCE -o http://targethost:8080/live.mpd:gpac:hmode=push\n"
 		"In this example, the filter will send PUT methods to the server running on [-port]() 8080 at `targethost` location (IP address or name).\n"
+		"With `cte=frag`, the first HTTP chunk of a media segment also contains its segment header and one complete fragment is buffered per input. This does not control HTTP/2 or HTTP/3 framing, or chunk boundaries after an HTTP intermediary.\n"
 		"  \n"
 		"# HTTP server source\n"
 		"In this mode, the server acts as a source rather than a sink. It declares incoming PUT or POST methods as output PIDs\n"

@@ -1986,9 +1986,16 @@ GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, u8 **data
 	if (!data_start && !new_range_start)
 		return GF_BAD_PARAM;
 
+	if (nb_bytes_to_add > GF_UINT_MAX - pck->data_length)
+		return GF_OUT_OF_MEM;
 	if (pck->data_length + nb_bytes_to_add > pck->alloc_size) {
-		pck->alloc_size = pck->data_length + nb_bytes_to_add;
-		pck->data = gf_realloc(pck->data, pck->alloc_size);
+		u32 alloc_size = pck->data_length + nb_bytes_to_add;
+		u8 *data = gf_realloc(pck->data, alloc_size);
+		if (!data)
+			return GF_OUT_OF_MEM;
+
+		pck->alloc_size = alloc_size;
+		pck->data = data;
 #ifdef GPAC_MEMORY_TRACKING
 		if (!pck->is_dangling)
 			pck->pid->filter->session->nb_realloc_pck++;

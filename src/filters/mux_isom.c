@@ -1257,6 +1257,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+		if (ctx->init_movie_done && (ctx->dash_mode == MP4MX_DASH_ON) && !ctx->single_file && (ctx->subs_sidx < 0) && !ctx->cloned_sidx) {
+			gf_filter_pid_set_property_str(ctx->opid, "isom:frag_end", &PROP_BOOL(GF_TRUE));
+		} else {
+			gf_filter_pid_set_property_str(ctx->opid, "isom:frag_end", NULL);
+		}
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 
 		mux_assign_mime_file_ext(pid, ctx->opid, ISOM_FILE_EXT, ISOM_FILE_MIME, NULL);
@@ -6611,6 +6616,13 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	}
 	ctx->init_movie_done = GF_TRUE;
 
+	//live dash without an index dispatches fragment as soon as complete
+	if (ctx->opid && (ctx->dash_mode == MP4MX_DASH_ON) && !ctx->single_file
+	    && (ctx->subs_sidx < 0) && !ctx->cloned_sidx) {
+		e = gf_filter_pid_set_property_str(ctx->opid, "isom:frag_end", &PROP_BOOL(GF_TRUE));
+		if (e) return e;
+	}
+
 	if (min_dts_scale) {
 		u64 rs_dts = gf_timestamp_rescale(min_dts, min_dts_scale, ctx->cdur.den);
 		ctx->next_frag_start = rs_dts;
@@ -6746,6 +6758,10 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 				if (ctx->cloned_sidx) gf_isom_box_del((GF_Box *)ctx->cloned_sidx);
 				ctx->cloned_sidx = out_sidx;
 				ctx->cloned_sidx_index = 0;
+				if (ctx->opid) {
+					e = gf_filter_pid_set_property_str(ctx->opid, "isom:frag_end", NULL);
+					if (e) return e;
+				}
 			}
 		}
 	}
@@ -7568,7 +7584,8 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 		else if (!ctx->dash_mode || ((ctx->subs_sidx<0) && (ctx->dash_mode<MP4MX_DASH_VOD) && !ctx->cloned_sidx) ) {
 			if (ctx->lmsg && is_eos && !ctx->dash_mode)
 				ctx->file->write_styp = GF_TRUE;
-			gf_isom_flush_fragments(ctx->file, is_eos);
+			e = gf_isom_flush_fragments(ctx->file, is_eos);
+			if (e) return e;
 			flush_refs = GF_TRUE;
 			//if not in dash and EOS marker is set, inject marker after each fragment
 			if (!ctx->dash_mode && ctx->eos_marker && ctx->fragment_started) {
@@ -7582,6 +7599,27 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 				mp4_mux_on_data(ctx, data, 8, NULL, 0);
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ((Double)ctx->next_frag_start)/ctx->cdur.den ));
+
+			if (ctx->dash_mode && ctx->fragment_started && !ctx->single_file) {
+				GF_FilterPacket *end_pck = ctx->dst_pck;
+				if (!end_pck) {
+					end_pck = gf_filter_pck_new_alloc(ctx->opid, 0, NULL);
+					if (end_pck) gf_filter_pck_set_framing(end_pck, GF_FALSE, GF_FALSE);
+				}
+				if (!end_pck)
+					return GF_OUT_OF_MEM;
+
+				e = gf_filter_pck_set_property_str(end_pck, "isom:frag_end", &PROP_BOOL(GF_TRUE));
+				if (e) {
+					if (end_pck != ctx->dst_pck) gf_filter_pck_discard(end_pck);
+					return e;
+				}
+
+				if (end_pck == ctx->dst_pck)
+					mp4mux_send_output(ctx);
+				else
+					gf_filter_pck_send(end_pck);
+			}
 
 			//we need to wait for packet to be written
 			if (ctx->seg_flush_state) {
