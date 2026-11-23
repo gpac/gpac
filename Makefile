@@ -9,7 +9,7 @@ endif
 
 vpath %.c $(SRC_PATH)
 
-all: version unit_tests
+all: version
 	$(MAKE) -C src all
 	$(MAKE) -C applications all
 ifneq ($(STATIC_BINARY),yes)

@@ -62,11 +62,12 @@ Configure options select optional dependencies and filters; record the resulting
 feature set when reproducing a problem. From a clean checkout:
 
 ```sh
-./configure --unittests
+./configure
 make -j2
+make unit_tests
 ```
 
-`make` runs the enabled unit tests; `make unit_tests` reruns them. For a memory
+Use `make unit_tests` to (re)run unit_tests. For a memory
 error investigation, run `./configure --unittests --enable-sanitizer` in a
 separate checkout or worktree, then build there. Run that checkout's
 `bin/gcc/MP4Box` and `bin/gcc/gpac`; for shared builds, ensure they load the

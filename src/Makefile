@@ -451,7 +451,7 @@ ifneq ($(CONFIG_DARWIN),yes)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@
 endif
 
-include $(SRC_PATH)/unittests/unit_tests.mak
+-include $(SRC_PATH)/unittests/unit_tests.mak
 
 
 dep:

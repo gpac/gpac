@@ -2,12 +2,11 @@
 
 ## Build and run
 
-Unit tests are disabled by default. Use `./configure --unittests` to enable
-them, including in debug builds.
-Then run `make -j2`.
-The normal build runs the tests before building applications and stops on failure.
+Unit tests are available by default (use `./configure --unittests=no` to disable them entirely).
 
-To execute the steps manually:
+To build and run them, use `make unit_tests`.
+
+Other available commands:
 ```sh
 make unit_tests                         # build and run, including harness checks
 make unit_tests_build                   # build without running
