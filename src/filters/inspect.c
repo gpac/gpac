@@ -3492,6 +3492,7 @@ static void inspect_dump_boxes(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data,
 			GF_Box *a = NULL;
 			e = gf_isom_box_parse(&a, bs);
 			if (e) {
+				if (a) gf_isom_box_del(a);
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] Event Track: error while parsing data boxes\n"));
 				break; //don't parse any further
 			}
