@@ -6082,7 +6082,7 @@ GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sam
 */
 GF_Err gf_isom_get_original_format_type(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat);
 
-/*! CENC TrackEncryptionBox two-bit feature state */
+/*! CENC TrackEncryptionBox feature state */
 typedef enum
 {
 	GF_ISOM_CENC_TENC_FEATURE_UNSPECIFIED = 0,
@@ -6102,7 +6102,7 @@ typedef enum
 \param isom_file the source ISO file
 \param trackNumber the source track
 \param sampleDescriptionIndex the sample description index
-\param flags set to packed two-bit feature states, using the GF_ISOM_CENC_TENC_* masks
+\param flags set using the GF_ISOM_CENC_TENC_* masks
 \param use_aes_256 set to AES-256 usage signaling
 \return error if any
 */
@@ -6223,7 +6223,7 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 s
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleDescriptionIndex the sample description index
-\param flags packed two-bit feature states, using the GF_ISOM_CENC_TENC_* masks
+\param flags features set using the GF_ISOM_CENC_TENC_* masks
 \param use_aes_256 indicates AES-256 usage and switches the box to version 2 when set
 \return error if any
 */
