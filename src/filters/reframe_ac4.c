@@ -138,7 +138,7 @@ GF_Err ac4dmx_ac4_cfg_to_preselection(GF_AC4Config *ac4_cfg, GF_List *cfg_list)
 		// audio_rendering_indication
 		cfg->audio_rendering_indication = 0;
 		if (!pres->b_presentation_channel_coded) { // Not channels, i.e., dynamic objects / ambisonics?
-			cfg->audio_rendering_indication = 3; // Spatial objects
+			cfg->audio_rendering_indication = 0; // Spatial objects
 		}
 		else {
 			if (pres->b_pre_virtualized) { // Pre-virtualized Headphone Mix?
@@ -290,6 +290,52 @@ clean_exit:
 	gf_bs_del(bs);
 
 	return e;
+}
+
+GF_Err ac4dmx_language(GF_AC4Config *ac4_cfg, u8 **data, u32 *size)
+{
+	char *language = NULL;
+	u32 n_bytes = 0;
+	if (!ac4_cfg) return GF_BAD_PARAM;
+
+	for (u32 i = 0; i < gf_list_count(ac4_cfg->stream.presentations); i++) {
+		GF_AC4PresentationV1 *pres = gf_list_get(ac4_cfg->stream.presentations, i);
+		if (!pres) continue;
+
+		unsigned int group_idx = 0;
+		if (pres->n_substream_groups > 1 && (pres->presentation_config == 0 || pres->presentation_config == 3)) {
+			group_idx = 1;
+		}
+		if (group_idx < gf_list_count(pres->substream_groups)) {
+			GF_AC4SubStreamGroupV1 *sg = gf_list_get(pres->substream_groups, group_idx);
+			if (sg && sg->b_language_indicator) {
+				if (n_bytes == 0) {
+					n_bytes = sg->n_language_tag_bytes;
+					GF_SAFE_ALLOC_N(language, n_bytes + 1, u8);
+					if (!language) return GF_OUT_OF_MEM;
+
+					memcpy(language, sg->language_tag_bytes, n_bytes);
+				} else {
+					// if the content contains different languages, don't set the language
+					if (n_bytes != sg->n_language_tag_bytes) {
+						if (language) gf_free(language);
+						n_bytes = 0;
+						break;
+					}
+					if (strncmp(language, sg->language_tag_bytes, n_bytes) != 0) {
+						if (language) gf_free(language);
+						n_bytes = 0;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	*data = (u8*)language;
+	*size = n_bytes;
+
+	return GF_OK;
 }
 
 GF_Err ac4dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -471,6 +517,11 @@ static void ac4dmx_check_pid(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 	ac4dmx_preselection(&ctx->hdr, &data, &size);
 	if (data && size) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PRESELECTION, & PROP_DATA_NO_COPY(data, size) );
+	}
+
+	ac4dmx_language(&ctx->hdr, &data, &size);
+	if (data && size) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, & PROP_STRING_NO_COPY(data) );
 	}
 }
 

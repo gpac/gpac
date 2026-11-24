@@ -14388,12 +14388,12 @@ void gf_vvc_parse_ps(GF_VVCConfig* vvccfg, VVCState* vvc, u32 nal_type)
 #define AC4_CH_MODE_3_0       2
 #define AC4_CH_MODE_5_0       3
 #define AC4_CH_MODE_5_1       4
-#define AC4_CH_MODE_70_34     5
-#define AC4_CH_MODE_71_34     6
-#define AC4_CH_MODE_70_52     7
-#define AC4_CH_MODE_71_52     8
-#define AC4_CH_MODE_70_322    9
-#define AC4_CH_MODE_71_322    10
+#define AC4_CH_MODE_7_0_34     5
+#define AC4_CH_MODE_7_1_34     6
+#define AC4_CH_MODE_7_0_52     7
+#define AC4_CH_MODE_7_1_52     8
+#define AC4_CH_MODE_7_0_322    9
+#define AC4_CH_MODE_7_1_322    10
 #define AC4_CH_MODE_7_0_4     11
 #define AC4_CH_MODE_7_1_4     12
 #define AC4_CH_MODE_9_0_4     13
@@ -14404,6 +14404,7 @@ void gf_vvc_parse_ps(GF_VVCConfig* vvccfg, VVCState* vvc, u32 nal_type)
 #define GF_AP4_CH_MODE_LENGTH 	16   /* AC-4 ch_mode length  */
 
 // speaker group index mask, indexed by ch_mode - TS 103 190-2 A.27
+// only for ac4_substream_info_chan()
 const s32 AC4_SPEAKER_GROUP_INDEX_MASK_BY_CH_MODE[] =
 {
 	2,        // 0: 0b10 - 1.0
@@ -14682,17 +14683,17 @@ static Bool gf_ac4_get_channel_mode(GF_BitStream *bs,
 									u8 *immersive_audio_indicator_ims)
 {
 	// ETSI TS 103 190-2 V1.3.1 (2025-07) Table 56
-	substream->channel_mode = 0;
-	substream->channel_mode = gf_bs_read_int(bs, 1);
-	if (substream->channel_mode == 0) {   // Mono 0b0
+	u32 channel_mode = 0;
+	channel_mode = gf_bs_read_int(bs, 1);
+	if (channel_mode == 0) {   // Mono 0b0
 		return AC4_CH_MODE_MONO;
 	}
-	substream->channel_mode = (substream->channel_mode << 1) | gf_bs_read_int(bs, 1);
-	if (substream->channel_mode == 2) {   // Stereo  0b10
+	channel_mode = (channel_mode << 1) | gf_bs_read_int(bs, 1);
+	if (channel_mode == 2) {   // Stereo  0b10
 		return AC4_CH_MODE_STEREO;
 	}
-	substream->channel_mode = (substream->channel_mode << 2) | gf_bs_read_int(bs, 2);
-	switch (substream->channel_mode) {
+	channel_mode = (channel_mode << 2) | gf_bs_read_int(bs, 2);
+	switch (channel_mode) {
 		case 12:                    // 3.0 0b1100
 			return AC4_CH_MODE_3_0;
 		case 13:                    // 5.0 0b1101
@@ -14700,41 +14701,41 @@ static Bool gf_ac4_get_channel_mode(GF_BitStream *bs,
 		case 14:                    // 5.1 0b1110
 			return AC4_CH_MODE_5_1;
 	}
-	substream->channel_mode = (substream->channel_mode << 3) | gf_bs_read_int(bs, 3);
-	switch (substream->channel_mode) {
+	channel_mode = (channel_mode << 3) | gf_bs_read_int(bs, 3);
+	switch (channel_mode) {
 		case 120:                   // 7.0: 3/4/0   0b1111000
 			// Dolby AC-4 in MPEG-DASH for Broadcast Services Specification 2.5.3
 			if (presentation_version == 2) {
 				*immersive_audio_indicator_ims = 0;
 				return AC4_CH_MODE_STEREO; // signaling Dolby content in IMS
 			} else {
-				return AC4_CH_MODE_70_34;
+				return AC4_CH_MODE_7_0_34;
 			}
 		case 121:                   // 7.1: 3/4/0.1 0b1111001
 			if (presentation_version == 2) {
 				*immersive_audio_indicator_ims |= 1;
 				return AC4_CH_MODE_STEREO; // signaling Dolby Atmos content in IMS
 			} else {
-				return AC4_CH_MODE_71_34;
+				return AC4_CH_MODE_7_1_34;
 			}
 		case 122:                   // 7.0: 5/2/0   0b1111010
-			return AC4_CH_MODE_70_52;
+			return AC4_CH_MODE_7_0_52;
 		case 123:                   // 7.1: 5/2/0.1 0b1111011
-			return AC4_CH_MODE_71_52;
+			return AC4_CH_MODE_7_1_52;
 		case 124:                   // 7.0: 3/2/2   0b1111100
-			return AC4_CH_MODE_70_322;
+			return AC4_CH_MODE_7_0_322;
 		case 125:                   // 7.1: 3/2/2.1 0b1111101
-			return AC4_CH_MODE_71_322;
+			return AC4_CH_MODE_7_1_322;
 	}
-	substream->channel_mode = (substream->channel_mode << 1) | gf_bs_read_int(bs, 1);
-	switch (substream->channel_mode) {
+	channel_mode = (channel_mode << 1) | gf_bs_read_int(bs, 1);
+	switch (channel_mode) {
 		case 252:                   // 7.0.4 0b11111100
 			return AC4_CH_MODE_7_0_4;
 		case 253:                   // 7.1.4 0b11111101
 			return AC4_CH_MODE_7_1_4;
 	}
-	substream->channel_mode = (substream->channel_mode << 1) | gf_bs_read_int(bs, 1);
-	switch (substream->channel_mode) {
+	channel_mode = (channel_mode << 1) | gf_bs_read_int(bs, 1);
+	switch (channel_mode) {
 		case 508:                   // 9.0.4 0b111111100
 			return AC4_CH_MODE_9_0_4;
 		case 509:                   // 9.1.4 0b111111101
@@ -14797,7 +14798,7 @@ static Bool gf_ac4_substream_info_chan(GF_BitStream *bs,
 	u32 i, mask;
 	const u32 ch1[] = {AC4_CH_MODE_7_0_4, AC4_CH_MODE_7_1_4, AC4_CH_MODE_9_0_4, AC4_CH_MODE_9_1_4};
 	const u32 ch1_n = 4;
-	const u32 ch2[] = {AC4_CH_MODE_70_52, AC4_CH_MODE_71_52, AC4_CH_MODE_70_322, AC4_CH_MODE_71_322};
+	const u32 ch2[] = {AC4_CH_MODE_7_0_52, AC4_CH_MODE_7_1_52, AC4_CH_MODE_7_0_322, AC4_CH_MODE_7_1_322};
 	const u32 ch2_n = 4;
 
 	substream->ch_mode = gf_ac4_get_channel_mode(bs, substream, presentation_version, immersive_audio_indicator_ims);
@@ -15007,7 +15008,6 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 					for (b = 0; b < n_bed_signals; b++) {
 						u8 tmp = gf_bs_read_int_log(bs, 4, "nonstd_bed_channel_assignment");
 
-						bed_dyn_obj->b_channel_assignment_flags_present = 1;
 						bed_dyn_obj->nonstd_bed_channel_assignment_flag |= (1 << tmp);
 
 						if (tmp != 3) {
@@ -15500,7 +15500,7 @@ static u32 gf_ac4_get_obj_channel_mask(GF_AC4SubStream *substream)
     }
 
     // Convert std_bed_channel_assignment_flag to channel mask (AC-4 Table 65)
-    if (assignment->b_channel_assignment_flags_present) {
+    else if (assignment->b_channel_assignment_flags_present) {
         std_mask = assignment->std_bed_channel_assignment_flag;
         if (std_mask & (1u << 9)) channel_mask |= (1ULL << 0);   // L
         if (std_mask & (1u << 9)) channel_mask |= (1ULL << 1);   // R
@@ -15519,6 +15519,10 @@ static u32 gf_ac4_get_obj_channel_mask(GF_AC4SubStream *substream)
         if (std_mask & (1u << 1)) channel_mask |= (1ULL << 14);  // Lw
         if (std_mask & (1u << 1)) channel_mask |= (1ULL << 15);  // Rw
         if (std_mask & (1u << 0)) channel_mask |= (1ULL << 16);  // LFE2
+    }
+    // nonstd_bed_channel_assignment (AC-4 Table 66): bit n is the speaker index n, LFE (3) is not applicable
+    else if (substream->b_ajoc && !assignment->b_ch_assign_code) {
+        channel_mask |= assignment->nonstd_bed_channel_assignment_flag & ~0x8u;
     }
     return channel_mask;
 }
@@ -15594,7 +15598,28 @@ static Bool gf_ac4_substream_info_ajoc(GF_BitStream *bs,
 
 	substream->sus_ver = 1;
 
+	// calculate the ch_mode for obj should be in audio_data_ajoc() but we will skip the audio_data parsing
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) 6.2.3.4
+	substream->ch_mode = substream->b_lfe ? AC4_CH_MODE_5_1 : AC4_CH_MODE_5_0;
+
 	return GF_TRUE;
+}
+
+static u32 gf_ac4_objs_to_channel_mode(u32 n_objects)
+{
+	switch (n_objects) {
+		case 1:
+			return AC4_CH_MODE_MONO;
+		case 2:
+			return AC4_CH_MODE_STEREO;
+		case 3:
+			return AC4_CH_MODE_3_0;
+		case 5:
+			return AC4_CH_MODE_5_0;
+		default:
+			break;
+	}
+	return 0;
 }
 
 static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
@@ -15614,6 +15639,7 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 
 	substream->n_objects_code = gf_bs_read_int_log(bs, 3, "n_objects_code");
 
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) Table 60
 	if (substream->n_objects_code == 0) {
 		n_signals = 0;
 	} else if (substream->n_objects_code == 1) {
@@ -15627,6 +15653,10 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 	} else {
 		n_signals = 0;
 	}
+
+	// calculate the ch_mode for obj should be in audio_data_objs() but we will skip the audio_data parsing
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) 6.2.3.2
+	substream->ch_mode = gf_ac4_objs_to_channel_mode(n_signals);
 
 	// ETSI TS 103 190-2 V1.3.1 (2025-07) Table 60
 	// use the default presentation as the default for channel count
@@ -15728,6 +15758,8 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 							substream->b_substream_contains_dynamic_objects |= 1;
 						}
 					} else {
+						// no such flag in the obj syntax, set it to select AC-4 Table 65 in gf_ac4_get_obj_channel_mask
+						substream->bed_obj.b_channel_assignment_flags_present = 1;
 						substream->bed_obj.std_bed_channel_assignment_flag = gf_bs_read_int_log(bs, 10, "std_bed_channel_assignment_flag");
 
 						// Table 86 std_bed_channel_assignment_flag[] AC-4 part-2 v1.2.1
@@ -16023,6 +16055,10 @@ static Bool gf_ac4_sgi_specifier(GF_BitStream *bs,
 		}
 
 		GF_SAFEALLOC(idx, u32);
+		if (!idx) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Failed to allocate memory for group index in ac4 sgi specifier"));
+			return GF_FALSE;
+		}
 		*idx = value;
 		gf_list_add(idx_list, idx);
 
@@ -16222,70 +16258,53 @@ static Bool gf_ac4_is_substream_group_part_of_default_presentation(GF_List *pres
 	return GF_FALSE;
 }
 
+// ETSI TS 103 190-2 V1.3.1 (2025-07) Table A.27 presentation_v1_channel_groups
 static u32 gf_ac4_get_channel_count_from_speaker_group_index_mask(u32 mask)
 {
-	u32 ch= 0;
-	if ((mask & 1) != 0) { // 0: L,R 0b1
-		ch += 2;
-	}
-	if ((mask & 2) != 0) { // 1: C 0b10
-		ch += 1;
-	}
-	if ((mask & 4) != 0) { // 2: Ls,Rs 0b100
-		ch += 2;
-	}
-	if ((mask & 8) != 0) { // 3: Lb,Rb 0b1000
-		ch += 2;
-	}
-	if ((mask & 16) != 0) { // 4: Tfl,Tfr 0b10000
-		ch += 2;
-	}
-	if ((mask & 32) != 0) { // 5: Tbl,Tbr 0b100000
-		ch += 2;
-	}
-	if ((mask & 64) != 0) { // 6: LFE 0b1000000
-		ch += 1;
-	}
-	if ((mask & 128) != 0) { // 7: TL,TR 0b10000000
-		ch += 2;
-	}
-	if ((mask & 256) != 0) { // 8: Tsl,Tsr 0b100000000
-		ch += 2;
-	}
-	if ((mask & 512) != 0) { // 9: Tfc
-		ch += 1;
-	}
-	if ((mask & 1024) != 0) { // 10: Tbc
-		ch += 1;
-	}
-	if ((mask & 2048) != 0) { // 11: Tc
-		ch += 1;
-	}
-	if ((mask & 4096) != 0) { // 12: LFE2
-		ch += 1;
-	}
-	if ((mask & 8192) != 0) { // 13: Bfl,Bfr
-		ch += 2;
-	}
-	if ((mask & 16384) != 0) { // 14: Bfc
-		ch += 1;
-	}
-	if ((mask & 32768) != 0) { // 15: Cb
-		ch += 1;
-	}
-	if ((mask & 65536) != 0) { // 16: Lscr,Rscr
-		ch += 2;
-	}
-	if ((mask & 131072) != 0) { // 17: Lw,Rw
-		ch += 2;
-	}
-	if ((mask & 262144) != 0) { // 18: Vhl,Vhr
-		ch += 2;
-	}
-	if ((mask & 1) != 0 && (mask & 2) != 0 && ch == 3) { // mono_stereo
-		ch = 2;
-	}
-	return ch;
+	u32 channel_count = 0;
+    if ((mask & 1) != 0) //  0: L,R
+        channel_count += 2;
+    if ((mask & (1 << 1)) != 0) //  1: C
+        channel_count += 1;
+    if ((mask & (1 << 2)) != 0) //  2: Ls,Rs
+        channel_count += 2;
+    if ((mask & (1 << 3)) != 0) //  3: Lb,Rb
+        channel_count += 2;
+    if ((mask & (1 << 4)) != 0) //  4: Tfl,Tfr
+        channel_count += 2;
+    if ((mask & (1 << 5)) != 0) //  5: Tbl,Tbr
+        channel_count += 2;
+    if ((mask & (1 << 6)) != 0) //  6: LFE
+        channel_count += 1;
+    if ((mask & (1 << 7)) != 0) //  7: TL,TR
+        channel_count += 2;
+    if ((mask & (1 << 8)) != 0) //  8: Tsl,Tsr
+        channel_count += 2;
+    if ((mask & (1 << 9)) != 0) //  9: Tfc
+        channel_count += 1;
+    if ((mask & (1 << 10)) != 0) //  10: Tbc
+        channel_count += 1;
+    if ((mask & (1 << 11)) != 0) //  11: Tc
+        channel_count += 1;
+    if ((mask & (1 << 12)) != 0) //  12: LFE2
+        channel_count += 1;
+    if ((mask & (1 << 13)) != 0) //  13: Bfl,Bfr
+        channel_count += 2;
+    if ((mask & (1 << 14)) != 0) //  14: Bfc
+        channel_count += 1;
+    if ((mask & (1 << 15)) != 0) //  15: Cb
+        channel_count += 1;
+    if ((mask & (1 << 16)) != 0) //  16: Lscr,Rscr
+        channel_count += 2;
+    if ((mask & (1 << 17)) != 0) //  17: Lw,Rw
+        channel_count += 2;
+    if ((mask & (1 << 18)) != 0) //  18: Vhl,Vhr
+        channel_count += 2;
+
+    if ((mask & 1) != 0 && (mask & 2) != 0 && channel_count == 3)
+        channel_count = 2;
+
+    return channel_count;
 }
 
 static s32 gf_ac4_cfg_super_set(s32 lvalue, s32 rvalue)
@@ -16296,7 +16315,7 @@ static s32 gf_ac4_cfg_super_set(s32 lvalue, s32 rvalue)
 	return AC4_SUPER_SET_CH_MODE[lvalue][rvalue];
 }
 
-static u32 gf_ac4_convert_speaker_layout_to_channel_mode(u32 channel_mask)
+static u32 gf_ac4_convert_obj_channel_mask_to_ch_mode(u32 channel_mask)
 {
     // ETSI TS 103 190-1 V1.4.1 (2025-07) Table 88
     s32 ch_mode = 0;
@@ -16304,47 +16323,67 @@ static u32 gf_ac4_convert_speaker_layout_to_channel_mode(u32 channel_mask)
     switch (channel_mask) {
         // Mono
         case 0x00001:  // bit 0: L
-            ch_mode = 0;
+            ch_mode = AC4_CH_MODE_MONO;
             break;
         // Stereo
         case 0x00003:  // bit 0,1: L,R
-            ch_mode = 1;
+            ch_mode = AC4_CH_MODE_STEREO;
             break;
         // 3.0
         case 0x00007:  // bit 0,1,2: L,R,C
-            ch_mode = 2;
+            ch_mode = AC4_CH_MODE_3_0;
             break;
         // 5.0
         case 0x00037:  // bit 0,1,2,4,5: L,R,C,Ls,Rs
-            ch_mode = 3;
+            ch_mode = AC4_CH_MODE_5_0;
             break;
         // 5.1
         case 0x0003F:  // bit 0,1,2,3,4,5: L,R,C,LFE,Ls,Rs
-            ch_mode = 4;
+            ch_mode = AC4_CH_MODE_5_1;
             break;
         // 7.0: 3/4/0 (L, C, R, Ls, Rs, Lb, Rb)
         case 0x000F7:  // bit 0,1,2,4,5,6,7
-            ch_mode = 5;
+            ch_mode = AC4_CH_MODE_7_0_34;
             break;
         // 7.1: 3/4/0.1 (L, C, R, Ls, Rs, Lb, Rb, LFE)
         case 0x000FF:  // bit 0,1,2,3,4,5,6,7
-            ch_mode = 6;
+            ch_mode = AC4_CH_MODE_7_1_34;
             break;
         // 7.0: 5/2/0 (L, C, R, Lw, Rw, Ls, Rs
         case 0xC037:  // bit 0,1,2,4,5,14,15
-            ch_mode = 7;
+            ch_mode = AC4_CH_MODE_7_0_52;
             break;
         // 7.1: 5/2/0.1 (L, C, R, Lw, Rw, Ls, Rs, LFE)
         case 0xC03F:  // bit 0,1,2,3,4,5,14,15
-            ch_mode = 8;
+            ch_mode = AC4_CH_MODE_7_1_52;
             break;
         // 7.0: 3/2/2 (L, C, R, Ls, Rs, Tfl, Tfr)
         case 0x00337:  // bit 0,1,2,4,5,8,9
-            ch_mode = 9;
+            ch_mode = AC4_CH_MODE_7_0_322;
             break;
         // 7.1: 3/2/2.1 (L, C, R, Ls, Rs, Tfl, Tfr, LFE)
         case 0x0033F:  // bit 0,1,2,3,4,5,8,9
-            ch_mode = 10;
+            ch_mode = AC4_CH_MODE_7_1_322;
+            break;
+        // 5.0.2 / 5.0.4 / 7.0.4 are all signaled as 7.0.4
+        case 0x00C37:  // 5.0.2: bit 0,1,2,4,5,10,11
+        case 0x03337:  // 5.0.4: bit 0,1,2,4,5,8,9,12,13
+        case 0x033F7:  // 7.0.4: bit 0,1,2,4,5,6,7,8,9,12,13
+            ch_mode = AC4_CH_MODE_7_0_4;
+            break;
+        // 5.1.2 / 5.1.4 / 7.1.4 are all signaled as 7.1.4
+        case 0x00C3F:  // 5.1.2: bit 0,1,2,3,4,5,10,11
+        case 0x0333F:  // 5.1.4: bit 0,1,2,3,4,5,8,9,12,13
+        case 0x033FF:  // 7.1.4: bit 0,1,2,3,4,5,6,7,8,9,12,13
+            ch_mode = AC4_CH_MODE_7_1_4;
+            break;
+        // 9.0.4: 7.0.4 + Lw, Rw
+        case 0x0F3F7:  // bit 0,1,2,4,5,6,7,8,9,12,13,14,15
+            ch_mode = AC4_CH_MODE_9_0_4;
+            break;
+        // 9.1.4: 7.1.4 + Lw, Rw
+        case 0x0F3FF:  // bit 0,1,2,3,4,5,6,7,8,9,12,13,14,15
+            ch_mode = AC4_CH_MODE_9_1_4;
             break;
         default:
             ch_mode = -1;
@@ -16353,132 +16392,110 @@ static u32 gf_ac4_convert_speaker_layout_to_channel_mode(u32 channel_mask)
     return ch_mode;
 }
 
-static s32 gf_ac4_presentation_ch_mode(GF_AC4PresentationV1 *p)
+static u32 gf_ac4_convert_obj_channel_mask_to_channel_mask_v1(u32 mask)
+{
+	// From bit 0-16:  L R C LFE Ls Rs Lb Rb Tfl Tfr Tsl Tsr Tbl Tbr Lw Rw LFE2
+	// To: ETSI TS 103 190-2 V1.3.1 (2025-07) Table A.27
+	u32 ret = 0;
+	if (mask & 1 && mask & (1 << 1)) ret |= 1;  				//  to bit 0: L,R
+	if (mask & (1 << 2)) ret |= 2; 			    				//  to bit 1: C
+	if (mask & (1 << 3)) ret |= (1 << 6);       				//  to bit 6: LFE
+	if (mask & (1 << 4) && mask & (1 << 5)) ret |= (1 << 2);  	//  to bit 2: Ls,Rs
+	if (mask & (1 << 6) && mask & (1 << 7)) ret |= (1 << 3);  	//  to bit 3: Lb,Rb
+	if (mask & (1 << 8) && mask & (1 << 9)) ret |= (1 << 4);  	//  to bit 4: Tfl,Tfr
+	if (mask & (1 << 10) && mask & (1 << 11)) ret |= (1 << 7);  //  to bit 7: Tsl,Tsr
+	if (mask & (1 << 12) && mask & (1 << 13)) ret |= (1 << 5);  	//  to bit 5: Tbl,Tbr
+	if (mask & (1 << 14) && mask & (1 << 15)) ret |= (1 << 17);  	//  to bit 17: Lw,Rw
+	if (mask & (1 << 16)) ret |= (1 << 12);  						//  to bit 12: LFE2
+    return ret;
+}
+
+static Bool gf_ac4_is_lf_substream(GF_AC4SubStream *substream)
+{
+	// group->substreams also holds the OAMD and HSF extension substream info, which are not LF substreams
+	if (!substream) return GF_FALSE;
+	if (substream->type == GF_AC4_OAMD_SUBSTREAM_INFO) return GF_FALSE;
+	if (substream->type == GF_AC4_HSF_EXT_SUBSTREAM_INFO) return GF_FALSE;
+	return GF_TRUE;
+}
+
+static s32 gf_ac4_assign_presentation_channel(GF_AC4PresentationV1 *p)
 {
 	s32 pres_ch_mode = -1;
-    u8 b_obj_or_ajoc = 0 /*, b_has_dyn = 0,*/ /*b_has_isf = 0*/;
+    u8 b_obj_or_ajoc = 0, b_has_dyn = 0, b_has_isf = 0;
 	u32 i, j, merged_mask = 0;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *substream;
+	u32 channel_mask = 0;
 
 	// ETSI TS 103 190-2 V1.3.1 (2025-07) 6.3.3.1.27
 	for (i = 0; i < p->n_substream_groups; i++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
 
-		for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < gf_list_count(group->substreams); j++){
 			substream = gf_list_get(group->substreams, j);
-			if (!substream) continue;
+			if (!gf_ac4_is_lf_substream(substream)) continue;
 
 			// Dolby AC-4 Streams Within the ISO Base Media File Format Guidelines for multiplexers v1.0rc0
 			// section 3.1.1.1
 			if (group->b_channel_coded){
 				pres_ch_mode = gf_ac4_cfg_super_set(pres_ch_mode, substream->ch_mode);
+				channel_mask |= substream->dsi_substream_channel_groups;
 			} else {
 				b_obj_or_ajoc = 1;
 			}
 		}
 	}
-	if (b_obj_or_ajoc == 1) {
+
+	if (b_obj_or_ajoc == 0) {
+		// TODO: temporary solution according to Dolby's internal discussion
+		if (channel_mask == 0x03) channel_mask = 0x01;
+
+		// If one substream contains Tfl, Tfr, Tbl, Tbr, Tl and Tr shall be removed.
+		if ((channel_mask & 0x30) && (channel_mask & 0x80)) channel_mask &= ~0x80;
+
+		p->presentation_v1_channel_groups = channel_mask;
+	} else {
 		// derive an appropriate channel configuration from the first substream group (Dolby AC-4 Streams Within the ISO Base Media File Format)
 		u32 other_objs = 0;
-		u32 ch_mode = -1;
+		s32 ch_mode = -1;
+		channel_mask = 0;
 		group = gf_list_get(p->substream_groups, 0);
+		if (!group) return -1;
 
-		for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < gf_list_count(group->substreams); j++){
 			substream = gf_list_get(group->substreams, j);
-			if (!substream) continue;
+			if (!gf_ac4_is_lf_substream(substream)) continue;
 
 			if (group->b_channel_coded) {
-				ch_mode = gf_ac4_cfg_super_set(pres_ch_mode, substream->ch_mode);
+				ch_mode = gf_ac4_cfg_super_set(ch_mode, substream->ch_mode);
+				channel_mask |= substream->dsi_substream_channel_groups;
 			}
 			merged_mask |= gf_ac4_get_obj_channel_mask(substream);
+			// the LFE of an A-JOC substream is not part of the bed assignment, it is signaled by b_lfe
+			if (substream->b_lfe) merged_mask |= 0x8;
 			other_objs += substream->other_objs;
 		}
 
 		if (other_objs != 0) {
 			// there are other objects beside the bed object, signal as object-based
             pres_ch_mode = -1;
+			p->presentation_v1_channel_groups = 0;
         } else if (group->b_channel_coded) {
 			// if the group is channel coded
 			pres_ch_mode = ch_mode;
+			p->presentation_v1_channel_groups = channel_mask;
 		} else {
 			// there are no other objects beside the bed object, but the bed object is not channel coded
-			pres_ch_mode = gf_ac4_convert_speaker_layout_to_channel_mode(merged_mask);
+			pres_ch_mode = gf_ac4_convert_obj_channel_mask_to_ch_mode(merged_mask);
+			p->presentation_v1_channel_groups = gf_ac4_convert_obj_channel_mask_to_channel_mask_v1(merged_mask);
 		}
 	}
+
+	p->b_presentation_channel_coded = (pres_ch_mode == -1) ? 0: 1;
+
 	return pres_ch_mode;
-}
-
-static u32 gf_ac4_get_channel_mask_from_ch_mode(GF_AC4PresentationV1 *p)
-{
-	u8 ch_mode = p->dsi_presentation_ch_mode;
-	u32 substreamSpeakerGroupIndexMask = AC4_SPEAKER_GROUP_INDEX_MASK_BY_CH_MODE[ch_mode];
-    if ((ch_mode >= AC4_CH_MODE_7_0_4) && (ch_mode <= AC4_CH_MODE_9_1_4)) {
-        if (!p->pres_b_4_back_channels_present) {    // b_4_back_channels_present false
-            substreamSpeakerGroupIndexMask &= ~0x8;             // Remove back channels (Lb,Rb) from mask
-        }
-        if (!p->pres_b_centre_present) {             // b_centre_present false
-            substreamSpeakerGroupIndexMask &= ~0x2;             // Remove centre channel (C) from mask
-        }
-        switch (p->pres_top_channel_pairs) {      // top_channels_present
-            case 0:
-                substreamSpeakerGroupIndexMask &= ~0x30;        // Remove top channels (Tfl,Tfr,Tbl,Tbr) from mask
-                break;
-            case 1:
-            case 2:
-                substreamSpeakerGroupIndexMask &= ~0x30;        // Remove top channels (Tfl,Tfr,Tbl,Tbr) from mask
-                substreamSpeakerGroupIndexMask |=  0x80;        // Add top channels (Tl, Tr) from mask;
-                break;
-        }
-    }
-    return substreamSpeakerGroupIndexMask;
-
-}
-
-static u32 gf_ac4_presentation_v1_channel_groups(GF_AC4PresentationV1 *p)
-{
-	u32 channel_mask = 0, i, j;
-	u8 b_obj_or_ajoc = 0;
-	GF_AC4SubStreamGroupV1 *group;
-	GF_AC4SubStream *substream;
-
-	for (i = 0; i < p->n_substream_groups; i++){
-		group = gf_list_get(p->substream_groups, i);
-		if (!group) continue;
-		for (j = 0; j < group->n_lf_substreams; j++){
-			substream = gf_list_get(group->substreams, j);
-			if (group->b_channel_coded){
-				channel_mask |= substream->dsi_substream_channel_groups;
-			}else {
-				b_obj_or_ajoc = 1;
-			}
-		}
-	}
-
-	// TODO: temporary solution according to Dolby's internal discussion
-	if (channel_mask == 0x03) channel_mask = 0x01;
-
-	// If one substream contains Tfl, Tfr, Tbl, Tbr, Tl and Tr shall be removed.
-	if ((channel_mask & 0x30) && (channel_mask & 0x80)) channel_mask &= ~0x80;
-
-	// objective channel mask
-	if (b_obj_or_ajoc == 1) {
-		group = gf_list_get(p->substream_groups, 0);
-
-		if (group->b_channel_coded) {
-			// if the group is channel coded
-			for (j = 0; j < group->n_lf_substreams; j++){
-				substream = gf_list_get(group->substreams, j);
-				if (!substream) continue;
-				channel_mask |= substream->dsi_substream_channel_groups;
-			}
-		} else {
-			channel_mask = gf_ac4_get_channel_mask_from_ch_mode(p);
-		}
-	}
-
-	return channel_mask;
 }
 
 static u8 gf_ac4_pres_b_4_back_channels_present(GF_AC4PresentationV1 *p)
@@ -16492,8 +16509,9 @@ static u8 gf_ac4_pres_b_4_back_channels_present(GF_AC4PresentationV1 *p)
 	for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-		for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < gf_list_count(group->substreams); j++){
 			substream = gf_list_get(group->substreams, j);
+			if (!gf_ac4_is_lf_substream(substream)) continue;
 			mask |= substream->b_4_back_channels_present;
 		}
 	}
@@ -16511,8 +16529,9 @@ static u8 gf_ac4_pres_top_channel_pairs(GF_AC4PresentationV1 *p)
 	for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-		for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < gf_list_count(group->substreams); j++){
 			substream = gf_list_get(group->substreams, j);
+			if (!gf_ac4_is_lf_substream(substream)) continue;
 			if (tmp_pres_top_channel_pairs < substream->top_channels_present) {
 				tmp_pres_top_channel_pairs = substream->top_channels_present;
 			}
@@ -16566,9 +16585,9 @@ static s32 gf_ac4_get_b_presentation_core_differs(GF_AC4PresentationV1 *p, s32 p
 	for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-		for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < gf_list_count(group->substreams); j++){
 			substream = gf_list_get(group->substreams, j);
-			if (!substream) continue;
+			if (!gf_ac4_is_lf_substream(substream)) continue;
 			if (group->b_channel_coded){
 				ch_mode_core = gf_ac4_get_ch_mode_core(group->b_channel_coded,
 													   substream->b_ajoc,
@@ -17934,6 +17953,9 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 
 		for (i = 0; i < n_presentations; i++) {
 			GF_SAFEALLOC(pinfo, GF_AC4PresentationV1);
+			if (!pinfo) {
+				return GF_FALSE;
+			}
 			gf_ac4_presentation_v1_info(bs,
 										pinfo,
 										bitstream_version,
@@ -17961,6 +17983,9 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			default_presentation_flag = gf_ac4_is_substream_group_part_of_default_presentation(hdr_p_list, i);
 
 			GF_SAFEALLOC(group, GF_AC4SubStreamGroupV1);
+			if (!group) {
+				return GF_FALSE;
+			}
 			gf_ac4_substream_group_info(bs,
 										group,
 										bitstream_version,
@@ -18004,15 +18029,13 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 
 			// ETSI TS 103 190-2 V1.3.1 (2025-07) (2018-02) E.10.2
 			// other elements in GF_AC4PresentationV1 for Sample Description Box
-			pres_ch_mode = gf_ac4_presentation_ch_mode(p);
-			p->b_presentation_channel_coded = (pres_ch_mode == -1) ? 0: 1;
+			pres_ch_mode = gf_ac4_assign_presentation_channel(p);
 			if (p->b_presentation_channel_coded == 1) {
 				p->dsi_presentation_ch_mode = pres_ch_mode;
 				if (pres_ch_mode >= 11 && pres_ch_mode <= 14){
 					p->pres_b_4_back_channels_present = gf_ac4_pres_b_4_back_channels_present(p);
 					p->pres_top_channel_pairs = gf_ac4_pres_top_channel_pairs(p);
 				}
-				p->presentation_v1_channel_groups = gf_ac4_presentation_v1_channel_groups(p);
 			}
 
 			pres_ch_mode_core = gf_ac4_get_b_presentation_core_differs(p, pres_ch_mode);
