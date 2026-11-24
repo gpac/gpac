@@ -521,7 +521,7 @@ static void ac4dmx_check_pid(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 
 	ac4dmx_language(&ctx->hdr, &data, &size);
 	if (data && size) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, & PROP_DATA_NO_COPY(data, size) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_LANGUAGE, & PROP_STRING_NO_COPY(data) );
 	}
 }
 
