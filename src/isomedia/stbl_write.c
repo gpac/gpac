@@ -258,7 +258,7 @@ GF_Err AddCompositionOffset(GF_CompositionOffsetBox *ctts, s32 offset)
 //adds a CTS offset for a new sample
 GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 {
-	u32 i, j, sampNum, *CTSs;
+	u32 i, j, sampNum, nb_runs, *CTSs;
 
 	GF_CompositionOffsetBox *ctts = stbl->CompositionOffset;
 
@@ -322,12 +322,21 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 		}
 	}
 
-	/*we will at most add 2 new entries (splitting of an existing one)*/
-	if (ctts->nb_entries+2>=ctts->alloc_size) {
-		ctts->alloc_size += 2;
-		ctts->entries = gf_realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);
-		if (!ctts->entries) return GF_OUT_OF_MEM;
-		memset(&ctts->entries[ctts->nb_entries], 0, sizeof(GF_DttsEntry)*(ctts->alloc_size-ctts->nb_entries) );
+	/*count the entries needed once repacked. This can exceed nb_entries+2 (split of an existing entry)
+	when the table covers fewer samples than the sample table, since the missing samples are repacked as an extra 0 offset entry*/
+	nb_runs = 1;
+	for (i=1; i<stbl->SampleSize->sampleCount + 1; i++) {
+		if (CTSs[i] != CTSs[i-1]) nb_runs++;
+	}
+	if (nb_runs > ctts->alloc_size) {
+		GF_DttsEntry *new_entries = gf_realloc(ctts->entries, sizeof(GF_DttsEntry)*nb_runs);
+		if (!new_entries) {
+			gf_free(CTSs);
+			return GF_OUT_OF_MEM;
+		}
+		ctts->entries = new_entries;
+		memset(&ctts->entries[ctts->alloc_size], 0, sizeof(GF_DttsEntry)*(nb_runs-ctts->alloc_size) );
+		ctts->alloc_size = nb_runs;
 	}
 
 	ctts->entries[0].sampleCount = 1;
