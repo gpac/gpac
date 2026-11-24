@@ -1806,6 +1806,7 @@ GF_DOVIDecoderConfigurationRecord *gf_odf_dovi_cfg_read_bs(GF_BitStream *bs)
 {
 	GF_DOVIDecoderConfigurationRecord *cfg;
 	GF_SAFEALLOC(cfg, GF_DOVIDecoderConfigurationRecord);
+	if (!cfg) return NULL;
 
 	cfg->dv_version_major = gf_bs_read_u8(bs);
 	cfg->dv_version_minor = gf_bs_read_u8(bs);
@@ -2000,6 +2001,8 @@ GF_Err gf_odf_ac4_cfg_substream_dsi(GF_AC4SubStream *s, GF_BitStream *bs, u8 b_c
 {
 	u32 zero_val = 0;
 
+	if (!s) return GF_BAD_PARAM;
+
 	GF_AC4_SSS(bs, s->dsi_sf_multiplier, 2, size, desc_mode);
 	GF_AC4_SSS(bs, s->b_substream_bitrate_indicator, 1, size, desc_mode);
 	if (s->b_substream_bitrate_indicator == 1) {
@@ -2054,6 +2057,16 @@ GF_Err gf_odf_ac4_cfg_substream_group_dsi(GF_AC4SubStreamGroupV1 *g, GF_BitStrea
 	GF_AC4_SSS(bs, g->b_substreams_present, 1, size, desc_mode);
 	GF_AC4_SSS(bs, g->b_hsf_ext, 1, size, desc_mode);
 	GF_AC4_SSS(bs, g->b_channel_coded, 1, size, desc_mode);
+
+	if (desc_mode != GF_AC4_DESCMODE_PARSE) {
+		u32 list_count = g->substreams ? gf_list_count(g->substreams) : 0;
+		if (g->n_lf_substreams > list_count) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING,
+				("[AC4] substream list has %u entries but n_lf_substreams is %u, clamping to match\n",
+				list_count, (u32)g->n_lf_substreams));
+			g->n_lf_substreams = (u8)list_count;
+		}
+	}
 	GF_AC4_SSS(bs, g->n_lf_substreams, 8, size, desc_mode);
 
 	if (desc_mode == GF_AC4_DESCMODE_PARSE) {
@@ -2062,10 +2075,13 @@ GF_Err gf_odf_ac4_cfg_substream_group_dsi(GF_AC4SubStreamGroupV1 *g, GF_BitStrea
 	for (i = 0; i < g->n_lf_substreams; i++ ){
 		if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 			GF_SAFEALLOC(s, GF_AC4SubStream);
+			if (!s) return GF_OUT_OF_MEM;
 		} else { // write or get_size
 			s = (GF_AC4SubStream*)gf_list_get(g->substreams, i);
 		}
-		gf_odf_ac4_cfg_substream_dsi(s, bs, g->b_channel_coded, size, desc_mode);
+		if(gf_odf_ac4_cfg_substream_dsi(s, bs, g->b_channel_coded, size, desc_mode) != GF_OK) {
+			return GF_BAD_PARAM;
+		}
 		if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 			gf_list_add(g->substreams, s);
 		}
@@ -2135,6 +2151,7 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 		if (p->presentation_config == 0x1f) {
 			if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 				GF_SAFEALLOC(g, GF_AC4SubStreamGroupV1);
+				if (!g) return GF_OUT_OF_MEM;
 				gf_list_add(p->substream_groups, g);
 				p->n_substream_groups = 1;
 			} else { // write or get_size
@@ -2165,6 +2182,7 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 			for (i = 0; i < p->n_substream_groups; i++) {
 				if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 					GF_SAFEALLOC(g, GF_AC4SubStreamGroupV1);
+					if (!g) return GF_OUT_OF_MEM;
 					gf_list_add(p->substream_groups, g);
 				} else { // write or get_size
 					g = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, i);
@@ -2263,6 +2281,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 				if (!p) continue;
 				if (p->presentation_version == 2) {
 					GF_SAFEALLOC(imsp, GF_AC4PresentationV1);
+					if (!imsp) return GF_OUT_OF_MEM;
 					gf_odf_ac4_presentation_deep_copy(imsp, p);
 
 					imsp->presentation_version = 1;
@@ -2299,6 +2318,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 	for (i = 0; i < dsi->n_presentations; i++) {
 		if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 			GF_SAFEALLOC(p, GF_AC4PresentationV1);
+			if (!p) return GF_OUT_OF_MEM;
 			gf_list_add(dsi->presentations, p);
 
 			p->presentation_version = gf_bs_read_int(bs, 8);
@@ -2462,6 +2482,10 @@ void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src)
 		pres_src = gf_list_get(presentations_src, i);
 
 		GF_SAFEALLOC(pres_dst, GF_AC4PresentationV1);
+		if (!pres_dst) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Failed to allocate memory for presentation.\n"));
+			return;
+		}
 		gf_odf_ac4_presentation_deep_copy(pres_dst, pres_src);
 		gf_list_add(dst->stream.presentations, pres_dst);
 	}
@@ -2491,6 +2515,10 @@ static void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF
 		}
 
 		GF_SAFEALLOC(group_dst, GF_AC4SubStreamGroupV1);
+		if (!group_dst) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Failed to allocate memory for substream group.\n"));
+			return;
+		}
 		memcpy(group_dst, group_src, sizeof(GF_AC4SubStreamGroupV1));
 		gf_list_add(pres_dst->substream_groups, group_dst);
 
@@ -2506,6 +2534,10 @@ static void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF
 			}
 
 			GF_SAFEALLOC(subs_dst, GF_AC4SubStream);
+			if (!subs_dst) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Failed to allocate memory for substream.\n"));
+				return;
+			}
 			memcpy(subs_dst, subs_src, sizeof(GF_AC4SubStream));
 			gf_list_add(group_dst->substreams, subs_dst);
 		}
@@ -2523,6 +2555,10 @@ static void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF
 		}
 
 		GF_SAFEALLOC(subs_dst, GF_AC4SubStream);
+		if (!subs_dst) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Failed to allocate memory for substream.\n"));
+			return;
+		}
 		memcpy(subs_dst, subs_src, sizeof(GF_AC4SubStream));
 		gf_list_add(pres_dst->substreams, subs_dst);
 	}

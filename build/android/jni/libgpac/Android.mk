@@ -201,6 +201,8 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/ff_mx.c \
 	../../../../src/filters/ff_rescale.c \
 	../../../../src/filters/filelist.c \
+	../../../../src/filters/av1merge.c \
+	../../../../src/filters/av1split.c \
 	../../../../src/filters/hevcmerge.c \
 	../../../../src/filters/hevcsplit.c \
 	../../../../src/filters/in_route.c \
@@ -418,6 +420,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/downloader_hmux.c \
 	../../../../src/utils/downloader_nghttp2.c \
 	../../../../src/utils/downloader_ngtcp2.c \
+	../../../../src/utils/downloader_picoquic.c \
 	../../../../src/utils/downloader_ssl.c \
 	../../../../src/utils/error.c \
 	../../../../src/utils/gltools.c \

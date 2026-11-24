@@ -1035,7 +1035,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 
 	dom = gf_xml_dom_new();
 	if (!dom) return GF_OUT_OF_MEM;
-	e = gf_xml_dom_parse_string(dom, ttml_text);
+	e = gf_xml_dom_parse_string_len(dom, ttml_text, txt_size);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[XML] Invalid TTML doc: %s\n\tXML text was:\n%s", gf_xml_dom_get_error(dom), ttml_text));
 		goto exit;

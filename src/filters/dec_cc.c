@@ -31,7 +31,20 @@
 #define GF_ITU_T35_PROVIDER_ATSC	49
 
 #ifdef GPAC_HAS_LIBCAPTION
+
+// definition conflicts for ssize_t on windows
+#ifdef _MSC_VER
+#pragma push_macro("ssize_t")
+#undef ssize_t
+#define ssize_t libcaption_ssize_t
+#endif
+
 #include <caption/cea708.h>
+
+#ifdef _MSC_VER
+#pragma pop_macro("ssize_t")
+#endif
+
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 #if !defined(__GNUC__)
@@ -62,7 +75,7 @@ typedef struct
 {
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
-	
+
 	// override gf_filter_*() calls for testability
 	GF_FilterPacket* (*pck_new_alloc)(GF_FilterPid *pid, u32 data_size, u8 **data);
 	GF_Err (*pck_truncate)(GF_FilterPacket *pck, u32 size);

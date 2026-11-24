@@ -325,9 +325,15 @@ Contructs a new mutex object
 */
 GF_Mutex *gf_mx_new(const char *name);
 /*!
-\brief mutex denstructor
+\brief retain a mutex for another owner
+\param mx mutex to retain
+*/
+void gf_mx_ref(GF_Mutex *mx);
+/*!
+\brief release a mutex reference
 
-Destroys a mutex object. This will wait for the mutex to be released if needed.
+Releases an ownership reference. The mutex is destroyed after the last reference
+is released; destruction waits for the mutex to be unlocked.
 \param mx the mutex object, may be NULL
 */
 void gf_mx_del(GF_Mutex *mx);
@@ -448,6 +454,7 @@ typedef void * GF_Thread;
 
 typedef void *GF_Mutex;
 #define gf_mx_new(_name) NULL
+#define gf_mx_ref(_mx)
 #define gf_mx_del(_mx)
 #define gf_mx_p(_mx) 1
 #define gf_mx_v(_mx)

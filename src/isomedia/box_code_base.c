@@ -318,31 +318,31 @@ GF_Err kind_box_read(GF_Box *s,GF_BitStream *bs)
 {
 	GF_KindBox *ptr = (GF_KindBox *)s;
 
-	if (ptr->size) {
-		u32 bytesToRead = (u32) ptr->size;
-		char *data;
-		u32 schemeURIlen;
-		data = (char*)gf_malloc(bytesToRead * sizeof(char));
+	if (ptr->size>GF_UINT_MAX) return GF_ISOM_INVALID_FILE;
+	if (!ptr->size) return GF_OK;
+	u32 bytesToRead = (u32) ptr->size;
+	char *data;
+	u32 schemeURIlen;
+	data = (char*)gf_malloc(bytesToRead * sizeof(char));
+	if (!data) return GF_OUT_OF_MEM;
+	gf_bs_read_data(bs, data, bytesToRead);
+	/*safety check in case the string is not null-terminated*/
+	if (data[bytesToRead-1]) {
+		data = (char*)gf_realloc(data, sizeof(char)*(bytesToRead + 1));
 		if (!data) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, data, bytesToRead);
-		/*safety check in case the string is not null-terminated*/
-		if (data[bytesToRead-1]) {
-			data = (char*)gf_realloc(data, sizeof(char)*(bytesToRead + 1));
-			if (!data) return GF_OUT_OF_MEM;
-			data[bytesToRead] = 0;
-			bytesToRead++;
-		}
-		ptr->schemeURI = gf_strdup(data);
-		if (!ptr->schemeURI) return GF_OUT_OF_MEM;
-		schemeURIlen = (u32) strlen(data);
-		if (bytesToRead > schemeURIlen+1) {
-			/* read the value */
-			char *data_value = data + schemeURIlen +1;
-			ptr->value = gf_strdup(data_value);
-			if (!ptr->value) return GF_OUT_OF_MEM;
-		}
-		gf_free(data);
+		data[bytesToRead] = 0;
+		bytesToRead++;
 	}
+	ptr->schemeURI = gf_strdup(data);
+	if (!ptr->schemeURI) return GF_OUT_OF_MEM;
+	schemeURIlen = (u32) strlen(data);
+	if (bytesToRead > schemeURIlen+1) {
+		/* read the value */
+		char *data_value = data + schemeURIlen +1;
+		ptr->value = gf_strdup(data_value);
+		if (!ptr->value) return GF_OUT_OF_MEM;
+	}
+	gf_free(data);
 	return GF_OK;
 }
 
@@ -976,7 +976,7 @@ GF_Err url_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size) {
 		u32 location_size = (u32) ptr->size;
 		if (location_size < 1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in svhd box\n", ptr->size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size "LLU" in svhd box\n", ptr->size));
 			return GF_ISOM_INVALID_FILE;
 		}
 		ptr->location = (char*)gf_malloc(location_size);
@@ -2119,7 +2119,7 @@ GF_Err hdlr_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size) {
 		u32 name_size = (u32) ptr->size;
 		if (name_size < 1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in hdlr\n", ptr->size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size "LLU" in hdlr\n", ptr->size));
 			return GF_ISOM_INVALID_FILE;
 		}
 		ptr->nameUTF8 = (char*)gf_malloc(name_size);
@@ -6664,7 +6664,7 @@ void stts_box_del(GF_Box *s)
 
 GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 i;
+	u32 i, nb_entries_in_box;
 	u32 nb_patches=0, needs_patch = 0;
 	GF_TimeToSampleBox *ptr = (GF_TimeToSampleBox *)s;
 
@@ -6678,6 +6678,10 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stts\n", ptr->nb_entries));
 		return GF_ISOM_INVALID_FILE;
 	}
+
+	// patching a sample_delta=0 entry below may split an entry and grow nb_entries; the box size check
+	// at the end must use the count read from the file, not the patched count
+	nb_entries_in_box = ptr->nb_entries;
 
 	ptr->alloc_size = ptr->nb_entries;
 	ptr->entries = gf_malloc(sizeof(GF_SttsEntry)*ptr->alloc_size);
@@ -6748,7 +6752,7 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 			ptr->max_ts_delta = ptr->entries[i].sampleDelta;
 
 	}
-	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries*8);
+	ISOM_DECREASE_SIZE(ptr, nb_entries_in_box*8);
 
 	if (nb_patches) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found %u stts entries with forbidden sample_delta=0 - patching to 1\n", nb_patches));
@@ -6975,7 +6979,7 @@ GF_Err tkhd_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 60);
 	ptr->reserved2[0] = gf_bs_read_u32(bs);
 	ptr->reserved2[1] = gf_bs_read_u32(bs);
-	ptr->layer = gf_bs_read_u16(bs);
+	ptr->layer = (s16) gf_bs_read_u16(bs);
 	ptr->alternate_group = gf_bs_read_u16(bs);
 	ptr->volume = gf_bs_read_u16(bs);
 	ptr->reserved3 = gf_bs_read_u16(bs);
@@ -7028,7 +7032,7 @@ GF_Err tkhd_box_write(GF_Box *s, GF_BitStream *bs)
 	}
 	gf_bs_write_u32(bs, ptr->reserved2[0]);
 	gf_bs_write_u32(bs, ptr->reserved2[1]);
-	gf_bs_write_u16(bs, ptr->layer);
+	gf_bs_write_u16(bs, (u16) ptr->layer);
 	gf_bs_write_u16(bs, ptr->alternate_group);
 	gf_bs_write_u16(bs, ptr->volume);
 	gf_bs_write_u16(bs, ptr->reserved3);
@@ -7818,7 +7822,7 @@ GF_Err stri_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->sub_track_id = gf_bs_read_u32(bs);
 	ptr->attribute_count = ptr->size / 4;
 	if ((u64)ptr->attribute_count > (u64)SIZE_MAX/sizeof(u32)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in stri\n", ptr->size));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size "LLU" in stri\n", ptr->size));
 		return GF_ISOM_INVALID_FILE;
 	}
 	GF_SAFE_ALLOC_N(ptr->attribute_list, (size_t)ptr->attribute_count, u32);
@@ -9608,8 +9612,8 @@ void txtc_box_del(GF_Box *s)
 GF_Err txtc_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TextConfigBox *ptr = (GF_TextConfigBox*)s;
-	if ((u32)ptr->size >= (u32)0xFFFFFFFF) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in txtc box\n", ptr->size));
+	if (ptr->size >= (u32)0xFFFFFFFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size "LLU" in txtc box\n", ptr->size));
 		return GF_ISOM_INVALID_FILE;
 	}
 	ptr->config = (char *)gf_malloc(sizeof(char)*((u32) ptr->size+1));
@@ -12660,7 +12664,7 @@ GF_Err trik_box_read(GF_Box *s,GF_BitStream *bs)
 	GF_TrickPlayBox *ptr = (GF_TrickPlayBox *) s;
 	ptr->entry_count = (u32) ptr->size;
 	if ((u64)ptr->entry_count > (u64)SIZE_MAX/sizeof(GF_TrickPlayBoxEntry)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in trik\n", ptr->size));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size "LLU" in trik\n", ptr->size));
 		return GF_ISOM_INVALID_FILE;
 	}
 	ptr->entries = (GF_TrickPlayBoxEntry *) gf_malloc(ptr->entry_count * sizeof(GF_TrickPlayBoxEntry) );
@@ -14950,8 +14954,8 @@ void svhd_box_del(GF_Box *s)
 GF_Err svhd_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SphericalVideoInfoBox *ptr = (GF_SphericalVideoInfoBox *)s;
-	if ((u32)ptr->size >= (u32)0xFFFFFFFF) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in svhd box\n", ptr->size));
+	if (ptr->size >= GF_UINT_MAX) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size "LLU" in svhd box\n", ptr->size));
 		return GF_ISOM_INVALID_FILE;
 	}
 	ptr->string = gf_malloc(sizeof(char) * ((u32) ptr->size+1));
@@ -15163,7 +15167,7 @@ GF_Err extl_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size) {
 		u32 name_size = (u32) ptr->size;
 		if (name_size < 1 || name_size >= GF_UINT_MAX-1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in hdlr\n", ptr->size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size "LLU" in hdlr\n", ptr->size));
 			return GF_ISOM_INVALID_FILE;
 		}
 		ptr->location = (char*)gf_malloc(name_size+1);

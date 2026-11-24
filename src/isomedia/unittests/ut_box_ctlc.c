@@ -1,6 +1,8 @@
 #include "tests.h"
 #include <gpac/internal/isomedia_dev.h>
 
+#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)
+
 unittest(ctlc_box_roundtrip)
 {
 	GF_Err e;
@@ -77,6 +79,11 @@ unittest(ctlc_box_roundtrip)
 	gf_isom_box_del(box);
 }
 
+#else
+unittest_disabled(ctlc_box_roundtrip, "ISO media writing disabled")
+#endif // !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)
+
+#ifndef GPAC_DISABLE_ISOM
 unittest(ctlc_box_truncated)
 {
 	GF_Err e;
@@ -104,3 +111,7 @@ unittest(ctlc_box_truncated)
 	assert_true(e != GF_OK);
 	if (box) gf_isom_box_del(box);
 }
+
+#else
+unittest_disabled(ctlc_box_truncated, "ISO media disabled")
+#endif // !defined(GPAC_DISABLE_ISOM)

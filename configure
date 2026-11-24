@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC configure script
-#     (c) 2003-2026 Telecom Paris
+#     (c) 2003-2026 Telecom Paris, Motion Spell
 #     Authors: Jean Le Feuvre, Romain Bouqueau, Aurelien David
 #
 #set -v
@@ -69,6 +69,7 @@ strip="strip"
 fi
 
 pkg_config="pkg-config"
+quic_backend="ngtcp2"
 windres="windres"
 readelf="readelf"
 install="${INSTALL:=install}"
@@ -93,7 +94,7 @@ libgpac_cflags=""
 libgpac_extralibs=""
 static_build="no"
 static_bin="no"
-unit_tests="no"
+unit_tests="yes"
 static_modules="no"
 lm_lib=""
 is_arm="no"
@@ -269,6 +270,8 @@ push_feature "nhmlr" "*NHML demuxer"
 push_feature "nhntr" "*NHNT demuxer"
 push_feature "cecrypt" "*CENC Encryptor"
 push_feature "flist" "*Playlist concatenator"
+push_feature "av1merge" "*AV1 tile merger"
+push_feature "av1split" "*AV1 tile splitter"
 push_feature "hevcmerge" "*HEVC tile merger"
 push_feature "hevcsplit" "*HEVC tile spliter"
 push_feature "fin" "*File input"
@@ -348,7 +351,7 @@ get_size()
 }
 
 #zlib MUST be first
-all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad a52 xvid faad ffmpeg freenect vorbis theora nghttp2 ngtcp2 nghttp3"
+all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad a52 xvid faad ffmpeg freenect vorbis theora nghttp2 ngtcp2 nghttp3 gnutls nettle picoquic"
 all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb ogg sdl caption mpeghdec libcaca curl"
 disabled_packages=""
 
@@ -401,7 +404,7 @@ GPAC build options:
   --disable-opt            disable GCC optimizations
   --static-build           link statically against libgpac but still allow dependencies to shared libraries (enable --static-modules)
   --static-bin             enable static linking of MP4Box and gpac only (will enable --static-build), disable all libraries not linkable statically.
-  --unittests              enable unit tests [default=no]
+  --unittests[=yes|no]     enable make unit_tests availability [default=yes]
   --sdl-cfg=SDL_PATH       specify path to sdl-config for local install [$sdl_path]
   --enable-sdl-static      use static SDL linking [default=no]
   --X11-path=X11_PATH      specify path for X11 includes and libraries [$X11_PATH]
@@ -424,6 +427,7 @@ GPAC core configuration:
   --enable-depth           enables depth handling in the compositor (experimental for stereoscopic rendering)
   --disable-all            disables all features in libgpac (see below)
   --isomedia-only          disables all features except "parsers import export isom-dump isoff isoff-write isoff-hint isoff-frag isoff-hds ttxt ttml vtt txtin"
+  --quic-backend=BACKEND   select QUIC backend: ngtcp2 or picoquic [ngtcp2]
 
 
 Extra libraries configuration:
@@ -433,6 +437,8 @@ You can turn a library off or force using the local version in gpac/extra_lib/. 
   --use-FOO=system         force using system version only of library FOO
   --use-FOO=PATH           force use of library FOO in \$PATH/include, \$PATH/lib
 
+Use --quic-backend=picoquic to select the experimental picoquic/h3zero backend.
+It requires the GPAC-compatible picoquic extensions; --use-picoquic overrides its location.
 Extra libraries used are: $all_packages
 EOF
 
@@ -636,6 +642,12 @@ for opt do
             ;;
         --extra-libs=*) extralibs=${opt#--extra-libs=}
             ;;
+        --quic-backend=*) quic_backend=${opt#--quic-backend=}
+            case "$quic_backend" in
+                ngtcp2|picoquic) ;;
+                *) echo "Invalid QUIC backend: $quic_backend"; exit 1 ;;
+            esac
+            ;;
         --cpu=*) cpu=`echo $opt | cut -d '=' -f 2`
             ;;
         --check-stack-size=*) check_stack_size=`echo $opt | cut -d '=' -f 2`
@@ -666,6 +678,12 @@ for opt do
         --enable-sanitizer) enable_sanitizer="yes"
             ;;
         --unittests) unit_tests="yes"
+            ;;
+        --unittests=*) unit_tests=${opt#--unittests=}
+            case "$unit_tests" in
+                yes|no) ;;
+                *) echo "Invalid --unittests value: $unit_tests" >&2; exit 1 ;;
+            esac
             ;;
         --static-modules) static_modules="yes"
             ;;
@@ -733,6 +751,7 @@ for opt do
             ;;
         --emscripten) is_em="yes"
             disable_network="yes"
+            no_stack_prot="yes"
             ;;
         --em-type=*) em_type=`echo $opt | cut -d '=' -f 2`
             ;;
@@ -745,6 +764,20 @@ for opt do
             fi
             ;;
         *) echo "! Unrecognized option $opt, ignoring !"
+            ;;
+    esac
+done
+
+for lib_arg in $lib_args ; do
+    case "$quic_backend:$lib_arg" in
+        ngtcp2:picoquic=no|picoquic:ngtcp2=no|picoquic:nghttp3=no) ;;
+        ngtcp2:picoquic=*)
+            echo "error: --use-picoquic requires --quic-backend=picoquic"
+            exit 1
+            ;;
+        picoquic:ngtcp2=*|picoquic:nghttp3=*)
+            echo "error: ngtcp2 and nghttp3 are not used by the picoquic backend"
+            exit 1
             ;;
     esac
 done
@@ -992,7 +1025,8 @@ EOF
         ;;
 
     Darwin)
-        CFLAGS_DIR="-I$prefix/include"
+        #use -isystem so that forced package paths (--use-xxx=PATH) passed as -I always take precedence
+        CFLAGS_DIR="-isystem $prefix/include"
         if test "$static_bin" = "yes" ; then
             LDFLAGS="-L$prefix/$libdir"
         else
@@ -1006,7 +1040,7 @@ EOF
                 alt_macosx_dir="/opt/local"
             fi
             if test "$alt_macosx_dir" != "" ; then
-                CFLAGS_DIR="$CFLAGS_DIR -I$alt_macosx_dir -I$alt_macosx_dir/include"
+                CFLAGS_DIR="$CFLAGS_DIR -isystem $alt_macosx_dir -isystem $alt_macosx_dir/include"
                 LDFLAGS="$LDFLAGS -L$alt_macosx_dir -L$alt_macosx_dir/lib"
             fi
         fi
@@ -1433,7 +1467,8 @@ config_package_test ()
     if test "$forced" != "local" -a "$custom" != "yes" ; then
         if test "$cross_prefix" = "" -a "$is_port" != "yes" -a "$pkg_config" != "no" -a "$pkg_cfg_name" != ""; then
             if $pkg_config --exists $pkg_cfg_name ; then
-                pck_cflags=`$pkg_config --cflags $pkg_cfg_name`
+                #keep package cflags first so forced paths (e.g. custom ssl) take precedence over pkg-config ones
+                pck_cflags="$package_cflags "`$pkg_config --cflags $pkg_cfg_name`
                 pck_ldflags=`$pkg_config --libs $pkg_cfg_name`
 
                 if test "$pck_cxx" = "yes" ; then
@@ -1560,11 +1595,7 @@ config_package ()
     fi
     if test "$has_pck" != "no" ; then
         eval "cflags_$pname=\"$pck_cflags\""
-        if test "$pname" = "ngtcp2" ; then
-            eval "ldflags_$pname=\"$pck_ldflags -lngtcp2_crypto_quictls\""
-        else
-            eval "ldflags_$pname=\"$pck_ldflags\""
-        fi
+        eval "ldflags_$pname=\"$pck_ldflags\""
     fi
 
     eval "has_$pname=\"$has_pck\""
@@ -1611,9 +1642,9 @@ if test "$static_bin" = "yes"; then
     append disabled_packages "openjpeg ffmpeg theora vorbis openhevc freenect platinum"
 
     #we cannot use openssl vanilla since it is usually built with DSO and requires dlopen
-    append disabled_packages "ssl"
+    append disabled_packages "ssl gnutls nettle"
     # these need ssl
-    append disabled_packages "nghttp3 ngtcp2"
+    append disabled_packages "nghttp3 ngtcp2 picoquic"
     #we cannot use ipv6 due to getaddrinfo not being present
     append disabled_packages "ipv6"
 
@@ -1675,6 +1706,30 @@ config_package ssl "openssl" "" "$ssl_lflags" "" '#include <openssl/ssl.h>
 #include <openssl/rand.h>
 #include <stddef.h>
 int main( void ) {  SSL_CTX_set_options(NULL, SSL_OP_ALL); return 0; }'
+
+orig_cflags_ssl="$cflags_ssl"
+orig_ldflags_ssl="$ldflags_ssl"
+
+config_package gnutls "gnutls" "" "-lgnutls" "gnutls" '#include <gnutls/gnutls.h>
+int main( void ) { gnutls_global_init(); return 0; }'
+
+config_package nettle "nettle" "" "-lnettle" "nettle" '#include <nettle/aes.h>
+#include <nettle/version.h>
+int main(void) {
+    uint8_t key[16] = {0};
+#if NETTLE_VERSION_MAJOR>=4
+    struct aes128_ctx ctx;
+    aes128_set_encrypt_key(&ctx, key);
+#else
+    struct aes_ctx ctx;
+    aes_set_encrypt_key(&ctx, 16, key);
+#endif
+    return 0;
+}'
+
+if test "$has_nettle" = "no" ; then
+    has_gnutls="no"
+fi
 
 
 config_package jpeg "libjpeg" "" "-ljpeg" "jpeg" '#include <stdio.h>
@@ -1786,14 +1841,106 @@ config_package nghttp2 "libnghttp2" "" "-lnghttp2" "" '#include <stdio.h>
 #include <nghttp2/nghttp2.h>
 int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); return 0; }'
 
-config_package ngtcp2 "libngtcp2" "" "-lngtcp2 -lngtcp2_crypto_quictls" "" '#include <stdio.h>
+if test "$quic_backend" = "ngtcp2" ; then
+
+if test "$has_gnutls" != "no" ; then
+OLD_CFLAGS="$CFLAGS"
+CFLAGS="$cflags_gnutls $CFLAGS"
+config_package ngtcp2 "libngtcp2 libngtcp2_crypto_gnutls" "$cflags_gnutls" "$ldflags_gnutls -lngtcp2 -lngtcp2_crypto_gnutls" "" '#include <stdio.h>
 #include <ngtcp2/ngtcp2.h>
-#include <ngtcp2/ngtcp2_crypto_quictls.h>
-int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); return 0; }'
+#include <ngtcp2/ngtcp2_crypto_gnutls.h>
+int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); ngtcp2_ccerr ccerr; (void)ccerr; return 0; }'
+
+CFLAGS="$OLD_CFLAGS"
+fi
+
+if [ "$has_ngtcp2" = "no" ] && [ "$has_ssl" != "no" ] ; then
+OLD_CFLAGS="$CFLAGS"
+CFLAGS="$orig_cflags_ssl $CFLAGS"
+config_package ngtcp2 "libngtcp2 libngtcp2_crypto_ossl" "$orig_cflags_ssl" "$orig_ldflags_ssl -lngtcp2 -lngtcp2_crypto_ossl" "" '#include <stdio.h>
+#include <openssl/opensslv.h>
+#if OPENSSL_VERSION_NUMBER < 0x30500000L
+#error OpenSSL 3.5.0 or newer is required for the ngtcp2 OpenSSL backend
+#endif
+#include <ngtcp2/ngtcp2.h>
+#include <ngtcp2/ngtcp2_crypto_ossl.h>
+int main( void ) {
+    ngtcp2_conn *ng_sess=NULL;
+    ngtcp2_crypto_ossl_ctx *tls_ctx=NULL;
+    ngtcp2_conn_del(ng_sess);
+    ngtcp2_ccerr ccerr; (void)ccerr;
+    if (ngtcp2_crypto_ossl_ctx_new(&tls_ctx, NULL)) return 1;
+    ngtcp2_crypto_ossl_ctx_del(tls_ctx);
+    return ngtcp2_crypto_ossl_init();
+}'
+
+CFLAGS="$OLD_CFLAGS"
+
+if [ "$has_ngtcp2" != "no" ] && [ "$has_gnutls" != "no" ] ; then
+has_gnutls="disabled"
+cflags_ssl="$orig_cflags_ssl"
+ldflags_ssl="$orig_ldflags_ssl"
+fi
+
+fi
 
 config_package nghttp3 "libnghttp3" "" "-lnghttp3" "" '#include <stdio.h>
 #include <nghttp3/nghttp3.h>
+#if NGHTTP3_VERSION_NUM < 0x010900
+#error nghttp3 too old, need at least v1.9
+#endif
 int main( void ) {  nghttp3_conn *ng_sess=NULL; nghttp3_conn_del(ng_sess); return 0; }'
+
+else
+
+    if test "$disable_network" = "yes" -o "$has_ssl" = "no" -o "$static_bin" = "yes" ; then
+        echo "error: picoquic backend requires networking and OpenSSL and is not supported with --static-bin"
+        exit 1
+    fi
+    #picoquic backend uses picotls/OpenSSL, force the OpenSSL TLS stack
+    if test "$has_gnutls" != "no" ; then
+        has_gnutls="disabled"
+        cflags_ssl="$orig_cflags_ssl"
+        ldflags_ssl="$orig_ldflags_ssl"
+    fi
+    config_package picoquic "picoquic" "$cflags_ssl" "-lpicohttp-core -lpicoquic-log -lpicoquic-core -lpicotls-openssl -lpicotls-minicrypto -lpicotls-core $ldflags_ssl $PTHREAD_LDFLAGS" "" '#include <stddef.h>
+#include <picoquic.h>
+    #include <picoquic_newreno.h>
+    #include <picoquic_cubic.h>
+    #include <picoquic_bbr.h>
+#include <picoquic_set_textlog.h>
+#include <picoquic_qlog.h>
+#include <h3zero.h>
+#include <picotls/openssl.h>
+int main(void) {
+    picoquic_stream_ack_cb_fn ack_callback = NULL;
+    h3zero_data_stream_state_t stream = {0};
+    ptls_openssl_verify_certificate_t verifier;
+    picoquic_set_stream_ack_callback(NULL, ack_callback, NULL);
+    picoquic_set_tls_key(NULL, NULL, 0);
+    picoquic_set_default_congestion_algorithm(NULL, picoquic_newreno_algorithm);
+    picoquic_set_default_congestion_algorithm(NULL, picoquic_cubic_algorithm);
+    picoquic_set_default_congestion_algorithm(NULL, picoquic_bbr_algorithm);
+    picoquic_set_textlog_stream(NULL, NULL);
+    picoquic_set_qlog(NULL, NULL);
+#ifdef PTLS_OPENSSL_VERIFY_CERTIFICATE_ENABLE_OVERRIDE
+    ptls_openssl_init_verify_certificate(&verifier, NULL, NULL);
+#else
+    ptls_openssl_init_verify_certificate(&verifier, NULL);
+#endif
+    ptls_openssl_dispose_verify_certificate(&verifier);
+    picoquic_free(NULL);
+    stream.header_field_callback = NULL;
+    stream.header_section_callback = NULL;
+    h3zero_parse_qpack_header_fields(NULL, NULL, stream.header_field_callback, NULL, 0);
+    h3zero_parse_qpack_header_frame_ex(NULL, NULL, &stream.header, 1);
+    return 0;
+}'
+    if test "$has_picoquic" = "no" ; then
+        echo "error: picoquic backend requires picotls OpenSSL and patched picoquic/picohttp with DER key, stream ACK, stream logging and h3zero header callbacks"
+        exit 1
+    fi
+fi
 
 
 config_package caption "libcaption" "" "-lcaption" "" '#include <caption/cea708.h>
@@ -2271,8 +2418,6 @@ fi
 echo ""
 echo "** GPAC $version rev$revision Core Configuration **"
 echo "Unit Tests: $unit_tests ('make unit_tests')"
-echo "#define GF_STATIC static" >> $TMPH
-echo "#define GF_NOT_EXPORTED" >> $TMPH
 if test "$static_bin" = "yes" ; then
     echo "Static binaries enabled"
     echo "#define GPAC_STATIC_BIN" >> $TMPH
@@ -2569,9 +2714,17 @@ if test "$disable_tinygl" = "no" ; then
 echo "TinyGL support: $has_tinygl"
 fi
 echo "OpenSSL support: $has_ssl"
+if [ "$has_gnutls" = "disabled" ] ; then
+echo "Gnutls support: Disabled because QUIC backend ($quic_backend) uses OpenSSL"
+has_gnutls="no"
+else
+echo "Gnutls support: $has_gnutls"
+fi
 echo "nghttp2: $has_nghttp2"
 echo "ngtcp2: $has_ngtcp2"
 echo "nghttp3: $has_nghttp3"
+echo "picoquic: $has_picoquic"
+echo "QUIC backend: $quic_backend"
 
 if test "$win32" != "yes" ; then
     echo "OSS Audio: $has_oss"
@@ -2700,6 +2853,7 @@ echo "Creating config.mak"
 echo "# Automatically generated by configure - do not modify" > config.mak
 
 echo "GPAC_CONFIGURATION=$GPAC_CONFIGURATION" >> config.mak
+echo "CONFIG_QUIC_BACKEND=$quic_backend" >> config.mak
 
 echo "prefix=$prefix" >> config.mak
 echo "DESTDIR=$DESTDIR" >> config.mak
@@ -2871,9 +3025,31 @@ echo "#define GPAC_ASSERT_FATAL" >> $TMPH
 fi
 
 
-echo "HAS_OPENSSL=$has_ssl" >> config.mak
-if test "$has_ssl" != "no" ; then
+
+#gnutls takes precedence over openssl if present
+echo "HAS_GNUTLS=$has_gnutls" >> config.mak
+if test "$has_gnutls" != "no" ; then
+    # cflags_ssl=$cflags_gnutls
+    # ldflags_ssl=$ldflags_gnutls
+    # cflags_ssl="$cflags_ssl $cflags_gnutls $cflags_nettle"
+    # ldflags_ssl="$ldflags_ssl $ldflags_gnutls $ldflags_nettle"
+
+    cflags_ssl="$cflags_gnutls $cflags_nettle"
+    ldflags_ssl="$ldflags_gnutls $ldflags_nettle"
+
+    # echo "#ifndef GPAC_HAS_SSL" >> $TMPH
+    # echo "#define GPAC_HAS_SSL" >> $TMPH
+    # echo "#endif //GPAC_HAS_SSL" >> $TMPH
+
     echo "#define GPAC_HAS_SSL" >> $TMPH
+    echo "#define GPAC_HAS_GNUTLS" >> $TMPH
+
+    echo "HAS_OPENSSL=no" >> config.mak
+else
+    echo "HAS_OPENSSL=$has_ssl" >> config.mak
+    if test "$has_ssl" != "no" ; then
+        echo "#define GPAC_HAS_SSL" >> $TMPH
+    fi
 fi
 
 if test "$has_poll" = "yes" ; then
@@ -3004,8 +3180,12 @@ if test "$has_nghttp2" != "no" ; then
     echo "#define GPAC_HAS_HTTP2" >> $TMPH
 fi
 
-if test "$has_ngtcp2" != "no" ; then
+if test "$has_ngtcp2" != "no" -a "$has_nghttp3" != "no" ; then
     echo "#define GPAC_HAS_NGTCP2" >> $TMPH
+fi
+
+if test "$has_picoquic" != "no" ; then
+    echo "#define GPAC_HAS_PICOQUIC" >> $TMPH
 fi
 
 if test "$has_caption" != "no" ; then
@@ -3025,6 +3205,12 @@ fi
 
 if test "$has_curl" != "no" ; then
     echo "#define GPAC_HAS_CURL" >> $TMPH
+fi
+
+if test "$has_ssl" = "no" ; then
+if test "$has_gnutls" != "no" ; then
+    has_ssl="yes"
+fi
 fi
 
 #dump all cflags
@@ -3254,13 +3440,6 @@ fi
 echo "SRC_PATH=$source_path" >> config.mak
 echo "BUILD_PATH=$build_path" >> config.mak
 echo "LOCAL_INC_PATH=$local_inc" >> config.mak
-
-
-if test "$unit_tests" = "yes" ; then
-    mkdir -p unittests/build && cd unittests/build
-    build_object_files_directory_tree "$source_path"
-    cd -
-fi
 
 
 echo "#endif" >> $TMPH

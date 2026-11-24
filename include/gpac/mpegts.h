@@ -1247,6 +1247,9 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new();
 void gf_m2ts_demux_del(GF_M2TS_Demuxer *demux);
 
 /*! resets all parsers (PES, sections) of the demultiplexer and trash any pending data in the demux input
+
+NOTE: Section states are unchanged, so if no updated section is found when resuming no event will be triggered. Use a new demuxer for such use cases.
+
 \param demux the target MPEG-2 TS demultiplexer
 */
 void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *demux);
@@ -1257,6 +1260,9 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *demux);
 void gf_m2ts_mark_seg_start(GF_M2TS_Demuxer *demux);
 
 /*! resets all parsers (PES, sections) of a given program
+
+NOTE: Section states are unchanged, so if no updated section is found when resuming no event will be triggered. Use a new demuxer for such use cases.
+
 \param demux the target MPEG-2 TS demultiplexer
 \param program the target MPEG-2 TS program
 */
@@ -1764,6 +1770,8 @@ typedef struct __m2ts_mux_stream {
 
 	/*! last process result*/
 	u32 process_res;
+	/*! number of time we postponed PCR stream due to this stream being late (behind pcr) because no data present*/
+	u32 nb_postponed_empty;
 } GF_M2TS_Mux_Stream;
 
 /*! MPEG-4 systems signaling mode*/

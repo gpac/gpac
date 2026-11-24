@@ -890,12 +890,12 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
+GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data, u32 data_size)
 {
 #ifndef GPAC_DISABLE_MPD
 	GF_MPD *mpd;
 	GF_DOMParser *mpd_parser = gf_xml_dom_new();
-	GF_Err e = gf_xml_dom_parse_string(mpd_parser, (char*) data);
+	GF_Err e = gf_xml_dom_parse_string_len(mpd_parser, data, data_size);
 
 	if (e != GF_OK) {
 		gf_xml_dom_del(mpd_parser);
@@ -1035,15 +1035,7 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 		e = ghi_dmx_init_bin(filter, ctx, bs);
 		if (!e && gf_bs_is_overflow(bs)) e = GF_NON_COMPLIANT_BITSTREAM;
 	} else if (gf_utf8_is_legal(data, size)) {
-		char *str = gf_malloc(size+1);
-		if (str) {
-			memcpy(str, data, size);
-			str[size]=0;
-			e = ghi_dmx_init_xml(filter, ctx, str);
-			gf_free(str);
-		} else {
-			e = GF_OUT_OF_MEM;
-		}
+		e = ghi_dmx_init_xml(filter, ctx, data, size);
 	} else {
 		e = GF_NON_COMPLIANT_BITSTREAM;
 	}

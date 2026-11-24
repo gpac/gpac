@@ -695,6 +695,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	if (fake_stream) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_FAKE, &PROP_BOOL(GF_TRUE) );
 		if (fake_stream==2) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDmx] SCTE-35 PID detected on program %u PID %u\n", stream->program->number, stream->pid));
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_SKIP_NO_RESET);
 			return;
 		}
@@ -1432,6 +1433,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 
 		//for now all SCTE35 must be associated with a stream
 		if (!pck->stream) return;
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDmx] SCTE-35 splice_info_section received on program %u PID %u (%u bytes)\n", pck->stream->program->number, pck->stream->pid, pck->data_len));
 
 		// convey SCTE35 splice info to all streams of the program
 		u32 count = gf_list_count(pck->stream->program->streams);

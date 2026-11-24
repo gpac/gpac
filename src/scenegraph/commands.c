@@ -339,6 +339,12 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			default:
 				/*this is a regular field, reset it and clone - we cannot switch pointers since the
 				original fields are NOT pointers*/
+				/* A command field whose stored type (e.g. SFVec2f) does not match the node's
+				   actual field type (e.g. MFVec2f) carries a too-small allocation for the MF
+				   path below and must be skipped.  This happens when a FIELD_REPLACE command
+				   is accidentally built with repValue children (type-mismatch side-effect of
+				   an "Oxtended" typo instead of "extended=indices"). */
+				if (inf->fieldType && (inf->fieldType != field.fieldType)) break;
 				if (!gf_sg_vrml_is_sf_field(field.fieldType)) {
 					e = gf_sg_vrml_mf_reset(field.far_ptr, field.fieldType);
 				}
@@ -526,17 +532,22 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			gf_list_add(graph->protos, p);
 		}
 		return GF_OK;
-	case GF_SG_PROTO_DELETE:
-	{
-		u32 i;
-		for (i=0; i<com->del_proto_list_size; i++) {
-			/*note this will check for unregistered protos, but since IDs are unique we are sure we will
-			not destroy an unregistered one*/
-			GF_Proto *proto = gf_sg_find_proto(graph, com->del_proto_list[i], NULL);
-			if (proto) gf_sg_proto_del(proto);
+	case GF_SG_PROTO_DELETE: {
+		u32 i, j;
+		for (i = 0; i < com->del_proto_list_size; i++) {
+			GF_Proto* p;
+			/*only delete protos registered in the graph: unregistered ones are still owned by the
+			command that declared them*/
+			j = 0;
+			while ((p = (GF_Proto*)gf_list_enum(graph->protos, &j))) {
+				if (p->ID == com->del_proto_list[i]) {
+					gf_sg_proto_del(p);
+					break;
+				}
+			}
 		}
+		return GF_OK;
 	}
-	return GF_OK;
 	case GF_SG_PROTO_DELETE_ALL:
 		/*destroy all proto*/
 		while (gf_list_count(graph->protos)) {

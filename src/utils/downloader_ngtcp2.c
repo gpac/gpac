@@ -37,13 +37,23 @@
 
 #if defined(WIN32) && !defined(__GNUC__)
 #pragma comment(lib, "libnghttp3.lib")
-#pragma comment(lib, "libngtcp2_crypto_quictls.lib")
+#ifndef GPAC_HAS_GNUTLS
+#pragma comment(lib, "libngtcp2_crypto_ossl.lib")
+#else
+#pragma comment(lib, "libngtcp2_crypto_gnutls.lib")
+#endif
 #pragma comment(lib, "libngtcp2.lib")
 #endif
 
 #include <ngtcp2/ngtcp2.h>
 #include <ngtcp2/ngtcp2_crypto.h>
-#include <ngtcp2/ngtcp2_crypto_quictls.h>
+#ifndef GPAC_HAS_GNUTLS
+#include <ngtcp2/ngtcp2_crypto_ossl.h>
+#include <openssl/crypto.h>
+#else
+#include <gnutls/crypto.h>
+#include <ngtcp2/ngtcp2_crypto_gnutls.h>
+#endif
 #include <nghttp3/nghttp3.h>
 
 #define NGTCP2_STATELESS_RESET_BURST 100
@@ -69,7 +79,7 @@ struct __gf_quic_server
 	GF_DownloadManager *dm;
 	Bool (*accept_conn)(void *udta, GF_DownloadSession *sess, const char *address, u32 port);
 	void *udta;
-	SSL_CTX *ssl_ctx;
+	gf_ssl_ctx_t ssl_ctx;
 
 	u8 *local_add;
 	u32 local_add_len;
@@ -93,6 +103,7 @@ typedef struct __gf_quic_connection
 {
 	GF_QuicServer *server;
 
+	ngtcp2_cid initial_dcid;
 	ConnIDInfo conn_ids[MAC_CONN_ID];
 
 	u8 addr[MAX_ADDR_LEN];
@@ -127,6 +138,9 @@ typedef struct
 	ngtcp2_path path;
 	ngtcp2_conn *conn;
 	ngtcp2_crypto_conn_ref conn_ref;
+#ifndef GPAC_HAS_GNUTLS
+	ngtcp2_crypto_ossl_ctx *ossl_ctx;
+#endif
 	nghttp3_conn *http_conn;
 	ngtcp2_ccerr last_error;
 
@@ -139,6 +153,28 @@ typedef struct
 	//for client
 	u8 secret[32];
 } GF_QuicConnection;
+
+#ifndef GPAC_HAS_GNUTLS
+static CRYPTO_ONCE ngtcp2_crypto_ossl_once = CRYPTO_ONCE_STATIC_INIT;
+static int ngtcp2_crypto_ossl_init_result = -1;
+
+static void ngtcp2_crypto_ossl_init_once(void)
+{
+	ngtcp2_crypto_ossl_init_result = ngtcp2_crypto_ossl_init();
+}
+#endif
+
+static GF_Err ngtcp2_crypto_init(void)
+{
+#ifndef GPAC_HAS_GNUTLS
+	if (!CRYPTO_THREAD_run_once(&ngtcp2_crypto_ossl_once, ngtcp2_crypto_ossl_init_once)
+		|| ngtcp2_crypto_ossl_init_result) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] OpenSSL ngtcp2 crypto initialization failed\n"));
+		return GF_IO_ERR;
+	}
+#endif
+	return GF_OK;
+}
 
 typedef struct
 {
@@ -173,16 +209,24 @@ static void ngq_rand_cb(uint8_t *dest, size_t destlen, const ngtcp2_rand_ctx *ra
 	}
 }
 
+static int ngq_rand_bytes(unsigned char* data, int len) {
+#ifndef GPAC_HAS_GNUTLS
+	return RAND_bytes(data, len);
+#else
+	return ( gnutls_rnd(GNUTLS_RND_RANDOM, (void *)data, (size_t)len) == 0 ? 1 : 0 );
+#endif
+}
+
 static int ngq_get_new_connection_id(ngtcp2_conn *conn, ngtcp2_cid *cid, uint8_t *token, size_t cidlen, void *user_data)
 {
 	(void)conn;
 	GF_QuicConnection *qc = user_data;
 
-	if (RAND_bytes(cid->data, (int)cidlen) != 1) {
+	if (ngq_rand_bytes(cid->data, (int)cidlen) != 1) {
 		return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
 	cid->datalen = cidlen;
-	if (RAND_bytes(token, NGTCP2_STATELESS_RESET_TOKENLEN) != 1) {
+	if (ngq_rand_bytes(token, NGTCP2_STATELESS_RESET_TOKENLEN) != 1) {
 		return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
 	//server
@@ -192,7 +236,7 @@ static int ngq_get_new_connection_id(ngtcp2_conn *conn, ngtcp2_cid *cid, uint8_t
 			ConnIDInfo *ci = &qc->serv_conn->conn_ids[conn_idx];
 			if (!ci->associated) {
 				memcpy(ci->dcid, cid->data, cid->datalen);
-				ci->dcid_len = cid->datalen;
+				ci->dcid_len = (u32)cid->datalen;
 				ci->associated=GF_TRUE;
 				return 0;
 			}
@@ -257,7 +301,13 @@ static nghttp3_ssize ngh3_data_source_read_callback(
   uint32_t *pflags, void *conn_user_data, void *stream_user_data)
 {
 	GF_DownloadSession *sess = stream_user_data;
-	GF_QuicDataRead *qr = sess->hmux_priv;
+	GF_QuicDataRead *qr;
+	//session destroyed while stream still active, end the stream
+	if (!sess || !sess->hmux_priv) {
+		*pflags |= NGHTTP3_DATA_FLAG_EOF;
+		return 0;
+	}
+	qr = sess->hmux_priv;
 
 	if (!sess->hmux_is_eos && !sess->local_buf_len && !qr->second_local_buf_len
 	) {
@@ -285,13 +335,22 @@ static nghttp3_ssize ngh3_data_source_read_callback(
 		return NGHTTP3_ERR_WOULDBLOCK;
 	}
 	vec[0].base = sess->local_buf + qr->local_buf_sent;
-	qr->local_buf_sent += vec[0].len;
+	qr->local_buf_sent += (u32)vec[0].len;
 	return 1;
 }
 
 static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 {
 	if (is_destroy) {
+
+		//the nghttp3 stream may outlive the session (stream close happens once the peer ACKs the final data),
+		//detach the session so that later stream callbacks do not use a freed session
+		if ((sess->hmux_stream_id >= 0) && sess->hmux_sess && sess->hmux_sess->hmux_udta) {
+			GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
+			if (qc->http_conn)
+				nghttp3_conn_set_stream_user_data(qc->http_conn, sess->hmux_stream_id, NULL);
+		}
+
 		if (sess->hmux_priv) {
 			GF_QuicDataRead *qr = sess->hmux_priv;
 			if (qr->second_local_buf) gf_free(qr->second_local_buf);
@@ -511,6 +570,10 @@ static int ngh3_end_stream(nghttp3_conn *conn, int64_t stream_id, void *conn_use
 	if ((!sess->server_mode || qr->is_put) && !sess->hmux_data_done)
 		sess->hmux_is_eos = 1;
 
+	//server: request body is empty, total_size cannot signal the end, mark data done as done in HTTP/2
+	if (sess->server_mode && qr->is_put && !sess->bytes_done && !sess->hmux_buf.size)
+		sess->hmux_data_done = 1;
+
 	return 0;
 }
 
@@ -519,6 +582,14 @@ static int ngh3_stream_close(nghttp3_conn *conn, int64_t stream_id, uint64_t app
 {
 	Bool do_retry = GF_FALSE;
 	GF_DownloadSession *sess = stream_user_data;
+
+	//server: give the peer back the credit of each closed request stream, otherwise a connection can only ever
+	//open hx-max-st request streams (initial_max_streams_bidi is a total, not a concurrency limit)
+	if (ngtcp2_is_bidi_stream(stream_id)) {
+		GF_QuicConnection *qc = (GF_QuicConnection *)conn_user_data;
+		if (!ngtcp2_conn_is_local_stream(qc->conn, stream_id))
+			ngtcp2_conn_extend_max_streams_bidi(qc->conn, 1);
+	}
 
 	//session may have been detached once we detect EOS, ignore streamid mismatch
 	if (!sess|| (sess->hmux_stream_id != stream_id))
@@ -575,7 +646,11 @@ static int ngh3_acked_stream_data(nghttp3_conn *conn, int64_t stream_id, uint64_
 {
 	GF_QuicConnection *qc = (GF_QuicConnection *)conn_user_data;
 	GF_DownloadSession *sess = stream_user_data;
-	GF_QuicDataRead *qr = sess->hmux_priv;
+	GF_QuicDataRead *qr;
+	//session detached or reassigned to another stream
+	if (!sess || (sess->hmux_stream_id != stream_id) || !sess->hmux_priv)
+		return 0;
+	qr = sess->hmux_priv;
 
 	ngtcp2_conn_info ci;
 	ngtcp2_conn_get_conn_info(qc->conn, &ci);
@@ -936,8 +1011,8 @@ static GF_Err h3_session_write_ex(GF_DownloadSession *sess, GF_QuicConnection *q
 	}
 	ret = GF_IP_NETWORK_EMPTY;
 
-	u32 max_pay_size = ngtcp2_conn_get_max_tx_udp_payload_size(qc->conn);
-	u32 path_max_udp_size = ngtcp2_conn_get_path_max_tx_udp_payload_size(qc->conn);
+	u32 max_pay_size = (u32)ngtcp2_conn_get_max_tx_udp_payload_size(qc->conn);
+	u32 path_max_udp_size = (u32)ngtcp2_conn_get_path_max_tx_udp_payload_size(qc->conn);
 	u64 ts = ngtcp2_timestamp();
 
 	ngtcp2_pkt_info pi;
@@ -1097,6 +1172,9 @@ static void h3_destroy(struct _http_mux_session *hmux)
 	if (qc->http_conn)
 		nghttp3_conn_del(qc->http_conn);
 	ngtcp2_conn_del(qc->conn);
+#ifndef GPAC_HAS_GNUTLS
+	if (qc->ossl_ctx) ngtcp2_crypto_ossl_ctx_del(qc->ossl_ctx);
+#endif
 	if (qc->path.local.addr) gf_free(qc->path.local.addr);
 	if (qc->path.remote.addr) gf_free(qc->path.remote.addr);
 	if (qc->serv_conn) {
@@ -1119,7 +1197,7 @@ static GF_Err h3_async_flush(GF_DownloadSession *sess, Bool for_close)
 		u8 buf[1500];
 		u32 res;
 		//read any frame pending from remote peer (ack, window update and co)
-		GF_Err e = gf_dm_read_data(sess, buf, 1500, &res);
+		GF_Err e = gf_dm_sess_read(sess, buf, 1500, &res);
 		if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
 			sess->status = GF_NETIO_STATE_ERROR;
 			SET_LAST_ERR(sess->last_error)
@@ -1351,16 +1429,18 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	GF_Err e;
 
 	if (!sess->server_mode && sess->dm && (!sess->dm->ssl_ctx || !sess->ssl)) {
-		gf_ssl_try_connect(sess, NULL);
+		gf_ssl_try_connect(sess, server);
 		if (!sess->ssl) return GF_IO_ERR;
 	} else if (!sess->ssl) {
 		return GF_IP_CONNECTION_FAILURE;
 	}
+	e = ngtcp2_crypto_init();
+	if (e) return e;
 
 	GF_SAFEALLOC(sess->hmux_sess, GF_HMUX_Session);
 	if (!sess->hmux_sess) return GF_OUT_OF_MEM;
 	GF_SAFEALLOC(ng_quic, GF_QuicConnection);
-	if (!sess->hmux_sess) {
+	if (!ng_quic) {
 		gf_free(sess->hmux_sess);
 		sess->hmux_sess = NULL;
 		return GF_OUT_OF_MEM;
@@ -1370,9 +1450,13 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	sess->hmux_sess->hmux_udta = ng_quic;
 	ng_quic->conn_ref.get_conn = ngq_get_conn;
 	ng_quic->conn_ref.user_data = ng_quic;
-	RAND_bytes(ng_quic->secret, 32);
+	ngq_rand_bytes(ng_quic->secret, 32);
 
+#ifndef GPAC_HAS_GNUTLS
 	SSL_set_app_data(sess->ssl, &ng_quic->conn_ref);
+#else
+	gnutls_session_set_ptr(sess->ssl, &ng_quic->conn_ref);
+#endif
 
 	if (qsc) qsc->hmux = sess->hmux_sess;
 
@@ -1473,7 +1557,7 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 		scid.datalen = NGTCP2_SV_SCIDLEN;
 	else
 		scid.datalen = 17;
-	if (RAND_bytes(scid.data, (int)scid.datalen) != 1) {
+	if (ngq_rand_bytes(scid.data, (int)scid.datalen) != 1) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Failed to get random data for source connection ID\n"));
 		e = GF_IO_ERR;
 		goto err;
@@ -1552,7 +1636,7 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 			e = GF_IP_CONNECTION_FAILURE;
 			goto err;
 		}
-		ng_quic->serv_conn->conn_ids[0].dcid_len = scid.datalen;
+		ng_quic->serv_conn->conn_ids[0].dcid_len = (u32)scid.datalen;
 		memcpy(ng_quic->serv_conn->conn_ids[0].dcid, scid.data, scid.datalen);
 
 		rv = ngtcp2_conn_server_new(&ng_quic->conn, &srv_hd->scid, &scid, &ng_quic->path, NGTCP2_PROTO_VER_V1,
@@ -1565,7 +1649,7 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	} else {
 		ngtcp2_cid dcid;
 		dcid.datalen = 18;
-		if (RAND_bytes(dcid.data, (int)dcid.datalen) != 1) {
+		if (ngq_rand_bytes(dcid.data, (int)dcid.datalen) != 1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Failed to get random data for destination connection ID\n"));
 			e = GF_IO_ERR;
 			goto err;
@@ -1581,7 +1665,25 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 		}
 	}
 
+#ifndef GPAC_HAS_GNUTLS
+	rv = ngtcp2_crypto_ossl_ctx_new(&ng_quic->ossl_ctx, sess->ssl);
+	if (rv) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_crypto_ossl_ctx_new failed: %s\n", ngtcp2_strerror(rv)));
+		e = (rv == NGTCP2_CRYPTO_ERR_NOMEM) ? GF_OUT_OF_MEM : GF_IP_CONNECTION_FAILURE;
+		goto err;
+	}
+	ngtcp2_conn_set_tls_native_handle(ng_quic->conn, ng_quic->ossl_ctx);
+	rv = sess->server_mode
+		? ngtcp2_crypto_ossl_configure_server_session(sess->ssl)
+		: ngtcp2_crypto_ossl_configure_client_session(sess->ssl);
+	if (rv) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Failed to configure OpenSSL QUIC session\n"));
+		e = GF_IP_CONNECTION_FAILURE;
+		goto err;
+	}
+#else
 	ngtcp2_conn_set_tls_native_handle(ng_quic->conn, sess->ssl);
+#endif
 
 	//set hmux callbacks
 	sess->hmux_sess->sessions = gf_list_new();
@@ -1618,6 +1720,14 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	return h3_session_write(sess);
 
 err:
+#ifndef GPAC_HAS_GNUTLS
+	if (sess->ssl) SSL_set_app_data(sess->ssl, NULL);
+#endif
+	if (ng_quic->conn) ngtcp2_conn_del(ng_quic->conn);
+#ifndef GPAC_HAS_GNUTLS
+	if (ng_quic->ossl_ctx) ngtcp2_crypto_ossl_ctx_del(ng_quic->ossl_ctx);
+#endif
+	if (qsc) qsc->hmux = NULL;
 	gf_free(sess->hmux_sess);
 	sess->hmux_sess = NULL;
 	if (ng_quic->path.local.addr) gf_free(ng_quic->path.local.addr);
@@ -1638,7 +1748,7 @@ GF_Err http3_connect(GF_DownloadSession *sess, char *server, u32 server_port)
 		return GF_IP_CONNECTION_CLOSED;
 
 	u32 res;
-	GF_Err e = gf_dm_read_data(sess, sess->http_buf, sess->http_buf_size, &res);
+	GF_Err e = gf_dm_sess_read(sess, sess->http_buf, sess->http_buf_size, &res);
 	if (e) return e;
 
 	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
@@ -1658,26 +1768,20 @@ void gf_dm_sess_set_callback(GF_DownloadSession *sess, gf_dm_user_io user_io, vo
 	sess->usr_cbk = usr_cbk;
 }
 
-static Bool ngtcp2_tls_init=GF_FALSE;
-
 GF_Err gf_dm_quic_server_new(GF_DownloadManager *dm, void *ssl_ctx, GF_QuicServer **oq, const char *ip, u32 port, const char *netcap_id,
 	Bool (*accept_conn)(void *udta, GF_DownloadSession *sess, const char *address, u32 port),
 	void *udta)
 {
 	GF_QuicServer *tmp;
 	if (!dm || !ssl_ctx || !accept_conn || !port) return GF_BAD_PARAM;
-	if (!ngtcp2_tls_init) {
-		if (ngtcp2_crypto_quictls_init() != 0) {
-			return GF_IO_ERR;
-		}
-		ngtcp2_tls_init=GF_TRUE;
-	}
+	GF_Err e = ngtcp2_crypto_init();
+	if (e) return e;
 
 	GF_SAFEALLOC(tmp, GF_QuicServer);
 	if (!tmp) return GF_OUT_OF_MEM;
 	tmp->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, netcap_id);
 	gf_sk_set_block_mode(tmp->sock, GF_TRUE);
-	GF_Err e = gf_sk_bind_ex(tmp->sock, NULL, port, ip, 0, GF_SOCK_REUSE_PORT, NULL, NULL, &tmp->local_add, &tmp->local_add_len);
+	e = gf_sk_bind_ex(tmp->sock, NULL, port, ip, 0, GF_SOCK_REUSE_PORT, NULL, NULL, &tmp->local_add, &tmp->local_add_len);
 	if (e) {
 		gf_sk_del(tmp->sock);
 		gf_free(tmp);
@@ -1688,7 +1792,7 @@ GF_Err gf_dm_quic_server_new(GF_DownloadManager *dm, void *ssl_ctx, GF_QuicServe
 	tmp->connections = gf_list_new();
 
 	u8 buf[50];
-	RAND_bytes(buf, 50);
+	ngq_rand_bytes(buf, 50);
 	gf_sha256_csum(buf, 50, tmp->secret);
 	tmp->stateless_reset_count = NGTCP2_STATELESS_RESET_BURST;
 
@@ -1759,7 +1863,7 @@ static int quic_send_retry(GF_QuicServer *qs, const ngtcp2_pkt_hd *chd, const u8
 {
 	ngtcp2_cid scid;
 	scid.datalen = NGTCP2_SV_SCIDLEN;
-	if (RAND_bytes(scid.data, scid.datalen) != 1) {
+	if (ngq_rand_bytes(scid.data, (int)scid.datalen) != 1) {
 		return -1;
 	}
 	u8 token[NGTCP2_CRYPTO_MAX_RETRY_TOKENLEN2];
@@ -1807,7 +1911,7 @@ static int quic_send_stateless_reset(GF_QuicServer *qs, u32 pktlen, const u8 *dc
 		rand_byteslen = max_rand_byteslen;
 	}
 
-	if (RAND_bytes(rand_bytes, rand_byteslen) != 1) {
+	if (ngq_rand_bytes(rand_bytes, rand_byteslen) != 1) {
 		return -1;
 	}
 
@@ -1952,7 +2056,7 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
     int rv = ngtcp2_accept(&hd, data, data_len);
     if (rv != 0) {
 		if (!(data[0] & 0x80) && (data_len >= NGTCP2_SV_SCIDLEN + 22) ) {
-			quic_send_stateless_reset(qs, data_len, vc->dcid, vc->dcidlen, s_add, s_add_len);
+			quic_send_stateless_reset(qs, data_len, vc->dcid, (u32)vc->dcidlen, s_add, s_add_len);
 		}
 		return GF_IP_NETWORK_EMPTY;
 	}
@@ -2028,6 +2132,8 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 	}
 
 	//setup SSL
+#ifndef GPAC_HAS_GNUTLS // openssl
+
 	sess->ssl = SSL_new(qs->ssl_ctx);
 	if (!sess->ssl) {
 		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
@@ -2035,16 +2141,44 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 		return GF_IP_CONNECTION_FAILURE;
 	}
 	SSL_set_accept_state(sess->ssl);
-#ifndef LIBRESSL_VERSION_NUMBER
-	SSL_set_quic_early_data_enabled(sess->ssl, 1);
-#endif // !defined(LIBRESSL_VERSION_NUMBER)
+
+#else // GPAC_HAS_GNUTLS
+
+	gnutls_session_t ssl;
+
+	int ret = gnutls_init(&ssl, GNUTLS_SERVER | GNUTLS_NONBLOCK);
+	if (ret < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] gnutls_init server session failed: %s\n", gnutls_strerror(ret)));
+		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
+		sess->status = GF_NETIO_DISCONNECTED;
+		return GF_IP_CONNECTION_FAILURE;
+	}
+
+	gnutls_priority_set_direct(ssl, "%DISABLE_TLS13_COMPAT_MODE:NORMAL:-VERS-ALL:+VERS-TLS1.3", NULL);
+
+	gnutls_credentials_set(ssl, GNUTLS_CRD_CERTIFICATE, qs->ssl_ctx);
+
+	gnutls_datum_t alpn_h3 = { (unsigned char *)"h3", 2 };
+	gnutls_alpn_set_protocols(ssl, &alpn_h3, 1, GNUTLS_ALPN_MANDATORY);
+
+	ret = ngtcp2_crypto_gnutls_configure_server_session(ssl);
+	if (ret < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_crypto_gnutls_configure_server_session failed\n"));
+		gnutls_deinit(ssl);
+		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
+		sess->status = GF_NETIO_DISCONNECTED;
+		return GF_IP_CONNECTION_FAILURE;
+	}
+	sess->ssl = ssl;
+
+
+#endif
 
 	GF_SAFEALLOC(c, GF_QuicServerConnection)
 	if (!c) return GF_OUT_OF_MEM;
 	memcpy(c->addr, s_add, s_add_len);
+	ngtcp2_cid_init(&c->initial_dcid, hd.dcid.data, hd.dcid.datalen);
 	c->conn_ids[0].associated = GF_TRUE;
-	c->conn_ids[0].dcid_len = vc->dcidlen;
-	memcpy(c->conn_ids[0].dcid, vc->dcid, vc->dcidlen);
 	c->addr_len = s_add_len;
 	c->server = qs;
 	gf_list_add(qs->connections, c);
@@ -2058,15 +2192,14 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 
 
 	e = h3_initialize(sess, NULL, 0, &hd, pocid, token_type, &path, c);
-	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
 	if (e) {
 		gf_list_del_item(qs->connections, c);
-		qc->serv_conn = NULL;
-		gf_free(qc);
+		gf_free(c);
 		sess->status = GF_NETIO_DISCONNECTED;
 		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
 		return GF_IP_CONNECTION_FAILURE;
 	}
+	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
 	sess->hmux_stream_id = -2;
 
 	e = gf_quic_on_data(c, data, data_len);
@@ -2122,6 +2255,13 @@ restart:
 	u32 i, count = gf_list_count(qs->connections);
 	for (i=0; i<count; i++) {
 		qc = gf_list_get(qs->connections, i);
+		if ((qc->initial_dcid.datalen == vc.dcidlen)
+			&& !memcmp(qc->initial_dcid.data, vc.dcid, vc.dcidlen)
+			&& (qc->addr_len == src_add_len)
+			&& !memcmp(qc->addr, src_add, src_add_len)
+		) {
+			break;
+		}
 		u32 j;
 		ConnIDInfo *ci=NULL;
 		for (j=0; j<MAC_CONN_ID; j++) {
@@ -2205,6 +2345,12 @@ GF_Err gf_dm_quic_verify(GF_QuicServer *qs)
 		}
 	}
 	return e;
+}
+
+s32 gf_dm_quic_next_wake(GF_QuicServer *qs)
+{
+	(void) qs;
+	return -1;
 }
 
 GF_Err h3_check_sess(GF_DownloadSession *sess)

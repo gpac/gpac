@@ -187,6 +187,14 @@ typedef unsigned int size_t;
 #endif
 #endif
 
+#if defined(_MSC_VER) && !defined(_SSIZE_T_DEFINED)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#define _SSIZE_T_DEFINED
+#endif
+
+
+
 #endif	/*END WIN32 non win-ce*/
 /*end WIN32 config*/
 
@@ -640,6 +648,9 @@ typedef struct {
 #define GPAC_USE_DOWNLOADER
 #endif
 
+#if defined(GPAC_HAS_NGTCP2) || defined(GPAC_HAS_PICOQUIC)
+#define GPAC_HAS_QUIC
+#endif
 
 #ifdef GPAC_DISABLE_ZLIB
 # define GPAC_DISABLE_LOADER_BT
@@ -927,15 +938,6 @@ size_t gf_strlcat(char *dst, const char *src, size_t dsize);
 #endif
 #endif
 
-
-//! @cond Doxygen_Suppress
-/*needed for unittests (disabled)*/
-#ifndef GF_STATIC
-#define GF_STATIC static
-#endif
-#ifndef GF_NOT_EXPORTED
-#define GF_NOT_EXPORTED
-#endif
 //! @endcond
 
 #ifndef GPAC_DISABLE_ZLIB

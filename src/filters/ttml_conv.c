@@ -215,7 +215,7 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 
 	dom = gf_xml_dom_new();
 	if (!dom) return GF_OUT_OF_MEM;
-	e = gf_xml_dom_parse_string(dom, ctx->buf);
+	e = gf_xml_dom_parse_string_len(dom, ctx->buf, txt_size);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[XML] Invalid TTML doc: %s\n\tXML text was:\n%s", gf_xml_dom_get_error(dom), ctx->buf));
 		goto exit;

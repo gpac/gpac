@@ -2147,15 +2147,21 @@ Description: CENC encryptor
 .br
 
 .br
-The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a DRM config file for declaring keys.
+The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a GPAC DRM XML or a CPIX document for declaring keys.
 .br
 The syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption
+.br
+CPIX input currently supports one plaintext 128-bit ContentKey with an explicit IV and unfiltered ContentKeyUsageRule. Encrypted key delivery and content-key filters are rejected.
+.br
+For CPIX, commonEncryptionScheme is authoritative. A 'cenc' (AES-CTR) ContentKey combined with FairPlay signaling is reported as an error because FairPlay requires 'cbcs' (AES-CBC pattern); GPAC does not silently change the declared scheme.
 .br
 The DRM config file can be set per PID using the property CryptInfo, or set at the filter level using .I cfile.
 .br
 When the DRM config file is set per PID, the first CrypTrack in the DRM config file with the same ID is used, otherwise the first CrypTrack is used (regardless of the CrypTrack ID).
 .br
 When the DRM config file is set globally (not per PID), the first CrypTrack in the DRM config file with the same ID is used, otherwise the first CrypTrack with ID 0 or not set is used.
+.br
+The DRM config file is reloaded automatically when it changes.
 .br
 If no DRM config file is defined for a given PID, this PID will not be encrypted, or an error will be thrown if .I allc is specified.
 .br
@@ -2262,6 +2268,18 @@ gpac -i source:1ItemID=1:#boxpatch=myfile.xml -o mux.mp4
 The box patch is applied before writing the initial moov box in fragmented mode, or when writing the complete file otherwise.
 .br
 The box patch can either be a filename or the full XML string.
+.br
+In a box path, * matches zero or more box levels and edits every match. Empty Box elements with paths trak.*.mdcv and trak.*.clli remove HDR metadata regardless of the sample entry type.
+.br
+Wildcard paths without matches are ignored. Paths starting with trak or traf apply to all tracks unless a track ID is specified.
+.br
+The .I rmhdr option removes all mdcv and clli boxes after applying box patches.
+.br
+Example
+.br
+gpac -i source.mp4 -o mux.mp4:rmhdr
+.br
+
 .br
   
 .br
@@ -2393,6 +2411,8 @@ This will force the text stream to be used as a QT chapter track.
 .LP
 .br
 m4sys (bool, default: false):  force MPEG-4 Systems signaling of tracks
+.br
+strack (bool, default: false): force single-track file
 .br
 dref (bool, default: false):   only reference data from source file - not compatible with all media sources
 .br
@@ -2634,6 +2654,8 @@ block_size (uint, default: 10000): target output block size, 0 for default inter
 .br
 boxpatch (str):                apply box patch before writing
 .br
+rmhdr (bool, default: false):  remove all mdcv and clli boxes
+.br
 deps (bool, default: true):    add samples dependencies information
 .br
 mfra (bool, default: false):   enable movie fragment random access when fragmenting (ignored when dashing)
@@ -2707,6 +2729,8 @@ trunv1 (bool, default: false): force using version 1 of trun regardless of media
 rsot (bool, default: false):   inject redundant sample timing information when present
 .br
 sfrag_tolerance (uint, default: 0): start fragment on SAP if previous fragment is not shorter than the indicated percentage of cdur
+.br
+preselection (str):            apply preselection entity
 .br
 scte35 (enum, default: auto):  SCTE-35 signalling
 .br
@@ -3005,6 +3029,7 @@ The filter supports the following formats:
 * SUB: one subtitle per line formatted as {start_frame}{end_frame}text
 .br
 * SSA (Substation Alpha): basic parsing support for common files
+For progressive WebVTT input, header fields such as `X-TIMESTAMP-MAP` are collected through the blank-line header terminator. Input chunks may split the header across packets.
 .br
 
 .br
@@ -6054,6 +6079,8 @@ The segmenter adds the following properties to the output PIDs:
 .br
 segdur (frac, default: 0/0):   target segment duration in seconds. A value less than or equal to 0 defaults to 1.0 second
 .br
+hls_tdur (frac, default: 0/0): optional fixed HLS target duration in seconds; signal error if a segment exceeds it (0: legacy behavior)
+.br
 tpl (bool, default: true):     use template mode (multiple segment, template URLs)
 .br
 stl (bool, default: false):    use segment timeline (ignored in on_demand mode)
@@ -6075,6 +6102,8 @@ sseg (bool, default: false):   single segment is used
 sfile (bool, default: false):  use a single file for all segments (default in on_demand)
 .br
 align (bool, default: true):   enable segment time alignment between representations
+.br
+ssai_align (bool, default: false): opt-in strict A/V segment-cut coordination for HLS SSAI (video RAP is reference; incompatible video RAPs abort rather than drift)
 .br
 sap (bool, default: true):     enable splitting segments at SAP boundaries
 .br
@@ -6337,6 +6366,10 @@ ll_rend_rep (bool, default: true): inject rendition reports for LL-HLS
 ll_part_hb (dbl, default: -1): user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session
 .br
 ckurl (str):                   set the ClearKey URL common to all encrypted streams (overridden by CKUrl pid property)
+.br
+laurl (str):                   set the License Acquisition URL common to all encrypted streams (overridden by LAUrl pid property)
+.br
+certurl (str):                 set the Certificate URL for Apple FairPlay (overridden by CertUrl pid property)
 .br
 hls_absu (enum, default: no):  use absolute url in HLS generation using first URL in base
 .br
@@ -7964,6 +7997,145 @@ norange (bool, default: false): disable byte range support in GET (reply 200 on 
 .br
 
 .br
+.SH av1merge
+.LP
+.br
+Description: AV1 Tile merger
+.br
+
+.br
+This filter merges a set of AV1 PIDs into a single AV1 PID.
+.br
+The filter creates a rectangular tiling grid with one input per populated cell, without overlaps or subdivision of input tiles.
+.br
+Positioning of tiles can be automatic (implicit) or explicit.
+.br
+Each input must contain one tile per frame, with matching frame headers, tile boundaries aligned to superblocks and same coding parameters.
+.br
+All tiles of a merged frame must have the same base_q_idx; mismatches are rejected, not adjusted. The common base quantizer index may change between frames.
+.br
+The filter assumes that all input PIDs are synchronized (frames share the same timestamp) and will reassemble frames with the same decode time. If PIDs are of unequal duration, the filter will drop frames as soon as one PID is over.
+.br
+.SS Implicit Positioning
+.br
+In implicit positioning, results may vary based on the order of input PIDs declaration. Equal-size inputs retain connection order in raster order.
+.br
+In this mode, no input shall have CropOrigin. Inputs are grouped by width into columns and by height into common rows, with partial superblock sizes at the final edges.
+.br
+.I rows and .I cols constrain implicit packing. If no complete grid satisfies the dimensions and constraints, merging is refused; use explicit positions to select another valid arrangement.
+.br
+Example
+.br
+gpac -i top.obu -i bottom.obu av1merge:cols=1 @ -o merged.mp4
+.br
+
+.br
+.SS Explicit Positioning
+.br
+In explicit positioning, the CropOrigin property on input PIDs is used to setup the tile grid. If CropOrigin is used, it shall be set on all input sources.
+.br
+If nonnegative coordinates are used, they specify absolute positioning in pixels of the tiles. Coordinates must align to superblocks and are not rounded.
+.br
+Absolute positioning allows gaps (including empty cells). Only populated contiguous tile ranges are emitted, using separate frame-header and tile-group OBUs. No filler is encoded.
+.br
+While the bitstream syntax can represent omitted tiles, decoders may refuse such streams: libaom and dav1d reject discontinuous tile groups. Successful decoding and gap rendering are not guaranteed.
+.br
+If negative coordinates are used, they specify relative column and row indices: -1x0 places an input to the right of 0x0, and 0x-1 places it below.
+.br
+Both axes must be zero or negative in relative positioning; mixing relative and absolute positions is not supported. Relative grids must be complete with contiguous indices; pixel offsets are computed from the column widths and row heights.
+.br
+Rows, columns and input order are derived from these positions. .I rows and .I cols, when set, must match the layout; they do not rearrange explicitly positioned inputs.
+.br
+Widths must match within each column and heights within each row. Only the final column and row may have non-superblock-aligned sizes. Frame dimensions must match the input PID dimensions; superresolution is not supported.
+.br
+The minimum horizontal and vertical positions become the output origin. Inputs are ordered left-right, top-down; TileID is not used for placement.
+.br
+- Gaps are supported only with absolute positioning.
+.br
+- Overlaps and input tiles spanning multiple grid cells are not supported.
+.br
+Example
+.br
+gpac -i top.mp4:#CropOrigin=0x0 -i bottom.mp4:#CropOrigin=0x384 av1merge @ -o merged.mp4
+.br
+gpac -i bs_0x0.mp4:#CropOrigin=0x0 -i bs_640x0.mp4:#CropOrigin=1280x0 av1merge @ -o merge.mp4
+.br
+gpac -i top.obu:#CropOrigin=0x0 -i bottom.obu:#CropOrigin=0x-1 av1merge @ -o merged.mp4
+.br
+
+.br
+ 
+.br
+.SS Spatial Relationship Description (SRD)
+.br
+
+.br
+The filter will create an SRDMap property in the output PID if every input has SRD and SRDRef or an absolute CropOrigin.
+.br
+The SRDMap allows forwarding the logical sources SRD in the merged PID. Relative indices and implicit positions alone do not describe source locations.
+.br
+The output PID SRDRef is set to the output video size. Any input SRD or SRDMap is removed.
+.br
+The input SRDRef and SRD can be manually assigned to inputs.
+.br
+- SRDRef gives the width and height of the referential used for the input SRD.
+.br
+- SRD gives the position and size of the input in the original video, expressed in the input SRDRef referential.
+.br
+The inputs do not need to have matching SRDRef. SRD source coordinates must be nonnegative, SRD sizes and SRDRef dimensions must be positive, and scaled coordinates must fit unsigned 32-bit fields.
+.br
+
+.br
+Each merged input is described by 8 integers in the output SRDMap: {Ox,Oy,Ow,Oh,Dx,Dy,Dw,Dh}.
+.br
+* `Ox,Oy,Ow,Oh`: the source SRD rescaled to the output SRDRef referential (i.e. where was the input ?).
+.br
+* `Dx,Dy,Dw,Dh`: the position and size of the input in the reconstructed output (i.e. where are the input pixels in the output ?).
+.br
+Note: merged inputs are always listed in SRDMap in their tile order in the output bitstream; empty cells have no entry.
+.br
+
+.br
+Alternatively to using SRD and SRDRef, it is possible to specify absolute CropOrigin on the inputs, in which case:
+.br
+- CropOrigin gives the location in the source.
+.br
+- The input dimensions give the size in the source, and no rescaling of referential is done.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+rows (uint, default: 0):       required number of rows, constraining explicit or implicit positioning (0: automatic)
+.br
+cols (uint, default: 0):       required number of columns, constraining explicit or implicit positioning (0: automatic)
+.br
+
+.br
+.SH av1split
+.LP
+.br
+Description: AV1 Tile extractor
+.br
+
+.br
+This filter splits a tiled AV1 PID into independent AV1 PIDs, one per tile in row-major order.
+.br
+The input must contain independently coded tiles, typically produced by av1merge. Motion prediction, entropy adaptation and loop restoration coding must not depend on other tiles. Ordinary tiled AV1 encodes may not satisfy these constraints.
+.br
+Each output has a rewritten decoder configuration and frame headers, CropOrigin and OriginalSize properties. Packet timestamps and properties are preserved.
+.br
+CropOrigin and OriginalSize are preserved when split outputs are stored in MP4. av1merge uses CropOrigin to reconstruct their layout.
+.br
+Example: gpac -i merged.av1 av1split -o 'tile_$CropOrigin$.obu'
+.br
+
+.br
+No options
+.br
+
+.br
 .SH hevcsplit
 .LP
 .br
@@ -7977,7 +8149,12 @@ Use hevcmerge filter to merge initially motion-constrained tiled HEVC PID in a s
 .br
 
 .br
-No options
+.SH Options (expert):
+.LP
+.br
+minl (bool, default: true):    rewrite level to minimum value acceptable for each stream
+.br
+sei_hash (bool, default: false): preserve input decoded-picture hash SEIs, which may be invalid after splitting
 .br
 
 .br
@@ -8091,6 +8268,12 @@ Assuming the two sources are encoded at 320x240 and merged as src1 above src2, t
 strict (bool, default: false): strict comparison of SPS and PPS of input PIDs
 .br
 mrows (bool, default: false):  signal multiple rows in tile grid when possible
+.br
+minl (bool, default: false):   rewrite level to minimum value acceptable for each stream
+.br
+lf_tiles (bool, default: false): force loop_filter_acoss_tiles to be true (usually false in source unsplit MCTS)
+.br
+sei_hash (bool, default: false): preserve input decoded-picture hash SEIs, which may be invalid after merging
 .br
 
 .br
@@ -8428,13 +8611,17 @@ This filter splits input stream by layers and sublayers
 .br
 
 .br
-The filter supports AVC|H264, HEVC and VVC stream splitting and is pass-through for other codec types.
+The filter supports AVC|H264, HEVC, VVC and AV1 stream splitting and is pass-through for other codec types.
 .br
 
 .br
 Splitting is based on temporalID value (start from 1) and layerID value (start from 0).
 .br
 For AVC|H264, layerID is the dependency value, or quality value if svcqid is set.
+.br
+For AV1, layerID is spatial_id and temporalID is temporal_id + 1. Enhancement emits non-standalone video streams that retain their dependencies. The sequence header and operating points are preserved by this filter.
+.br
+AV1 outputs can be saved together in MP4 and reconstructed with bsagg. Absent layers use delimiter-only packets to preserve timing.
 .br
 
 .br
@@ -8514,13 +8701,15 @@ This filter aggregates layers and sublayers into a single output PID.
 .br
 
 .br
-The filter supports AVC|H264, HEVC and VVC stream reconstruction, and is passthrough for other codec types.
+The filter supports AVC|H264, HEVC, VVC and AV1 stream reconstruction, and is passthrough for other codec types.
 .br
 
 .br
 Aggregation is based on temporalID value (start from 1) and layerID value (start from 0).
 .br
 For AVC|H264, layerID is the dependency value, or quality value if svcqid is set.
+.br
+For AV1, inputs must be layers of the same coded sequence with a shared decoder configuration and signaled dependencies (DependencyID or isom:scal from MP4). OBUs are ordered by spatial ID within each temporal unit; layer IDs and coded frame data are forwarded.
 .br
 
 .br
@@ -8731,7 +8920,7 @@ cicp_idx (uint, default: 2):   target output layout CICP index (see gpac -h layo
 .br
 Description: FFmpeg demultiplexer
 .br
-Version: Lavf62.13.100
+Version: Lavf63.20.101
 .br
 
 .br
@@ -8794,7 +8983,7 @@ mime (str):                    indicate mime type of data in raw protocol mode
 .br
 Description: FFmpeg decoder
 .br
-Version: Lavc62.29.100
+Version: Lavc63.28.100
 .br
 
 .br
@@ -8855,7 +9044,7 @@ c (str):                       codec name (GPAC or ffmpeg), only used to query p
 .br
 Description: FFmpeg AV capture
 .br
-Version: Lavd62.4.100
+Version: Lavd63.6.100
 .br
 
 .br
@@ -8947,7 +9136,7 @@ probes (uint, default: 10, minmax: 0-100): probe a given number of video frames 
 .br
 Description: FFmpeg video rescaler
 .br
-Version: SwS9.6.100
+Version: SwS10.6.100
 .br
 
 .br
@@ -9067,7 +9256,7 @@ osar (frac, default: 0/1):     force output pixel aspect ratio
 .br
 Description: FFmpeg encoder
 .br
-Version: Lavc62.29.100
+Version: Lavc63.28.100
 .br
 
 .br
@@ -9169,7 +9358,7 @@ round (sint, default: 1, updatable): round video up or down
 .br
 Description: FFmpeg multiplexer
 .br
-Version: Lavf62.13.100
+Version: Lavf63.20.101
 .br
 
 .br
@@ -9247,7 +9436,7 @@ psleep (uint, default: 1000):  in protocol only mode, sleep for given amount of 
 .br
 Description: FFmpeg AV Filter
 .br
-Version: Lavfi11.15.100
+Version: Lavfi12.12.100
 .br
 
 .br
@@ -9388,7 +9577,7 @@ dump (bool, default: false, updatable): dump graph as log media@info or stderr i
 .br
 Description: FFmpeg bitstream filter
 .br
-Version: Lavu60.27.100
+Version: Lavu61.20.100
 .br
 
 .br

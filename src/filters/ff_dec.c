@@ -270,6 +270,11 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	u8 *dst_planes[5];
 	u32 pix_out;
 	Bool is_eos=GF_FALSE;
+	Bool retry_pending=GF_FALSE;
+#if (LIBAVCODEC_VERSION_MAJOR >= 59)
+	Bool send_blocked=GF_FALSE;
+	Bool marked_discontinuity=GF_FALSE;
+#endif
 	s32 res;
 	s32 gotpic;
 	u64 out_cts;
@@ -311,6 +316,10 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 restart:
 
 	frame = ctx->frame;
+#if (LIBAVCODEC_VERSION_MAJOR >= 59)
+	send_blocked = GF_FALSE;
+	marked_discontinuity = GF_FALSE;
+#endif
 
 	FF_INIT_PCK(ctx, pkt)
 
@@ -331,6 +340,9 @@ restart:
 			if (ctx->discontinuity) {
 				gf_filter_pck_set_mark(pck_src, GF_TRUE);
 				ctx->discontinuity = GF_FALSE;
+#if (LIBAVCODEC_VERSION_MAJOR >= 59)
+				marked_discontinuity = GF_TRUE;
+#endif
 			}
 			gf_list_add(ctx->src_packets, pck_src);
 		}
@@ -370,39 +382,85 @@ restart:
 	res = avcodec_send_packet(ctx->decoder, pkt);
 	switch (res) {
 	case AVERROR(EAGAIN):
+		send_blocked = GF_TRUE;
+		break;
+	case 0:
+		break;
+	case AVERROR_EOF:
+		if (!pck) break;
+		/* fall through */
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to queue packet PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
 		if (pck_src) {
 			gf_list_del_item(ctx->src_packets, pck_src);
 			gf_filter_pck_unref(pck_src);
 		}
+		if (marked_discontinuity)
+			ctx->discontinuity = GF_TRUE;
 		FF_RELEASE_PCK(pkt);
-		//input full but output available, go on but don't discard input
-		pck = NULL;
-		break;
-	case 0:
-	case AVERROR_EOF:
-		break;
-	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to queue packet PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
-		break;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	gotpic = 0;
+receive_frame:
 	res = avcodec_receive_frame(ctx->decoder, frame);
 	switch (res) {
 	case AVERROR(EAGAIN):
+		if (send_blocked) {
+			//The decoder may consume a buffered non-display packet without output.
+			send_blocked = GF_FALSE;
+			res = avcodec_send_packet(ctx->decoder, pkt);
+			if (!res) goto receive_frame;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to retry packet after draining: %s\n", gf_filter_pid_get_name(ctx->in_pid), av_err2str(res) ));
+			if (pck_src) {
+				gf_list_del_item(ctx->src_packets, pck_src);
+				gf_filter_pck_unref(pck_src);
+			}
+			if (marked_discontinuity)
+				ctx->discontinuity = GF_TRUE;
+			FF_RELEASE_PCK(pkt);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		res = 0;
+		break;
+	case AVERROR_EOF:
+		if (send_blocked) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s could not drain decoder after packet queue returned EAGAIN: %s\n", gf_filter_pid_get_name(ctx->in_pid), av_err2str(res) ));
+			if (pck_src) {
+				gf_list_del_item(ctx->src_packets, pck_src);
+				gf_filter_pck_unref(pck_src);
+			}
+			if (marked_discontinuity)
+				ctx->discontinuity = GF_TRUE;
+			FF_RELEASE_PCK(pkt);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		res = 0;
 		break;
 	case 0:
 		gotpic = 1;
 		break;
-	case AVERROR_EOF:
-		res = 0;
-		break;
+	}
+	if (send_blocked) {
+		retry_pending = pck ? GF_TRUE : GF_FALSE;
+		if (pck_src) {
+			gf_list_del_item(ctx->src_packets, pck_src);
+			gf_filter_pck_unref(pck_src);
+		}
+		if (marked_discontinuity)
+			ctx->discontinuity = GF_TRUE;
+		//A decoded frame is available, but the input was not accepted.
+		pck = NULL;
 	}
 #endif
 
 
 	if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
 
+	if (res < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+		FF_RELEASE_PCK(pkt);
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	if (!gotpic) {
 		FF_RELEASE_PCK(pkt);
@@ -436,11 +494,6 @@ restart:
 		}
 	}
 
-	if (res < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
-		FF_RELEASE_PCK(pkt);
-		return GF_NON_COMPLIANT_BITSTREAM;
-	}
 	FF_RELEASE_PCK(pkt);
 	if (!gotpic) return GF_OK;
 
@@ -620,7 +673,8 @@ restart:
 
 	gf_filter_pck_send(dst_pck);
 
-	if (!pck) goto restart;
+	//A blocked input is still queued; retry it on the next filter invocation.
+	if (!pck && !retry_pending) goto restart;
 
 	return GF_OK;
 }
@@ -1147,9 +1201,18 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	ctx->channels = prop ? prop->value.uint : 0;
 
-	if (gpac_codecid==GF_CODECID_VVC) {
+	if (ctx->c) {
+		codec = avcodec_find_decoder_by_name(ctx->c);
 		u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
-		codec = codec_id ? avcodec_find_decoder(codec_id) : NULL;
+		if (codec && (codec->id != codec_id)) codec = NULL;
+	}
+
+	if (gpac_codecid==GF_CODECID_VVC) {
+		if (!codec) {
+			u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
+			codec = codec_id ? avcodec_find_decoder(codec_id) : NULL;
+		}
+
 		//first version of libvvdec+ffmpeg only supported annexB, request ufnalu adaptation filter
 		if (codec && codec->name && strstr(codec->name, "vvdec") && gf_opts_get_bool("core", "vvdec-annexb")) {
 			//vvdec currently requires bootstrap on SAP
@@ -1241,7 +1304,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 
 		}
-		if (codec_id)
+		if (codec_id && !codec)
 			codec = avcodec_find_decoder(codec_id);
 
 		if (!codec_id && ctx->ffcmap.nb_items) {

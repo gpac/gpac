@@ -1689,7 +1689,12 @@ static void operating_parameters_info(GF_BitStream *bs, const u8 idx, const u8 b
 	gf_bs_read_int_log(bs, 1, "low_delay_mode_flag");
 }
 
-static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
+u64 av1_bit_position(GF_BitStream *bs)
+{
+	return gf_bs_get_position(bs) * 8 - (8 - gf_bs_get_bit_position(bs));
+}
+
+void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 {
 	u8 buffer_delay_length_minus_1 = 0;
 	state->frame_state.seen_seq_header = GF_TRUE;
@@ -1765,6 +1770,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 
 	state->frame_width_bits_minus_1 = gf_bs_read_int_log(bs, 4, "frame_width_bits_minus1");
 	state->frame_height_bits_minus_1 = gf_bs_read_int_log(bs, 4, "frame_height_bits_minus1");
+	if (state->parse_offsets) state->parse_offsets->sequence_size = av1_bit_position(bs);
 	state->width = gf_bs_read_int_log(bs, state->frame_width_bits_minus_1 + 1, "width_minus1") + 1;
 	state->height = gf_bs_read_int_log(bs, state->frame_height_bits_minus_1 + 1, "height_minus1") + 1;
 	state->sequence_width = state->width;
@@ -2386,7 +2392,7 @@ void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24])
 {
 	u32 i;
 	u64 val[8] = {0};
-	u8 shuffle[8] = {4,5,0,1,2,3,6,7}; //RGB->GBR
+	u8 shuffle[8] = {2,3,4,5,0,1,6,7}; //RGB->GBR
 	GF_BitStream *bs_r = gf_bs_new(mdcv_in, 24, GF_BITSTREAM_READ);
 	GF_BitStream *bs_w = gf_bs_new(mdcv_out, 24, GF_BITSTREAM_WRITE);
 
@@ -2827,10 +2833,13 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 	gf_bs_mark_overflow(bs, GF_TRUE);
 	tusize = sz = gf_av1_leb128_read(bs, NULL);
 	tupos = gf_bs_get_position(bs);
+	if (gf_bs_is_overflow(bs)) return GF_BUFFER_TOO_SMALL;
 	if (!sz) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[AV1] temporal unit size is 0, likely not annex B\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+	//for incomplete TUs, don't update ref frames nor accumulate OBUs until the entire TU is available
+	if (sz > gf_bs_available(bs)) return GF_BUFFER_TOO_SMALL;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", sz));
 	while (sz > 0) {
@@ -2931,7 +2940,7 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 #define MAX_TILE_WIDTH 4096
 #define MAX_TILE_AREA (4096 * 2304)
 
-static u32 aom_av1_tile_log2(u32 blkSize, u32 target)
+u32 aom_av1_tile_log2(u32 blkSize, u32 target)
 {
 	u32 k;
 	for (k = 0; (blkSize << k) < target; k++) {
@@ -2966,6 +2975,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 	u32 maxLog2tileCols = aom_av1_tile_log2(1, MIN(sbCols, AV1_MAX_TILE_COLS));
 	u32 maxLog2tileRows = aom_av1_tile_log2(1, MIN(sbRows, AV1_MAX_TILE_ROWS));
 	u32 minLog2Tiles = MAX(minLog2tileCols, aom_av1_tile_log2(maxTileAreaSb, sbRows * sbCols));
+	if (state->parse_offsets) state->parse_offsets->tile_info = av1_bit_position(bs);
 	Bool uniform_tile_spacing_flag = gf_bs_read_int_log(bs, 1, "uniform_tile_spacing_flag");
 	if (uniform_tile_spacing_flag) {
 		u32 startSb, tileWidthSb, tileHeightSb, minLog2tileRows;
@@ -2981,6 +2991,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 		tileWidthSb = (sbCols + (1 << state->tileColsLog2) - 1) >> state->tileColsLog2;
 		i = 0;
 		for (startSb = 0; startSb < sbCols; startSb += tileWidthSb) {
+			if (state->parse_offsets && i < AV1_MAX_TILE_COLS) state->parse_offsets->col_start[i] = startSb;
 			i += 1;
 		}
 		state->tileCols = i;
@@ -2997,6 +3008,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 		tileHeightSb = (sbRows + (1 << state->tileRowsLog2) - 1) >> state->tileRowsLog2;
 		i = 0;
 		for (startSb = 0; startSb < sbRows; startSb += tileHeightSb) {
+			if (state->parse_offsets && i < AV1_MAX_TILE_ROWS) state->parse_offsets->row_start[i] = startSb;
 			i += 1;
 		}
 		state->tileRows = i;
@@ -3009,6 +3021,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 			u32 maxWidth = MIN((int)(sbCols - startSb), maxTileWidthSb);
 			u32 width_in_sbs_minus_1 = av1_read_ns(bs, maxWidth, "width_in_sbs_minus_1");
 			u32 sizeSb = width_in_sbs_minus_1 + 1;
+			if (state->parse_offsets && i < AV1_MAX_TILE_COLS) state->parse_offsets->col_start[i] = startSb;
 			widestTileSb = MAX(sizeSb, widestTileSb);
 			startSb += sizeSb;
 		}
@@ -3030,6 +3043,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 			u32 maxHeight = MIN((int)(sbRows - startSb), maxTileHeightSb);
 			u32 height_in_sbs_minus_1 = av1_read_ns(bs, maxHeight, "height_in_sbs_minus_1");
 			u32 sizeSb = height_in_sbs_minus_1 + 1;
+			if (state->parse_offsets && i < AV1_MAX_TILE_ROWS) state->parse_offsets->row_start[i] = startSb;
 			startSb += sizeSb;
 		}
 
@@ -3039,6 +3053,11 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 	if (state->tileColsLog2 > 0 || state->tileRowsLog2 > 0) {
 		gf_bs_read_int_log(bs, state->tileRowsLog2 + state->tileColsLog2, "context_update_tile_id");
 		state->tile_size_bytes = gf_bs_read_int_log(bs, 2, "tile_size_bytes_minus1") + 1;
+	}
+	if (state->parse_offsets) {
+		state->parse_offsets->tile_info_end = av1_bit_position(bs);
+		if (state->tileCols <= AV1_MAX_TILE_COLS) state->parse_offsets->col_start[state->tileCols] = sbCols;
+		if (state->tileRows <= AV1_MAX_TILE_ROWS) state->parse_offsets->row_start[state->tileRows] = sbRows;
 	}
 }
 
@@ -3068,6 +3087,7 @@ static void av1_frame_size(GF_BitStream *bs, AV1State *state, Bool frame_size_ov
 {
 	if (frame_size_override_flag) {
 		u32 frame_width_minus_1, frame_height_minus_1;
+		if (state->parse_offsets) state->parse_offsets->frame_size = av1_bit_position(bs);
 		u8 n = state->frame_width_bits_minus_1 + 1;
 		frame_width_minus_1 = gf_bs_read_int_log(bs, n, "frame_width_minus_1");
 		n = state->frame_height_bits_minus_1 + 1;
@@ -3082,8 +3102,9 @@ static void av1_frame_size(GF_BitStream *bs, AV1State *state, Bool frame_size_ov
 	//compute_image_size(); //no bits
 }
 
-static void av1_render_size(GF_BitStream *bs)
+static void av1_render_size(GF_BitStream *bs, AV1State *state)
 {
+	if (state->parse_offsets) state->parse_offsets->render_size = av1_bit_position(bs);
 	Bool render_and_frame_size_different = gf_bs_read_int_log(bs, 1, "render_and_frame_size_different_flag");
 	if (render_and_frame_size_different == GF_TRUE) {
 		gf_bs_read_int_log(bs, 16, "render_width_minus_1");
@@ -3112,6 +3133,7 @@ static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_s
 	for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
 		found_ref = gf_bs_read_int_log_idx(bs, 1, "found_ref", i);
 		if (found_ref == 1) {
+			if (state->parse_offsets) state->parse_offsets->frame_size_ref = ref_frame_idx[i];
 			state->UpscaledWidth = state->RefUpscaledWidth[ref_frame_idx[i]];
 			state->width = state->UpscaledWidth;
 			state->height = state->RefFrameHeight[ref_frame_idx[i]];
@@ -3120,7 +3142,7 @@ static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_s
 	}
 	if (found_ref == 0) {
 		av1_frame_size(bs, state, frame_size_override_flag);
-		av1_render_size(bs);
+		av1_render_size(bs, state);
 	}
 	else {
 		superres_params(bs, state);
@@ -3625,7 +3647,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	u8 allow_intrabc = 0;
 	if (frame_state->frame_type == AV1_KEY_FRAME) {
 		av1_frame_size(bs, state, frame_size_override_flag);
-		av1_render_size(bs);
+		av1_render_size(bs, state);
 		if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
 			allow_intrabc = gf_bs_read_int_log(bs, 1, "allow_intrabc");
 		}
@@ -3633,7 +3655,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	else {
 		if (frame_state->frame_type == AV1_INTRA_ONLY_FRAME) {
 			av1_frame_size(bs, state, frame_size_override_flag);
-			av1_render_size(bs);
+			av1_render_size(bs, state);
 			if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
 				allow_intrabc = gf_bs_read_int_log(bs, 1, "allow_intrabc");
 			}
@@ -3665,7 +3687,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			}
 			else {
 				av1_frame_size(bs, state, frame_size_override_flag);
-				av1_render_size(bs);
+				av1_render_size(bs, state);
 			}
 			frame_state->allow_high_precision_mv = 0;
 			if (!force_integer_mv) {
@@ -4244,7 +4266,7 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 	}
 }
 
-static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
+GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
 {
 	u32 TileNum, tg_start = 0, tg_end = 0;
 	u32 numTiles = state->tileCols * state->tileRows;
@@ -4268,7 +4290,8 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 
 	gf_bs_align(bs);
 
-	if (tg_end >= GF_ARRAY_LENGTH(state->frame_state.tiles))
+	if (state->parse_offsets) state->parse_offsets->tile_group_start = tg_start;
+	if (tg_start > tg_end || tg_end >= numTiles || tg_end >= GF_ARRAY_LENGTH(state->frame_state.tiles))
 		return GF_NON_COMPLIANT_BITSTREAM;
 
 	state->frame_state.nb_tiles_in_obu = 0;
@@ -4289,7 +4312,6 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 			tile_size = (u32)(tile_size_minus_1 + 1/* + state->tile_size_bytes*/);
 		}
 
-
 		if (tile_start_offset + tile_size > obu_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Error parsing tile group, tile %d start %d + size %d exceeds OBU length %d\n", TileNum, tile_start_offset, tile_size, obu_size));
 			e = GF_NON_COMPLIANT_BITSTREAM;
@@ -4307,14 +4329,20 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 	return e;
 }
 
-static void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
+void av1_parse_frame_header(GF_BitStream *bs, AV1State *state)
 {
 	AV1StateFrame *frame_state = &state->frame_state;
 	if (frame_state->seen_frame_header == GF_FALSE) {
 		u64 pos = gf_bs_get_position(bs);
+		if (state->parse_offsets) {
+			state->parse_offsets->frame_size = state->parse_offsets->render_size = 0;
+			state->parse_offsets->frame_size_ref = -1;
+			state->parse_offsets->tile_info = state->parse_offsets->tile_info_end = 0;
+		}
 		state->frame_state.show_existing_frame = GF_FALSE;
 		frame_state->seen_frame_header = GF_TRUE;
 		av1_parse_uncompressed_header(bs, state);
+		if (state->parse_offsets) state->parse_offsets->header_end = av1_bit_position(bs);
 		state->frame_state.is_first_frame = GF_FALSE;
 		state->frame_state.uncompressed_header_bytes = (u32) (gf_bs_get_position(bs) - pos);
 
@@ -4494,7 +4522,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		state->layer_size[i] = (u32) (pos + *obu_size);
 	}
 	if (state->parse_metadata_filter) {
-		//for now no dependency on metadat to state
+		//for now no dependency on metadata to state
 		if (*obu_type != OBU_METADATA) {
 			gf_bs_seek(bs, pos + *obu_size);
 			return e;
@@ -4534,7 +4562,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	case OBU_FRAME:
 		e = av1_parse_frame(bs, state, pos, *obu_size);
 		if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) != pos + *obu_size)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Frame parsing did not consume the right number of bytes !\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Frame parsing did consume "LLU" bytes instead of "LLU" !\n", gf_bs_get_position(bs) - pos, *obu_size));
 			e = GF_NON_COMPLIANT_BITSTREAM;
 		}
 		gf_bs_seek(bs, pos + *obu_size);
@@ -4578,6 +4606,41 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		}
 	}
 	return e;
+}
+
+
+GF_Err bs_av1_obu_inspect(const u8 *data, u32 size, BSAV1OBU *obu)
+{
+	u32 pos = 1, i;
+	u64 payload = 0;
+	if (!size || (data[0] & 0x81) || !(data[0] & 2))
+		return GF_NON_COMPLIANT_BITSTREAM;
+
+	obu->type = (data[0] >> 3) & 15;
+	obu->spatial_id = obu->temporal_id = 0;
+	if (data[0] & 4) {
+		if (size < 2)
+			return GF_NON_COMPLIANT_BITSTREAM;
+
+		obu->temporal_id = data[1] >> 5;
+		obu->spatial_id = (data[1] >> 3) & 3;
+		pos++;
+	}
+
+	for (i=0; i<8; i++) {
+		u8 byte;
+		if (pos == size)
+			return GF_NON_COMPLIANT_BITSTREAM;
+		byte = data[pos++];
+		payload |= (u64) (byte & 127) << (7*i);
+		if (!(byte & 128)) {
+			if (payload > size-pos)
+			return GF_NON_COMPLIANT_BITSTREAM;
+			obu->size = pos + (u32) payload;
+			return GF_OK;
+		}
+	}
+	return GF_NON_COMPLIANT_BITSTREAM;
 }
 
 
@@ -8822,6 +8885,39 @@ u32 gf_hevc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Fi
 	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, GF_TRUE, sei_filter);
 }
 
+GF_Err gf_hevc_filter_suffix_hash(char *data, u32 *nal_length, Bool keep_hash)
+{
+	if (*nal_length < 3)
+		return GF_NON_COMPLIANT_BITSTREAM;
+
+	if (!keep_hash) {
+		u32 hash_type = 132;
+		SEI_Filter sei_filter = {0};
+		char *check;
+		u32 check_size;
+
+		sei_filter.seis.vals = &hash_type;
+		sei_filter.seis.nb_items = 1;
+		*nal_length = gf_hevc_reformat_sei(data, *nal_length, GF_TRUE, &sei_filter);
+
+		/* The helper can retain the original NAL on parse failure. */
+		if (*nal_length) {
+			check = gf_malloc(*nal_length);
+			if (!check) return GF_OUT_OF_MEM;
+			memcpy(check, data, *nal_length);
+			sei_filter.is_whitelist = GF_TRUE;
+			check_size = gf_hevc_reformat_sei(check, *nal_length, GF_TRUE, &sei_filter);
+			gf_free(check);
+			if (check_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA,
+					("[HEVC] Cannot safely remove decoded picture hash SEI\n"));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+		}
+	}
+	return GF_OK;
+}
+
 static void hevc_compute_poc(HEVCSliceInfo *si)
 {
 	u32 max_poc_lsb = 1 << (si->sps->log2_max_pic_order_cnt_lsb);
@@ -9585,7 +9681,7 @@ static const struct {
 static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 layer_id, u32 *vui_flag_pos)
 {
 	s32 vps_id, sps_id = -1;
-	u32 i, nb_CTUs, depth;
+	u32 i, nb_CTUs, depth, coded_width, coded_height;
 	HEVC_SPS *sps;
 	HEVC_VPS *vps;
 	HEVC_ProfileTierLevel ptl;
@@ -9654,10 +9750,13 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 		}
 		sps->width = vps->rep_formats[sps->rep_format_idx].pic_width_luma_samples;
 		sps->height = vps->rep_formats[sps->rep_format_idx].pic_height_luma_samples;
+		coded_width = sps->width;
+		coded_height = sps->height;
 		sps->chroma_format_idc = vps->rep_formats[sps->rep_format_idx].chroma_format_idc;
 		sps->bit_depth_luma = vps->rep_formats[sps->rep_format_idx].bit_depth_luma;
 		sps->bit_depth_chroma = vps->rep_formats[sps->rep_format_idx].bit_depth_chroma;
 		sps->separate_colour_plane_flag = vps->rep_formats[sps->rep_format_idx].separate_colour_plane_flag;
+		sps->cw_flag = GF_FALSE;
 
 		//TODO this is crude ...
 		sps->ptl = vps->ext_ptl[0];
@@ -9668,6 +9767,8 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 			sps->separate_colour_plane_flag = gf_bs_read_int_log(bs, 1, "separate_colour_plane_flag");
 		sps->width = gf_bs_read_ue_log(bs, "width");
 		sps->height = gf_bs_read_ue_log(bs, "height");
+		coded_width = sps->width;
+		coded_height = sps->height;
 		if ((sps->cw_flag = gf_bs_read_int_log(bs, 1, "conformance_window_flag"))) {
 			u32 SubWidthC, SubHeightC;
 
@@ -9687,6 +9788,11 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 			sps->cw_top = gf_bs_read_ue_log(bs, "conformance_window_top");
 			sps->cw_bottom = gf_bs_read_ue_log(bs, "conformance_window_bottom");
 
+			if (((u64) sps->cw_left + sps->cw_right) * SubWidthC >= sps->width
+			    || ((u64) sps->cw_top + sps->cw_bottom) * SubHeightC >= sps->height) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid conformance window\n"));
+				HEVC_SPS_BROKEN
+			}
 			sps->width -= SubWidthC * (sps->cw_left + sps->cw_right);
 			sps->height -= SubHeightC * (sps->cw_top + sps->cw_bottom);
 		}
@@ -9736,7 +9842,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	}
 	sps->max_CU_depth = sps->log2_diff_max_min_luma_coding_block_size + depth;
 
-	nb_CTUs = ((sps->width + sps->max_CU_width - 1) / sps->max_CU_width) * ((sps->height + sps->max_CU_height - 1) / sps->max_CU_height);
+	nb_CTUs = ((coded_width + sps->max_CU_width - 1) / sps->max_CU_width) * ((coded_height + sps->max_CU_height - 1) / sps->max_CU_height);
 	sps->bitsSliceSegmentAddress = 0;
 	while (nb_CTUs > (u32)(1 << sps->bitsSliceSegmentAddress)) {
 		sps->bitsSliceSegmentAddress++;
@@ -10008,7 +10114,7 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 			HEVC_PPS_BROKEN
 		}
 		pps->num_tile_rows = 1 + gf_bs_read_ue_log(bs, "num_tile_rows_minus1");
-		if (pps->num_tile_rows > 20) {
+		if (pps->num_tile_rows > 22) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid num_tile_rows %u\n", pps->num_tile_rows));
 			HEVC_PPS_BROKEN
 		}
@@ -11188,8 +11294,15 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 		vp->avg_r = oggpack_read(&opb, 32);
 		vp->low_r = oggpack_read(&opb, 32);
 
-		vp->min_block = 1<<oggpack_read(&opb, 4);
-		vp->max_block = 1<<oggpack_read(&opb, 4);
+		s32 r1 = oggpack_read(&opb, 4);
+		s32 r2 = oggpack_read(&opb, 4);
+
+		u32 u1 = MAX(0, r1);
+		u32 u2 = MAX(0, r2);
+
+		vp->min_block = 1<<u1;
+		vp->max_block = 1<<u2;
+
 		if (vp->sample_rate < 1 || vp->channels < 1 || vp->min_block < 8 || vp->max_block < vp->min_block
 		    || oggpack_read(&opb, 1) != 1) {
 			return GF_FALSE;
@@ -14275,12 +14388,12 @@ void gf_vvc_parse_ps(GF_VVCConfig* vvccfg, VVCState* vvc, u32 nal_type)
 #define AC4_CH_MODE_3_0       2
 #define AC4_CH_MODE_5_0       3
 #define AC4_CH_MODE_5_1       4
-#define AC4_CH_MODE_70_34     5
-#define AC4_CH_MODE_71_34     6
-#define AC4_CH_MODE_70_52     7
-#define AC4_CH_MODE_71_52     8
-#define AC4_CH_MODE_70_322    9
-#define AC4_CH_MODE_71_322    10
+#define AC4_CH_MODE_7_0_34     5
+#define AC4_CH_MODE_7_1_34     6
+#define AC4_CH_MODE_7_0_52     7
+#define AC4_CH_MODE_7_1_52     8
+#define AC4_CH_MODE_7_0_322    9
+#define AC4_CH_MODE_7_1_322    10
 #define AC4_CH_MODE_7_0_4     11
 #define AC4_CH_MODE_7_1_4     12
 #define AC4_CH_MODE_9_0_4     13
@@ -14291,6 +14404,7 @@ void gf_vvc_parse_ps(GF_VVCConfig* vvccfg, VVCState* vvc, u32 nal_type)
 #define GF_AP4_CH_MODE_LENGTH 	16   /* AC-4 ch_mode length  */
 
 // speaker group index mask, indexed by ch_mode - TS 103 190-2 A.27
+// only for ac4_substream_info_chan()
 const s32 AC4_SPEAKER_GROUP_INDEX_MASK_BY_CH_MODE[] =
 {
 	2,        // 0: 0b10 - 1.0
@@ -14569,17 +14683,17 @@ static Bool gf_ac4_get_channel_mode(GF_BitStream *bs,
 									u8 *immersive_audio_indicator_ims)
 {
 	// ETSI TS 103 190-2 V1.3.1 (2025-07) Table 56
-	substream->channel_mode = 0;
-	substream->channel_mode = gf_bs_read_int(bs, 1);
-	if (substream->channel_mode == 0) {   // Mono 0b0
+	u32 channel_mode = 0;
+	channel_mode = gf_bs_read_int(bs, 1);
+	if (channel_mode == 0) {   // Mono 0b0
 		return AC4_CH_MODE_MONO;
 	}
-	substream->channel_mode = (substream->channel_mode << 1) | gf_bs_read_int(bs, 1);
-	if (substream->channel_mode == 2) {   // Stereo  0b10
+	channel_mode = (channel_mode << 1) | gf_bs_read_int(bs, 1);
+	if (channel_mode == 2) {   // Stereo  0b10
 		return AC4_CH_MODE_STEREO;
 	}
-	substream->channel_mode = (substream->channel_mode << 2) | gf_bs_read_int(bs, 2);
-	switch (substream->channel_mode) {
+	channel_mode = (channel_mode << 2) | gf_bs_read_int(bs, 2);
+	switch (channel_mode) {
 		case 12:                    // 3.0 0b1100
 			return AC4_CH_MODE_3_0;
 		case 13:                    // 5.0 0b1101
@@ -14587,41 +14701,41 @@ static Bool gf_ac4_get_channel_mode(GF_BitStream *bs,
 		case 14:                    // 5.1 0b1110
 			return AC4_CH_MODE_5_1;
 	}
-	substream->channel_mode = (substream->channel_mode << 3) | gf_bs_read_int(bs, 3);
-	switch (substream->channel_mode) {
+	channel_mode = (channel_mode << 3) | gf_bs_read_int(bs, 3);
+	switch (channel_mode) {
 		case 120:                   // 7.0: 3/4/0   0b1111000
 			// Dolby AC-4 in MPEG-DASH for Broadcast Services Specification 2.5.3
 			if (presentation_version == 2) {
 				*immersive_audio_indicator_ims = 0;
 				return AC4_CH_MODE_STEREO; // signaling Dolby content in IMS
 			} else {
-				return AC4_CH_MODE_70_34;
+				return AC4_CH_MODE_7_0_34;
 			}
 		case 121:                   // 7.1: 3/4/0.1 0b1111001
 			if (presentation_version == 2) {
 				*immersive_audio_indicator_ims |= 1;
 				return AC4_CH_MODE_STEREO; // signaling Dolby Atmos content in IMS
 			} else {
-				return AC4_CH_MODE_71_34;
+				return AC4_CH_MODE_7_1_34;
 			}
 		case 122:                   // 7.0: 5/2/0   0b1111010
-			return AC4_CH_MODE_70_52;
+			return AC4_CH_MODE_7_0_52;
 		case 123:                   // 7.1: 5/2/0.1 0b1111011
-			return AC4_CH_MODE_71_52;
+			return AC4_CH_MODE_7_1_52;
 		case 124:                   // 7.0: 3/2/2   0b1111100
-			return AC4_CH_MODE_70_322;
+			return AC4_CH_MODE_7_0_322;
 		case 125:                   // 7.1: 3/2/2.1 0b1111101
-			return AC4_CH_MODE_71_322;
+			return AC4_CH_MODE_7_1_322;
 	}
-	substream->channel_mode = (substream->channel_mode << 1) | gf_bs_read_int(bs, 1);
-	switch (substream->channel_mode) {
+	channel_mode = (channel_mode << 1) | gf_bs_read_int(bs, 1);
+	switch (channel_mode) {
 		case 252:                   // 7.0.4 0b11111100
 			return AC4_CH_MODE_7_0_4;
 		case 253:                   // 7.1.4 0b11111101
 			return AC4_CH_MODE_7_1_4;
 	}
-	substream->channel_mode = (substream->channel_mode << 1) | gf_bs_read_int(bs, 1);
-	switch (substream->channel_mode) {
+	channel_mode = (channel_mode << 1) | gf_bs_read_int(bs, 1);
+	switch (channel_mode) {
 		case 508:                   // 9.0.4 0b111111100
 			return AC4_CH_MODE_9_0_4;
 		case 509:                   // 9.1.4 0b111111101
@@ -14684,7 +14798,7 @@ static Bool gf_ac4_substream_info_chan(GF_BitStream *bs,
 	u32 i, mask;
 	const u32 ch1[] = {AC4_CH_MODE_7_0_4, AC4_CH_MODE_7_1_4, AC4_CH_MODE_9_0_4, AC4_CH_MODE_9_1_4};
 	const u32 ch1_n = 4;
-	const u32 ch2[] = {AC4_CH_MODE_70_52, AC4_CH_MODE_71_52, AC4_CH_MODE_70_322, AC4_CH_MODE_71_322};
+	const u32 ch2[] = {AC4_CH_MODE_7_0_52, AC4_CH_MODE_7_1_52, AC4_CH_MODE_7_0_322, AC4_CH_MODE_7_1_322};
 	const u32 ch2_n = 4;
 
 	substream->ch_mode = gf_ac4_get_channel_mode(bs, substream, presentation_version, immersive_audio_indicator_ims);
@@ -14894,7 +15008,6 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 					for (b = 0; b < n_bed_signals; b++) {
 						u8 tmp = gf_bs_read_int_log(bs, 4, "nonstd_bed_channel_assignment");
 
-						bed_dyn_obj->b_channel_assignment_flags_present = 1;
 						bed_dyn_obj->nonstd_bed_channel_assignment_flag |= (1 << tmp);
 
 						if (tmp != 3) {
@@ -15387,7 +15500,7 @@ static u32 gf_ac4_get_obj_channel_mask(GF_AC4SubStream *substream)
     }
 
     // Convert std_bed_channel_assignment_flag to channel mask (AC-4 Table 65)
-    if (assignment->b_channel_assignment_flags_present) {
+    else if (assignment->b_channel_assignment_flags_present) {
         std_mask = assignment->std_bed_channel_assignment_flag;
         if (std_mask & (1u << 9)) channel_mask |= (1ULL << 0);   // L
         if (std_mask & (1u << 9)) channel_mask |= (1ULL << 1);   // R
@@ -15406,6 +15519,10 @@ static u32 gf_ac4_get_obj_channel_mask(GF_AC4SubStream *substream)
         if (std_mask & (1u << 1)) channel_mask |= (1ULL << 14);  // Lw
         if (std_mask & (1u << 1)) channel_mask |= (1ULL << 15);  // Rw
         if (std_mask & (1u << 0)) channel_mask |= (1ULL << 16);  // LFE2
+    }
+    // nonstd_bed_channel_assignment (AC-4 Table 66): bit n is the speaker index n, LFE (3) is not applicable
+    else if (substream->b_ajoc && !assignment->b_ch_assign_code) {
+        channel_mask |= assignment->nonstd_bed_channel_assignment_flag & ~0x8u;
     }
     return channel_mask;
 }
@@ -15481,7 +15598,28 @@ static Bool gf_ac4_substream_info_ajoc(GF_BitStream *bs,
 
 	substream->sus_ver = 1;
 
+	// calculate the ch_mode for obj should be in audio_data_ajoc() but we will skip the audio_data parsing
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) 6.2.3.4
+	substream->ch_mode = substream->b_lfe ? AC4_CH_MODE_5_1 : AC4_CH_MODE_5_0;
+
 	return GF_TRUE;
+}
+
+static u32 gf_ac4_objs_to_channel_mode(u32 n_objects)
+{
+	switch (n_objects) {
+		case 1:
+			return AC4_CH_MODE_MONO;
+		case 2:
+			return AC4_CH_MODE_STEREO;
+		case 3:
+			return AC4_CH_MODE_3_0;
+		case 5:
+			return AC4_CH_MODE_5_0;
+		default:
+			break;
+	}
+	return 0;
 }
 
 static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
@@ -15501,6 +15639,7 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 
 	substream->n_objects_code = gf_bs_read_int_log(bs, 3, "n_objects_code");
 
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) Table 60
 	if (substream->n_objects_code == 0) {
 		n_signals = 0;
 	} else if (substream->n_objects_code == 1) {
@@ -15514,6 +15653,10 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 	} else {
 		n_signals = 0;
 	}
+
+	// calculate the ch_mode for obj should be in audio_data_objs() but we will skip the audio_data parsing
+	// ETSI TS 103 190-2 V1.3.1 (2025-07) 6.2.3.2
+	substream->ch_mode = gf_ac4_objs_to_channel_mode(n_signals);
 
 	// ETSI TS 103 190-2 V1.3.1 (2025-07) Table 60
 	// use the default presentation as the default for channel count
@@ -15615,6 +15758,8 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 							substream->b_substream_contains_dynamic_objects |= 1;
 						}
 					} else {
+						// no such flag in the obj syntax, set it to select AC-4 Table 65 in gf_ac4_get_obj_channel_mask
+						substream->bed_obj.b_channel_assignment_flags_present = 1;
 						substream->bed_obj.std_bed_channel_assignment_flag = gf_bs_read_int_log(bs, 10, "std_bed_channel_assignment_flag");
 
 						// Table 86 std_bed_channel_assignment_flag[] AC-4 part-2 v1.2.1
@@ -15910,6 +16055,10 @@ static Bool gf_ac4_sgi_specifier(GF_BitStream *bs,
 		}
 
 		GF_SAFEALLOC(idx, u32);
+		if (!idx) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Failed to allocate memory for group index in ac4 sgi specifier"));
+			return GF_FALSE;
+		}
 		*idx = value;
 		gf_list_add(idx_list, idx);
 
@@ -16109,70 +16258,53 @@ static Bool gf_ac4_is_substream_group_part_of_default_presentation(GF_List *pres
 	return GF_FALSE;
 }
 
+// ETSI TS 103 190-2 V1.3.1 (2025-07) Table A.27 presentation_v1_channel_groups
 static u32 gf_ac4_get_channel_count_from_speaker_group_index_mask(u32 mask)
 {
-	u32 ch= 0;
-	if ((mask & 1) != 0) { // 0: L,R 0b1
-		ch += 2;
-	}
-	if ((mask & 2) != 0) { // 1: C 0b10
-		ch += 1;
-	}
-	if ((mask & 4) != 0) { // 2: Ls,Rs 0b100
-		ch += 2;
-	}
-	if ((mask & 8) != 0) { // 3: Lb,Rb 0b1000
-		ch += 2;
-	}
-	if ((mask & 16) != 0) { // 4: Tfl,Tfr 0b10000
-		ch += 2;
-	}
-	if ((mask & 32) != 0) { // 5: Tbl,Tbr 0b100000
-		ch += 2;
-	}
-	if ((mask & 64) != 0) { // 6: LFE 0b1000000
-		ch += 1;
-	}
-	if ((mask & 128) != 0) { // 7: TL,TR 0b10000000
-		ch += 2;
-	}
-	if ((mask & 256) != 0) { // 8: Tsl,Tsr 0b100000000
-		ch += 2;
-	}
-	if ((mask & 512) != 0) { // 9: Tfc
-		ch += 1;
-	}
-	if ((mask & 1024) != 0) { // 10: Tbc
-		ch += 1;
-	}
-	if ((mask & 2048) != 0) { // 11: Tc
-		ch += 1;
-	}
-	if ((mask & 4096) != 0) { // 12: LFE2
-		ch += 1;
-	}
-	if ((mask & 8192) != 0) { // 13: Bfl,Bfr
-		ch += 2;
-	}
-	if ((mask & 16384) != 0) { // 14: Bfc
-		ch += 1;
-	}
-	if ((mask & 32768) != 0) { // 15: Cb
-		ch += 1;
-	}
-	if ((mask & 65536) != 0) { // 16: Lscr,Rscr
-		ch += 2;
-	}
-	if ((mask & 131072) != 0) { // 17: Lw,Rw
-		ch += 2;
-	}
-	if ((mask & 262144) != 0) { // 18: Vhl,Vhr
-		ch += 2;
-	}
-	if ((mask & 1) != 0 && (mask & 2) != 0 && ch == 3) { // mono_stereo
-		ch = 2;
-	}
-	return ch;
+	u32 channel_count = 0;
+    if ((mask & 1) != 0) //  0: L,R
+        channel_count += 2;
+    if ((mask & (1 << 1)) != 0) //  1: C
+        channel_count += 1;
+    if ((mask & (1 << 2)) != 0) //  2: Ls,Rs
+        channel_count += 2;
+    if ((mask & (1 << 3)) != 0) //  3: Lb,Rb
+        channel_count += 2;
+    if ((mask & (1 << 4)) != 0) //  4: Tfl,Tfr
+        channel_count += 2;
+    if ((mask & (1 << 5)) != 0) //  5: Tbl,Tbr
+        channel_count += 2;
+    if ((mask & (1 << 6)) != 0) //  6: LFE
+        channel_count += 1;
+    if ((mask & (1 << 7)) != 0) //  7: TL,TR
+        channel_count += 2;
+    if ((mask & (1 << 8)) != 0) //  8: Tsl,Tsr
+        channel_count += 2;
+    if ((mask & (1 << 9)) != 0) //  9: Tfc
+        channel_count += 1;
+    if ((mask & (1 << 10)) != 0) //  10: Tbc
+        channel_count += 1;
+    if ((mask & (1 << 11)) != 0) //  11: Tc
+        channel_count += 1;
+    if ((mask & (1 << 12)) != 0) //  12: LFE2
+        channel_count += 1;
+    if ((mask & (1 << 13)) != 0) //  13: Bfl,Bfr
+        channel_count += 2;
+    if ((mask & (1 << 14)) != 0) //  14: Bfc
+        channel_count += 1;
+    if ((mask & (1 << 15)) != 0) //  15: Cb
+        channel_count += 1;
+    if ((mask & (1 << 16)) != 0) //  16: Lscr,Rscr
+        channel_count += 2;
+    if ((mask & (1 << 17)) != 0) //  17: Lw,Rw
+        channel_count += 2;
+    if ((mask & (1 << 18)) != 0) //  18: Vhl,Vhr
+        channel_count += 2;
+
+    if ((mask & 1) != 0 && (mask & 2) != 0 && channel_count == 3)
+        channel_count = 2;
+
+    return channel_count;
 }
 
 static s32 gf_ac4_cfg_super_set(s32 lvalue, s32 rvalue)
@@ -16183,7 +16315,7 @@ static s32 gf_ac4_cfg_super_set(s32 lvalue, s32 rvalue)
 	return AC4_SUPER_SET_CH_MODE[lvalue][rvalue];
 }
 
-static u32 gf_ac4_convert_speaker_layout_to_channel_mode(u32 channel_mask)
+static u32 gf_ac4_convert_obj_channel_mask_to_ch_mode(u32 channel_mask)
 {
     // ETSI TS 103 190-1 V1.4.1 (2025-07) Table 88
     s32 ch_mode = 0;
@@ -16191,47 +16323,67 @@ static u32 gf_ac4_convert_speaker_layout_to_channel_mode(u32 channel_mask)
     switch (channel_mask) {
         // Mono
         case 0x00001:  // bit 0: L
-            ch_mode = 0;
+            ch_mode = AC4_CH_MODE_MONO;
             break;
         // Stereo
         case 0x00003:  // bit 0,1: L,R
-            ch_mode = 1;
+            ch_mode = AC4_CH_MODE_STEREO;
             break;
         // 3.0
         case 0x00007:  // bit 0,1,2: L,R,C
-            ch_mode = 2;
+            ch_mode = AC4_CH_MODE_3_0;
             break;
         // 5.0
         case 0x00037:  // bit 0,1,2,4,5: L,R,C,Ls,Rs
-            ch_mode = 3;
+            ch_mode = AC4_CH_MODE_5_0;
             break;
         // 5.1
         case 0x0003F:  // bit 0,1,2,3,4,5: L,R,C,LFE,Ls,Rs
-            ch_mode = 4;
+            ch_mode = AC4_CH_MODE_5_1;
             break;
         // 7.0: 3/4/0 (L, C, R, Ls, Rs, Lb, Rb)
         case 0x000F7:  // bit 0,1,2,4,5,6,7
-            ch_mode = 5;
+            ch_mode = AC4_CH_MODE_7_0_34;
             break;
         // 7.1: 3/4/0.1 (L, C, R, Ls, Rs, Lb, Rb, LFE)
         case 0x000FF:  // bit 0,1,2,3,4,5,6,7
-            ch_mode = 6;
+            ch_mode = AC4_CH_MODE_7_1_34;
             break;
         // 7.0: 5/2/0 (L, C, R, Lw, Rw, Ls, Rs
         case 0xC037:  // bit 0,1,2,4,5,14,15
-            ch_mode = 7;
+            ch_mode = AC4_CH_MODE_7_0_52;
             break;
         // 7.1: 5/2/0.1 (L, C, R, Lw, Rw, Ls, Rs, LFE)
         case 0xC03F:  // bit 0,1,2,3,4,5,14,15
-            ch_mode = 8;
+            ch_mode = AC4_CH_MODE_7_1_52;
             break;
         // 7.0: 3/2/2 (L, C, R, Ls, Rs, Tfl, Tfr)
         case 0x00337:  // bit 0,1,2,4,5,8,9
-            ch_mode = 9;
+            ch_mode = AC4_CH_MODE_7_0_322;
             break;
         // 7.1: 3/2/2.1 (L, C, R, Ls, Rs, Tfl, Tfr, LFE)
         case 0x0033F:  // bit 0,1,2,3,4,5,8,9
-            ch_mode = 10;
+            ch_mode = AC4_CH_MODE_7_1_322;
+            break;
+        // 5.0.2 / 5.0.4 / 7.0.4 are all signaled as 7.0.4
+        case 0x00C37:  // 5.0.2: bit 0,1,2,4,5,10,11
+        case 0x03337:  // 5.0.4: bit 0,1,2,4,5,8,9,12,13
+        case 0x033F7:  // 7.0.4: bit 0,1,2,4,5,6,7,8,9,12,13
+            ch_mode = AC4_CH_MODE_7_0_4;
+            break;
+        // 5.1.2 / 5.1.4 / 7.1.4 are all signaled as 7.1.4
+        case 0x00C3F:  // 5.1.2: bit 0,1,2,3,4,5,10,11
+        case 0x0333F:  // 5.1.4: bit 0,1,2,3,4,5,8,9,12,13
+        case 0x033FF:  // 7.1.4: bit 0,1,2,3,4,5,6,7,8,9,12,13
+            ch_mode = AC4_CH_MODE_7_1_4;
+            break;
+        // 9.0.4: 7.0.4 + Lw, Rw
+        case 0x0F3F7:  // bit 0,1,2,4,5,6,7,8,9,12,13,14,15
+            ch_mode = AC4_CH_MODE_9_0_4;
+            break;
+        // 9.1.4: 7.1.4 + Lw, Rw
+        case 0x0F3FF:  // bit 0,1,2,3,4,5,6,7,8,9,12,13,14,15
+            ch_mode = AC4_CH_MODE_9_1_4;
             break;
         default:
             ch_mode = -1;
@@ -16240,132 +16392,110 @@ static u32 gf_ac4_convert_speaker_layout_to_channel_mode(u32 channel_mask)
     return ch_mode;
 }
 
-static s32 gf_ac4_presentation_ch_mode(GF_AC4PresentationV1 *p)
+static u32 gf_ac4_convert_obj_channel_mask_to_channel_mask_v1(u32 mask)
+{
+	// From bit 0-16:  L R C LFE Ls Rs Lb Rb Tfl Tfr Tsl Tsr Tbl Tbr Lw Rw LFE2
+	// To: ETSI TS 103 190-2 V1.3.1 (2025-07) Table A.27
+	u32 ret = 0;
+	if (mask & 1 && mask & (1 << 1)) ret |= 1;  				//  to bit 0: L,R
+	if (mask & (1 << 2)) ret |= 2; 			    				//  to bit 1: C
+	if (mask & (1 << 3)) ret |= (1 << 6);       				//  to bit 6: LFE
+	if (mask & (1 << 4) && mask & (1 << 5)) ret |= (1 << 2);  	//  to bit 2: Ls,Rs
+	if (mask & (1 << 6) && mask & (1 << 7)) ret |= (1 << 3);  	//  to bit 3: Lb,Rb
+	if (mask & (1 << 8) && mask & (1 << 9)) ret |= (1 << 4);  	//  to bit 4: Tfl,Tfr
+	if (mask & (1 << 10) && mask & (1 << 11)) ret |= (1 << 7);  //  to bit 7: Tsl,Tsr
+	if (mask & (1 << 12) && mask & (1 << 13)) ret |= (1 << 5);  	//  to bit 5: Tbl,Tbr
+	if (mask & (1 << 14) && mask & (1 << 15)) ret |= (1 << 17);  	//  to bit 17: Lw,Rw
+	if (mask & (1 << 16)) ret |= (1 << 12);  						//  to bit 12: LFE2
+    return ret;
+}
+
+static Bool gf_ac4_is_lf_substream(GF_AC4SubStream *substream)
+{
+	// group->substreams also holds the OAMD and HSF extension substream info, which are not LF substreams
+	if (!substream) return GF_FALSE;
+	if (substream->type == GF_AC4_OAMD_SUBSTREAM_INFO) return GF_FALSE;
+	if (substream->type == GF_AC4_HSF_EXT_SUBSTREAM_INFO) return GF_FALSE;
+	return GF_TRUE;
+}
+
+static s32 gf_ac4_assign_presentation_channel(GF_AC4PresentationV1 *p)
 {
 	s32 pres_ch_mode = -1;
-    u8 b_obj_or_ajoc = 0 /*, b_has_dyn = 0,*/ /*b_has_isf = 0*/;
+    u8 b_obj_or_ajoc = 0, b_has_dyn = 0, b_has_isf = 0;
 	u32 i, j, merged_mask = 0;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *substream;
+	u32 channel_mask = 0;
 
 	// ETSI TS 103 190-2 V1.3.1 (2025-07) 6.3.3.1.27
 	for (i = 0; i < p->n_substream_groups; i++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
 
-		for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < gf_list_count(group->substreams); j++){
 			substream = gf_list_get(group->substreams, j);
-			if (!substream) continue;
+			if (!gf_ac4_is_lf_substream(substream)) continue;
 
 			// Dolby AC-4 Streams Within the ISO Base Media File Format Guidelines for multiplexers v1.0rc0
 			// section 3.1.1.1
 			if (group->b_channel_coded){
 				pres_ch_mode = gf_ac4_cfg_super_set(pres_ch_mode, substream->ch_mode);
+				channel_mask |= substream->dsi_substream_channel_groups;
 			} else {
 				b_obj_or_ajoc = 1;
 			}
 		}
 	}
-	if (b_obj_or_ajoc == 1) {
+
+	if (b_obj_or_ajoc == 0) {
+		// TODO: temporary solution according to Dolby's internal discussion
+		if (channel_mask == 0x03) channel_mask = 0x01;
+
+		// If one substream contains Tfl, Tfr, Tbl, Tbr, Tl and Tr shall be removed.
+		if ((channel_mask & 0x30) && (channel_mask & 0x80)) channel_mask &= ~0x80;
+
+		p->presentation_v1_channel_groups = channel_mask;
+	} else {
 		// derive an appropriate channel configuration from the first substream group (Dolby AC-4 Streams Within the ISO Base Media File Format)
 		u32 other_objs = 0;
-		u32 ch_mode = -1;
+		s32 ch_mode = -1;
+		channel_mask = 0;
 		group = gf_list_get(p->substream_groups, 0);
+		if (!group) return -1;
 
-		for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < gf_list_count(group->substreams); j++){
 			substream = gf_list_get(group->substreams, j);
-			if (!substream) continue;
+			if (!gf_ac4_is_lf_substream(substream)) continue;
 
 			if (group->b_channel_coded) {
-				ch_mode = gf_ac4_cfg_super_set(pres_ch_mode, substream->ch_mode);
+				ch_mode = gf_ac4_cfg_super_set(ch_mode, substream->ch_mode);
+				channel_mask |= substream->dsi_substream_channel_groups;
 			}
 			merged_mask |= gf_ac4_get_obj_channel_mask(substream);
+			// the LFE of an A-JOC substream is not part of the bed assignment, it is signaled by b_lfe
+			if (substream->b_lfe) merged_mask |= 0x8;
 			other_objs += substream->other_objs;
 		}
 
 		if (other_objs != 0) {
 			// there are other objects beside the bed object, signal as object-based
             pres_ch_mode = -1;
+			p->presentation_v1_channel_groups = 0;
         } else if (group->b_channel_coded) {
 			// if the group is channel coded
 			pres_ch_mode = ch_mode;
+			p->presentation_v1_channel_groups = channel_mask;
 		} else {
 			// there are no other objects beside the bed object, but the bed object is not channel coded
-			pres_ch_mode = gf_ac4_convert_speaker_layout_to_channel_mode(merged_mask);
+			pres_ch_mode = gf_ac4_convert_obj_channel_mask_to_ch_mode(merged_mask);
+			p->presentation_v1_channel_groups = gf_ac4_convert_obj_channel_mask_to_channel_mask_v1(merged_mask);
 		}
 	}
+
+	p->b_presentation_channel_coded = (pres_ch_mode == -1) ? 0: 1;
+
 	return pres_ch_mode;
-}
-
-static u32 gf_ac4_get_channel_mask_from_ch_mode(GF_AC4PresentationV1 *p)
-{
-	u8 ch_mode = p->dsi_presentation_ch_mode;
-	u32 substreamSpeakerGroupIndexMask = AC4_SPEAKER_GROUP_INDEX_MASK_BY_CH_MODE[ch_mode];
-    if ((ch_mode >= AC4_CH_MODE_7_0_4) && (ch_mode <= AC4_CH_MODE_9_1_4)) {
-        if (!p->pres_b_4_back_channels_present) {    // b_4_back_channels_present false
-            substreamSpeakerGroupIndexMask &= ~0x8;             // Remove back channels (Lb,Rb) from mask
-        }
-        if (!p->pres_b_centre_present) {             // b_centre_present false
-            substreamSpeakerGroupIndexMask &= ~0x2;             // Remove centre channel (C) from mask
-        }
-        switch (p->pres_top_channel_pairs) {      // top_channels_present
-            case 0:
-                substreamSpeakerGroupIndexMask &= ~0x30;        // Remove top channels (Tfl,Tfr,Tbl,Tbr) from mask
-                break;
-            case 1:
-            case 2:
-                substreamSpeakerGroupIndexMask &= ~0x30;        // Remove top channels (Tfl,Tfr,Tbl,Tbr) from mask
-                substreamSpeakerGroupIndexMask |=  0x80;        // Add top channels (Tl, Tr) from mask;
-                break;
-        }
-    }
-    return substreamSpeakerGroupIndexMask;
-
-}
-
-static u32 gf_ac4_presentation_v1_channel_groups(GF_AC4PresentationV1 *p)
-{
-	u32 channel_mask = 0, i, j;
-	u8 b_obj_or_ajoc = 0;
-	GF_AC4SubStreamGroupV1 *group;
-	GF_AC4SubStream *substream;
-
-	for (i = 0; i < p->n_substream_groups; i++){
-		group = gf_list_get(p->substream_groups, i);
-		if (!group) continue;
-		for (j = 0; j < group->n_lf_substreams; j++){
-			substream = gf_list_get(group->substreams, j);
-			if (group->b_channel_coded){
-				channel_mask |= substream->dsi_substream_channel_groups;
-			}else {
-				b_obj_or_ajoc = 1;
-			}
-		}
-	}
-
-	// TODO: temporary solution according to Dolby's internal discussion
-	if (channel_mask == 0x03) channel_mask = 0x01;
-
-	// If one substream contains Tfl, Tfr, Tbl, Tbr, Tl and Tr shall be removed.
-	if ((channel_mask & 0x30) && (channel_mask & 0x80)) channel_mask &= ~0x80;
-
-	// objective channel mask
-	if (b_obj_or_ajoc == 1) {
-		group = gf_list_get(p->substream_groups, 0);
-
-		if (group->b_channel_coded) {
-			// if the group is channel coded
-			for (j = 0; j < group->n_lf_substreams; j++){
-				substream = gf_list_get(group->substreams, j);
-				if (!substream) continue;
-				channel_mask |= substream->dsi_substream_channel_groups;
-			}
-		} else {
-			channel_mask = gf_ac4_get_channel_mask_from_ch_mode(p);
-		}
-	}
-
-	return channel_mask;
 }
 
 static u8 gf_ac4_pres_b_4_back_channels_present(GF_AC4PresentationV1 *p)
@@ -16379,8 +16509,9 @@ static u8 gf_ac4_pres_b_4_back_channels_present(GF_AC4PresentationV1 *p)
 	for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-		for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < gf_list_count(group->substreams); j++){
 			substream = gf_list_get(group->substreams, j);
+			if (!gf_ac4_is_lf_substream(substream)) continue;
 			mask |= substream->b_4_back_channels_present;
 		}
 	}
@@ -16398,8 +16529,9 @@ static u8 gf_ac4_pres_top_channel_pairs(GF_AC4PresentationV1 *p)
 	for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-		for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < gf_list_count(group->substreams); j++){
 			substream = gf_list_get(group->substreams, j);
+			if (!gf_ac4_is_lf_substream(substream)) continue;
 			if (tmp_pres_top_channel_pairs < substream->top_channels_present) {
 				tmp_pres_top_channel_pairs = substream->top_channels_present;
 			}
@@ -16453,9 +16585,9 @@ static s32 gf_ac4_get_b_presentation_core_differs(GF_AC4PresentationV1 *p, s32 p
 	for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-		for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < gf_list_count(group->substreams); j++){
 			substream = gf_list_get(group->substreams, j);
-			if (!substream) continue;
+			if (!gf_ac4_is_lf_substream(substream)) continue;
 			if (group->b_channel_coded){
 				ch_mode_core = gf_ac4_get_ch_mode_core(group->b_channel_coded,
 													   substream->b_ajoc,
@@ -17184,7 +17316,6 @@ static Bool gf_ac4_dialog_enhancement_info(GF_BitStream *bs, GF_AC4SubStream *su
 	// this is the dialog_enhancement_info() function in Dolby AC-4 Streams Within the ISO Base Media File Format Guidelines for multiplexers v1.0 section 7.2.2
 	u8 dei_version;
 	u32 dei_drc_offset_code;
-	u32 dei_drc_offset_value, dei_drc_offset_ext;
 
 	dei_version = gf_bs_read_int_log(bs, 2, "dei_version");
 	if (dei_version == 0x0) {
@@ -17202,14 +17333,14 @@ static Bool gf_ac4_dialog_enhancement_info(GF_BitStream *bs, GF_AC4SubStream *su
 			/* DRC Loudness Offset */
 			if (substream->dei_dialog_gain_code_present != 0x0) {
 				dei_drc_offset_code = gf_bs_read_int_log(bs, 4, "dei_drc_offset_code");
-				dei_drc_offset_value = (dei_drc_offset_code - 6) / 2; // [dB]; range: -3dB .. +4 dB, 0.5 dB steps
+				//unused : dei_drc_offset_value = (dei_drc_offset_code - 6) / 2; // [dB]; range: -3dB .. +4 dB, 0.5 dB steps
 				if (dei_drc_offset_code == 0xf) {
-					dei_drc_offset_ext = gf_bs_read_int_log(bs, 4, "dei_drc_offset_ext");
-					dei_drc_offset_value = dei_drc_offset_ext + 5; // [dB]; range: +5dB .. +20 dB, 1 dB steps
+					/* unused u32 dei_drc_offset_ext =*/ gf_bs_read_int_log(bs, 4, "dei_drc_offset_ext");
+					//unused : dei_drc_offset_value = dei_drc_offset_ext + 5; // [dB]; range: +5dB .. +20 dB, 1 dB steps
 				}
 			}
 			else {
-				dei_drc_offset_value = 0; // 0 dB
+				//unused : dei_drc_offset_value = 0; // 0 dB
 			}
 
 			/* Dialogue Enhancement Group ID */
@@ -17822,6 +17953,9 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 
 		for (i = 0; i < n_presentations; i++) {
 			GF_SAFEALLOC(pinfo, GF_AC4PresentationV1);
+			if (!pinfo) {
+				return GF_FALSE;
+			}
 			gf_ac4_presentation_v1_info(bs,
 										pinfo,
 										bitstream_version,
@@ -17849,6 +17983,9 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			default_presentation_flag = gf_ac4_is_substream_group_part_of_default_presentation(hdr_p_list, i);
 
 			GF_SAFEALLOC(group, GF_AC4SubStreamGroupV1);
+			if (!group) {
+				return GF_FALSE;
+			}
 			gf_ac4_substream_group_info(bs,
 										group,
 										bitstream_version,
@@ -17892,15 +18029,13 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 
 			// ETSI TS 103 190-2 V1.3.1 (2025-07) (2018-02) E.10.2
 			// other elements in GF_AC4PresentationV1 for Sample Description Box
-			pres_ch_mode = gf_ac4_presentation_ch_mode(p);
-			p->b_presentation_channel_coded = (pres_ch_mode == -1) ? 0: 1;
+			pres_ch_mode = gf_ac4_assign_presentation_channel(p);
 			if (p->b_presentation_channel_coded == 1) {
 				p->dsi_presentation_ch_mode = pres_ch_mode;
 				if (pres_ch_mode >= 11 && pres_ch_mode <= 14){
 					p->pres_b_4_back_channels_present = gf_ac4_pres_b_4_back_channels_present(p);
 					p->pres_top_channel_pairs = gf_ac4_pres_top_channel_pairs(p);
 				}
-				p->presentation_v1_channel_groups = gf_ac4_presentation_v1_channel_groups(p);
 			}
 
 			pres_ch_mode_core = gf_ac4_get_b_presentation_core_differs(p, pres_ch_mode);
@@ -18171,7 +18306,11 @@ Bool gf_ac4_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC4Config *hdr, Bool full_p
 	(*pos) = AC4_FindSyncCode(buf, buflen);
 	if (*pos >= buflen) return GF_FALSE;
 
-	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
+	/* the bitstream starts at the sync code (buf + *pos), so its size is the
+	   remaining bytes from there; passing the full buflen would let reads run
+	   up to *pos bytes past the caller's buffer. The guard above ensures
+	   *pos < buflen, so buflen - *pos does not underflow. */
+	bs = gf_bs_new((const char*)(buf + *pos), buflen - *pos, GF_BITSTREAM_READ);
 	ret = gf_ac4_parser_bs(bs, hdr, full_parse, start_from_toc);
 	gf_bs_del(bs);
 

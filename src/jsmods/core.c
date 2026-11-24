@@ -2292,7 +2292,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 	if (argc<1) return GF_JS_EXCEPTION(ctx);
 	size_t ab_size;
 	const char *data = JS_GetArrayBuffer(ctx, &ab_size, argv[0]);
-	if (!data || !gf_utf8_is_legal(data, (u32) ab_size)) {
+	if (!data || (ab_size > 0xFFFFFFFFU) || !gf_utf8_is_legal(data, (u32) ab_size)) {
 		return JS_NULL;
 	}
 	char *str = gf_malloc(sizeof(char)*(ab_size+1));
@@ -2448,7 +2448,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 		return JS_NULL;
 	}
 	GF_DOMParser *parser = gf_xml_dom_new();
-	GF_Err e = gf_xml_dom_parse_string(parser, str);
+	GF_Err e = gf_xml_dom_parse_string_len(parser, str, (u32) ab_size);
 	if (e) {
 		gf_xml_dom_del(parser);
 		gf_free(str);
@@ -4494,7 +4494,14 @@ void qjs_init_all_modules(JSContext *ctx, Bool no_webgl, Bool for_vrml)
 	qjs_module_init_gpaccore(ctx);
 
 #ifndef GPAC_DISABLE_QJS_LIBC
-	qjs_module_init_qjs_libc(ctx);
+	/* never expose QuickJS libc modules (os, std) to scripts embedded in media
+	   content (VRML/X3D/BIFS scene scripts): these are untrusted inputs, and the
+	   os module provides process execution (os.exec) while std provides file
+	   and process APIs, all with the privileges of the GPAC process. Other JS
+	   hosts (jsf filters, DASH algo scripts, HTTP out scripting, workers) only
+	   run user-provided scripts where these modules are a feature. */
+	if (!for_vrml)
+		qjs_module_init_qjs_libc(ctx);
 #endif
 
 	//vrml, init scene JS but do not init xhr (defined in DOM JS)

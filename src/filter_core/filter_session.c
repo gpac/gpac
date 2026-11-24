@@ -2736,8 +2736,14 @@ GF_Err gf_fs_run(GF_FilterSession *fsess)
 
 #ifndef GPAC_DISABLE_THREADS
 	//blocking mode, wait for all threads to be done
+	u32 nb_retry = 30000;
 	while (nb_threads+1 != fsess->nb_threads_stopped) {
 		gf_sleep(1);
+		nb_retry--;
+		if (!nb_retry) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("Failed to wait for all threads to die in 30s - aborting\n"));
+			fsess->run_status = GF_IO_ERR;
+		}
 	}
 #endif
 

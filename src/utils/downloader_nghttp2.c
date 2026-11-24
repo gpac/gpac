@@ -242,7 +242,7 @@ static int h2_error_callback(nghttp2_session *session, const char *msg, size_t l
 
 static ssize_t h2_write_data(GF_DownloadSession *sess, const uint8_t *data, size_t length)
 {
-	GF_Err e = dm_sess_write(sess, data, (u32) length);
+	GF_Err e = gf_dm_sess_write(sess, data, (u32) length);
 	switch (e) {
 	case GF_OK:
 		return length;
@@ -578,14 +578,18 @@ static GF_Err h2_async_flush(GF_DownloadSession *sess, Bool for_close)
 	h2_flush_send_ex(sess, GF_TRUE);
 	gf_mx_v(sess->mx);
 
+	// fprintf(stderr, "%s:%d h2_async_flush sess->hmux_send_data_len %d\n",__FILE__, __LINE__, sess->hmux_send_data_len);
+
 	if (sess->hmux_send_data_len) {
 		//we will return empty to avoid pushing data too fast, but we also need to flush the async buffer
 		ret = GF_IP_NETWORK_EMPTY;
 		if (sess->hmux_send_data_len<sess->local_buf_len) {
 			memmove(sess->local_buf, sess->hmux_send_data, sess->hmux_send_data_len);
 			sess->local_buf_len = sess->hmux_send_data_len;
+			// fprintf(stderr, "%s:%d h2_async_flush case 1 sess->hmux_send_data_len %d < sess->hmux_send_data_len %d\n",__FILE__, __LINE__, sess->hmux_send_data_len, sess->hmux_send_data_len);
 		} else {
 			//nothing sent, check socket
+			// fprintf(stderr, "%s:%d h2_async_flush case 1 sess->hmux_send_data_len %d >= sess->hmux_send_data_len %d => select\n",__FILE__, __LINE__, sess->hmux_send_data_len, sess->hmux_send_data_len);
 			ret = gf_sk_probe(sess->sock);
 		}
 		sess->hmux_send_data = NULL;
@@ -635,7 +639,7 @@ static void h2_flush_send_ex(GF_DownloadSession *sess, Bool flush_local_buf)
 
 		if (!sess->local_buf_len || flush_local_buf) {
 			//read any frame pending from remote peer (window update and co)
-			e = gf_dm_read_data(sess, h2_flush, 1023, &res);
+			e = gf_dm_sess_read(sess, h2_flush, 1023, &res);
 			if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
 				sess->status = GF_NETIO_STATE_ERROR;
 				SET_LAST_ERR(sess->last_error)
@@ -697,7 +701,7 @@ static void h2_close_session(GF_DownloadSession *sess)
 			break;
 
 		//read any frame pending from remote peer (window update and co)
-		e = gf_dm_read_data(sess, h2_flush, 2023, &res);
+		e = gf_dm_sess_read(sess, h2_flush, 2023, &res);
 		if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
 			if (e!=GF_IP_CONNECTION_CLOSED) {
 				SET_LAST_ERR(e)
@@ -903,7 +907,7 @@ GF_Err http2_check_upgrade(GF_DownloadSession *sess)
 							"Upgrade: h2c\r\n\r\n", NULL);
 
 	len = (u32) strlen(rsp_buf);
-	e = dm_sess_write(sess, rsp_buf, len);
+	e = gf_dm_sess_write(sess, rsp_buf, len);
 
 	gf_free(rsp_buf);
 	h2_initialize_session(sess);
@@ -911,4 +915,3 @@ GF_Err http2_check_upgrade(GF_DownloadSession *sess)
 }
 
 #endif //!defined(GPAC_DISABLE_NETWORK) && defined(GPAC_HAS_HTTP2)
-

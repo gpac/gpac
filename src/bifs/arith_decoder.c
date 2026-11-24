@@ -244,6 +244,7 @@ static s32 AADec_Dec(GF_AADecoder *dec, GF_AAModel *model)
 	s32 sum;
 
 	len = dec->high - dec->low + 1;
+	if (!len || !model->cumul_freq[0]) return -1;
 	sum = (-1 + (dec->code_value - dec->low + 1) * model->cumul_freq[0]) / len;
 
 	for (sac_index = 1; model->cumul_freq[sac_index] > sum; sac_index++) {
@@ -279,6 +280,7 @@ s32 gp_bifs_aa_decode(GF_AADecoder *dec, GF_AAModel *model)
 {
 	s32 v;
 	v = AADec_Dec(dec, model);
+	if (v < 0) return v;
 	UpdateAAModel(model, v);
 	return v;
 }

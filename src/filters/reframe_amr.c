@@ -573,19 +573,19 @@ static void amrdmx_finalize(GF_Filter *filter)
 
 static const char * amrdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	if (!strnicmp(data, "#!AMR\n", 6)) {
+	if ((size>=6) && !strnicmp(data, "#!AMR\n", 6)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/amr";
 	}
-	else if (!strnicmp(data, "#!AMR-WB\n", 9)) {
+	else if ((size>=9) && !strnicmp(data, "#!AMR-WB\n", 9)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/amr";
 	}
-	else if (!strnicmp(data, "#!EVRC\n", 7)) {
+	else if ((size>=7) && !strnicmp(data, "#!EVRC\n", 7)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/evrc";
 	}
-	else if (!strnicmp(data, "#!SMV\n", 6)) {
+	else if ((size>=6) && !strnicmp(data, "#!SMV\n", 6)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/smv";
 	}

@@ -29,7 +29,19 @@
 #include <gpac/tools.h>
 
 #ifdef GPAC_HAS_LIBCAPTION
+
+// definition conflicts for ssize_t on windows
+#ifdef _MSC_VER
+#pragma push_macro("ssize_t")
+#undef ssize_t
+#define ssize_t libcaption_ssize_t
+#endif
+
 #include <caption/mpeg.h>
+
+#ifdef _MSC_VER
+#pragma pop_macro("ssize_t")
+#endif
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 #if !defined(__GNUC__)
@@ -230,7 +242,7 @@ static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
 	memset(cc->text + len, 0, 1);
 
 	if (len > SCREEN_COLS * SCREEN_ROWS) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ccenc] Caption at CTS=%llu exceeds maximum length of %u bytes. Truncating\n", cc->cts, SCREEN_COLS * SCREEN_ROWS));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ccenc] Caption at CTS="LLU" exceeds maximum length of %u bytes. Truncating\n", cc->cts, SCREEN_COLS * SCREEN_ROWS));
 		cc->text[(SCREEN_COLS * SCREEN_ROWS) - 1] = 0;
 	}
 

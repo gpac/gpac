@@ -654,7 +654,9 @@ void update_writer_constant_dur(GF_ISOFile *movie, TrackWriter *tkw, GF_StscEntr
 	u64 chunk_dur;
 	u32 nb_in_run;
 	u32 samp_idx_in_chunk, nb_samp_left_in_src_chunk;
-	if (!tkw->constant_dur) return;
+	//only check if constant dur is used and we want at least 2 samples per chunk - cf #4043
+	if (!tkw->constant_dur || (stsc_ent->samplesPerChunk <= 1))
+		return;
 
 	samp_idx_in_chunk = tkw->sampleNumber - tkw->stbl->SampleToChunk->firstSampleInCurrentChunk;
 	nb_samp_left_in_src_chunk = stsc_ent->samplesPerChunk - samp_idx_in_chunk;

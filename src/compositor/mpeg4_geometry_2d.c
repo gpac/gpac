@@ -81,7 +81,7 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 		/*this is done regardless of switch flag*/
 		gf_node_traverse((GF_Node *) shape->geometry, tr_state);
 
-		if (tr_state->appear) {
+		if (tr_state->appear && (gf_node_get_tag(tr_state->appear) == TAG_MPEG4_Appearance)) {
 			/*apply line width*/
 			GF_Node *m = ((M_Appearance *)tr_state->appear)->material;
 			if (m && (gf_node_get_tag(m)==TAG_MPEG4_Material2D) ) {
@@ -494,6 +494,9 @@ void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_
 	coord = (M_Coordinate2D *)c2D->point;
 	drawable_reset_path(stack);
 	if (!coord) return;
+	if ((gf_node_get_tag((GF_Node *)coord) != TAG_MPEG4_Coordinate)
+		&& (gf_node_get_tag((GF_Node *)coord) != TAG_MPEG4_Coordinate2D))
+		return;
 
 	stack->path->fineness = c2D->fineness;
 	if (tr_state->visual->compositor->fast)  stack->path->fineness /= 2;

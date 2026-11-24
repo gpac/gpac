@@ -1033,6 +1033,7 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 			flat.final = 0;
 			flat.len = 0;
 			xml = gf_xml_sax_new(swf_nstart, swf_nend, swf_ntext, &flat);
+			//init_value can only be utf8
 			gf_xml_sax_init(xml, NULL);
 			gf_xml_sax_parse(xml, text->init_value);
 			gf_xml_sax_del(xml);

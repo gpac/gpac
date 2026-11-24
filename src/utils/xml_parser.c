@@ -45,7 +45,7 @@ static u32 XML_MAX_CONTENT_SIZE = 0;
 
 static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current);
 
-GF_STATIC char *xml_translate_xml_string(char *str)
+static char *xml_translate_xml_string(char *str)
 {
 	char *value;
 	u32 size, i, j;
@@ -151,6 +151,12 @@ struct _tag_sax_parser
 {
 	/*0: UTF-8, 1: UTF-16 BE, 2: UTF-16 LE. String input is always converted back to utf8*/
 	s32 unicode_type;
+	u8 init_bytes[2];
+	u32 init_bytes_size;
+	u8 unicode_byte;
+	Bool has_unicode_byte;
+	u16 unicode_high_surrogate;
+	Bool has_unicode_high_surrogate;
 	char *buffer;
 	/*alloc size, line size and current position*/
 	u32 alloc_size, line_size, current_pos;
@@ -1110,64 +1116,203 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 	return xml_sax_parse(parser, GF_FALSE);
 }
 
-GF_EXPORT
-GF_Err gf_xml_sax_parse(GF_SAXParser *parser, const void *string)
+static GF_Err gf_xml_sax_parse_bytes(GF_SAXParser *parser, const void *string, u32 byte_len)
 {
 	GF_Err e;
 	char *current;
-	char *utf_conv = NULL;
 
-	if (parser->unicode_type < 0) return GF_BAD_PARAM;
+	if (!parser || (byte_len && !string) || (parser->unicode_type < 0)) return GF_BAD_PARAM;
 
-	if (parser->unicode_type>1) {
-		const u16 *sptr = (const u16 *)string;
-		u32 len = 2 * gf_utf8_wcslen(sptr);
-		utf_conv = (char *)gf_malloc(sizeof(char)*(len+1));
-		len = gf_utf8_wcstombs(utf_conv, len, &sptr);
-		if (len == GF_UTF8_FAIL) {
+	if (parser->unicode_type) {
+		const u8 *bytes = (const u8 *) string;
+		u8 *combined = NULL;
+		unsigned short *wide;
+		const unsigned short *wide_src;
+		u32 unit_count, wide_count, i, utf8_len, prefix_count;
+		size_t utf8_cap, input_len = byte_len;
+
+		if (parser->has_unicode_byte) {
+			if ((size_t) byte_len == (size_t) -1) return GF_OUT_OF_MEM;
+			combined = (u8 *) gf_malloc((size_t) byte_len + 1);
+			if (!combined) return GF_OUT_OF_MEM;
+			combined[0] = parser->unicode_byte;
+			if (byte_len) memcpy(combined + 1, bytes, byte_len);
+			bytes = combined;
+			input_len++;
+			parser->has_unicode_byte = GF_FALSE;
+		}
+		if (input_len & 1) {
+			parser->unicode_byte = bytes[input_len - 1];
+			parser->has_unicode_byte = GF_TRUE;
+			input_len--;
+		}
+		if (!input_len) {
+			gf_free(combined);
+			return GF_OK;
+		}
+
+		unit_count = (u32) (input_len / 2);
+		if (unit_count && !bytes[2 * (unit_count - 1)] && !bytes[2 * (unit_count - 1) + 1])
+			unit_count--;
+		prefix_count = parser->has_unicode_high_surrogate ? 1 : 0;
+		if (!unit_count && prefix_count) {
+			gf_free(combined);
+			return GF_OK;
+		}
+		if (unit_count > 0xFFFFFFFFU - prefix_count) {
+			gf_free(combined);
+			return GF_OUT_OF_MEM;
+		}
+		wide_count = unit_count + prefix_count;
+		if ((size_t) wide_count + 1 > ((size_t) -1) / sizeof(unsigned short)
+			|| (size_t) wide_count > (((size_t) -1) - 1) / 3
+			|| wide_count > (0xFFFFFFFFU - 1) / 3) {
+			gf_free(combined);
+			return GF_OUT_OF_MEM;
+		}
+
+		wide = (unsigned short *) gf_malloc(((size_t) wide_count + 1) * sizeof(unsigned short));
+		if (!wide) {
+			gf_free(combined);
+			return GF_OUT_OF_MEM;
+		}
+		if (prefix_count) wide[0] = parser->unicode_high_surrogate;
+		for (i = 0; i < unit_count; i++) {
+			u16 value;
+			if (parser->unicode_type == 2)
+				value = (u16) (bytes[2 * i] | (bytes[2 * i + 1] << 8));
+			else
+				value = (u16) ((bytes[2 * i] << 8) | bytes[2 * i + 1]);
+			if (!value) {
+				parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+				gf_free(wide);
+				gf_free(combined);
+				return GF_CORRUPTED_DATA;
+			}
+			wide[i + prefix_count] = value;
+		}
+		parser->has_unicode_high_surrogate = GF_FALSE;
+		if (wide_count && (wide[wide_count - 1] >= 0xD800) && (wide[wide_count - 1] <= 0xDBFF)) {
+			parser->unicode_high_surrogate = wide[wide_count - 1];
+			parser->has_unicode_high_surrogate = GF_TRUE;
+			wide_count--;
+		}
+		wide[wide_count] = 0;
+		if (!wide_count) {
+			gf_free(wide);
+			gf_free(combined);
+			return GF_OK;
+		}
+
+		utf8_cap = (size_t) wide_count * 3 + 1;
+		current = (char *) gf_malloc(utf8_cap);
+		if (!current) {
+			gf_free(wide);
+			gf_free(combined);
+			return GF_OUT_OF_MEM;
+		}
+		wide_src = wide;
+		utf8_len = gf_utf8_wcstombs(current, utf8_cap, &wide_src);
+		gf_free(wide);
+		gf_free(combined);
+		if (utf8_len == GF_UTF8_FAIL) {
 			parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-			gf_free(utf_conv);
+			gf_free(current);
 			return GF_CORRUPTED_DATA;
 		}
-		utf_conv[len] = 0;
-		current = utf_conv;
 	} else {
-		current = (char *)string;
+		const u8 *bytes = (const u8 *) string;
+		size_t current_len = byte_len;
+		if (current_len && !bytes[current_len - 1]) current_len--;
+		if (current_len && memchr(bytes, 0, current_len)) {
+			parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+			return GF_CORRUPTED_DATA;
+		}
+		if (current_len == (size_t) -1) return GF_OUT_OF_MEM;
+		current = (char *) gf_malloc(current_len + 1);
+		if (!current) return GF_OUT_OF_MEM;
+		if (current_len) memcpy(current, string, current_len);
+		current[current_len] = 0;
 	}
 
 	e = gf_xml_sax_parse_intern(parser, current);
-	if (utf_conv) gf_free(utf_conv);
+	gf_free(current);
 	return e;
+}
+
+GF_EXPORT
+GF_Err gf_xml_sax_parse_len(GF_SAXParser *parser, const void *string, u32 byte_len)
+{
+	if (parser && (parser->unicode_type < 0))
+		return gf_xml_sax_init_len(parser, (const unsigned char *) string, byte_len);
+	return gf_xml_sax_parse_bytes(parser, string, byte_len);
 }
 
 
 GF_EXPORT
-GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM)
+GF_Err gf_xml_sax_parse(GF_SAXParser *parser, const void *string)
 {
-	u32 offset;
-	if (!BOM) {
+	size_t len;
+	if (!parser || !string) return GF_BAD_PARAM;
+	if (parser->unicode_type < 0) return GF_BAD_PARAM;
+	if (parser->unicode_type) return GF_NOT_SUPPORTED;
+	len = strlen((const char *) string);
+	if ((u64) len > 0xFFFFFFFFU) return GF_OUT_OF_MEM;
+	return gf_xml_sax_parse_bytes(parser, string, (u32) len);
+}
+
+
+GF_EXPORT
+GF_Err gf_xml_sax_init_len(GF_SAXParser *parser, const unsigned char *data, u32 byte_len)
+{
+	u8 probe[3];
+	u32 probe_len, old_len, take, needed, offset = 0;
+	if (!parser || (byte_len && !data)) return GF_BAD_PARAM;
+	if (!data) {
 		parser->unicode_type = 0;
 		parser->sax_state = SAX_STATE_ELEMENT;
+		parser->init_bytes_size = 0;
+		parser->has_unicode_byte = GF_FALSE;
+		parser->has_unicode_high_surrogate = GF_FALSE;
 		return GF_OK;
 	}
 
-	if (parser->unicode_type >= 0) return gf_xml_sax_parse(parser, BOM);
+	if (parser->unicode_type >= 0) return gf_xml_sax_parse_bytes(parser, data, byte_len);
 
-	if ((BOM[0]==0xFF) && (BOM[1]==0xFE)) {
-		if (!BOM[2] && !BOM[3]) return GF_NOT_SUPPORTED;
+	old_len = parser->init_bytes_size;
+	probe_len = old_len;
+	if (old_len) memcpy(probe, parser->init_bytes, old_len);
+	if (!probe_len && byte_len) {
+		probe[probe_len++] = data[0];
+	}
+	if (!probe_len) {
+		parser->unicode_type = 0;
+		parser->sax_state = SAX_STATE_ELEMENT;
+		return gf_xml_sax_parse_bytes(parser, data, byte_len);
+	}
+	needed = (probe[0] == 0xEF) ? 3 : ((probe[0] == 0xFF) || (probe[0] == 0xFE)) ? 2 : 1;
+	take = MIN(needed - probe_len, byte_len - (probe_len - old_len));
+	if (take) memcpy(probe + probe_len, data + (probe_len - old_len), take);
+	probe_len += take;
+	if (probe_len < needed) {
+		memcpy(parser->init_bytes, probe, probe_len);
+		parser->init_bytes_size = probe_len;
+		return GF_OK;
+	}
+
+	parser->init_bytes_size = 0;
+	if ((probe_len >= 2) && (probe[0] == 0xFF) && (probe[1] == 0xFE)) {
 		parser->unicode_type = 2;
 		offset = 2;
-	} else if ((BOM[0]==0xFE) && (BOM[1]==0xFF)) {
-		if (!BOM[2] && !BOM[3]) return GF_NOT_SUPPORTED;
+	} else if ((probe_len >= 2) && (probe[0] == 0xFE) && (probe[1] == 0xFF)) {
 		parser->unicode_type = 1;
 		offset = 2;
-	} else if ((BOM[0]==0xEF) && (BOM[1]==0xBB) && (BOM[2]==0xBF)) {
+	} else if ((probe_len >= 3) && (probe[0] == 0xEF) && (probe[1] == 0xBB) && (probe[2] == 0xBF)) {
 		/*we handle UTF8 as asci*/
 		parser->unicode_type = 0;
 		offset = 3;
 	} else {
 		parser->unicode_type = 0;
-		offset = 0;
 	}
 
 #ifdef GPAC_ENABLE_COVERAGE
@@ -1177,7 +1322,31 @@ GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM)
 #endif
 
 	parser->sax_state = SAX_STATE_ELEMENT;
-	return gf_xml_sax_parse(parser, BOM + offset);
+	if (!offset) {
+		GF_Err e;
+		if (old_len) {
+			e = gf_xml_sax_parse_bytes(parser, parser->init_bytes, old_len);
+			if (e) return e;
+		}
+		e = gf_xml_sax_parse_bytes(parser, data, byte_len);
+		return e;
+	}
+	take = offset > old_len ? offset-old_len : 0;
+	return gf_xml_sax_parse_bytes(parser, data + take, byte_len - take);
+}
+
+GF_EXPORT
+GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM)
+{
+	size_t len;
+	if (!parser) return GF_BAD_PARAM;
+	if (parser->unicode_type > 0) return GF_NOT_SUPPORTED;
+	if (!BOM) return gf_xml_sax_init_len(parser, NULL, 0);
+	if ((BOM[0]==0xFF && BOM[1]==0xFE) || (BOM[0]==0xFE && BOM[1]==0xFF))
+		return GF_NOT_SUPPORTED;
+	len = strlen((const char *)BOM);
+	if ((u64) len > 0xFFFFFFFFU) return GF_OUT_OF_MEM;
+	return gf_xml_sax_init_len(parser, BOM, (u32) len);
 }
 
 static void xml_sax_reset(GF_SAXParser *parser)
@@ -1220,9 +1389,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 		s32 read = gf_gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
 #endif
 		if ((read<=0) /*&& !parser->node_depth*/) break;
-		szLine[read] = 0;
-		szLine[read+1] = 0;
-		e = gf_xml_sax_parse(parser, szLine);
+		e = gf_xml_sax_parse_len(parser, szLine, (u32) read);
 		if (e) break;
 		if (parser->file_pos > parser->file_size) parser->file_size = parser->file_pos + 1;
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
@@ -1233,6 +1400,13 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 #else
 	if (gf_gzeof(parser->gz_in)) {
 #endif
+		if (parser->init_bytes_size || parser->has_unicode_byte || parser->has_unicode_high_surrogate) {
+			parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+			parser->init_bytes_size = 0;
+			parser->has_unicode_byte = GF_FALSE;
+			parser->has_unicode_high_surrogate = GF_FALSE;
+			e = GF_CORRUPTED_DATA;
+		}
 		if (!e) e = GF_EOS;
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_size, parser->file_size);
 
@@ -1266,15 +1440,31 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 #ifndef NO_GZIP
 	gzFile gzInput;
 #endif
-	unsigned char szLine[6];
+	unsigned char szLine[6] = {0};
+	s32 bom_read = 0;
 
 	parser->on_progress = OnProgress;
 
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u32 size;
 		u8 *xml_mem_address;
+		u8 *unz_data = NULL;
 		e = gf_blob_get(fileName, &xml_mem_address, &size, NULL);
 		if (e) return e;
+
+#ifndef NO_GZIP
+		//gzip-compressed blob (e.g. an HTTP body sent with Content-Encoding: gzip), accepted like gf_gzopen does for files
+		if ((size>2) && (xml_mem_address[0]==0x1f) && (xml_mem_address[1]==0x8b)) {
+			u32 unz_size = 0;
+			e = gf_gz_decompress_payload_ex(xml_mem_address, size, &unz_data, &unz_size, GF_TRUE);
+			if (e) {
+				gf_blob_release(fileName);
+				return e;
+			}
+			xml_mem_address = unz_data;
+			size = unz_size;
+		}
+#endif
 
 		parser->file_size = size;
 		u32 bom_max = MIN(size, 4);
@@ -1286,12 +1476,18 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 		parser->elt_start_pos = 0;
 		parser->current_pos = 0;
 
-		e = gf_xml_sax_init(parser, szLine);
+		e = gf_xml_sax_init_len(parser, szLine, bom_max);
 		if (!e) {
-			e = gf_xml_sax_parse(parser, xml_mem_address+bom_max);
+			u32 tail_len = size - bom_max;
+			e = gf_xml_sax_parse_len(parser, xml_mem_address+bom_max, tail_len);
+			if (!e && (parser->init_bytes_size || parser->has_unicode_byte || parser->has_unicode_high_surrogate)) {
+				parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+				e = GF_CORRUPTED_DATA;
+			}
 			if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
 		}
 		gf_blob_release(fileName);
+		if (unz_data) gf_free(unz_data);
 
 		parser->elt_start_pos = parser->elt_end_pos = 0;
 		parser->elt_name_start = parser->elt_name_end = 0;
@@ -1319,8 +1515,9 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	parser->current_pos = 0;
 	//open file and copy possible BOM
 #ifdef NO_GZIP
-	parser->f_in = gf_fopen(fileName, "rt");
-	if (gf_fread(szLine, 4, parser->f_in) != 4) {
+	parser->f_in = gf_fopen(fileName, "rb");
+	bom_read = (s32) gf_fread(szLine, 4, parser->f_in);
+	if (bom_read != 4) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[XML] Error loading BOM\n"));
 	}
 #else
@@ -1328,12 +1525,25 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	if (!gzInput) return GF_IO_ERR;
 	parser->gz_in = gzInput;
 	/*init SAX parser (unicode setup)*/
-	gf_gzread(gzInput, szLine, 4);
+	bom_read = gf_gzread(gzInput, szLine, 4);
+	if (bom_read < 0) {
+		gf_gzclose(parser->gz_in);
+		parser->gz_in = 0;
+		return GF_IO_ERR;
+	}
 #endif
 
-	szLine[4] = szLine[5] = 0;
-	e = gf_xml_sax_init(parser, szLine);
-	if (e) return e;
+	e = gf_xml_sax_init_len(parser, szLine, (u32) bom_read);
+	if (e) {
+#ifdef NO_GZIP
+		gf_fclose(parser->f_in);
+		parser->f_in = NULL;
+#else
+		gf_gzclose(parser->gz_in);
+		parser->gz_in = 0;
+#endif
+		return e;
+	}
 
 	return xml_sax_read_file(parser);
 }
@@ -1652,6 +1862,8 @@ char *gf_xml_get_root_type(const char *file, GF_Err *ret)
 	pt.res = NULL;
 	pt.parser = gf_xml_sax_new(on_peek_node_start, NULL, NULL, &pt);
 	e = gf_xml_sax_parse_file(pt.parser, file, NULL);
+	//a short file may reach EOF in the same read that finds the root - https://github.com/gpac/gpac/issues/4021
+	if ((e==GF_EOS) && pt.res) e = GF_OK;
 	if (ret) *ret = e;
 	gf_xml_sax_del(pt.parser);
 	return pt.res;
@@ -1913,10 +2125,36 @@ GF_EXPORT
 GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string)
 {
 	GF_Err e;
+	if (!dom || !string) return GF_BAD_PARAM;
 	gf_xml_dom_reset(dom, GF_TRUE);
 	dom->stack = gf_list_new();
 	dom->parser = gf_xml_sax_new(on_dom_node_start, on_dom_node_end, on_dom_text_content, dom);
+	if (!dom->stack || !dom->parser) {
+		gf_xml_dom_reset(dom, GF_TRUE);
+		return GF_OUT_OF_MEM;
+	}
 	e = gf_xml_sax_init(dom->parser, (unsigned char *) string);
+	gf_xml_dom_reset(dom, GF_FALSE);
+	return e<0 ? e : GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_xml_dom_parse_string_len(GF_DOMParser *dom, const void *data, u32 byte_len)
+{
+	GF_Err e;
+	if (!dom || !data) return GF_BAD_PARAM;
+	gf_xml_dom_reset(dom, GF_TRUE);
+	dom->stack = gf_list_new();
+	dom->parser = gf_xml_sax_new(on_dom_node_start, on_dom_node_end, on_dom_text_content, dom);
+	if (!dom->stack || !dom->parser) {
+		gf_xml_dom_reset(dom, GF_TRUE);
+		return GF_OUT_OF_MEM;
+	}
+	e = gf_xml_sax_init_len(dom->parser, (const unsigned char *) data, byte_len);
+	if (!e && (dom->parser->init_bytes_size || dom->parser->has_unicode_byte || dom->parser->has_unicode_high_surrogate)) {
+		dom->parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+		e = GF_CORRUPTED_DATA;
+	}
 	gf_xml_dom_reset(dom, GF_FALSE);
 	return e<0 ? e : GF_OK;
 }

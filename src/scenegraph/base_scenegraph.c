@@ -557,11 +557,13 @@ restart:
 		/*this will unregister the proto from the graph, so don't delete the chain entry*/
 		gf_sg_proto_del(p);
 	}
-	/*destroy all unregistered proto*/
+	/*unregistered protos are owned by the commands that declared them (new_proto_list);
+	  gf_sg_command_del frees them.  Null out parent_graph so gf_sg_proto_del can detect
+	  that the graph is already gone, then drop the non-owning references from the list.*/
 	while (gf_list_count(sg->unregistered_protos)) {
 		GF_Proto *p = (GF_Proto *)gf_list_get(sg->unregistered_protos, 0);
-		/*this will unregister the proto from the graph, so don't delete the chain entry*/
-		gf_sg_proto_del(p);
+		p->parent_graph = NULL;
+		gf_list_rem(sg->unregistered_protos, 0);
 	}
 
 	/*last destroy all routes*/
@@ -851,6 +853,13 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 		if (parentNode->sgprivate->scenegraph != node->sgprivate->scenegraph) {
 			gf_list_add(node->sgprivate->scenegraph->exported_nodes, node);
 		}
+	} else if (node->sgprivate->scenegraph) {
+		/*no parent: the holder can outlive the graph, so let gf_sg_del detach us*/
+		GF_SceneGraph* sg = node->sgprivate->scenegraph;
+		if (!sg->referencing_commands)
+			sg->referencing_commands = gf_list_new();
+		if (gf_list_find(sg->referencing_commands, &node->sgprivate->scenegraph) < 0)
+			gf_list_add(sg->referencing_commands, &node->sgprivate->scenegraph);
 	}
 	return GF_OK;
 }
@@ -1715,6 +1724,8 @@ void gf_node_free(GF_Node *node)
 		}
 	}
 	gf_assert(! node->sgprivate->parents);
+	if (node->sgprivate->scenegraph)
+		gf_list_del_item(node->sgprivate->scenegraph->referencing_commands, &node->sgprivate->scenegraph);
 	if (node->sgprivate->referencing_commands) {
 		u32 i, cnt = gf_list_count(node->sgprivate->referencing_commands);
 		for (i = 0; i < cnt; i++) {
@@ -2312,7 +2323,7 @@ static u32 gf_node_activate_ex(GF_Node *node, u32 depth)
 			SVGTimedAnimBaseElement *timed = (SVGTimedAnimBaseElement*)node;
 			gf_list_add(node->sgprivate->scenegraph->smil_timed_elements, timed->timingp->runtime);
 			node->sgprivate->flags &= ~GF_NODE_IS_DEACTIVATED;
-			if (timed->timingp->runtime->evaluate) {
+			if (timed->timingp && timed->timingp->runtime->evaluate) {
 				timed->timingp->runtime->evaluate(timed->timingp->runtime, 0, SMIL_TIMING_EVAL_ACTIVATE);
 			}
 		}

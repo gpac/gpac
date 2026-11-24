@@ -26,7 +26,7 @@
 #include "in_route.h"
 #include <gpac/mpegts.h>
 #include <gpac/isomedia.h>
-#include "../utils/downloader.h"
+#include "../utils/downloader_exp.h"
 
 #ifndef GPAC_DISABLE_ROUTE
 

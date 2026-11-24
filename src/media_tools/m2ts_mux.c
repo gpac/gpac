@@ -259,6 +259,7 @@ void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table
 	stream->current_table = stream->tables;
 	stream->current_section = stream->current_table->section;
 	stream->current_section_offset = 0;
+	stream->nb_postponed_empty = 0;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Generating %d sections for table id %d - version number %d - extension ID %d\n", stream->pid, nb_sections, table_id, table->version_number, table_id_extension));
 }
@@ -1456,6 +1457,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 
 		if (stream->mx) gf_mx_v(stream->mx);
 	}
+	stream->nb_postponed_empty = 0;
 
 	if (!(stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS))
 		stream->curr_pck.dts = stream->curr_pck.cts;
@@ -3408,7 +3410,14 @@ static Bool gf_m2ts_stream_too_early(GF_M2TS_Mux_Stream *stream, GF_M2TS_Mux *mu
 				&& a_stream->ifce && !(a_stream->ifce->caps & (GF_ESI_STREAM_FLUSH|GF_ESI_STREAM_IS_OVER|GF_ESI_STREAM_SPARSE))
 				&& gf_m2ts_time_less(&a_stream->time, &stream->time)
 			) {
-				return GF_TRUE;
+				//we have data to send, post-pone PCR stream
+				if (a_stream->process_res)
+					return GF_TRUE;
+				//no data, we will try at most 2 packet fetching before considering we don't have anything to send
+				if (a_stream->nb_postponed_empty<2) {
+					a_stream->nb_postponed_empty++;
+					return GF_TRUE;
+				}
 			}
 			a_stream = a_stream->next;
 		}

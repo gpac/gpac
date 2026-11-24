@@ -1748,7 +1748,6 @@ typedef struct {
 	GF_AC4BedChannelAssignment u_bed_dyn_obj;
 	// ac4_substream_info_chan
 	u32 ch_mode;
-	u32 channel_mode;
 	// ac4_substream_info_obj & substream_info_ajoc
 	u32 n_objs;
 	u32 obj_types[GF_AC4_MAX_NUM_OBJECTS];
@@ -2018,7 +2017,7 @@ typedef struct {
 GF_Err gf_odf_preselection_cfg_parse(u8 *data, u32 data_len, GF_List *cfg);
 
 /*! write preselection config to bitstream in property or file
-\param cfg the address of the list of GF_PreselectionConfig
+\param cfg_list the address of the list of GF_PreselectionConfig
 \param bs the bitstream object in which to write the config
 \return error if any
 */

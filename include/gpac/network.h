@@ -449,7 +449,7 @@ void gf_sk_del(GF_Socket *sock);
 /*!
 \brief reset internal buffer
 
-Forces the internal socket buffer to be reseted (discarded)
+Forces the internal socket buffer to be reseted (discarded), only for UDP socket (tcp must close reopen)
 \param sock the socket object
  */
 void gf_sk_reset(GF_Socket *sock);

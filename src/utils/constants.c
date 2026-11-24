@@ -1082,9 +1082,9 @@ u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 layout)
 	if (layout & GF_AUDIO_CH_SIDE_SURROUND_LEFT) res |= (1<<6); //9
 	//Lw/Rw
 	if (layout & GF_AUDIO_CH_WIDE_FRONT_LEFT) res |= (1<<5); //10
-	//Vhl/Vhr
+	//Lvh/Rvh
 	if (layout & GF_AUDIO_CH_FRONT_TOP_LEFT) res |= (1<<4); //11
-	//Vhc
+	//Cvh
 	if (layout & GF_AUDIO_CH_FRONT_TOP_CENTER) res |= (1<<3); //12
 	//Lts/Rts
 	if (layout & GF_AUDIO_CH_SURROUND_TOP_LEFT) res |= (1<<2); //13
@@ -1116,47 +1116,47 @@ u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
 	return 0;
 }
 
-// ETSI TS 103 190-2 V1.3.1 (2018-02) E10.14 presentation_v1_channel_groups
+// ETSI TS 103 190-2 V1.3.1 (2025-07) Table A.27 presentation_v1_channel_groups
 u32 gf_ac4_dolby_channel_count_from_channel_mask_v1(u32 speaker_group_index_mask)
 {
 	u32 channel_count = 0;
     if ((speaker_group_index_mask & 1) != 0) //  0: L,R
         channel_count += 2;
-    if ((speaker_group_index_mask & 2) != 0) //  1: C
+    if ((speaker_group_index_mask & (1 << 1)) != 0) //  1: C
         channel_count += 1;
-    if ((speaker_group_index_mask & 4) != 0) //  2: Ls,Rs
+    if ((speaker_group_index_mask & (1 << 2)) != 0) //  2: Ls,Rs
         channel_count += 2;
-    if ((speaker_group_index_mask & 8) != 0) //  3: Lb,Rb
+    if ((speaker_group_index_mask & (1 << 3)) != 0) //  3: Lb,Rb
         channel_count += 2;
-    if ((speaker_group_index_mask & 16) != 0) //  4: Tfl,Tfr
+    if ((speaker_group_index_mask & (1 << 4)) != 0) //  4: Tfl,Tfr
         channel_count += 2;
-    if ((speaker_group_index_mask & 32) != 0) //  5: Tbl,Tbr
+    if ((speaker_group_index_mask & (1 << 5)) != 0) //  5: Tbl,Tbr
         channel_count += 2;
-    if ((speaker_group_index_mask & 64) != 0) //  6: LFE
+    if ((speaker_group_index_mask & (1 << 6)) != 0) //  6: LFE
         channel_count += 1;
-    if ((speaker_group_index_mask & 128) != 0) //  7: TL,TR
+    if ((speaker_group_index_mask & (1 << 7)) != 0) //  7: TL,TR
         channel_count += 2;
-    if ((speaker_group_index_mask & 256) != 0) //  8: Tsl,Tsr
+    if ((speaker_group_index_mask & (1 << 8)) != 0) //  8: Tsl,Tsr
         channel_count += 2;
-    if ((speaker_group_index_mask & 512) != 0) //  9: Tfc
+    if ((speaker_group_index_mask & (1 << 9)) != 0) //  9: Tfc
         channel_count += 1;
-    if ((speaker_group_index_mask & 1024) != 0) //  10: Tbc
+    if ((speaker_group_index_mask & (1 << 10)) != 0) //  10: Tbc
         channel_count += 1;
-    if ((speaker_group_index_mask & 2048) != 0) //  11: Tc
+    if ((speaker_group_index_mask & (1 << 11)) != 0) //  11: Tc
         channel_count += 1;
-    if ((speaker_group_index_mask & 4096) != 0) //  12: LFE2
+    if ((speaker_group_index_mask & (1 << 12)) != 0) //  12: LFE2
         channel_count += 1;
-    if ((speaker_group_index_mask & 8192) != 0) //  13: Bfl,Bfr
+    if ((speaker_group_index_mask & (1 << 13)) != 0) //  13: Bfl,Bfr
         channel_count += 2;
-    if ((speaker_group_index_mask & 16384) != 0) //  14: Bfc
+    if ((speaker_group_index_mask & (1 << 14)) != 0) //  14: Bfc
         channel_count += 1;
-    if ((speaker_group_index_mask & 32768) != 0) //  15: Cb
+    if ((speaker_group_index_mask & (1 << 15)) != 0) //  15: Cb
         channel_count += 1;
-    if ((speaker_group_index_mask & 65536) != 0) //  16: Lscr,Rscr
+    if ((speaker_group_index_mask & (1 << 16)) != 0) //  16: Lscr,Rscr
         channel_count += 2;
-    if ((speaker_group_index_mask & 131072) != 0) //  17: Lw,Rw
+    if ((speaker_group_index_mask & (1 << 17)) != 0) //  17: Lw,Rw
         channel_count += 2;
-    if ((speaker_group_index_mask & 262144) != 0) //  18: Vhl,Vhr
+    if ((speaker_group_index_mask & (1 << 18)) != 0) //  18: Vhl,Vhr
         channel_count += 2;
 
     if ((speaker_group_index_mask & 1) != 0 && (speaker_group_index_mask & 2) != 0 && channel_count == 3)
@@ -2971,6 +2971,56 @@ GF_EXPORT
 Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2)
 {
 	TIMECODE_COMPARE(==)
+}
+
+GF_EXPORT
+Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size)
+{
+	u32 i, n_keys, kpos, nb_missing = 19;
+	if (!key_info|| (key_info_size<19))
+		goto exit;
+
+	n_keys = 1;
+	if (key_info[0]) {
+		n_keys = key_info[1];
+		n_keys <<= 8;
+		n_keys |= key_info[2];
+	}
+	kpos=3;
+	for (i=0;i<n_keys; i++) {
+		u8 iv_size;
+		if (kpos + 17 > key_info_size) {
+			nb_missing = kpos + 17 - key_info_size;
+			goto exit;
+		}
+		iv_size = key_info[kpos];
+		if (iv_size && (iv_size != 8) && (iv_size != 16)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid CENC IV size %u, must be 8 or 16\n", (u32) iv_size));
+			return GF_FALSE;
+		}
+		kpos += 17;
+		if (!iv_size) {
+			if (kpos + 1 > key_info_size) {
+				nb_missing = kpos + 1  - key_info_size;
+				goto exit;
+			}
+			iv_size = key_info[kpos];
+			if (iv_size && (iv_size != 8) && (iv_size != 16)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid CENC constant IV size %u, must be 8 or 16\n", (u32) iv_size));
+				return GF_FALSE;
+			}
+			if (kpos + 1 + iv_size > key_info_size) {
+				nb_missing = kpos + 1 + iv_size - key_info_size;
+				goto exit;
+			}
+			kpos += 1 + iv_size;
+		}
+	}
+	return GF_TRUE;
+
+exit:
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid key info format, missing %d bytes\n", nb_missing));
+	return GF_FALSE;
 }
 
 GF_EXPORT

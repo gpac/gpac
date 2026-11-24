@@ -421,7 +421,7 @@ char *gf_text_get_utf8_line(char szLine[2048], u32 lineSize, FILE *txt_in, s32 u
 #endif
 	{
 		i=0;
-		while (1) {
+		while (i+1 < lineSize) {
 			char c;
 			if (!szLine[i] && !szLine[i+1]) break;
 			c = szLine[i+1];
@@ -1351,7 +1351,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] WebVTT parser init error %s\n", gf_error_to_string(e) ));
 	}
 	//get the header
-	e = gf_webvtt_parser_parse_ext(ctx->vttparser, ctx->src, GF_TRUE);
+	e = gf_webvtt_parser_parse_ext(ctx->vttparser, ctx->src, ctx->file_name ? GF_TRUE : ctx->in_over);
 
 	if (!ctx->pid_framed)
 		txtin_probe_duration(ctx);
@@ -4693,16 +4693,16 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 		return _mime; \
 
 
-	if (!strncmp(data, "WEBVTT", 6)) {
+	if ((res_size>=6) && !strncmp(data, "WEBVTT", 6)) {
 		PROBE_OK(GF_FPROBE_SUPPORTED, "subtitle/vtt")
 	}
 	if (gf_strmemstr(data, res_size, " --> ")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/srt")
 	}
-	if (!strncmp(data, "FWS", 3) || !strncmp(data, "CWS", 3)) {
+	if ((res_size>=3) && (!strncmp(data, "FWS", 3) || !strncmp(data, "CWS", 3))) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "application/x-shockwave-flash")
 	}
-	if (!strncmp(data, "[Script Info", 12)) {
+	if ((res_size>=12) && !strncmp(data, "[Script Info", 12)) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ssa")
 	}
 
@@ -4812,6 +4812,7 @@ GF_FilterRegister TXTInRegister = {
 	"- TTML: https://www.w3.org/TR/ttml2/\n"
 	"- SUB: one subtitle per line formatted as `{start_frame}{end_frame}text`\n"
 	"- SSA (Substation Alpha): basic parsing support for common files\n"
+	"For progressive WebVTT input, header fields such as `X-TIMESTAMP-MAP` are collected through the blank-line header terminator. Input chunks may split the header across packets.\n"
 	"\n"
 	"Input files must be in UTF-8 or UTF-16 format, with or without BOM. The internal frame format is: \n"
 	"- WebVTT (and srt if desired): ISO/IEC 14496-30 VTT cues\n"

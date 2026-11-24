@@ -219,15 +219,20 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 			gf_list_add(media->FMTP, fmtp);
 		}
 		while (1) {
+			s32 value_start;
 			pos = gf_token_get(buffer, pos, "; =\r\n", comp, SDP_MAX_LINE);
 			if (pos <= 0) break;
 			att = (GF_X_Attribute*)gf_malloc(sizeof(GF_X_Attribute));
 			att->Name = gf_strdup(comp);
 			att->Value = NULL;
 			pos ++;
+			value_start = pos;
 			pos = gf_token_get(buffer, pos, ";\r\n", comp, SDP_MAX_LINE);
 			if (pos > 0) att->Value = gf_strdup(comp);
 			gf_list_add(fmtp->Attributes, att);
+			// A NUL byte inside the fmtp value makes gf_token_get stop at it (it is strlen-based) and
+			// return the same position it was given, so the loop would spin here allocating forever.
+			if (pos <= value_start) break;
 		}
 		return;
 	}
@@ -419,6 +424,7 @@ void gf_sdp_info_reset(GF_SDPInfo *sdp)
 		sdp->c_connection = NULL;
 	}
 	sdp->a_SendReceive = 0;
+	sdp->Version = 0;
 }
 
 GF_EXPORT
@@ -517,6 +523,10 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 	timing = NULL;
 
 	if (!sdp) return GF_BAD_PARAM;
+
+	//Clean SDP info
+	gf_sdp_info_reset(sdp);
+
 	if (!gf_utf8_is_legal(sdp_text, text_size))
 		return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -526,9 +536,6 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 		SDP_MakeSeconds("30m");
 	}
 #endif
-
-	//Clean SDP info
-	gf_sdp_info_reset(sdp);
 
 	LinePos = 0;
 	while (1) {
@@ -606,7 +613,10 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 				if (pos > 0) {
 					conn->TTL = atoi(comp);
 					//multiple address indication is only valid for media
-					pos = gf_token_get(LineBuf, pos, "/\r\n", comp, SDP_MAX_LINE);
+					s32 check_pos = gf_token_get(LineBuf, pos, "/\r\n", comp, SDP_MAX_LINE);
+					if (check_pos>0) return GF_NON_COMPLIANT_BITSTREAM;
+					pos = 0;
+
 				}
 				if (pos > 0) {
 					if (!media) {

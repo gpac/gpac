@@ -496,6 +496,28 @@ static void gf_m2ts_Delete_IpPacket(GF_M2TS_IP_Packet *ip_packet)
 
 
 
+static Bool dvb_int_platform_descriptors_valid(const u8 *data, u32 data_size)
+{
+	u32 remaining, descriptor_length;
+	const u8 *descriptor;
+
+	if (!data || data_size < 18) return GF_FALSE;
+	remaining = ((data[12] & 0x0F) << 8) | data[13];
+	if (remaining > data_size - 18) return GF_FALSE;
+	descriptor = data + 14;
+	while (remaining) {
+		if (remaining < 2) return GF_FALSE;
+		descriptor_length = (u32) descriptor[1] + 2;
+		if (descriptor_length > remaining) return GF_FALSE;
+		if (((descriptor[0] == GF_M2TS_DVB_IP_MAC_PLATFORM_NAME_DESCRIPTOR)
+			|| (descriptor[0] == GF_M2TS_DVB_IP_MAC_PLATFORM_PROVIDER_NAME_DESCRIPTOR))
+			&& (descriptor[1] < 3)) return GF_FALSE;
+		descriptor += descriptor_length;
+		remaining -= descriptor_length;
+	}
+	return GF_TRUE;
+}
+
 void gf_m2ts_process_int(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ip_table, unsigned char *data, u32 data_size, u32 table_id)
 {
 
@@ -504,6 +526,10 @@ void gf_m2ts_process_int(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ip_table, unsi
 
 	if ( ip_platform == NULL )
 	{
+		if (!dvb_int_platform_descriptors_valid(data, data_size)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Invalid DVB INT platform descriptor\n"));
+			return;
+		}
 		GF_SAFEALLOC(ip_platform,GF_M2TS_IP_PLATFORM );
 		ip_platform->ip_streams= gf_list_new();
 		section_DSMCC_INT (ip_platform, data, data_size);
@@ -567,7 +593,7 @@ u32 dsmcc_pto_platform_descriptor_loop(GF_M2TS_IP_PLATFORM* ip_platform, u8 *dat
 	gf_assert(ip_platform);
 
 
-	loop_length = ((data[0]) & 0xF ) | data[1];
+	loop_length = ((data[0] & 0x0F) << 8) | data[1];
 	length = loop_length;
 	data += 2;
 	while (length > 0) {
@@ -616,8 +642,10 @@ void gf_ip_platform_descriptor(GF_M2TS_IP_PLATFORM* ip_platform,u8 * data)
 	u32 length;
 	length = data[1];
 	gf_assert( ip_platform );
+	if (length < 3) return;
 	/* allocation ofr the name of the platform */
-	ip_platform->name = gf_malloc(sizeof(char)*(length-3+1));
+	ip_platform->name = gf_malloc(length - 2);
+	if (!ip_platform->name) return;
 	memcpy(ip_platform->name, data+5, length-3);
 	ip_platform->name[length-3] = 0;
 	return ;
@@ -629,7 +657,9 @@ void gf_ip_platform_provider_descriptor(GF_M2TS_IP_PLATFORM* ip_platform, u8 * d
 	length = data[1];
 	/* allocation of the name of the platform */
 	gf_assert( ip_platform );
-	ip_platform->provider_name = gf_malloc(sizeof(char)*(length-3+1));
+	if (length < 3) return;
+	ip_platform->provider_name = gf_malloc(length - 2);
+	if (!ip_platform->provider_name) return;
 	memcpy(ip_platform->provider_name, data+5, length-3);
 	ip_platform->provider_name[length-3] = 0;
 	return ;

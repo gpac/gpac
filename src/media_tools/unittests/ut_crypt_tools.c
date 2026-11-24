@@ -1,8 +1,10 @@
 #include "tests.h"
 
-#include "../crypt_tools.c"
+#if !defined(GPAC_DISABLE_CRYPTO)
 
-char gf_prog_lf = '\r';
+#include <gpac/crypt_tools.h>
+#include <gpac/constants.h>
+
 
 unittest(crypt_info_load_cpix)
 {
@@ -58,3 +60,7 @@ unittest(crypt_info_load_cpix)
 	gf_blob_unregister(&blob);
 	if (blob_url) gf_free(blob_url);
 }
+
+#else
+unittest_disabled(crypt_info_load_cpix, "cryptography disabled")
+#endif // !defined(GPAC_DISABLE_CRYPT)
