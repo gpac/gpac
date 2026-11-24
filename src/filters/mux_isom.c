@@ -6363,6 +6363,9 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			traf_inherit_base_id = tkw->track_id;
 #endif
 	}
+	//box patches freeze the moov order so set the order before applying the patches!
+	ctx->file->moov->mvex_after_traks = ctx->mvex;
+
 	//good to go, finalize for fragments
 	for (i=0; i<count; i++) {
 		u32 def_pck_dur;
