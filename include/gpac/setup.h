@@ -188,12 +188,9 @@ typedef unsigned int size_t;
 #endif
 
 #if defined(_MSC_VER) && !defined(_SSIZE_T_DEFINED)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
 #define _SSIZE_T_DEFINED
-#if defined(_WIN64)
-typedef signed long ssize_t;
-#else
-typedef signed int ssize_t;
-#endif
 #endif
 
 

@@ -29,7 +29,19 @@
 #include <gpac/tools.h>
 
 #ifdef GPAC_HAS_LIBCAPTION
+
+// definition conflicts for ssize_t on windows
+#ifdef _MSC_VER
+#pragma push_macro("ssize_t")
+#undef ssize_t
+#define ssize_t libcaption_ssize_t
+#endif
+
 #include <caption/mpeg.h>
+
+#ifdef _MSC_VER
+#pragma pop_macro("ssize_t")
+#endif
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 #if !defined(__GNUC__)

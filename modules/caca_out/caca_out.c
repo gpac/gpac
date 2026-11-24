@@ -35,7 +35,20 @@
 #  pragma comment(lib, "libcaca.lib")
 #endif
 
+// definition conflicts for ssize_t on windows
+#ifdef _MSC_VER
+#pragma push_macro("ssize_t")
+#undef ssize_t
+#define ssize_t libcaca_ssize_t
+#endif
+
 #include <caca.h>
+
+#ifdef _MSC_VER
+#pragma pop_macro("ssize_t")
+#endif
+
+
 
 typedef struct
 {
