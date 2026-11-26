@@ -490,6 +490,9 @@ GF_Err vobsub_get_subpic_duration(u8 *_data, u32 psize, u32 dsize, u32 *duration
 
 	if (psize) do {
 		i = nxt_dcsq;
+		if (i + 4 > psize) {
+			return GF_CORRUPTED_DATA;
+		}
 		dcsq_stm = (data[i+0] << 8) | data[i+1];
 		nxt_dcsq = (data[i+2] << 8) | data[i+3];
 		i += 4;
@@ -502,6 +505,9 @@ GF_Err vobsub_get_subpic_duration(u8 *_data, u32 psize, u32 dsize, u32 *duration
 			u8  cmd;
 			int len;
 
+			if (i >= psize) {
+				return GF_CORRUPTED_DATA;
+			}
 			cmd = data[i++];
 			switch (cmd)
 			{
