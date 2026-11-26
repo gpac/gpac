@@ -1823,6 +1823,7 @@ static void mpeg2ps_binary_seek (mpeg2ps_t *ps,
      * approach from the beginning of the file - we're more likely to
      * hit a pts that way
      */
+    if (end_dts == start_dts) return;
     dts_perc = (search_dts - start_dts) * 1000 / (end_dts - start_dts);
     dts_perc -= dts_perc % 10;
 
