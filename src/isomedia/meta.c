@@ -467,14 +467,28 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 				remain -= nalu_size_length + nal_size;
 				while (nal_size) {
 					u32 cache_size = (nal_size>4096) ? 4096 : (u32) nal_size;
+					u32 nb_read = gf_bs_read_data(file->movieFileMap->bs, buf_cache, cache_size);
 
-					gf_bs_read_data(file->movieFileMap->bs, buf_cache, cache_size);
+					if (nb_read < cache_size) {
+						if (nb_read)
+							gf_bs_write_data(item_bs, buf_cache, nb_read);
+						e = GF_ISOM_INVALID_FILE;
+						break;
+					}
 					gf_bs_write_data(item_bs, buf_cache, cache_size);
 					nal_size -= cache_size;
 				}
+				if (e) break;
 			} else {
 				u32 cache_size = (remain>4096) ? 4096 : (u32) remain;
-				gf_bs_read_data(file->movieFileMap->bs, buf_cache, cache_size);
+				u32 nb_read = gf_bs_read_data(file->movieFileMap->bs, buf_cache, cache_size);
+
+				if (nb_read < cache_size) {
+					if (nb_read)
+						gf_bs_write_data(item_bs, buf_cache, nb_read);
+					e = GF_ISOM_INVALID_FILE;
+					break;
+				}
 				gf_bs_write_data(item_bs, buf_cache, cache_size);
 				remain -= cache_size;
 			}
