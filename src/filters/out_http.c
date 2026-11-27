@@ -5932,7 +5932,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"The filter uses no read or write directories in this mode.\n"
 		"EX gpac -i SOURCE -o http://targethost:8080/live.mpd:gpac:hmode=push\n"
 		"In this example, the filter will send PUT methods to the server running on [-port]() 8080 at `targethost` location (IP address or name).\n"
-		"With `cte=frag`, the first HTTP chunk of a media segment also contains its segment header and one complete fragment is buffered per input. This does not control HTTP/2 or HTTP/3 framing, or chunk boundaries after an HTTP intermediary.\n"
+		"With `cte=frag`, the first HTTP chunk of a media segment contains its segment header, then complete fragments are buffered and transmitted. This parameter does not control HTTP/2 or HTTP/3 framing, or chunk boundaries after an HTTP intermediary.\n"
 		"  \n"
 		"# HTTP server source\n"
 		"In this mode, the server acts as a source rather than a sink. It declares incoming PUT or POST methods as output PIDs\n"
